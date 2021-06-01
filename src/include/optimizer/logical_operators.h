@@ -1271,6 +1271,7 @@ class LogicalCreateFunction : public OperatorNodeContents<LogicalCreateFunction>
 class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
  public:
   /**
+   * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param index_type Type of the index
@@ -1279,8 +1280,9 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @param index_attrs Attributes of the index
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                       parser::IndexType index_type, bool unique, std::string index_name,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
+                       std::string index_name,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
 
   /**
@@ -1296,6 +1298,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the table
@@ -1323,6 +1330,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
 
  private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
   /**
    * OID of the namespace
    */

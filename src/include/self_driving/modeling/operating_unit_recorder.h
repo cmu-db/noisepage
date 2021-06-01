@@ -36,6 +36,7 @@ namespace noisepage::planner {
 class AbstractPlanNode;
 class AbstractJoinPlanNode;
 class AbstractScanPlanNode;
+class PlanMetaData;
 }  // namespace noisepage::planner
 
 namespace noisepage::selfdriving {
@@ -51,13 +52,13 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param accessor CatalogAccessor
    * @param ast_ctx AstContext
    * @param pipeline Current pipeline, used to figure out if a given translator is Build or Probe.
-   * @param query_text The SQL query string
+   * @param plan_meta_data The plan meta data that stores the stats
    */
   explicit OperatingUnitRecorder(common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                  common::ManagedPointer<execution::ast::Context> ast_ctx,
                                  common::ManagedPointer<execution::compiler::Pipeline> pipeline,
-                                 common::ManagedPointer<const std::string> query_text)
-      : accessor_(accessor), ast_ctx_(ast_ctx), current_pipeline_(pipeline) {}
+                                 common::ManagedPointer<planner::PlanMetaData> plan_meta_data)
+      : accessor_(accessor), ast_ctx_(ast_ctx), current_pipeline_(pipeline), plan_meta_data_(plan_meta_data) {}
 
   /**
    * Extracts features from OperatorTranslators
@@ -114,9 +115,10 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * that requires modifying any system index.
    *
    * @param index_oids Index OIDs to record operations for.
+   * @param table_oid Table OID that the indexes belong to.
    */
   template <typename IndexPlanNode>
-  void RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids);
+  void RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids, catalog::table_oid_t table_oid);
 
   template <typename Translator>
   void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
@@ -237,6 +239,9 @@ class OperatingUnitRecorder : planner::PlanVisitor {
 
   /** Pipeline, used to figure out if current translator is Build or Probe. */
   common::ManagedPointer<execution::compiler::Pipeline> current_pipeline_;
+
+  /** Query plan meta data */
+  common::ManagedPointer<planner::PlanMetaData> plan_meta_data_;
 };
 
 }  // namespace noisepage::selfdriving

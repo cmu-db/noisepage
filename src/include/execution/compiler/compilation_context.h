@@ -16,6 +16,7 @@ class AbstractExpression;
 
 namespace noisepage::planner {
 class AbstractPlanNode;
+class PlanMetaData;
 }  // namespace noisepage::planner
 
 namespace noisepage::execution::compiler {
@@ -49,14 +50,13 @@ class CompilationContext {
    * @param accessor The catalog accessor to use for compilation.
    * @param mode The compilation mode.
    * @param override_qid Optional indicating how to override the plan's query id
-   * @param query_text The SQL query string (temporary)
+   * @param plan_meta_data Query plan meta data (stores cardinality information)
    */
-  static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
-                                                  const exec::ExecutionSettings &exec_settings,
-                                                  catalog::CatalogAccessor *accessor,
-                                                  CompilationMode mode = CompilationMode::Interleaved,
-                                                  std::optional<execution::query_id_t> override_qid = std::nullopt,
-                                                  common::ManagedPointer<const std::string> query_text = nullptr);
+  static std::unique_ptr<ExecutableQuery> Compile(
+      const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
+      catalog::CatalogAccessor *accessor, CompilationMode mode = CompilationMode::Interleaved,
+      std::optional<execution::query_id_t> override_qid = std::nullopt,
+      common::ManagedPointer<planner::PlanMetaData> plan_meta_data = nullptr);
 
   /**
    * Register a pipeline in this context.
@@ -127,15 +127,16 @@ class CompilationContext {
   bool IsPipelineMetricsEnabled() const { return pipeline_metrics_enabled_; }
 
   /** @return Query Id associated with the query */
-  query_id_t GetQueryId() const { return query_id_t{unique_id_}; }
+  query_id_t GetQueryId() const { return query_id_; }
 
  private:
   // Private to force use of static Compile() function.
-  explicit CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, CompilationMode mode,
-                              const exec::ExecutionSettings &exec_settings);
+  explicit CompilationContext(ExecutableQuery *query, query_id_t query_id_, catalog::CatalogAccessor *accessor,
+                              CompilationMode mode, const exec::ExecutionSettings &exec_settings);
 
   // Given a plan node, compile it into a compiled query object.
-  void GeneratePlan(const planner::AbstractPlanNode &plan);
+  void GeneratePlan(const planner::AbstractPlanNode &plan,
+                    common::ManagedPointer<planner::PlanMetaData> plan_meta_data);
 
   // Generate the query initialization function.
   ast::FunctionDecl *GenerateInitFunction();
@@ -149,6 +150,9 @@ class CompilationContext {
  private:
   // Unique ID used as a prefix for all generated functions to ensure uniqueness.
   uint32_t unique_id_;
+
+  // Query ID generated from ExecutableQuery or overridden specifically
+  query_id_t query_id_;
 
   // The compiled query object we'll update.
   ExecutableQuery *query_;

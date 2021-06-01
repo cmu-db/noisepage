@@ -135,6 +135,10 @@ double SelectivityUtil::Equal(common::ManagedPointer<ColumnStats<T>> column_stat
   // Find frequency of the value if present in the top K elements.
   auto value_frequency_estimate = top_k->EstimateItemCount(value);
 
+  // If all values are distinct, then there can be at most one value equal to the specified value
+  if (column_stats->GetDistinctValues() == numrows)
+    value_frequency_estimate = std::min<uint64_t>(value_frequency_estimate, 1lu);
+
   double res = value_frequency_estimate / static_cast<double>(numrows);
 
   NOISEPAGE_ASSERT(res >= 0 && res <= 1, "Selectivity of operator must be within valid range");

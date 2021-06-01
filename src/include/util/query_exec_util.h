@@ -8,8 +8,10 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
+#include "planner/plannodes/output_schema.h"
 #include "type/type_id.h"
 
 namespace noisepage::transaction {
@@ -20,10 +22,6 @@ class TransactionManager;
 namespace noisepage::parser {
 class ConstantValueExpression;
 }  // namespace noisepage::parser
-
-namespace noisepage::execution::compiler {
-class ExecutableQuery;
-}  // namespace noisepage::execution::compiler
 
 namespace noisepage::execution::sql {
 struct Val;
@@ -49,7 +47,6 @@ class StatsStorage;
 
 namespace noisepage::planner {
 class AbstractPlanNode;
-class OutputSchema;
 }  // namespace noisepage::planner
 
 namespace noisepage::network {
@@ -127,9 +124,11 @@ class QueryExecUtil {
   /**
    * Execute a standalone DDL
    * @param query DDL query to execute
+   * @param what_if whether this is a "what-if" API call (e.g., only create the index entry in the catalog without
+   * populating it)
    * @return true if success
    */
-  bool ExecuteDDL(const std::string &query);
+  bool ExecuteDDL(const std::string &query, bool what_if);
 
   /**
    * Execute a standalone DML statement
@@ -181,14 +180,23 @@ class QueryExecUtil {
                     const execution::exec::ExecutionSettings &exec_settings);
 
   /**
+   * Get ExecutableQuery
+   * @param statement Previously compiled query statement (serves as identifier)
+   * @return compiled query statement or nullptr if haven't compiled
+   */
+  common::ManagedPointer<execution::compiler::ExecutableQuery> GetExecutableQuery(const std::string &statement) {
+    return common::ManagedPointer(exec_queries_[statement]);
+  }
+
+  /**
    * Plans a query
    * @param query Statement to plan
    * @param params Placeholder parameters for query plan
    * @param param_types Types of query parameters
    * @param cost Cost model to use
-   * @return pair of resultant statement and plan node
+   * @return the result Statement including the optimized plan
    */
-  std::pair<std::unique_ptr<network::Statement>, std::unique_ptr<planner::AbstractPlanNode>> PlanStatement(
+  std::unique_ptr<network::Statement> PlanStatement(
       const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
       common::ManagedPointer<std::vector<type::TypeId>> param_types,
       std::unique_ptr<optimizer::AbstractCostModel> cost);

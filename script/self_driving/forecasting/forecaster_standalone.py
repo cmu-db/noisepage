@@ -3,7 +3,7 @@
 Script for standalone workload forecasting without relying on model server
 Example usage:
 - Generate data (runs OLTP benchmark on the built database) and perform training, and save the trained model
-    ./forecaster_standalone --generate_data 
+    ./forecaster_standalone --generate_data
 
 - Perform training and save the trained model
     ./forecaster_standalone --models=LSTM --model_save_path=model.pickle
@@ -48,7 +48,7 @@ argp.add_argument(
     action="store_true",
     help="If specified, OLTP benchmark would be downloaded and built to generate the query trace data")
 argp.add_argument(
-    "--record_pipeline_metrics",
+    "--record_pipeline_metrics_with_counters",
     default=False,
     action="store_true",
     help="If specified, the database records the pipeline metrics data instead of the query trace data")
@@ -141,7 +141,7 @@ if __name__ == "__main__":
                 result_file_path=constants.DEFAULT_PIPELINE_METRICS_FILE,
                 fns_pre_run=[forecast.make_fn_test_case_run_pre_test(create=True, load=True),
                              forecast.make_fn_config_forecast_data_tpcc(args.tpcc_rates, args.pattern_iter),
-                             forecast.fn_pipeline_metrics,
+                             forecast.fn_pipeline_metrics_with_counters,
                              forecast.make_fn_remove_results_file(constants.DEFAULT_PIPELINE_METRICS_FILE)],
                 should_execute=True,
                 fns_post_run=[],

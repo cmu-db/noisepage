@@ -85,13 +85,13 @@ def get_config_tpcc(weights=constants.DEFAULT_TPCC_WEIGHTS,
     return config
 
 
-def fn_pipeline_metrics(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
+def fn_pipeline_metrics_with_counters(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
     """Enable pipeline metrics."""
     db_server = oltpbench.db_instance
     db_server.execute("SET pipeline_metrics_enable='true'", expect_result=False, quiet=False)
     db_server.execute("SET pipeline_metrics_sample_rate={}".format(constants.DEFAULT_PIPELINE_METRICS_SAMPLE_RATE),
                       expect_result=False, quiet=False)
-
+    db_server.execute("SET counters_enable='true'", expect_result=False, quiet=False)
 
 def fn_query_trace_metrics(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
     """Enable query trace metrics."""

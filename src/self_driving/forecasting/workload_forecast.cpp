@@ -44,8 +44,10 @@ WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, 
   InitFromInference(inference);
 }
 
-WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, uint64_t num_sample) {
+WorkloadForecast::WorkloadForecast(const WorkloadForecastPrediction &inference, uint64_t forecast_interval,
+                                   uint64_t num_sample) {
   num_sample_ = num_sample;
+  forecast_interval_ = forecast_interval;
   LoadQueryText();
   LoadQueryTrace();
   InitFromInference(inference);
@@ -151,7 +153,7 @@ void WorkloadForecast::LoadQueryText() {
       type_string.erase(0, pos + 1);
     }
 
-    workload_metadata_.query_id_to_dboid_[query_id] = db_oid;
+    workload_metadata_.query_id_to_dboid_[query_id] = catalog::db_oid_t(db_oid);
     workload_metadata_.query_id_to_param_types_[query_id] = std::move(param_types);
   }
   // Close file

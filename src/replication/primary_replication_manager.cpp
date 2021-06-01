@@ -37,6 +37,19 @@ void PrimaryReplicationManager::ReplicateBatchOfRecords(storage::BufferedLogWrit
   REPLICATION_LOG_TRACE(fmt::format("[SEND] Preparing ReplicateBatchOfRecords."));
   NOISEPAGE_ASSERT(policy != transaction::ReplicationPolicy::DISABLE, "Replication is disabled, so why are we here?");
 
+  // Handle the degenerate case of having no replicas.
+  if (replicas_.empty()) {
+    // Invoke all the commit callbacks.
+    for (const auto &cb : commit_callbacks) {
+      cb.fn_(cb.arg_);
+    }
+    // Return the buffered log writer to the pool if necessary.
+    if (records_batch != nullptr && records_batch->MarkSerialized()) {
+      empty_buffer_queue_->Enqueue(records_batch);
+    }
+    return;
+  }
+
   if (policy == transaction::ReplicationPolicy::ASYNC) {
     // In asynchronous replication, just invoke the commit callbacks immediately.
     for (const auto &cb : commit_callbacks) {

@@ -255,6 +255,16 @@ SETTING_int64(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_int64(
+    pilot_memory_constraint,
+    "Maximum amount of memory allowed for the pilot to plan. (default : 1000000000, unit: byte)",
+    1000000000,
+    0,
+    100000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     metrics,
     "Metrics sub-system for various components (default: true).",
@@ -493,9 +503,17 @@ SETTING_bool(
 
 // Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH)
 SETTING_string(
-    model_save_path,
-    "Save path of the model relative to the build path (default: ../script/model/terrier_model_server_trained/mini_model_test.pickle)",
-    "../script/model/terrier_model_server_trained/mini_model_test.pickle",
+    ou_model_save_path,
+    "Save path of the OU model relative to the build path (default: ou_model_map.pickle)",
+    "ou_model_map.pickle",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    interference_model_save_path,
+    "Save path of the forecast model relative to the build path (default: interference_direct_model.pickle)",
+    "interference_direct_model.pickle",
     false,
     noisepage::settings::Callbacks::NoOp
 )
@@ -543,4 +561,91 @@ SETTING_string(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_bool(
+    train_forecast_model,
+    "Train the forecast model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainForecastModel
+)
+
+SETTING_bool(
+    train_interference_model,
+    "Train the interference model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainInterferenceModel
+)
+
+SETTING_string(
+    interference_model_input_path,
+    "Input path to the directory containing training the interference model",
+    "concurrent_runner_input/",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    interference_model_train_methods,
+    "Methods to be used for training the interference model (comma delimited)",
+    "rf",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    interference_model_train_timeout,
+    "Timeout in milliseconds for training the interference model (default: 2 minutes)",
+    120000,
+    1000,
+    600000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    interference_model_pipeline_sample_rate,
+    "Sampling rate of pipeline metrics OUs (0 is ignored)",
+    2,
+    0,
+    10,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    train_ou_model,
+    "Train the OU model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainOUModel
+)
+
+SETTING_string(
+    ou_model_input_path,
+    "Input path to the directory containing training the OU model",
+    "ou_runner_input/",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    ou_model_train_methods,
+    "Methods to be used for training the OU model (comma delimited)",
+    "lr,rf,gbm,nn",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    ou_model_train_timeout,
+    "Timeout in milliseconds for training the OU model (default: 2 minutes)",
+    120000,
+    1000,
+    600000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
     // clang-format on

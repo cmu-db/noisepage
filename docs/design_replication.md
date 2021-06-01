@@ -8,6 +8,69 @@
 
 ## Replication
 
+### Semantics
+
+#### Overview
+
+NoisePage has the following semantics, loosely modeled off SingleStore:
+
+Durability: do commits wait for logs to be written to disk?
+- DISABLE: Logs are not written to disk. This also disables replication.
+- SYNC: Commits must wait for logs to be written to disk.
+- ASYNC: Commits do not need to wait for logs to be written to disk.
+
+Replication: do logs get replicated across nodes?
+- DISABLE: Logs are not replicated.
+- SYNC: Commits must wait for logs to be replicated (and applied^).
+- ASYNC: Commits do not need to wait for logs to replicated. But logs will be replicated, eventually.
+
+^ Note that this is a stronger requirement than SingleStore.
+
+#### Comparison to Postgres streaming replication
+
+##### Granularity
+
+By default, Postgres streaming replication has two types of log shipping:
+- File-based: ship at the granularity of 16 MB WAL segments
+- Record-based: ship at the granularity of records
+
+NoisePage is currently kind of file-based, but the "file size" is whatever is in the `LogSerializerTask`.
+
+##### Monitoring
+
+- Postgres has
+  - Primary: `pg_current_wal_lsn`, `sent_lsn`, determines what has been sent so far
+  - Replica: `pg_last_wal_receive_lsn`, determines what has been received so far
+- We don't have any LSNs in NoisePage. The best we can do is txn start time, which is not helpful here. For example,
+  - First txn has ID 500.
+  - Second txn has ID 9999999.
+  - No easy way of tracking progress.
+
+##### Sync/async
+
+Sync
+- Postgres controls this with the `synchronous_commit` setting, roughly in order of decreasing strength:
+  - `remote_apply`: replicas must have flushed AND applied the data.
+  - `on`: default setting, all `synchronous_standby_names` servers must have flushed the data.
+  - `local`: only wait for txn to be flushed to local disk.
+  - `remote_write`: replicas must have written the data (but not necessarily fsync).
+  - `off`: see async below.
+
+Async
+- Postgres ships WAL records after txn commit.
+- Postgres hot standbys are eventually consistent.
+
+[Cybertec](https://www.cybertec-postgresql.com/en/the-synchronous_commit-parameter/) has published some pgbench numbers (tps).
+- Async `off`: 6211
+- Async `on`: 4256
+- Sync `remote_write`: 3720
+- Sync `on`: 3329
+- Sync `remote_apply`: 3055
+
+NoisePage currently is closest to `remote_apply` when synchronous replication is specified. It isn't exactly apples-to-apples, but:
+- To support `on` and `remote_write`, modify `RecoveryManager` and/or `ReplicationLogProvider` to ACK as soon as the txn is seen, without waiting for the txn to be applied. Switch between replica SYNC and ASYNC durability to get the desired behavior.
+- To support `local`, is to run the primary with SYNC durability ASYNC replication.
+
 ### Lifecycle
 
 1. A transaction in the system generates various records, such as `RedoRecord`, `CommitRecord`, etc.

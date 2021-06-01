@@ -103,15 +103,6 @@ class Statement {
   }
 
   /**
-   * @param physical_plan physical plan to take ownership of
-   */
-  void SetPhysicalPlan(std::unique_ptr<planner::AbstractPlanNode> &&physical_plan) {
-    if (!optimize_result_) {
-      optimize_result_ = std::make_unique<optimizer::OptimizeResult>();
-    }
-    optimize_result_->SetPlanNode(std::move(physical_plan));
-  }
-  /**
    * @param executable_query executable query to take ownership of
    */
   void SetExecutableQuery(std::unique_ptr<execution::compiler::ExecutableQuery> &&executable_query) {
