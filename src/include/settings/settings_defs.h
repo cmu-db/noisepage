@@ -509,11 +509,14 @@ SETTING_bool(
     noisepage::settings::Callbacks::NoOp
 )
 
+// TODO(WAN): The save paths cannot be changed at runtime because of implementation issues with the planning context
+//            and pilot stuff. This can be engineered out later.
+
 SETTING_string(
     ou_model_save_path,
     "Save path of the OU model relative to the NoisePage binary workdir (default: ou_model_map.pickle)",
     "ou_model_map.pickle",
-    true,
+    false,
     noisepage::settings::Callbacks::NoOp
 )
 
@@ -521,7 +524,7 @@ SETTING_string(
     interference_model_save_path,
     "Save path of the forecast model relative to NoisePage binary workdir (default: interference_direct_model.pickle)",
     "interference_direct_model.pickle",
-    true,
+    false,
     noisepage::settings::Callbacks::NoOp
 )
 
