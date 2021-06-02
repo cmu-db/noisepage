@@ -636,19 +636,38 @@ void BytecodeGenerator::VisitSqlStringLikeCall(ast::CallExpr *call) {
 }
 
 void BytecodeGenerator::VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
-  auto dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-  auto input = VisitExpressionForSQLValue(call->Arguments()[0]);
-  auto date_type =
-      sql::DatePartType(call->Arguments()[1]->As<ast::CallExpr>()->Arguments()[0]->As<ast::LitExpr>()->Int64Val());
+  switch (builtin) {
+    case ast::Builtin::DatePart: {
+      auto dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      auto input = VisitExpressionForSQLValue(call->Arguments()[0]);
+      auto date_type =
+          sql::DatePartType(call->Arguments()[1]->As<ast::CallExpr>()->Arguments()[0]->As<ast::LitExpr>()->Int64Val());
 
-  switch (date_type) {
-    case sql::DatePartType::YEAR:
-      GetEmitter()->Emit(Bytecode::ExtractYearFromDate, dest, input);
+      switch (date_type) {
+        case sql::DatePartType::YEAR:
+          GetEmitter()->Emit(Bytecode::ExtractYearFromDate, dest, input);
+          break;
+        default:
+          UNREACHABLE("Unimplemented DatePartType");
+      }
+      GetExecutionResult()->SetDestination(dest);
       break;
+    }
+    case ast::Builtin::DatePartPostgres: {
+      auto dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      auto text = call->Arguments()[0]->As<ast::CallExpr>()->Arguments()[0]->As<ast::LitExpr>()->StringVal().GetView();
+      auto timestamp = VisitExpressionForSQLValue(call->Arguments()[1]);
+
+      if (text == "year") {
+        GetEmitter()->Emit(Bytecode::ExtractYearFromTimestamp, dest, timestamp);
+      } else {
+        UNREACHABLE("Unimplemented DatePartPostgres case.");
+      }
+      break;
+    }
     default:
-      UNREACHABLE("Unimplemented DatePartType");
+      UNREACHABLE("Unimplemented Date builtin");
   }
-  GetExecutionResult()->SetDestination(dest);
 }
 
 void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2682,7 +2701,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitSqlStringLikeCall(call);
       break;
     }
-    case ast::Builtin::DatePart: {
+    case ast::Builtin::DatePart:
+    case ast::Builtin::DatePartPostgres: {
       VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }

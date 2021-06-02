@@ -735,8 +735,9 @@ namespace noisepage::execution::vm {
   F(Position, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitCap, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
-  /* Date Functions */                                                                                                \
+  /* Date and timestamp functions. */                                                                                 \
   F(ExtractYearFromDate, OperandType::Local, OperandType::Local)                                                      \
+  F(ExtractYearFromTimestamp, OperandType::Local, OperandType::Local)                                                 \
                                                                                                                       \
   F(AbortTxn, OperandType::Local)                                                                                     \
                                                                                                                       \

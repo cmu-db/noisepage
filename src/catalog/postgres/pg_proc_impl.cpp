@@ -364,12 +364,13 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
 
 void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn,
                                 const common::ManagedPointer<DatabaseCatalog> dbc) {
-  const auto INT = dbc->GetTypeOidForType(type::TypeId::INTEGER);   // NOLINT
-  const auto STR = dbc->GetTypeOidForType(type::TypeId::VARCHAR);   // NOLINT
-  const auto REAL = dbc->GetTypeOidForType(type::TypeId::REAL);     // NOLINT
-  const auto DATE = dbc->GetTypeOidForType(type::TypeId::DATE);     // NOLINT
-  const auto BOOL = dbc->GetTypeOidForType(type::TypeId::BOOLEAN);  // NOLINT
-  const auto VAR = dbc->GetTypeOidForType(type::TypeId::VARIADIC);  // NOLINT
+  const auto INT = dbc->GetTypeOidForType(type::TypeId::INTEGER);          // NOLINT
+  const auto STR = dbc->GetTypeOidForType(type::TypeId::VARCHAR);          // NOLINT
+  const auto REAL = dbc->GetTypeOidForType(type::TypeId::REAL);            // NOLINT
+  const auto DATE = dbc->GetTypeOidForType(type::TypeId::DATE);            // NOLINT
+  const auto TIMESTAMP = dbc->GetTypeOidForType(type::TypeId::TIMESTAMP);  // NOLINT
+  const auto BOOL = dbc->GetTypeOidForType(type::TypeId::BOOLEAN);         // NOLINT
+  const auto VAR = dbc->GetTypeOidForType(type::TypeId::VARIADIC);         // NOLINT
 
   auto create_fn = [&](const std::string &procname, const std::vector<std::string> &args,
                        const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
@@ -441,7 +442,8 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   create_fn("replication_get_last_txn_id", {}, {}, {}, INT, false);
 
   // Other functions.
-  create_fn("date_part", {"date, date_part_type"}, {DATE, INT}, {DATE, INT}, INT, false);
+  create_fn("date_part", {"date", "date_part_type"}, {DATE, INT}, {DATE, INT}, INT, false);
+  create_fn("date_part", {"text", "timestamp"}, {STR, TIMESTAMP}, {STR, TIMESTAMP}, INT, false);
   create_fn("version", {}, {}, {}, STR, false);
 
   CreateProcedure(
@@ -481,9 +483,11 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
 
 void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const common::ManagedPointer<DatabaseCatalog> dbc) {
-  constexpr auto REAL = type::TypeId::REAL;    // NOLINT
-  constexpr auto INT = type::TypeId::INTEGER;  // NOLINT
-  constexpr auto VAR = type::TypeId::VARCHAR;  // NOLINT
+  constexpr auto REAL = type::TypeId::REAL;            // NOLINT
+  constexpr auto INT = type::TypeId::INTEGER;          // NOLINT
+  constexpr auto VAR = type::TypeId::VARCHAR;          // NOLINT
+  constexpr auto DATE = type::TypeId::DATE;            // NOLINT
+  constexpr auto TIMESTAMP = type::TypeId::TIMESTAMP;  // NOLINT
 
   auto create_fn = [&](std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
                        execution::ast::Builtin builtin, bool is_exec_ctx_required) {
@@ -553,7 +557,8 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   create_fn("replication_get_last_txn_id", INT, {}, execution::ast::Builtin::ReplicationGetLastTransactionId, true);
 
   // Other functions.
-  create_fn("date_part", INT, {type::TypeId::DATE, INT}, execution::ast::Builtin::DatePart, false);
+  create_fn("date_part", INT, {DATE, INT}, execution::ast::Builtin::DatePart, false);
+  create_fn("date_part", INT, {VAR, TIMESTAMP}, execution::ast::Builtin::DatePartPostgres, false);
   create_fn("version", VAR, {}, execution::ast::Builtin::Version, true);
 
   create_fn("nprunnersemitint", INT, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitInt, true);

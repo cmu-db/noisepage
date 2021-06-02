@@ -2590,6 +2590,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExtractYearFromTimestamp) : {
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<sql::TimestampVal *>(READ_LOCAL_ID());
+    OpExtractYearFromTimestamp(result, input);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Replication functions
   // -------------------------------------------------------

@@ -2113,6 +2113,16 @@ VM_OP_WARM void OpExtractYearFromDate(noisepage::execution::sql::Integer *result
   }
 }
 
+VM_OP_WARM void OpExtractYearFromTimestamp(noisepage::execution::sql::Integer *result,
+                                           noisepage::execution::sql::TimestampVal *input) {
+  if (input->is_null_) {
+    result->is_null_ = true;
+  } else {
+    result->is_null_ = false;
+    result->val_ = input->val_.ExtractYear();
+  }
+}
+
 VM_OP_WARM void OpAbortTxn(noisepage::execution::exec::ExecutionContext *exec_ctx) {
   exec_ctx->GetTxn()->SetMustAbort();
   throw noisepage::ABORT_EXCEPTION("transaction aborted");
