@@ -99,70 +99,70 @@ class TableRefDependencyGraphTest : public TerrierTest {
 // Constructing Dependency Graph from Input Query
 // ----------------------------------------------------------------------------
 
-TEST_F(TableRefDependencyGraphTest, ExtractSelectStatementFromParseResult) {
-  const std::string sql = "SELECT * FROM TestTable;";
-  auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
+// TEST_F(TableRefDependencyGraphTest, ExtractSelectStatementFromParseResult) {
+//   const std::string sql = "SELECT * FROM TestTable;";
+//   auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
 
-  EXPECT_EQ(parser::StatementType::SELECT, parse_tree->GetStatement(0)->GetType());
+//   EXPECT_EQ(parser::StatementType::SELECT, parse_tree->GetStatement(0)->GetType());
 
-  auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+//   auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
 
-  EXPECT_EQ(select->GetDepth(), -1);
+//   EXPECT_EQ(select->GetDepth(), -1);
 
-  EXPECT_TRUE(select->HasSelectTable());
-  EXPECT_EQ(select->GetSelectTable()->GetAlias(), "testtable");
-}
+//   EXPECT_TRUE(select->HasSelectTable());
+//   EXPECT_EQ(select->GetSelectTable()->GetAlias(), "testtable");
+// }
 
-TEST_F(TableRefDependencyGraphTest, BuildGraphFromQuery0) {
-  const std::string sql = "SELECT * FROM TestTable;";
-  auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
+// TEST_F(TableRefDependencyGraphTest, BuildGraphFromQuery0) {
+//   const std::string sql = "SELECT * FROM TestTable;";
+//   auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
 
-  EXPECT_EQ(parser::StatementType::SELECT, parse_tree->GetStatement(0)->GetType());
-  auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+//   EXPECT_EQ(parser::StatementType::SELECT, parse_tree->GetStatement(0)->GetType());
+//   auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
 
-  // Construct a dependency graph from the query
-  binder::TableRefDependencyGraph graph{select->GetSelectWith(), common::ManagedPointer{accessor_}};
+//   // Construct a dependency graph from the query
+//   binder::TableRefDependencyGraph graph{select->GetSelectWith(), common::ManagedPointer{accessor_}};
 
-  // Construct the expected graph
-  binder::AliasAdjacencyList expected{};
+//   // Construct the expected graph
+//   binder::AliasAdjacencyList expected{};
 
-  // Check
-  EXPECT_TRUE(binder::AliasAdjacencyList::Equals(graph.AdjacencyList(), expected));
-}
+//   // Check
+//   EXPECT_TRUE(binder::AliasAdjacencyList::Equals(graph.AdjacencyList(), expected));
+// }
 
-TEST_F(TableRefDependencyGraphTest, BuildGraphFromQuery1) {
-  const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
-  auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
+// TEST_F(TableRefDependencyGraphTest, BuildGraphFromQuery1) {
+//   const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
+//   auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
 
-  EXPECT_EQ(parser::StatementType::SELECT, parse_tree->GetStatement(0)->GetType());
-  auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+//   EXPECT_EQ(parser::StatementType::SELECT, parse_tree->GetStatement(0)->GetType());
+//   auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
 
-  // Construct a dependency graph from the query
-  binder::TableRefDependencyGraph graph{select->GetSelectWith(), common::ManagedPointer{accessor_}};
+//   // Construct a dependency graph from the query
+//   binder::TableRefDependencyGraph graph{select->GetSelectWith(), common::ManagedPointer{accessor_}};
 
-  // Construct the expected graph
-  binder::AliasAdjacencyList expected{};
+//   // Construct the expected graph
+//   binder::AliasAdjacencyList expected{};
 
-  // Check
-  EXPECT_TRUE(binder::AliasAdjacencyList::Equals(graph.AdjacencyList(), expected));
-}
+//   // Check
+//   EXPECT_TRUE(binder::AliasAdjacencyList::Equals(graph.AdjacencyList(), expected));
+// }
 
-TEST_F(TableRefDependencyGraphTest, BuildGraphFromQuery2) {
-  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-  auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
+// TEST_F(TableRefDependencyGraphTest, BuildGraphFromQuery2) {
+//   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+//   auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
 
-  EXPECT_EQ(parser::StatementType::SELECT, parse_tree->GetStatement(0)->GetType());
-  auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
+//   EXPECT_EQ(parser::StatementType::SELECT, parse_tree->GetStatement(0)->GetType());
+//   auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
 
-  // Construct a dependency graph from the query
-  binder::TableRefDependencyGraph graph{select->GetSelectWith(), common::ManagedPointer{accessor_}};
+//   // Construct a dependency graph from the query
+//   binder::TableRefDependencyGraph graph{select->GetSelectWith(), common::ManagedPointer{accessor_}};
 
-  // Construct the expected graph
-  binder::AliasAdjacencyList expected{};
-  expected.AddEdge("y", "x");
+//   // Construct the expected graph
+//   binder::AliasAdjacencyList expected{};
+//   expected.AddEdge("y", "x");
 
-  // Check
-  EXPECT_TRUE(binder::AliasAdjacencyList::Equals(graph.AdjacencyList(), expected));
-}
+//   // Check
+//   EXPECT_TRUE(binder::AliasAdjacencyList::Equals(graph.AdjacencyList(), expected));
+// }
 
 }  // namespace noisepage

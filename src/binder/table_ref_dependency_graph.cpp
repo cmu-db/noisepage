@@ -1,69 +1,27 @@
 #include "binder/table_ref_dependency_graph.h"
 
+#include "common/graph.h"
 #include "parser/select_statement.h"
 #include "parser/table_ref.h"
 
 namespace noisepage::binder {
 
 // ----------------------------------------------------------------------------
-// AliasAdjacencyList
-// ----------------------------------------------------------------------------
-
-void AliasAdjacencyList::AddEdge(const std::string &src, const std::string &dst) { adjacency_list_[src].insert(dst); }
-
-std::vector<std::string> AliasAdjacencyList::Nodes() const {
-  std::vector<std::string> nodes{};
-  nodes.reserve(adjacency_list_.size());
-  for (auto &[k, _] : adjacency_list_) {
-    nodes.push_back(k);
-  }
-  return nodes;
-}
-
-const std::set<std::string> &AliasAdjacencyList::AdjacenciesFor(const std::string &alias) const {
-  NOISEPAGE_ASSERT(adjacency_list_.find(alias) != adjacency_list_.cend(), "Alias not present in adjacency list");
-  return adjacency_list_.at(alias);
-}
-
-bool AliasAdjacencyList::Equals(const AliasAdjacencyList &lhs, const AliasAdjacencyList &rhs) {
-  auto lhs_nodes = lhs.Nodes();
-  auto rhs_nodes = rhs.Nodes();
-  std::sort(lhs_nodes.begin(), lhs_nodes.end());
-  std::sort(rhs_nodes.begin(), rhs_nodes.end());
-
-  // Ensure that the vertex set of each adjacency list is equivalent
-  std::vector<std::string> difference{};
-  std::set_symmetric_difference(lhs_nodes.cbegin(), lhs_nodes.cend(), rhs_nodes.cbegin(), rhs_nodes.cend(),
-                                std::back_inserter(difference));
-  if (!difference.empty()) {
-    return false;
-  }
-
-  // Ensure the adjacencies for each node are equivalent
-  for (const auto &alias : lhs_nodes) {
-    const auto &lhs_edges = lhs.AdjacenciesFor(alias);
-    const auto &rhs_edges = rhs.AdjacenciesFor(alias);
-    std::set_symmetric_difference(lhs_edges.cbegin(), lhs_edges.cend(), rhs_edges.cbegin(), rhs_edges.cend(),
-                                  std::back_inserter(difference));
-    if (!difference.empty()) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-// ----------------------------------------------------------------------------
 // TableDependencyGraph
 // ----------------------------------------------------------------------------
 
-TableRefDependencyGraph::TableRefDependencyGraph(
-    const std::vector<common::ManagedPointer<parser::TableRef>> &table_refs,
-    common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor)
+TableRefDependencyGraph::TableRefDependencyGraph(common::ManagedPointer<parser::SelectStatement> root_select,
+                                                 common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor)
     : catalog_accessor_{catalog_accessor} {
+  // TODO(Kyle): Are there cases in which the root SELECT does not have a table?
+  if (root_select->HasSelectTable()) {
+    // The root SELECT statement cannot have an dependencies
+    graph_[root_select->GetSelectTable()] = {};
+  }
+
   // Visit each of the top-level references
   TableRefDependencyGraphVisitor visitor{&graph_};
-  for (const auto &ref : table_refs) {
+  for (const auto &ref : root_select->GetSelectWith()) {
     visitor.Visit(ref);
   }
 
@@ -71,14 +29,12 @@ TableRefDependencyGraph::TableRefDependencyGraph(
   (void)catalog_accessor_;
 }
 
-AliasAdjacencyList TableRefDependencyGraph::AdjacencyList() const {
-  AliasAdjacencyList adjacency_list{};
-  for (const auto &[table_ref, dependencies] : graph_) {
-    for (const auto &dep : dependencies) {
-      adjacency_list.AddEdge(table_ref->GetAlias(), dep->GetAlias());
-    }
-  }
-  return adjacency_list;
+common::Graph TableRefDependencyGraph::ToGraph(
+    std::unordered_map<std::size_t, common::ManagedPointer<parser::TableRef>> *metadata) const {
+  // Construct an (arbitrary) mapping from vertex identifiers to table references;
+  // this is necesary because after we use the generic Graph representation to
+  // run various graph algorithms, we want to be able to come back to table references
+  return common::Graph{};
 }
 
 // ----------------------------------------------------------------------------

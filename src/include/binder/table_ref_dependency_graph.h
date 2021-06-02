@@ -19,57 +19,13 @@ namespace noisepage::catalog {
 class CatalogAccessor;
 }  // namespace noisepage::catalog
 
+namespace noisepage::common {
+class Graph;
+}  // namespace noisepage::common
+
 namespace noisepage::binder {
 
 class TableRefDependencyGraphVisitor;
-
-/**
- * The AliasAdjacencyList class is a simplified representation
- * of the dependenc graph for table references; it is used as
- * an intermediary data structure to simplify testing.
- */
-class AliasAdjacencyList {
- public:
-  AliasAdjacencyList() = default;
-
-  /**
-   * Add an edge to the AdjacencyList instance.
-   * @param src The source node identifier
-   * @param dst The destination node identifier
-   */
-  void AddEdge(const std::string &src, const std::string &dst);
-
-  /**
-   * Get the vertex set for the AdjacencyList instance.
-   * @return A collection of all node identifiers
-   */
-  std::vector<std::string> Nodes() const;
-
-  /**
-   * Get the adjacencies for the specified alias.
-   * @pre The specified alias is present in the AdjacencyList
-   * @param alias The alias for which to query
-   * @return An immutable reference to the adjacencies for `alias`
-   */
-  const std::set<std::string> &AdjacenciesFor(const std::string &alias) const;
-
-  /**
-   * Determine if AdjacencyList `lhs` is equivalent to AdjacencyList `rhs`.
-   * @param lhs Input adjacency list
-   * @param rhs Input adjacency list
-   * @return `true` if `lhs` is equivalent to `rhs`, `false` otherwise
-   */
-  static bool Equals(const AliasAdjacencyList &lhs, const AliasAdjacencyList &rhs);
-
- private:
-  /**
-   * The underlying adjacency list.
-   *
-   * NOTE: We use std::set rather than std::set here because we
-   * rely on the container being sorted for equality comparison.
-   */
-  std::unordered_map<std::string, std::set<std::string>> adjacency_list_;
-};
 
 /**
  * The TableRefDependencyGraph class encapsulates the logic necessary
@@ -96,10 +52,10 @@ class TableRefDependencyGraph {
  public:
   /**
    * Construct a new dependency graph instance.
-   * @param table_refs The collection of top-level table references
+   * @param root_select The root SELECT statement
    * @param catalog_accessor The catalog accessor
    */
-  TableRefDependencyGraph(const std::vector<common::ManagedPointer<parser::TableRef>> &table_refs,
+  TableRefDependencyGraph(common::ManagedPointer<parser::SelectStatement> root_select,
                           common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor);
 
   ~TableRefDependencyGraph() = default;
@@ -113,10 +69,12 @@ class TableRefDependencyGraph {
   TableRefDependencyGraph &operator=(TableRefDependencyGraph &&) = delete;
 
   /**
-   * Get the AdjacencyList representation of the underlying graph.
-   * @return An adjacency list representation
+   * Compute the Graph representation of the dependency graph.
+   * @param metadata The metadata structure that supports subsequent
+   * translation of graph algorithm results back to dependency graph domain
+   * @return The Graph representation
    */
-  AliasAdjacencyList AdjacencyList() const;
+  common::Graph ToGraph(std::unordered_map<std::size_t, common::ManagedPointer<parser::TableRef>> *metadata) const;
 
  private:
   friend class TableRefDependencyGraphVisitor;

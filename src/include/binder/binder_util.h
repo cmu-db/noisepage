@@ -55,16 +55,6 @@ class BinderUtil {
   static void ValidateWhereClause(common::ManagedPointer<parser::AbstractExpression> value);
 
   /**
-   * Compute a topological ordering for table references in SELECT WITH.
-   * @param table_refs The input collection of table references
-   * @param catalog The catalog accessor
-   * @return An ordered collection of table references
-   */
-  static std::vector<common::ManagedPointer<parser::TableRef>> GetSelectWithOrder(
-      const std::vector<common::ManagedPointer<parser::TableRef>> &table_refs,
-      common::ManagedPointer<catalog::CatalogAccessor> catalog);
-
-  /**
    * @return True if the value of @p int_val fits in the Output type, false otherwise.
    */
   template <typename Output, typename Input>

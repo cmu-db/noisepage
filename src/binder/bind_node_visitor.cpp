@@ -428,8 +428,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BinderContext context(context_);
   context_ = common::ManagedPointer(&context);
 
-  auto ordered = BinderUtil::GetSelectWithOrder(node->GetSelectWith(), catalog_accessor_);
-
   for (auto &ref : node->GetSelectWith()) {
     // Store CTE table name
     sherpa_->AddCTETableName(ref->GetAlias());

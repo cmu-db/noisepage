@@ -231,15 +231,6 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
   }
 }
 
-std::vector<common::ManagedPointer<parser::TableRef>> BinderUtil::GetSelectWithOrder(
-    const std::vector<common::ManagedPointer<parser::TableRef>> &table_refs,
-    const common::ManagedPointer<catalog::CatalogAccessor> catalog) {
-  if (table_refs.empty()) {
-    return {};
-  }
-  return {};
-}
-
 template <typename Output, typename Input>
 bool BinderUtil::IsRepresentable(const Input int_val) {
   // Fixes this hideously obscure bug: https://godbolt.org/z/M14jdb

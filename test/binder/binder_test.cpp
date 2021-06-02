@@ -19,47 +19,32 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_manager.h"
 
-using std::make_tuple;
-
-using std::unique_ptr;
-using std::vector;
-
 namespace noisepage {
 
 class BinderCorrectnessTest : public TerrierTest {
- protected:
-  std::string default_database_name_ = "test_db";
-  catalog::db_oid_t db_oid_;
-  catalog::table_oid_t table_a_oid_;
-  catalog::table_oid_t table_b_oid_;
-  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
-  common::ManagedPointer<catalog::Catalog> catalog_;
-  transaction::TransactionContext *txn_;
-  std::unique_ptr<catalog::CatalogAccessor> accessor_;
-  binder::BindNodeVisitor *binder_;
-
-  std::unique_ptr<DBMain> db_main_;
-
-  void SetUpTables() {
-    // create database
+ private:
+  void InitializeTables() {
+    // Create database
     txn_ = txn_manager_->BeginTransaction();
     BINDER_LOG_DEBUG("Creating database %s", default_database_name_.c_str());
     db_oid_ = catalog_->CreateDatabase(common::ManagedPointer(txn_), default_database_name_, true);
-    // commit the transactions
+
+    // Commit the transactions
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     BINDER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
-    // get default values of the columns
+    // Get default values of the columns
     auto int_default = parser::ConstantValueExpression(type::TypeId::INTEGER);
     auto varchar_default = parser::ConstantValueExpression(type::TypeId::VARCHAR);
 
     // TODO(Ling): use mixed case in table name and schema name
-    //  for testcases to see if the binder does not differentiate between upper and lower cases
-    // create table A
+    // for testcases to see if the binder does not differentiate
+    // between upper and lower cases create table A
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
+
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
-    std::vector<catalog::Schema::Column> cols_a;
+    std::vector<catalog::Schema::Column> cols_a{};
     cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
     cols_a.emplace_back("a2", type::TypeId::VARCHAR, 20, true, varchar_default);
     auto schema_a = catalog::Schema(cols_a);
@@ -71,30 +56,33 @@ class BinderCorrectnessTest : public TerrierTest {
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
 
-    // create Table B
+    // Create Table B
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
 
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
-    std::vector<catalog::Schema::Column> cols_b;
+    std::vector<catalog::Schema::Column> cols_b{};
     cols_b.emplace_back("b1", type::TypeId::INTEGER, true, int_default);
     cols_b.emplace_back("b2", type::TypeId::VARCHAR, 20, true, varchar_default);
-
     auto schema_b = catalog::Schema(cols_b);
+
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
     auto table_b = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), schema_b);
     EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
+
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
   }
 
+ protected:
   void SetUp() override {
     db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
 
-    SetUpTables();
-    // prepare for testing
+    InitializeTables();
+
+    // Prepare for testing
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
     binder_ = new binder::BindNodeVisitor(common::ManagedPointer(accessor_), db_oid_);
@@ -105,7 +93,41 @@ class BinderCorrectnessTest : public TerrierTest {
     accessor_.reset(nullptr);
     delete binder_;
   }
+
+ protected:
+  // The default database name
+  const std::string default_database_name_{"test_db"};
+
+  // The test database OID
+  catalog::db_oid_t db_oid_;
+
+  // The OID for test table A
+  catalog::table_oid_t table_a_oid_;
+  // The OID for test table B
+  catalog::table_oid_t table_b_oid_;
+
+  // The datbase main instance
+  std::unique_ptr<DBMain> db_main_;
+
+  // The binder instance
+  binder::BindNodeVisitor *binder_;
+
+  // The test transaction
+  transaction::TransactionContext *txn_;
+
+  // The catalog
+  common::ManagedPointer<catalog::Catalog> catalog_;
+
+  // The catalog accessor
+  std::unique_ptr<catalog::CatalogAccessor> accessor_;
+
+  // The transaction manager
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 };
+
+// ----------------------------------------------------------------------------
+// DML
+// ----------------------------------------------------------------------------
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementInvalidTableTest) {
@@ -125,177 +147,6 @@ TEST_F(BinderCorrectnessTest, SelectStatementInvalidColumnTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
-}
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CTEClauseInvalidTableTest) {
-  // Test cte table name
-  BINDER_LOG_DEBUG("Parsing sql query");
-  std::string select_sql = "WITH c AS (SELECT * FROM a) SELECT * FROM d;";
-
-  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
-}
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CTEClauseInvalidColumnTest) {
-  // Test cte column name
-  BINDER_LOG_DEBUG("Parsing sql query");
-  std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT t1.a2 FROM c AS t1;";
-
-  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
-}
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CTEClauseInvalidAliasTableTest) {
-  // Test cte alias
-  BINDER_LOG_DEBUG("Parsing sql query");
-  std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT t1.a1 FROM c AS t1, (SELECT * FROM t1) AS t2;";
-
-  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
-}
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CTEClauseValidTableTest) {
-  // Test cte table name
-  BINDER_LOG_DEBUG("Parsing sql query");
-  std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT * FROM c;";
-
-  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr));
-}
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CTEClauseValidTableAliasTest) {
-  // Test cte alias
-  BINDER_LOG_DEBUG("Parsing sql query");
-  std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT c1.a1 FROM c As c1;";
-
-  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr));
-}
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CTEClauseValidAliasMultiTableTest) {
-  // Test multiple cte aliases
-  BINDER_LOG_DEBUG("Parsing sql query");
-  std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT * FROM c AS c1, c AS c2 WHERE c1.a1=c2.a1;";
-
-  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
-  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr));
-}
-
-// NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
-  // Test cte with inner join, limit, ordering and aggregation
-  BINDER_LOG_DEBUG("Parsing sql query");
-  std::string cte_sql =
-      "WITH c AS (SELECT a1 as a3 FROM a) "
-      "SELECT c.A3, B.B2 FROM C INNER JOIN b ON c.a3 = b.b1 "
-      "WHERE a3 < 100 GROUP BY C.a3, B.b2 HAVING a3 > 50 ORDER BY a3;";
-
-  auto parse_tree = parser::PostgresParser::BuildParseTree(cte_sql);
-  auto statement = parse_tree->GetStatements()[0];
-  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr));
-  auto cte_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(0, cte_stmt->GetDepth());
-
-  // Check with_list
-  auto with_stmt = cte_stmt->GetSelectWith()[0]->GetSelect().CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(1, with_stmt->GetDepth());
-  auto col_expr = with_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
-  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(1, col_expr->GetDepth());
-
-  // Check select_list
-  col_expr = cte_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
-  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
-  EXPECT_EQ(col_expr->GetColumnName(), "a3");
-
-  col_expr = cte_stmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
-  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  // Check join condition
-  BINDER_LOG_DEBUG("Checking join condition");
-  col_expr = cte_stmt->GetSelectTable()
-                 ->GetJoin()
-                 ->GetJoinCondition()
-                 ->GetChild(0)
-                 .CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
-  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
-  EXPECT_EQ(col_expr->GetColumnName(), "a3");
-
-  col_expr = cte_stmt->GetSelectTable()
-                 ->GetJoin()
-                 ->GetJoinCondition()
-                 ->GetChild(1)
-                 .CastManagedPointerTo<parser::ColumnValueExpression>();
-
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);    // B.b1
-  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);  // B.b1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  // Check Where clause
-  col_expr = cte_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
-  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
-  EXPECT_EQ(col_expr->GetColumnName(), "a3");
-
-  // Check Group By and Having
-  col_expr = cte_stmt->GetSelectGroupBy()->GetColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
-  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
-  EXPECT_EQ(col_expr->GetColumnName(), "a3");
-
-  col_expr = cte_stmt->GetSelectGroupBy()->GetColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
-  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  col_expr =
-      cte_stmt->GetSelectGroupBy()->GetHaving()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
-  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
-  EXPECT_EQ(col_expr->GetColumnName(), "a3");
-
-  // Check Order By
-  col_expr =
-      cte_stmt->GetSelectOrderBy()->GetOrderByExpressions()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
-  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
-  EXPECT_EQ(col_expr->GetColumnName(), "a3");
 }
 
 // NOLINTNEXTLINE
@@ -785,6 +636,10 @@ TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // b2; columns are indexed from 1
 }
 
+// ----------------------------------------------------------------------------
+// Aggregations
+// ----------------------------------------------------------------------------
+
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
   // Check if nested select columns are correctly processed
@@ -835,6 +690,10 @@ TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
   EXPECT_EQ(1, col_expr->GetDepth());
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 }
+
+// ----------------------------------------------------------------------------
+// Meta
+// ----------------------------------------------------------------------------
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
@@ -981,6 +840,10 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   EXPECT_EQ(1, exists_sub_expr_select_ele->GetDepth());
 }
 
+// ----------------------------------------------------------------------------
+// DDL
+// ----------------------------------------------------------------------------
+
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CreateDatabaseTest) {
   // Check if nested select columns are correctly processed
@@ -1092,6 +955,10 @@ TEST_F(BinderCorrectnessTest, CreateViewTest) {
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
 }
 
+// ----------------------------------------------------------------------------
+// Function Calls
+// ----------------------------------------------------------------------------
+
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   std::string query = "SELECT cot(1.0) FROM a;";
@@ -1113,6 +980,10 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   statement = parse_tree->GetStatements()[0];
   EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
 }
+
+// ----------------------------------------------------------------------------
+// ANALYZE
+// ----------------------------------------------------------------------------
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, AnalyzeStatementSimpleTest) {
@@ -1180,6 +1051,181 @@ TEST_F(BinderCorrectnessTest, AnalyzeStatementNoTableTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
+}
+
+// ----------------------------------------------------------------------------
+// Common Table Expressions
+// ----------------------------------------------------------------------------
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseInvalidTableTest) {
+  // Test cte table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  const std::string select_sql = "WITH c AS (SELECT * FROM a) SELECT * FROM d;";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseInvalidColumnTest) {
+  // Test cte column name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  const std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT t1.a2 FROM c AS t1;";
+
+  const auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseInvalidAliasTableTest) {
+  // Test cte alias
+  BINDER_LOG_DEBUG("Parsing sql query");
+  const std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT t1.a1 FROM c AS t1, (SELECT * FROM t1) AS t2;";
+
+  const auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseValidTableTest) {
+  // Test cte table name
+  BINDER_LOG_DEBUG("Parsing sql query");
+  const std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT * FROM c;";
+
+  const auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr));
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseValidTableAliasTest) {
+  // Test cte alias
+  BINDER_LOG_DEBUG("Parsing sql query");
+  const std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT c1.a1 FROM c As c1;";
+
+  const auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr));
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEClauseValidAliasMultiTableTest) {
+  // Test multiple cte aliases
+  BINDER_LOG_DEBUG("Parsing sql query");
+  const std::string select_sql = "WITH c AS (SELECT a1 FROM a) SELECT * FROM c AS c1, c AS c2 WHERE c1.a1=c2.a1;";
+
+  const auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr));
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
+  // Test cte with inner join, limit, ordering and aggregation
+  BINDER_LOG_DEBUG("Parsing sql query");
+  const std::string cte_sql =
+      "WITH c AS (SELECT a1 as a3 FROM a) "
+      "SELECT c.A3, B.B2 FROM C INNER JOIN b ON c.a3 = b.b1 "
+      "WHERE a3 < 100 GROUP BY C.a3, B.b2 HAVING a3 > 50 ORDER BY a3;";
+
+  const auto parse_tree = parser::PostgresParser::BuildParseTree(cte_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  EXPECT_NO_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr));
+  auto cte_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, cte_stmt->GetDepth());
+
+  // Check with_list
+  auto with_stmt = cte_stmt->GetSelectWith()[0]->GetSelect().CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(1, with_stmt->GetDepth());
+  auto col_expr = with_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(1, col_expr->GetDepth());
+
+  // Check select_list
+  col_expr = cte_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
+  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetColumnName(), "a3");
+
+  col_expr = cte_stmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
+  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+
+  // Check join condition
+  BINDER_LOG_DEBUG("Checking join condition");
+  col_expr = cte_stmt->GetSelectTable()
+                 ->GetJoin()
+                 ->GetJoinCondition()
+                 ->GetChild(0)
+                 .CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
+  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetColumnName(), "a3");
+
+  col_expr = cte_stmt->GetSelectTable()
+                 ->GetJoin()
+                 ->GetJoinCondition()
+                 ->GetChild(1)
+                 .CastManagedPointerTo<parser::ColumnValueExpression>();
+
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);    // B.b1
+  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);  // B.b1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+
+  // Check Where clause
+  col_expr = cte_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
+  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetColumnName(), "a3");
+
+  // Check Group By and Having
+  col_expr = cte_stmt->GetSelectGroupBy()->GetColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
+  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetColumnName(), "a3");
+
+  col_expr = cte_stmt->GetSelectGroupBy()->GetColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
+  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+
+  col_expr =
+      cte_stmt->GetSelectGroupBy()->GetHaving()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
+  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetColumnName(), "a3");
+
+  // Check Order By
+  col_expr =
+      cte_stmt->GetSelectOrderBy()->GetOrderByExpressions()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
+  EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetColumnName(), "a3");
 }
 
 }  // namespace noisepage
