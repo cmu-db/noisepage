@@ -134,7 +134,7 @@ if __name__ == "__main__":
     args = argp.parse_args()
 
     if args.generate_data:
-        if args.record_pipeline_metrics:
+        if args.record_pipeline_metrics_with_counters:
             forecast.run_oltpbench(
                 server_args={},
                 benchmark_config=forecast.get_config_tpcc(weights=args.tpcc_weight),
