@@ -46,7 +46,10 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
     }
     if (query_type == network::QueryType::QUERY_CREATE_INDEX) {
       result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
+      NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE,
+                       "Got through the binder as a valid index name, so we don't expect this to fail.");
       result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
+      // TODO(Matt): do something with result here in case codegen fails
       result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
     } else {
       result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
@@ -60,7 +63,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
     }
     result = t_cop->ExecuteDropStatement(connection_ctx, physical_plan, query_type);
   } else if (query_type == network::QueryType::QUERY_EXPLAIN) {
-    result = t_cop->ExecuteExplainStatement(connection_ctx, out, physical_plan);
+    result = t_cop->ExecuteExplainStatement(connection_ctx, out, portal);
   }
 
   if (result.type_ == trafficcop::ResultType::COMPLETE) {

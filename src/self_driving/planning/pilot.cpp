@@ -17,6 +17,7 @@
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/planning/mcts/monte_carlo_tree_search.h"
 #include "self_driving/planning/pilot_util.h"
+#include "self_driving/planning/seq_tuning/sequence_tuning.h"
 #include "settings/settings_manager.h"
 #include "task/task_manager.h"
 #include "transaction/transaction_manager.h"
@@ -64,8 +65,13 @@ void Pilot::PerformPlanning() {
   }
 
   // Perform planning
-  std::vector<pilot::ActionTreeNode> best_action_seq;
-  Pilot::ActionSearch(&best_action_seq);
+  if (planning_context_.GetSettingsManager()->GetBool(settings::Param::enable_seq_tuning)) {
+    std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_actions_seq;
+    Pilot::ActionSearchBaseline(&best_actions_seq);
+  } else {
+    std::vector<pilot::ActionTreeNode> best_action_seq;
+    Pilot::ActionSearch(&best_action_seq);
+  }
 
   metrics_thread->ResumeMetrics();
 }
@@ -111,6 +117,40 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
 
   // Apply the best action WITHOUT "what-if"
   PilotUtil::ApplyAction(planning_context_, best_action.GetActionText(), best_action.GetDbOid(), false);
+}
+
+void Pilot::ActionSearchBaseline(
+    std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq) {
+  std::set<catalog::db_oid_t> db_oids = forecast_->GetDBOidSet();
+  for (auto db_oid : db_oids) planning_context_.AddDatabase(db_oid);
+
+  auto memory_info = PilotUtil::ComputeMemoryInfo(planning_context_, forecast_.get());
+  planning_context_.SetMemoryInfo(std::move(memory_info));
+
+  auto num_segs = forecast_->GetNumberOfSegments();
+  auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
+
+  auto seq_tunining = pilot::SequenceTuning(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
+
+  std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_action_set_seq;
+  seq_tunining.BestAction(planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint),
+                          &best_action_set_seq);
+
+  for (uint64_t action_set_idx = 0; action_set_idx < best_action_set_seq.size(); action_set_idx++) {
+    auto action_set = best_action_set_seq.at(action_set_idx);
+    for (auto const &action UNUSED_ATTRIBUTE : action_set) {
+      SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}",
+                                       action_set_idx, action.first, static_cast<uint32_t>(action.second)));
+    }
+    best_actions_seq->emplace_back(action_set);
+  }
+
+  // Invalidate database and memory information
+  planning_context_.ClearDatabases();
+  planning_context_.SetMemoryInfo(pilot::MemoryInfo());
+
+  for (auto const &action : *best_actions_seq->begin())
+    PilotUtil::ApplyAction(planning_context_, action.first, action.second, false);
 }
 
 }  // namespace noisepage::selfdriving

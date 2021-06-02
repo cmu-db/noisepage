@@ -11,6 +11,7 @@
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
+#include "execution/vm/module_metadata.h"
 #include "execution/vm/vm_defs.h"
 
 namespace noisepage::execution::vm {
@@ -32,15 +33,18 @@ class Module {
   /**
    * Create a TPL module using the given bytecode module as the initial implementation.
    * @param bytecode_module The bytecode module implementation.
+   * @param metadata Additional non-essential metadata about the TPL module.
    */
-  explicit Module(std::unique_ptr<BytecodeModule> bytecode_module);
+  Module(std::unique_ptr<BytecodeModule> bytecode_module, ModuleMetadata &&metadata);
 
   /**
    * Construct a TPL module with the given bytecode and LLVM implementations.
    * @param bytecode_module The bytecode module implementation.
    * @param llvm_module The compiled code.
+   * @param metadata Additional non-essential metadata about the TPL module.
    */
-  Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<LLVMEngine::CompiledModule> llvm_module);
+  Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<LLVMEngine::CompiledModule> llvm_module,
+         ModuleMetadata &&metadata);
 
   /**
    * This class cannot be copied or moved.
@@ -98,6 +102,9 @@ class Module {
    * @return The TPL bytecode module.
    */
   const BytecodeModule *GetBytecodeModule() const { return bytecode_module_.get(); }
+
+  /** @return The non-essential metadata for this module. */
+  const ModuleMetadata &GetMetadata() const { return metadata_; }
 
  private:
   friend class VM;                            // For the VM to access raw bytecode.
@@ -168,6 +175,8 @@ class Module {
 
   // Flag to indicate if the JIT compilation has occurred.
   std::once_flag compiled_flag_;
+
+  ModuleMetadata metadata_;  ///< Non-essential metadata about the TPL module.
 };
 
 // ---------------------------------------------------------

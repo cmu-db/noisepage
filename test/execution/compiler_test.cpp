@@ -81,7 +81,7 @@ TEST_F(CompilerTest, CompileFromSource) {
 
   for (uint32_t i = 1; i < 4; i++) {
     auto src = std::string("fun test() -> int32 { return " + std::to_string(i * 10) + " }");
-    auto input = Compiler::Input("Simple Test", &context, &src);
+    auto input = Compiler::Input("Simple Test", &context, &src, CompilerSettings{});
     auto module = Compiler::RunCompilationSimple(input);
 
     // The module should be valid since the input source is valid
@@ -116,7 +116,7 @@ TEST_F(CompilerTest, CompileToAst) {
   };
 
   auto src = std::string("fun BLAH() -> int32 { return 10 }");
-  auto input = Compiler::Input("Simple Test", &context, &src);
+  auto input = Compiler::Input("Simple Test", &context, &src, CompilerSettings{});
   auto callback = CompileToAstCallback();
   Compiler::RunCompilation(input, &callback);
 

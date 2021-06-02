@@ -1,6 +1,5 @@
 #include "self_driving/planning/mcts/monte_carlo_tree_search.h"
 
-#include <map>
 #include <vector>
 
 #include "common/managed_pointer.h"
@@ -10,7 +9,6 @@
 #include "self_driving/planning/action/generators/index_action_generator.h"
 #include "self_driving/planning/pilot.h"
 #include "self_driving/planning/pilot_util.h"
-#include "transaction/transaction_manager.h"
 
 namespace noisepage::selfdriving::pilot {
 
@@ -21,11 +19,9 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(const PlanningContext &planning_conte
       forecast_(forecast),
       end_segment_index_(end_segment_index),
       use_min_cost_(use_min_cost) {
-  transaction::TransactionContext *txn = planning_context_.GetTxnManager()->BeginTransaction();
-
   std::vector<std::unique_ptr<planner::AbstractPlanNode>> plans;
   // vector of query plans that the search tree is responsible for
-  PilotUtil::GetQueryPlans(planning_context_, common::ManagedPointer(forecast_), end_segment_index, txn, &plans);
+  PilotUtil::GetQueryPlans(planning_context_, common::ManagedPointer(forecast_), end_segment_index, &plans);
 
   // populate action_map_, candidate_actions_
   IndexActionGenerator().GenerateActions(plans, planning_context_.GetSettingsManager(), &action_map_,
@@ -36,7 +32,6 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(const PlanningContext &planning_conte
   for (const auto &it UNUSED_ATTRIBUTE : action_map_) {
     SELFDRIVING_LOG_INFO("Generated action: ID {} Command {}", it.first, it.second->GetSQLCommand());
   }
-  planning_context_.GetTxnManager()->Abort(txn);
 
   // Estimate the create index action costs
   for (auto &[action_id, action] : action_map_) {
