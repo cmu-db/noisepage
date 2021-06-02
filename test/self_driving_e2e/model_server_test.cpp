@@ -1,5 +1,5 @@
 #include <vector>
-#include <iostream>
+
 #include "gtest/gtest.h"
 #include "loggers/messenger_logger.h"
 #include "loggers/model_server_logger.h"
@@ -26,11 +26,8 @@ class ModelServerTest : public TerrierTest {
 
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain() {
-    std::cerr << "starting build" << std::endl;
     const char *env = ::getenv(BUILD_ABS_PATH);
     std::string project_build_path = (env != nullptr ? env : ".");
-
-    std::cerr << project_build_path << std::endl;
 
     auto db_main = noisepage::DBMain::Builder()
                        .SetUseSettingsManager(false)
@@ -45,7 +42,6 @@ class ModelServerTest : public TerrierTest {
                        .SetModelServerEnablePythonCoverage(true)
                        .Build();
 
-    std::cerr << "DB main built" << std::endl;
     return db_main;
   }
 
@@ -61,8 +57,6 @@ class ModelServerTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
-  std::cerr << "Starting OU + Interference" << std::endl;
-
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -75,13 +69,9 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
   while (!ms_manager->ModelServerStarted()) {
   }
 
-  std::cerr << "Model server started" << std::endl;
-
   // Send a message
   std::string msg = "ModelServer OU Model and Interference Model Test";
   ms_manager->PrintMessage(msg);
-
-  std::cerr << "Message sent" << std::endl;
 
   // -------------------------------------------------------
   // Start the OU model test
@@ -102,15 +92,9 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
   const char *env = ::getenv(BUILD_ABS_PATH);
   std::string project_build_path = std::string(env != nullptr ? env : ".");
   std::string model_path = project_build_path + "/bin";
-
-  std::cerr << model_path << std::endl;
-
   ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, &model_path, ou_model_save_path, nullptr,
                          common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-  std::cerr << "train started" << std::endl;
-
   auto res = future.DangerousWait();
-  std::cerr << "train completed" << std::endl;
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
@@ -184,8 +168,6 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ModelServerTest, ForecastModelTest) {
-  std::cerr << "Starting forecast" << std::endl;
-
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);
 
@@ -197,8 +179,6 @@ TEST_F(ModelServerTest, ForecastModelTest) {
   // Wait for the model server process to start
   while (!ms_manager->ModelServerStarted()) {
   }
-
-  std::cerr << "Model server started" << std::endl;
 
   // Send a message
   std::string msg = "ModelServer Forecasting Model Test";
@@ -217,10 +197,7 @@ TEST_F(ModelServerTest, ForecastModelTest) {
   ModelServerFuture<std::string> future;
   ms_manager->TrainForecastModel(methods, input_path, save_path, interval, seq_length, horizon_length,
                                  common::ManagedPointer<ModelServerFuture<std::string>>(&future));
-
-  std::cerr << "training started" << std::endl;
   auto res = future.DangerousWait();
-  std::cerr << "training complete" << std::endl;
   ASSERT_EQ(res.second, true);  // Training succeeds
 
   // Perform inference on the trained opunit model for various opunits
