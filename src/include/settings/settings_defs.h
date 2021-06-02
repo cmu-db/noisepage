@@ -509,20 +509,19 @@ SETTING_bool(
     noisepage::settings::Callbacks::NoOp
 )
 
-// Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH)
 SETTING_string(
     ou_model_save_path,
-    "Save path of the OU model relative to the build path (default: ou_model_map.pickle)",
+    "Save path of the OU model relative to the NoisePage binary workdir (default: ou_model_map.pickle)",
     "ou_model_map.pickle",
-    false,
+    true,
     noisepage::settings::Callbacks::NoOp
 )
 
 SETTING_string(
     interference_model_save_path,
-    "Save path of the forecast model relative to the build path (default: interference_direct_model.pickle)",
+    "Save path of the forecast model relative to NoisePage binary workdir (default: interference_direct_model.pickle)",
     "interference_direct_model.pickle",
-    false,
+    true,
     noisepage::settings::Callbacks::NoOp
 )
 
