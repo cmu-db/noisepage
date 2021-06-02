@@ -82,6 +82,7 @@ void Pilot::PerformPlanning() {
     } else {
       std::vector<pilot::ActionTreeNode> best_action_seq;
       Pilot::ActionSearch(&best_action_seq);
+    }
   } catch (PilotException &e) {
     // If we're shutting down, exceptions will happen all over the place. Ignore them here and just quit.
     // Otherwise, rethrow the exception.
