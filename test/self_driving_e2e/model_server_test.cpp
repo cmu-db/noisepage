@@ -1,5 +1,5 @@
-#include <vector>
 #include <iostream>
+#include <vector>
 #include "gtest/gtest.h"
 #include "loggers/messenger_logger.h"
 #include "loggers/model_server_logger.h"
