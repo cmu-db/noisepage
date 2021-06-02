@@ -796,10 +796,10 @@ void BindNodeVisitor::UnifyOrderByExpression(
     common::ManagedPointer<parser::OrderByDescription> order_by_description,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
   auto &exprs = order_by_description->GetOrderByExpressions();
-  for (size_t idx = 0; idx < exprs.size(); idx++) {
+  for (auto &expr : exprs) {
     // Rewrite integer constant expressions to use the corresponding SELECT column expression instead.
-    if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::VALUE_CONSTANT) {
-      auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
+    if (expr->GetExpressionType() == noisepage::parser::ExpressionType::VALUE_CONSTANT) {
+      auto constant_value_expression = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
       type::TypeId type = constant_value_expression->GetReturnValueType();
       int64_t column_id;
       switch (type) {
@@ -819,7 +819,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
         throw BINDER_EXCEPTION(fmt::format("ORDER BY position \"{}\" is not in select list", std::to_string(column_id)),
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
-      exprs[idx] = select_items[column_id - 1];
+      expr = select_items[column_id - 1];
     }
   }
 }
@@ -885,8 +885,8 @@ void BindNodeVisitor::UnaliasOrderBy(
     common::ManagedPointer<parser::OrderByDescription> order_by_description,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
   auto &exprs = order_by_description->GetOrderByExpressions();
-  for (size_t i = 0; i < exprs.size(); i++) {
-    exprs[i] = UnaliasExpression(exprs.at(i), select_items);
+  for (auto &expr : exprs) {
+    expr = UnaliasExpression(expr, select_items);
   }
 }
 
@@ -894,8 +894,8 @@ void BindNodeVisitor::UnaliasGroupBy(
     common::ManagedPointer<parser::GroupByDescription> group_by_description,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
   auto &exprs = group_by_description->GetColumns();
-  for (size_t i = 0; i < exprs.size(); i++) {
-    exprs[i] = UnaliasExpression(exprs.at(i), select_items);
+  for (auto &expr : exprs) {
+    expr = UnaliasExpression(expr, select_items);
   }
 }
 
