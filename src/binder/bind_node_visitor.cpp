@@ -827,24 +827,49 @@ void BindNodeVisitor::UnifyOrderByExpression(
 common::ManagedPointer<parser::AbstractExpression> BindNodeVisitor::UnaliasExpression(
     common::ManagedPointer<parser::AbstractExpression> expr,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
-  // Check if the current expression itself is a mere alias for some SELECT column, if so, return that column.
-  if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-    auto column_value_expression = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
-    const std::string &column_name = column_value_expression->GetColumnName();
+  // get_aliased will check if the given column value expression is an alias for any of the select columns provided.
+  // If an alias exists, the underlying select column is returned.
+  // If no alias exists, nullptr is returned.
+  auto get_aliased = [](common::ManagedPointer<parser::ColumnValueExpression> cve,
+                        const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items) {
+    const std::string &table_name = cve->GetTableName();
+    const std::string &column_name = cve->GetColumnName();
     if (!column_name.empty()) {
       common::ManagedPointer<parser::AbstractExpression> select_expr = nullptr;
       for (auto &select_expression : select_items) {
-        if (column_name == select_expression->GetExpressionName() || column_name == select_expression->GetAlias()) {
+        // Check if the expression specifies a table. If so, we will also check the select expression.
+        bool same_table = true;
+        if (!table_name.empty() && select_expression->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+          const auto &tbl = select_expression.CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName();
+          same_table = table_name == tbl;
+        }
+        // The column name must match either the select name or the alias name.
+        bool same_as_name = column_name == select_expression->GetExpressionName();
+        bool same_as_alias = column_name == select_expression->GetAlias();
+        if (same_table && (same_as_name || same_as_alias)) {
+          // If an expression was already found, then something is ambiguous in the SQL.
           if (select_expr != nullptr) {
             throw BINDER_EXCEPTION(fmt::format("Ambiguous alias \"{}\"", column_name),
                                    common::ErrorCode::ERRCODE_AMBIGUOUS_COLUMN);
           }
+          // Otherwise, set the expression.
           select_expr = select_expression;
         }
       }
+      // If an expression was found, return it.
       if (select_expr != nullptr) {
         return select_expr;
       }
+    }
+    return common::ManagedPointer<parser::AbstractExpression>(nullptr);
+  };
+
+  // Check if the current expression itself is a mere alias for some SELECT column, if so, return that column.
+  if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+    auto cve = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+    auto select_expr = get_aliased(cve, select_items);
+    if (select_expr != nullptr) {
+      return select_expr;
     }
   }
 
@@ -854,25 +879,14 @@ common::ManagedPointer<parser::AbstractExpression> BindNodeVisitor::UnaliasExpre
   for (size_t i = 0; i < expr->GetChildrenSize(); ++i) {
     auto child = expr->GetChild(i);
     if (child->GetExpressionType() == noisepage::parser::ExpressionType::COLUMN_VALUE) {
-      // Replace the child if the name is the same as an alias.
-      auto column_value_expression = child.CastManagedPointerTo<parser::ColumnValueExpression>();
-      const std::string &column_name = column_value_expression->GetColumnName();
-      bool replaced = false;
-      if (!column_name.empty()) {
-        for (auto &select_expression : select_items) {
-          if (column_name == select_expression->GetExpressionName() || column_name == select_expression->GetAlias()) {
-            if (!replaced) {
-              expr->SetChild(i, select_expression);
-              replaced = true;
-            } else {
-              throw BINDER_EXCEPTION(fmt::format("Ambiguous alias \"{}\"", column_name),
-                                     common::ErrorCode::ERRCODE_AMBIGUOUS_COLUMN);
-            }
-          }
-        }
+      auto cve = child.CastManagedPointerTo<parser::ColumnValueExpression>();
+      auto select_expr = get_aliased(cve, select_items);
+      if (select_expr != nullptr) {
+        expr->SetChild(i, select_expr);
       }
     }
   }
+
   // Repeat this unaliasing for all of the expression's children.
   for (size_t i = 0; i < expr->GetChildrenSize(); ++i) {
     expr->SetChild(i, UnaliasExpression(expr->GetChild(i), select_items));
