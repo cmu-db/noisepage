@@ -108,6 +108,32 @@ ParseToSelectStatement(const std::string &sql) {
   return std::make_pair(std::move(parse_tree), select);
 }
 
+/**
+ * Build an edge from `src` to `dst`.
+ * @param src The source vertex, as std::tuple
+ * @param dst The destination vertex, as std::tuple
+ * @return The new edge
+ */
+static TableDependencyGraph::Edge MakeEdge(const std::tuple<std::string, std::size_t, std::size_t> &src,
+                                           const std::tuple<std::string, std::size_t, std::size_t> &dst) {
+  return TableDependencyGraph::Edge{TableDependencyGraph::Vertex{std::get<0>(src), std::get<1>(src), std::get<2>(src)},
+                                    TableDependencyGraph::Vertex{std::get<0>(dst), std::get<1>(dst), std::get<2>(dst)}};
+}
+
+/**
+ * Check that internal identifiers follow the expected pattern in `graph`.
+ * @param graph The graph of interest
+ * @return `true` if the check passes, `false` otherwise
+ */
+static bool CheckIdentifiers(const TableDependencyGraph &graph) {
+  std::vector<std::size_t> expected(graph.Order());
+  std::iota(expected.begin(), expected.end(), 0UL);
+  const auto identifiers = graph.Identifiers();
+  std::vector<std::size_t> actual{identifiers.cbegin(), identifiers.cend()};
+  std::sort(actual.begin(), actual.end());
+  return std::equal(actual.cbegin(), actual.cend(), expected.cbegin());
+}
+
 // ----------------------------------------------------------------------------
 // Preliminaries
 // ----------------------------------------------------------------------------
@@ -141,6 +167,202 @@ TEST_F(BinderCteUtilTest, BuildTableDependencyGraph1) {
   EXPECT_EQ(1UL, graph.Order());
   EXPECT_EQ(0UL, graph.Size());
   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph2) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT 1) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(2UL, graph.Order());
+  EXPECT_EQ(0UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph3) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT 1), z(k) AS (SELECT 1) SELECT * FROM z;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(3UL, graph.Order());
+  EXPECT_EQ(0UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"z", 0UL, 2UL}));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph4) {
+  // Backward reference y -> x
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(3UL, graph.Order());
+  EXPECT_EQ(1UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph5) {
+  // Backward reference y -> x
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(3UL, graph.Order());
+  EXPECT_EQ(1UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph6) {
+  // Forward reference x -> y
+  const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(3UL, graph.Order());
+  EXPECT_EQ(1UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"y", 0UL, 0UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph7) {
+  // Forward reference x -> y
+  const std::string sql = "WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(3UL, graph.Order());
+  EXPECT_EQ(1UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"y", 0UL, 0UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph8) {
+  // Mutual recursion x <-> y
+  const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(4UL, graph.Order());
+  EXPECT_EQ(2UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"y", 0UL, 0UL})));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph9) {
+  // Mutual recursion x <-> y
+  const std::string sql = "WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(4UL, graph.Order());
+  EXPECT_EQ(2UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"y", 0UL, 0UL})));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph10) {
+  // Nested scope
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(5UL, graph.Order());
+  EXPECT_EQ(2UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"a", 1UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"a", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"a", 0UL, 0UL})));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph11) {
+  // Nested scope
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(5UL, graph.Order());
+  EXPECT_EQ(2UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"a", 1UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"a", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"a", 0UL, 0UL})));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph12) {
+  // Nested scope
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(5UL, graph.Order());
+  EXPECT_EQ(2UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"a", 1UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"a", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"a", 0UL, 0UL})));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
+}
+
+TEST_F(BinderCteUtilTest, BuildTableDependencyGraph13) {
+  // Nested scope
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT i FROM x) SELECT j FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_EQ(5UL, graph.Order());
+  EXPECT_EQ(2UL, graph.Size());
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasVertex({"a", 1UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"a", 0UL, 0UL}));
+  EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"a", 0UL, 0UL})));
+  EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
+  EXPECT_TRUE(CheckIdentifiers(graph));
 }
 
 }  // namespace noisepage

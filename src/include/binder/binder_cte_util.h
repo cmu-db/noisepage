@@ -152,13 +152,6 @@ class TableDependencyGraph {
   class Edge {
    public:
     /**
-     * Construct a new Edge instance.
-     * @param src Source vertex
-     * @param dst Destination vertex
-     */
-    Edge(Vertex src, Vertex dst) : src_{std::move(src)}, dst_{std::move(dst)} {}
-
-    /**
      * Construct a new Edge instance, assuming ownership of vertices.
      * @param src Source vertex
      * @param dst Destination vertex
@@ -213,6 +206,72 @@ class TableDependencyGraph {
   /** @return `true` if the graph contains the edge `edge`, `false` otherwise */
   bool HasEdge(const Edge &edge) const;
 
+  /** @return A collection of the unique identifiers for nodes in the graph */
+  std::vector<std::size_t> Identifiers() const;
+
+  /**
+   * Check all consistency constraints for the underlying dependency graph.
+   * @return `true` if the graph is valid, `false` otherwise
+   */
+  bool CheckAll() const;
+
+  /**
+   * Check forward reference constraints for the underlying dependency graph.
+   *
+   * A forward reference is a dependency from CTE A to CTE B (A depends on B)
+   * where CTE B appears "to the right" of CTE A in the input query. For instance,
+   * the following query is invalid because it contains a forward reference:
+   *
+   *  WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+   *
+   * However, forward references are permitted in some special cases. First,
+   * forward references are permitted for inductive CTEs, so the following
+   * query is valid:
+   *
+   *  WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+   *
+   * Furthermore, forward references are also permitted for nested CTEs regardless
+   * of their position in the statement relative to the target:
+   *
+   *  WITH
+   *    x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a),
+   *    y(j) AS (SELECT 1)
+   *  SELECT * FROM y;
+   *
+   * @return `true` if the graph is valid, `false` otherwise
+   */
+  bool CheckForwardReferences() const;
+
+  /**
+   * Check mutual recursion constraints for the underlying dependency graph.
+   *
+   * Mutual recursion occurs when CTE A reads CTE B and CTE B reads CTE A.
+   * It is only present in inductive CTEs. For instance, the query below
+   * fails because of normal "visibility" rules for non-inductive CTEs:
+   *
+   *  WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+   *
+   * However, the query should also fail in the event that the CTEs are recursive:
+   *
+   *  WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+   *
+   * @return `true` if the graph is valid, `false` otherwise
+   */
+  bool CheckMutualRecursion() const;
+
+  /**
+   * Check nested scope dependency constraints for the underlying dependency graph.
+   *
+   * A dependency on a nested scope occurs when CTE A reads CTE C that appears within
+   * the subsquery that defines CTE B. For instance, the following query is invalid
+   * because it contains a dependency on a nested scope:
+   *
+   *  WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM a) SELECT * FROM y;
+   *
+   * @return `true` if the graph is valid, `false` otherwise
+   */
+  bool CheckNestedScopes() const;
+
  private:
   /**
    * Recursively construct the table dependency graph.
@@ -252,6 +311,13 @@ class TableDependencyGraph {
    */
   std::pair<const detail::ContextSensitiveTableRef *, const detail::ContextSensitiveTableRef *> GetEdge(
       const Edge &edge) const;
+
+  /**
+   * Find the context-sensitive table reference with the specified ID.
+   * @param id The query ID
+   * @return An immutable reference to the table reference (cannot fail)
+   */
+  const detail::ContextSensitiveTableRef &GetRefWithId(std::size_t id) const;
 
  private:
   // The underlying representation for the graph

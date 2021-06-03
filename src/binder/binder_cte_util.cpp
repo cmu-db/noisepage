@@ -70,6 +70,14 @@ bool TableDependencyGraph::HasEdge(const Edge &edge) const {
   return src->Dependencies().count(dst->Id()) > 0;
 }
 
+std::vector<std::size_t> TableDependencyGraph::Identifiers() const {
+  std::vector<std::size_t> identifiers{};
+  identifiers.reserve(graph_.size());
+  std::transform(graph_.cbegin(), graph_.cend(), std::back_inserter(identifiers),
+                 [](const detail::ContextSensitiveTableRef &r) { return r.Id(); });
+  return identifiers;
+}
+
 void TableDependencyGraph::TableDependencyGraph::BuildFromVisit(common::ManagedPointer<parser::SelectStatement> select,
                                                                 const std::size_t id, const std::size_t depth,
                                                                 const std::size_t position,
@@ -80,7 +88,11 @@ void TableDependencyGraph::TableDependencyGraph::BuildFromVisit(common::ManagedP
   if (select->HasSelectTable()) {
     // Insert the target table for the SELECT
     const auto next_id = context->NextId();
-    graph_.emplace_back(next_id, depth, position, select->GetSelectTable());
+    // The enclosing TableRef increments the depth as we descend into
+    // this function, but we consider the SELECT target at the same
+    // scope as the enclosing table reference
+    const auto next_depth = depth - 1;
+    graph_.emplace_back(next_id, next_depth, position, select->GetSelectTable());
 
     // Add this table as a dependency of the containing table reference
     auto table =
@@ -118,6 +130,28 @@ void TableDependencyGraph::BuildFromVisit(common::ManagedPointer<parser::TableRe
   }
 }
 
+bool TableDependencyGraph::CheckAll() const { return true; }
+
+bool TableDependencyGraph::CheckForwardReferences() const { return true; }
+
+bool TableDependencyGraph::CheckMutualRecursion() const { return true; }
+
+bool TableDependencyGraph::CheckNestedScopes() const {
+  // Checking for nested-scope dependencies boils down to
+  // checking each edge in the graph and verifying that it
+  // is NEVER the case that the source vertex has a depth
+  // that is strictly less than the destination
+  for (const auto &src : graph_) {
+    for (const auto id : src.Dependencies()) {
+      const auto &dst = GetRefWithId(id);
+      if (src.Depth() < dst.Depth()) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 const detail::ContextSensitiveTableRef *TableDependencyGraph::GetVertex(const Vertex &vertex) const {
   auto it = std::find_if(graph_.begin(), graph_.end(), [&vertex](const detail::ContextSensitiveTableRef &r) {
     return r.Table()->GetAlias() == vertex.Alias() && r.Depth() == vertex.Depth() && r.Position() == vertex.Position();
@@ -128,6 +162,13 @@ const detail::ContextSensitiveTableRef *TableDependencyGraph::GetVertex(const Ve
 std::pair<const detail::ContextSensitiveTableRef *, const detail::ContextSensitiveTableRef *>
 TableDependencyGraph::GetEdge(const Edge &edge) const {
   return std::make_pair(GetVertex(edge.Source()), GetVertex(edge.Destination()));
+}
+
+const detail::ContextSensitiveTableRef &TableDependencyGraph::GetRefWithId(std::size_t id) const {
+  const auto it = std::find_if(graph_.cbegin(), graph_.cend(),
+                               [=](const detail::ContextSensitiveTableRef &r) { return r.Id() == id; });
+  NOISEPAGE_ASSERT(it != graph_.cend(), "Broken Invariant");
+  return *it;
 }
 
 // ----------------------------------------------------------------------------
