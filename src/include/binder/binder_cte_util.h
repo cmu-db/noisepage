@@ -33,6 +33,11 @@ namespace detail {
 // ----------------------------------------------------------------------------
 
 /**
+ * Denotes the type of table reference.
+ */
+enum class RefType { READ, WRITE };
+
+/**
  * A ContextSensitiveTableRef is just a wrapper around
  * a regular TableRef with some extra metadata attached -
  * namely, we need to keep track of the depth and position
@@ -49,11 +54,13 @@ class ContextSensitiveTableRef {
    * other table references in the same scope
    * @param table The associated table reference
    */
-  ContextSensitiveTableRef(std::size_t id, std::size_t depth, std::size_t position,
+  ContextSensitiveTableRef(std::size_t id, RefType type, std::size_t depth, std::size_t position,
                            common::ManagedPointer<parser::TableRef> table);
 
   /** @return The unique identifier for this reference */
   std::size_t Id() const noexcept { return id_; }
+
+  RefType Type() const noexcept { return type_; }
 
   /** @return The depth at which this reference appears */
   std::size_t Depth() const noexcept { return depth_; }
@@ -76,6 +83,9 @@ class ContextSensitiveTableRef {
  private:
   // The unique identifier for the context-sensitive reference
   const std::size_t id_;
+
+  // The type of the reference
+  const RefType type_;
 
   // The depth of the reference, relative to the root of the statement
   const std::size_t depth_;
@@ -318,6 +328,26 @@ class TableDependencyGraph {
    * @return An immutable reference to the table reference (cannot fail)
    */
   const detail::ContextSensitiveTableRef &GetRefWithId(std::size_t id) const;
+
+  /**
+   * Get the read equivalence class for the vertex identified by `id`.
+   * @param id The target ID
+   * @return A collection of IDs for all vertices in the equivalence class
+   */
+  std::vector<std::size_t> ReadEquiavlenceClassFor(std::size_t id) const;
+
+  /**
+   * Get the write equivalence class for the vertex identified by `id`.
+   * @param id The target ID
+   * @return A collection of IDs for all vertices in the equivalence class
+   */
+  std::vector<std::size_t> WriteEquivalenceClassFor(std::size_t id) const;
+
+  /** @return The set of read references from the underlying graph */
+  std::vector<const detail::ContextSensitiveTableRef *> ReadReferences() const;
+
+  /** @return The set fo write references from the underlying graph */
+  std::vector<const detail::ContextSensitiveTableRef *> WriteReferences() const;
 
  private:
   // The underlying representation for the graph

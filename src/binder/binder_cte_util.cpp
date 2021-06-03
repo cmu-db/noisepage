@@ -1,6 +1,7 @@
 #include "binder/binder_cte_util.h"
 
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 
 #include "common/graph.h"
@@ -16,10 +17,10 @@ namespace detail {
 // ContextSensitiveTableRef
 // ----------------------------------------------------------------------------
 
-ContextSensitiveTableRef::ContextSensitiveTableRef(const std::size_t id, const std::size_t depth,
+ContextSensitiveTableRef::ContextSensitiveTableRef(const std::size_t id, const RefType type, const std::size_t depth,
                                                    const std::size_t position,
                                                    common::ManagedPointer<parser::TableRef> table)
-    : id_{id}, depth_{depth}, position_{position}, table_{table} {}
+    : id_{id}, type_{type}, depth_{depth}, position_{position}, table_{table} {}
 
 void ContextSensitiveTableRef::AddDependency(const std::size_t id) { dependencies_.insert(id); }
 }  // namespace detail
@@ -36,7 +37,7 @@ TableDependencyGraph::TableDependencyGraph(common::ManagedPointer<parser::Select
     const auto position =
         std::distance(select_with.cbegin(), std::find(select_with.cbegin(), select_with.cend(), table_ref));
     // Add the new context-sensitive table reference
-    graph_.emplace_back(next_id, 0UL, position, table_ref);
+    graph_.emplace_back(next_id, detail::RefType::WRITE, 0UL, position, table_ref);
     // Recursively consider nested table references
     BuildFromVisit(table_ref, next_id, 0UL, position, &context);
   }
@@ -92,7 +93,7 @@ void TableDependencyGraph::TableDependencyGraph::BuildFromVisit(common::ManagedP
     // this function, but we consider the SELECT target at the same
     // scope as the enclosing table reference
     const auto next_depth = depth - 1;
-    graph_.emplace_back(next_id, next_depth, position, select->GetSelectTable());
+    graph_.emplace_back(next_id, detail::RefType::READ, next_depth, position, select->GetSelectTable());
 
     // Add this table as a dependency of the containing table reference
     auto table =
@@ -108,7 +109,7 @@ void TableDependencyGraph::TableDependencyGraph::BuildFromVisit(common::ManagedP
     const auto next_position =
         std::distance(select_with.cbegin(), std::find(select_with.cbegin(), select_with.cend(), table_ref));
     // Add the new context-sensitive table reference
-    graph_.emplace_back(next_id, depth, next_position, table_ref);
+    graph_.emplace_back(next_id, detail::RefType::WRITE, depth, next_position, table_ref);
     // Recursively consider nested table references
     BuildFromVisit(table_ref, 0UL, depth, next_position, context);
   }
@@ -141,10 +142,14 @@ bool TableDependencyGraph::CheckNestedScopes() const {
   // checking each edge in the graph and verifying that it
   // is NEVER the case that the source vertex has a depth
   // that is strictly less than the destination
+
   for (const auto &src : graph_) {
     for (const auto id : src.Dependencies()) {
-      const auto &dst = GetRefWithId(id);
-      if (src.Depth() < dst.Depth()) {
+      const auto equivalence_class = WriteEquivalenceClassFor(id);
+      // NOTE: std::all_of() is vacuously true for an empty container
+      if (equivalence_class.size() > 0UL &&
+          std::all_of(equivalence_class.cbegin(), equivalence_class.cend(),
+                      [&](const std::size_t i) { return src.Depth() < GetRefWithId(i).Depth(); })) {
         return false;
       }
     }
@@ -169,6 +174,40 @@ const detail::ContextSensitiveTableRef &TableDependencyGraph::GetRefWithId(std::
                                [=](const detail::ContextSensitiveTableRef &r) { return r.Id() == id; });
   NOISEPAGE_ASSERT(it != graph_.cend(), "Broken Invariant");
   return *it;
+}
+
+std::vector<std::size_t> TableDependencyGraph::ReadEquiavlenceClassFor(const std::size_t id) const { return {}; }
+
+std::vector<std::size_t> TableDependencyGraph::WriteEquivalenceClassFor(const std::size_t id) const {
+  const auto &ref = GetRefWithId(id);
+  std::vector<std::size_t> equivalence_class{};
+  for (const auto &table_ref : graph_) {
+    if (table_ref.Table() == ref.Table() && table_ref.Type() == detail::RefType::WRITE) {
+      equivalence_class.push_back(table_ref.Id());
+    }
+  }
+  return equivalence_class;
+}
+
+std::vector<const detail::ContextSensitiveTableRef *> TableDependencyGraph::ReadReferences() const {
+  std::vector<const detail::ContextSensitiveTableRef *> refs{};
+  for (const auto &ref : graph_) {
+    if (ref.Type() == detail::RefType::READ) {
+      refs.push_back(&ref);
+    }
+  }
+  return refs;
+}
+
+/** @return The set fo write references from the underlying graph */
+std::vector<const detail::ContextSensitiveTableRef *> TableDependencyGraph::WriteReferences() const {
+  std::vector<const detail::ContextSensitiveTableRef *> refs{};
+  for (const auto &ref : graph_) {
+    if (ref.Type() == detail::RefType::WRITE) {
+      refs.push_back(&ref);
+    }
+  }
+  return refs;
 }
 
 // ----------------------------------------------------------------------------

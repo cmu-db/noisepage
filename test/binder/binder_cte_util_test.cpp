@@ -138,7 +138,7 @@ static bool CheckIdentifiers(const TableDependencyGraph &graph) {
 // Preliminaries
 // ----------------------------------------------------------------------------
 
-TEST_F(BinderCteUtilTest, ExtractSelectStatementFromParseResult0) {
+TEST_F(BinderCteUtilTest, ExtractSelectStatementFromParseResult) {
   const std::string sql = "SELECT * FROM TestTable;";
   auto [_, select] = ParseToSelectStatement(sql);
   EXPECT_EQ(select->GetDepth(), -1);
@@ -364,5 +364,35 @@ TEST_F(BinderCteUtilTest, BuildTableDependencyGraph13) {
   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
   EXPECT_TRUE(CheckIdentifiers(graph));
 }
+
+// ----------------------------------------------------------------------------
+// Dependency Graph Validation: Forward References
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Dependency Graph Validation: Mutual Recursion
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Dependency Graph Validation: Nested Scope
+// ----------------------------------------------------------------------------
+
+TEST_F(BinderCteUtilTest, CheckNestedScope0) {
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  TableDependencyGraph graph{select};
+  EXPECT_TRUE(graph.CheckNestedScopes());
+}
+
+// TEST_F(BinderCteUtilTest, CheckNestedScope1) {
+//   const std::string sql =
+//       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM a) SELECT * FROM y;";
+//   auto [_, select] = ParseToSelectStatement(sql);
+
+//   TableDependencyGraph graph{select};
+//   EXPECT_FALSE(graph.CheckNestedScopes());
+// }
 
 }  // namespace noisepage
