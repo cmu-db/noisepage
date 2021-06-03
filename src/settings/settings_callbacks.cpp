@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "loggers/loggers_util.h"
 #include "main/db_main.h"
 
 namespace noisepage::settings {
@@ -176,9 +177,12 @@ void Callbacks::MetricsQueryTrace(void *const old_value, void *const new_value, 
 void Callbacks::MetricsQueryTraceOutput(void *const old_value, void *const new_value, DBMain *const db_main,
                                         common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
-  auto output = static_cast<metrics::MetricsOutput>(
-      metrics::MetricsUtil::FromMetricsOutputString(*static_cast<std::string *>(new_value)));
-  db_main->GetMetricsManager()->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, output);
+  auto metrics_output = metrics::MetricsUtil::FromMetricsOutputString(*static_cast<std::string_view *>(new_value));
+  if (metrics_output == std::nullopt) {
+    action_context->SetState(common::ActionState::FAILURE);
+    return;
+  }
+  db_main->GetMetricsManager()->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, *metrics_output);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
@@ -296,5 +300,41 @@ void Callbacks::TrainOUModel(void *old_value, void *new_value, DBMain *db_main,
     action_context->SetState(common::ActionState::SUCCESS);
   }
 }
+
+#define SETTINGS_GENERATE_LOGGER_CALLBACK(component)                                                     \
+  void Callbacks::LogLevelSet##component(void *old_value, void *new_value, DBMain *db_main,              \
+                                         common::ManagedPointer<common::ActionContext> action_context) { \
+    action_context->SetState(common::ActionState::IN_PROGRESS);                                          \
+    auto level = *static_cast<std::string_view *>(new_value);                                            \
+    auto level_val = LoggersUtil::GetLevel(level);                                                       \
+    auto logger = LoggersUtil::GetLogger(#component);                                                    \
+                                                                                                         \
+    if (!level_val.has_value() || logger == nullptr) {                                                   \
+      action_context->SetState(common::ActionState::FAILURE);                                            \
+      return;                                                                                            \
+    }                                                                                                    \
+                                                                                                         \
+    logger->set_level(*level_val);                                                                       \
+    action_context->SetState(common::ActionState::SUCCESS);                                              \
+  }
+
+SETTINGS_GENERATE_LOGGER_CALLBACK(binder)
+SETTINGS_GENERATE_LOGGER_CALLBACK(catalog)
+SETTINGS_GENERATE_LOGGER_CALLBACK(common)
+SETTINGS_GENERATE_LOGGER_CALLBACK(execution)
+SETTINGS_GENERATE_LOGGER_CALLBACK(index)
+SETTINGS_GENERATE_LOGGER_CALLBACK(messenger)
+SETTINGS_GENERATE_LOGGER_CALLBACK(metrics)
+SETTINGS_GENERATE_LOGGER_CALLBACK(modelserver)
+SETTINGS_GENERATE_LOGGER_CALLBACK(network)
+SETTINGS_GENERATE_LOGGER_CALLBACK(optimizer)
+SETTINGS_GENERATE_LOGGER_CALLBACK(parser)
+SETTINGS_GENERATE_LOGGER_CALLBACK(replication)
+SETTINGS_GENERATE_LOGGER_CALLBACK(selfdriving)
+SETTINGS_GENERATE_LOGGER_CALLBACK(settings)
+SETTINGS_GENERATE_LOGGER_CALLBACK(storage)
+SETTINGS_GENERATE_LOGGER_CALLBACK(transaction)
+
+#undef SETTINGS_GENERATE_LOGGER_CALLBACK
 
 }  // namespace noisepage::settings
