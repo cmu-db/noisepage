@@ -262,6 +262,9 @@ class TableDependencyGraph {
 // BinderCteUtil
 // ----------------------------------------------------------------------------
 
+/**
+ * A static class for Binder utilities that are specific to CTEs.
+ */
 class BinderCteUtil {
  public:
   /**
