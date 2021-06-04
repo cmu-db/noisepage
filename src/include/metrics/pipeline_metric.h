@@ -17,10 +17,10 @@
 #include "self_driving/modeling/operating_unit_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace noisepage::selfdriving {
+namespace noisepage::selfdriving::pilot {
 class PilotUtil;
 class Pilot;
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot
 
 namespace noisepage::metrics {
 
@@ -90,8 +90,8 @@ class PipelineMetricRawData : public AbstractRawData {
 
  private:
   friend class PipelineMetric;
-  friend class selfdriving::PilotUtil;
-  friend class selfdriving::Pilot;
+  friend class selfdriving::pilot::PilotUtil;
+  friend class selfdriving::pilot::Pilot;
   FRIEND_TEST(MetricsTests, PipelineCSVTest);
   struct PipelineData;
 

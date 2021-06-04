@@ -35,16 +35,15 @@ class AbstractPlanNode;
 
 namespace noisepage::selfdriving {
 class WorkloadForecast;
-class Pilot;
 
 namespace pilot {
+class Pilot;
 class CreateIndexAction;
 class DropIndexAction;
 struct MemoryInfo;
 class ActionState;
 class AbstractAction;
 class PlanningContext;
-}  // namespace pilot
 
 /**
  * Utility class for helper functions
@@ -256,4 +255,5 @@ class PilotUtil {
   static const uint64_t INTERFERENCE_DIMENSION{27};
 };
 
+}  // namespace pilot
 }  // namespace noisepage::selfdriving
