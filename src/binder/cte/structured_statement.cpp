@@ -22,7 +22,7 @@ StructuredStatement::StructuredStatement(common::ManagedPointer<parser::SelectSt
   if (root->HasSelectTable()) {
     // Insert the target table for the SELECT
     const auto next_id = context.NextId();
-    AddRef({next_id, RefType::READ, scope, 0UL, root->GetSelectTable()});
+    AddRef({next_id, RefType::READ, scope, END_POSITION, root->GetSelectTable()});
   }
 
   const auto select_with = root->GetSelectWith();
@@ -32,6 +32,13 @@ StructuredStatement::StructuredStatement(common::ManagedPointer<parser::SelectSt
         std::distance(select_with.cbegin(), std::find(select_with.cbegin(), select_with.cend(), table_ref));
     // Add the new context-sensitive table reference
     AddRef({next_id, RefType::WRITE, scope, position, table_ref});
+
+    // Add a dependency for the root select on the WITH table
+    if (root->HasSelectTable()) {
+      auto &ref = GetRef({root->GetSelectTable()->GetAlias(), scopes_.at(scope), END_POSITION});
+      ref.AddDependency(next_id);
+    }
+
     // Recursively consider nested table references
     BuildFromVisit(table_ref, next_id, scope, scopes_[scope], position, &context);
   }
@@ -62,34 +69,31 @@ std::size_t StructuredStatement::DependencyCount() const {
 
 std::size_t StructuredStatement::ScopeCount() const { return scopes_.size(); }
 
-bool StructuredStatement::HasReadRef(const std::tuple<std::string, std::size_t> &ref) const {
+bool StructuredStatement::HasReadRef(const StructuredStatement::RefDescriptor &ref) const {
   return HasRef(ref, RefType::READ);
 }
 
-bool StructuredStatement::HasWriteRef(const std::tuple<std::string, std::size_t> &ref) const {
+bool StructuredStatement::HasWriteRef(const StructuredStatement::RefDescriptor &ref) const {
   return HasRef(ref, RefType::WRITE);
 }
 
-bool StructuredStatement::HasRef(const std::tuple<std::string, std::size_t> &ref) const {
+bool StructuredStatement::HasRef(const StructuredStatement::RefDescriptor &ref) const {
+  return HasRef(ref, RefType::READ) || HasRef(ref, RefType::WRITE);
+}
+
+bool StructuredStatement::HasRef(const StructuredStatement::RefDescriptor &ref, RefType type) const {
   const auto &alias = std::get<0>(ref);
   const auto &depth = std::get<1>(ref);
+  const auto &position = std::get<2>(ref);
   auto it = std::find_if(references_.cbegin(), references_.cend(), [&](const ContextSensitiveTableRef &r) {
-    return r.Table()->GetAlias() == alias && scopes_.at(r.Scope()) == depth;
+    return r.Table()->GetAlias() == alias && scopes_.at(r.Scope()) == depth && r.Position() == position &&
+           r.Type() == type;
   });
   return it != references_.cend();
 }
 
-bool StructuredStatement::HasRef(const std::tuple<std::string, std::size_t> &ref, RefType type) const {
-  const auto &alias = std::get<0>(ref);
-  const auto &depth = std::get<1>(ref);
-  auto it = std::find_if(references_.cbegin(), references_.cend(), [&](const ContextSensitiveTableRef &r) {
-    return r.Table()->GetAlias() == alias && scopes_.at(r.Scope()) == depth && r.Type() == type;
-  });
-  return it != references_.cend();
-}
-
-bool StructuredStatement::HasDependency(const std::tuple<std::string, std::size_t> &src,
-                                        const std::tuple<std::string, std::size_t> &dst) const {
+bool StructuredStatement::HasDependency(const StructuredStatement::RefDescriptor &src,
+                                        const StructuredStatement::RefDescriptor &dst) const {
   if (!HasRef(src) || !HasRef(dst)) {
     return false;
   }
@@ -98,12 +102,38 @@ bool StructuredStatement::HasDependency(const std::tuple<std::string, std::size_
   return src_ref.Dependencies().count(dst_ref.Id()) > 0;
 }
 
-const ContextSensitiveTableRef &StructuredStatement::GetRef(const std::tuple<std::string, std::size_t> &ref) const {
+ContextSensitiveTableRef &StructuredStatement::GetRef(const RefDescriptor &ref) {
   const auto &alias = std::get<0>(ref);
   const auto &depth = std::get<1>(ref);
-  auto it = std::find_if(references_.cbegin(), references_.cend(), [&](const ContextSensitiveTableRef &r) {
-    return r.Table()->GetAlias() == alias && scopes_.at(r.Scope()) == depth;
+  const auto &position = std::get<2>(ref);
+  auto it = std::find_if(references_.begin(), references_.end(), [&](const ContextSensitiveTableRef &r) {
+    return r.Table()->GetAlias() == alias && scopes_.at(r.Scope()) == depth && r.Position() == position;
   });
+  NOISEPAGE_ASSERT(it != references_.end(), "Use of GetRef() assumes the reference is present");
+  return *it;
+}
+
+const ContextSensitiveTableRef &StructuredStatement::GetRef(const StructuredStatement::RefDescriptor &ref) const {
+  const auto &alias = std::get<0>(ref);
+  const auto &depth = std::get<1>(ref);
+  const auto &position = std::get<2>(ref);
+  auto it = std::find_if(references_.cbegin(), references_.cend(), [&](const ContextSensitiveTableRef &r) {
+    return r.Table()->GetAlias() == alias && scopes_.at(r.Scope()) == depth && r.Position() == position;
+  });
+  NOISEPAGE_ASSERT(it != references_.cend(), "Use of GetRef() assumes the reference is present");
+  return *it;
+}
+
+ContextSensitiveTableRef &StructuredStatement::GetRef(std::size_t id) {
+  auto it = std::find_if(references_.begin(), references_.end(),
+                         [=](const ContextSensitiveTableRef &r) { return r.Id() == id; });
+  NOISEPAGE_ASSERT(it != references_.end(), "Use of GetRef() assumes the reference is present");
+  return *it;
+}
+
+const ContextSensitiveTableRef &StructuredStatement::GetRef(std::size_t id) const {
+  auto it = std::find_if(references_.cbegin(), references_.cend(),
+                         [=](const ContextSensitiveTableRef &r) { return r.Id() == id; });
   NOISEPAGE_ASSERT(it != references_.cend(), "Use of GetRef() assumes the reference is present");
   return *it;
 }
@@ -125,7 +155,7 @@ void StructuredStatement::BuildFromVisit(common::ManagedPointer<parser::SelectSt
   if (select->HasSelectTable()) {
     // Insert the target table for the SELECT
     const auto next_id = context->NextId();
-    AddRef({next_id, RefType::READ, scope, position, select->GetSelectTable()});
+    AddRef({next_id, RefType::READ, scope, END_POSITION, select->GetSelectTable()});
 
     // Add this table as a dependency of the containing table reference
     auto table =
@@ -142,6 +172,12 @@ void StructuredStatement::BuildFromVisit(common::ManagedPointer<parser::SelectSt
         std::distance(select_with.cbegin(), std::find(select_with.cbegin(), select_with.cend(), table_ref));
     // Add the new context-sensitive table reference
     AddRef({next_id, RefType::WRITE, scope, next_position, table_ref});
+
+    // Add a dependency for the SELECT on the WITH table
+    if (select->HasSelectTable()) {
+      auto &ref = GetRef({select->GetSelectTable()->GetAlias(), scopes_.at(scope), END_POSITION});
+      ref.AddDependency(next_id);
+    }
 
     // Recursively consider nested table references
     BuildFromVisit(table_ref, DONT_CARE_ID, scope, depth, next_position, context);

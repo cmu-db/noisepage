@@ -1,9 +1,8 @@
-#include "binder/cte/structured_statement.h"
-
 #include <memory>
 
 #include "binder/bind_node_visitor.h"
 #include "binder/cte/context_sensitive_table_ref.h"
+#include "binder/cte/structured_statement.h"
 #include "catalog/catalog.h"
 #include "common/managed_pointer.h"
 #include "main/db_main.h"
@@ -13,6 +12,8 @@
 #include "transaction/transaction_manager.h"
 
 using noisepage::binder::cte::StructuredStatement;
+
+static constexpr const auto END_POSITION = StructuredStatement::END_POSITION;
 
 namespace noisepage {
 class BinderCteStructuredStatementTest : public TerrierTest {
@@ -139,214 +140,272 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement0) {
   EXPECT_EQ(1UL, statement.RefCount());
   EXPECT_EQ(0UL, statement.DependencyCount());
   EXPECT_EQ(1UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"testtable", 0UL}));
+  EXPECT_TRUE(statement.HasRef({"testtable", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"testtable", 0UL, END_POSITION}));
   EXPECT_TRUE(CheckIdentifiers(statement));
 }
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph1) {
-//   const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement1) {
+  const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(1UL, graph.Order());
-//   EXPECT_EQ(0UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(2UL, statement.RefCount());
+  EXPECT_EQ(1UL, statement.DependencyCount());
+  EXPECT_EQ(2UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph2) {
-//   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT 1) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement2) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT 1) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(2UL, graph.Order());
-//   EXPECT_EQ(0UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(3UL, statement.RefCount());
+  EXPECT_EQ(2UL, statement.DependencyCount());
+  EXPECT_EQ(3UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph3) {
-//   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT 1), z(k) AS (SELECT 1) SELECT * FROM z;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement3) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT 1), z(k) AS (SELECT 1) SELECT * FROM z;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(3UL, graph.Order());
-//   EXPECT_EQ(0UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"z", 0UL, 2UL}));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(4UL, statement.RefCount());
+  EXPECT_EQ(3UL, statement.DependencyCount());
+  EXPECT_EQ(4UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"z", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"z", 0UL, 2UL}));
+  EXPECT_TRUE(statement.HasDependency({"z", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"z", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"z", 0UL, END_POSITION}, {"z", 0UL, 2UL}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph4) {
-//   // Backward reference y -> x
-//   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement4) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(3UL, graph.Order());
-//   EXPECT_EQ(1UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(4UL, statement.RefCount());
+  EXPECT_EQ(3UL, statement.DependencyCount());
+  EXPECT_EQ(3UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph5) {
-//   // Backward reference y -> x
-//   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement5) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(3UL, graph.Order());
-//   EXPECT_EQ(1UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(4UL, statement.RefCount());
+  EXPECT_EQ(3UL, statement.DependencyCount());
+  EXPECT_EQ(3UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph6) {
-//   // Forward reference x -> y
-//   const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement6) {
+  const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(3UL, graph.Order());
-//   EXPECT_EQ(1UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"y", 0UL, 0UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(4UL, statement.RefCount());
+  EXPECT_EQ(3UL, statement.DependencyCount());
+  EXPECT_EQ(3UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"y", 1UL, END_POSITION}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph7) {
-//   // Forward reference x -> y
-//   const std::string sql = "WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement7) {
+  const std::string sql = "WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(3UL, graph.Order());
-//   EXPECT_EQ(1UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"y", 0UL, 0UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(4UL, statement.RefCount());
+  EXPECT_EQ(3UL, statement.DependencyCount());
+  EXPECT_EQ(3UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"y", 1UL, END_POSITION}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph8) {
-//   // Mutual recursion x <-> y
-//   const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement8) {
+  const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(4UL, graph.Order());
-//   EXPECT_EQ(2UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"y", 0UL, 0UL})));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(5UL, statement.RefCount());
+  EXPECT_EQ(4UL, statement.DependencyCount());
+  EXPECT_EQ(3UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"y", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph9) {
-//   // Mutual recursion x <-> y
-//   const std::string sql = "WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement9) {
+  const std::string sql = "WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(4UL, graph.Order());
-//   EXPECT_EQ(2UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"y", 0UL, 0UL})));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(5UL, statement.RefCount());
+  EXPECT_EQ(4UL, statement.DependencyCount());
+  EXPECT_EQ(3UL, statement.ScopeCount());
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"y", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph10) {
-//   // Nested scope
-//   const std::string sql =
-//       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+TEST_F(BinderCteStructuredStatementTest, BuildStatement10) {
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(5UL, graph.Order());
-//   EXPECT_EQ(2UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"a", 1UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"a", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"a", 0UL, 0UL})));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  StructuredStatement statement{select};
+  EXPECT_EQ(6UL, statement.RefCount());
+  EXPECT_EQ(5UL, statement.DependencyCount());
+  EXPECT_EQ(4UL, statement.ScopeCount());
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph11) {
-//   // Nested scope
-//   const std::string sql =
-//       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"a", 1UL, 0UL}));
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(5UL, graph.Order());
-//   EXPECT_EQ(2UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"a", 1UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"a", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"a", 0UL, 0UL})));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"a", 1UL, END_POSITION}, {"a", 1UL, 0UL}));
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph12) {
-//   // Nested scope
-//   const std::string sql =
-//       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(5UL, graph.Order());
-//   EXPECT_EQ(2UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"a", 1UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"a", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"a", 0UL, 0UL})));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+TEST_F(BinderCteStructuredStatementTest, BuildStatement11) {
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
 
-// TEST_F(BinderCteUtilTest, BuildTableDependencyGraph13) {
-//   // Nested scope
-//   const std::string sql =
-//       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT i FROM x) SELECT j FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
+  StructuredStatement statement{select};
+  EXPECT_EQ(6UL, statement.RefCount());
+  EXPECT_EQ(5UL, statement.DependencyCount());
+  EXPECT_EQ(4UL, statement.ScopeCount());
 
-//   TableDependencyGraph graph{select};
-//   EXPECT_EQ(5UL, graph.Order());
-//   EXPECT_EQ(2UL, graph.Size());
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"x", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasVertex({"a", 1UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"a", 0UL, 0UL}));
-//   EXPECT_TRUE(graph.HasVertex({"y", 0UL, 1UL}));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"x", 0UL, 0UL}, {"a", 0UL, 0UL})));
-//   EXPECT_TRUE(graph.HasEdge(MakeEdge({"y", 0UL, 1UL}, {"x", 0UL, 1UL})));
-//   EXPECT_TRUE(CheckIdentifiers(graph));
-// }
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"a", 1UL, 0UL}));
 
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"a", 1UL, END_POSITION}, {"a", 1UL, 0UL}));
+
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
+
+TEST_F(BinderCteStructuredStatementTest, BuildStatement12) {
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  EXPECT_EQ(6UL, statement.RefCount());
+  EXPECT_EQ(5UL, statement.DependencyCount());
+  EXPECT_EQ(4UL, statement.ScopeCount());
+
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"a", 1UL, 0UL}));
+
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"a", 1UL, END_POSITION}, {"a", 1UL, 0UL}));
+
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
+
+TEST_F(BinderCteStructuredStatementTest, BuildStatement13) {
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT i FROM x) SELECT j FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  EXPECT_EQ(6UL, statement.RefCount());
+  EXPECT_EQ(5UL, statement.DependencyCount());
+  EXPECT_EQ(4UL, statement.ScopeCount());
+
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasWriteRef({"a", 1UL, 0UL}));
+
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasDependency({"a", 1UL, END_POSITION}, {"a", 1UL, 0UL}));
+
+  EXPECT_TRUE(CheckIdentifiers(statement));
+}
 }  // namespace noisepage

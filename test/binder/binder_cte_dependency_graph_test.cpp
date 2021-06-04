@@ -1,8 +1,7 @@
-#include "binder/cte/dependency_graph.h"
-
 #include <memory>
 
 #include "binder/bind_node_visitor.h"
+#include "binder/cte/dependency_graph.h"
 #include "catalog/catalog.h"
 #include "common/managed_pointer.h"
 #include "main/db_main.h"

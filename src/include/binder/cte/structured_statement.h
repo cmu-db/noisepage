@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -30,6 +32,12 @@ class ContextSensitiveTableRef;
 class StructuredStatement {
  public:
   /**
+   * A RefDescriptor provides a convenient way to uniquely
+   * identify table references for testing purposes.
+   */
+  using RefDescriptor = std::tuple<std::string, std::size_t, std::size_t>;
+
+  /**
    * The BuildContext class encapsulates the context that is
    * passed through recursive calls while building the graph.
    */
@@ -47,6 +55,9 @@ class StructuredStatement {
     // The unique scope counter
     std::size_t next_scope_;
   };
+
+  /** Dummy position identifier for the read reference that is the target of a statement */
+  static constexpr const std::size_t END_POSITION = std::numeric_limits<std::size_t>::max();
 
  public:
   /**
@@ -93,14 +104,21 @@ class StructuredStatement {
    * @param ref A descriptor for the reference of interest
    * @return `true` if the structured statement contains the reference, `false` otherwise
    */
-  bool HasReadRef(const std::tuple<std::string, std::size_t> &ref) const;
+  bool HasRef(const RefDescriptor &ref) const;
 
   /**
    * Determine if the structured statement contains the specified reference.
    * @param ref A descriptor for the reference of interest
    * @return `true` if the structured statement contains the reference, `false` otherwise
    */
-  bool HasWriteRef(const std::tuple<std::string, std::size_t> &ref) const;
+  bool HasReadRef(const RefDescriptor &ref) const;
+
+  /**
+   * Determine if the structured statement contains the specified reference.
+   * @param ref A descriptor for the reference of interest
+   * @return `true` if the structured statement contains the reference, `false` otherwise
+   */
+  bool HasWriteRef(const RefDescriptor &ref) const;
 
   /**
    * Determine if the structured statement contains the specified dependency.
@@ -108,14 +126,13 @@ class StructuredStatement {
    * @param dst A descriptor for the destination reference
    * @return `true` if the structured statement contains the reference, `false` otherwise
    */
-  bool HasDependency(const std::tuple<std::string, std::size_t> &src,
-                     const std::tuple<std::string, std::size_t> &dst) const;
+  bool HasDependency(const RefDescriptor &src, const RefDescriptor &dst) const;
 
   /** @return A collection of the unique identifiers for nodes in the graph */
   std::vector<std::size_t> Identifiers() const;
 
  private:
-  /** Dummy  identifier we use during statement construction */
+  /** Dummy identifier we use during statement construction */
   static constexpr const std::size_t DONT_CARE_ID = 0UL;
 
   /**
@@ -166,24 +183,38 @@ class StructuredStatement {
   /**
    * Determine if the structured statement contains the specified reference.
    * @param ref A descriptor for the reference of interest
-   * @return `true` if the structured statement contains the reference, `false` otherwise
-   */
-  bool HasRef(const std::tuple<std::string, std::size_t> &ref) const;
-
-  /**
-   * Determine if the structured statement contains the specified reference.
-   * @param ref A descriptor for the reference of interest
    * @param type The reference type
    * @return `true` if the structured statement contains the reference, `false` otherwise
    */
-  bool HasRef(const std::tuple<std::string, std::size_t> &ref, RefType type) const;
+  bool HasRef(const RefDescriptor &ref, RefType type) const;
+
+  /**
+   * Get the identified reference.
+   * @param ref A descriptor for the reference of interest
+   * @return A mutable reference to the reference
+   */
+  ContextSensitiveTableRef &GetRef(std::size_t id);
 
   /**
    * Get the identified reference.
    * @param ref A descriptor for the reference of interest
    * @return An immutable reference to the reference
    */
-  const ContextSensitiveTableRef &GetRef(const std::tuple<std::string, std::size_t> &ref) const;
+  const ContextSensitiveTableRef &GetRef(std::size_t id) const;
+
+  /**
+   * Get the identified reference.
+   * @param ref A descriptor for the reference of interest
+   * @return A mutable reference to the reference
+   */
+  ContextSensitiveTableRef &GetRef(const RefDescriptor &ref);
+
+  /**
+   * Get the identified reference.
+   * @param ref A descriptor for the reference of interest
+   * @return An immutable reference to the reference
+   */
+  const ContextSensitiveTableRef &GetRef(const RefDescriptor &ref) const;
 
  private:
   // The collection of references extracted from the statement
