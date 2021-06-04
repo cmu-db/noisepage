@@ -24,7 +24,7 @@
 #include "util/query_exec_util.h"
 #include "util/self_driving_recording_util.h"
 
-namespace noisepage::selfdriving {
+namespace noisepage::selfdriving::pilot {
 
 Pilot::Pilot(std::string ou_model_save_path, std::string interference_model_save_path,
              std::string forecast_model_save_path, common::ManagedPointer<catalog::Catalog> catalog,
@@ -69,14 +69,14 @@ void Pilot::PerformPlanning() {
     std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_actions_seq;
     Pilot::ActionSearchBaseline(&best_actions_seq);
   } else {
-    std::vector<pilot::ActionTreeNode> best_action_seq;
+    std::vector<ActionTreeNode> best_action_seq;
     Pilot::ActionSearch(&best_action_seq);
   }
 
   metrics_thread->ResumeMetrics();
 }
 
-void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
+void Pilot::ActionSearch(std::vector<ActionTreeNode> *best_action_seq) {
   // Put every database into planning_context to create transaction context and catalog accessor
   std::set<catalog::db_oid_t> db_oids = forecast_->GetDBOidSet();
   for (auto db_oid : db_oids) planning_context_.AddDatabase(db_oid);
@@ -86,16 +86,16 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
 
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
-  auto mcst = pilot::MonteCarloTreeSearch(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
+  auto mcst = MonteCarloTreeSearch(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
   mcst.RunSimulation(simulation_number_,
                      planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint));
 
   // Record the top 3 at each level along the "best action path".
   // TODO(wz2): May want to improve this at a later time.
-  std::vector<std::vector<pilot::ActionTreeNode>> layered_action;
+  std::vector<std::vector<ActionTreeNode>> layered_action;
   mcst.BestAction(&layered_action, 3);
   for (size_t i = 0; i < layered_action.size(); i++) {
-    pilot::ActionTreeNode &action = layered_action[i].front();
+    ActionTreeNode &action = layered_action[i].front();
     best_action_seq->emplace_back(action);
 
     SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", i,
@@ -106,14 +106,14 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   uint64_t timestamp = metrics::MetricsUtil::Now();
   util::SelfDrivingRecordingUtil::RecordBestActions(timestamp, layered_action, planning_context_.GetTaskManager());
 
-  pilot::ActionTreeNode &best_action = (*best_action_seq)[0];
+  ActionTreeNode &best_action = (*best_action_seq)[0];
   util::SelfDrivingRecordingUtil::RecordAppliedAction(timestamp, best_action.GetActionId(), best_action.GetCost(),
                                                       best_action.GetDbOid(), best_action.GetActionText(),
                                                       planning_context_.GetTaskManager());
 
   // Invalidate database and memory information
   planning_context_.ClearDatabases();
-  planning_context_.SetMemoryInfo(pilot::MemoryInfo());
+  planning_context_.SetMemoryInfo(MemoryInfo());
 
   // Apply the best action WITHOUT "what-if"
   PilotUtil::ApplyAction(planning_context_, best_action.GetActionText(), best_action.GetDbOid(), false);
@@ -130,7 +130,7 @@ void Pilot::ActionSearchBaseline(
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
 
-  auto seq_tunining = pilot::SequenceTuning(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
+  auto seq_tunining = SequenceTuning(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
 
   std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_action_set_seq;
   seq_tunining.BestAction(planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint),
@@ -147,10 +147,10 @@ void Pilot::ActionSearchBaseline(
 
   // Invalidate database and memory information
   planning_context_.ClearDatabases();
-  planning_context_.SetMemoryInfo(pilot::MemoryInfo());
+  planning_context_.SetMemoryInfo(MemoryInfo());
 
   for (auto const &action : *best_actions_seq->begin())
     PilotUtil::ApplyAction(planning_context_, action.first, action.second, false);
 }
 
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot
