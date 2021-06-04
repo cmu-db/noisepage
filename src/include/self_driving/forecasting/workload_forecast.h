@@ -13,6 +13,9 @@
 #include "self_driving/forecasting/workload_forecast_segment.h"
 
 namespace noisepage::selfdriving {
+namespace pilot {
+class PilotUtil;
+}
 
 /**
  * A workload forecast prediction is described as:

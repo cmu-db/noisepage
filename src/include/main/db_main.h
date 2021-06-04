@@ -532,21 +532,21 @@ class DBMain {
             model_server_path_, messenger_layer->GetMessenger(), model_server_enable_python_coverage_);
       }
 
-      std::unique_ptr<selfdriving::PilotThread> pilot_thread = DISABLED;
-      std::unique_ptr<selfdriving::Pilot> pilot = DISABLED;
+      std::unique_ptr<selfdriving::pilot::PilotThread> pilot_thread = DISABLED;
+      std::unique_ptr<selfdriving::pilot::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
         NOISEPAGE_ASSERT(use_model_server_, "Pilot requires model server manager.");
         std::unique_ptr<util::QueryExecUtil> util =
             query_exec_util ? util::QueryExecUtil::ConstructThreadLocal(common::ManagedPointer(query_exec_util))
                             : nullptr;
-        pilot = std::make_unique<selfdriving::Pilot>(
+        pilot = std::make_unique<selfdriving::pilot::Pilot>(
             ou_model_save_path_, interference_model_save_path_, forecast_model_save_path_,
             common::ManagedPointer(catalog_layer->GetCatalog()), common::ManagedPointer(metrics_thread),
             common::ManagedPointer(model_server_manager), common::ManagedPointer(settings_manager),
             common::ManagedPointer(stats_storage), common::ManagedPointer(txn_layer->GetTransactionManager()),
             std::move(util), common::ManagedPointer(task_manager), workload_forecast_interval_, sequence_length_,
             horizon_length_);
-        pilot_thread = std::make_unique<selfdriving::PilotThread>(
+        pilot_thread = std::make_unique<selfdriving::pilot::PilotThread>(
             common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_},
             std::chrono::microseconds{forecast_train_interval_}, pilot_planning_);
       }
@@ -1182,12 +1182,12 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
-  common::ManagedPointer<selfdriving::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
+  common::ManagedPointer<selfdriving::pilot::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
 
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
-  common::ManagedPointer<selfdriving::PilotThread> GetPilotThread() const {
+  common::ManagedPointer<selfdriving::pilot::PilotThread> GetPilotThread() const {
     return common::ManagedPointer(pilot_thread_);
   }
 
@@ -1249,8 +1249,8 @@ class DBMain {
   std::unique_ptr<MessengerLayer> messenger_layer_;
   std::unique_ptr<replication::ReplicationManager> replication_manager_;  // Depends on messenger.
   std::unique_ptr<storage::RecoveryManager> recovery_manager_;            // Depends on replication manager.
-  std::unique_ptr<selfdriving::PilotThread> pilot_thread_;
-  std::unique_ptr<selfdriving::Pilot> pilot_;
+  std::unique_ptr<selfdriving::pilot::PilotThread> pilot_thread_;
+  std::unique_ptr<selfdriving::pilot::Pilot> pilot_;
   std::unique_ptr<modelserver::ModelServerManager> model_server_manager_;
   std::unique_ptr<util::QueryExecUtil> query_exec_util_;
   std::unique_ptr<task::TaskManager> task_manager_;
