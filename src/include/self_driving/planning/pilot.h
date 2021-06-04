@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/catalog.h"
+#include "catalog/catalog_defs.h"
 #include "common/action_context.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
