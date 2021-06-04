@@ -37,7 +37,7 @@
 #include "task/task_manager.h"
 #include "util/query_exec_util.h"
 
-namespace noisepage::selfdriving {
+namespace noisepage::selfdriving::pilot {
 
 void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, const std::string &sql_query,
                             catalog::db_oid_t db_oid, bool what_if) {
@@ -80,7 +80,7 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
     query_exec_util->EndTransaction(true);
 }
 
-void PilotUtil::GetQueryPlans(const pilot::PlanningContext &planning_context,
+void PilotUtil::GetQueryPlans(const PlanningContext &planning_context,
                               common::ManagedPointer<WorkloadForecast> forecast, uint64_t end_segment_index,
                               std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs) {
   std::unordered_set<execution::query_id_t> qids;
@@ -130,7 +130,7 @@ std::vector<double> PilotUtil::GetInterferenceFeature(const std::vector<double> 
   return interference_feat;
 }
 
-double PilotUtil::ComputeCost(const pilot::PlanningContext &planning_context,
+double PilotUtil::ComputeCost(const PlanningContext &planning_context,
                               common::ManagedPointer<WorkloadForecast> forecast, uint64_t start_segment_index,
                               uint64_t end_segment_index) {
   // Compute cost as total latency of queries based on their num of exec
@@ -168,7 +168,7 @@ double PilotUtil::ComputeCost(const pilot::PlanningContext &planning_context,
 }
 
 std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatures(
-    const pilot::PlanningContext &planning_context, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+    const PlanningContext &planning_context, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
     uint64_t start_segment_index, uint64_t end_segment_index, std::vector<execution::query_id_t> *pipeline_qids,
     const bool execute_query) {
   std::unordered_set<execution::query_id_t> qids;
@@ -438,21 +438,20 @@ void PilotUtil::GroupFeaturesByOU(
   }
 }
 
-pilot::MemoryInfo PilotUtil::ComputeMemoryInfo(const pilot::PlanningContext &planning_context,
-                                               const WorkloadForecast *forecast) {
-  pilot::MemoryInfo memory_info;
+MemoryInfo PilotUtil::ComputeMemoryInfo(const PlanningContext &planning_context, const WorkloadForecast *forecast) {
+  MemoryInfo memory_info;
   PilotUtil::ComputeTableSizeRatios(planning_context, forecast, &memory_info);
   PilotUtil::ComputeTableIndexSizes(planning_context, &memory_info);
   return memory_info;
 }
 
-void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_context, const WorkloadForecast *forecast,
-                                       pilot::MemoryInfo *memory_info) {
+void PilotUtil::ComputeTableSizeRatios(const PlanningContext &planning_context, const WorkloadForecast *forecast,
+                                       MemoryInfo *memory_info) {
   auto task_manager = planning_context.GetTaskManager();
   NOISEPAGE_ASSERT(task_manager, "ComputeTableSizeRatios() requires task manager");
 
   // Maps from db-table oid to the number of rows (acquired from pg_statistic)
-  std::unordered_map<pilot::db_table_oid_pair, uint64_t, pilot::DBTableOidPairHasher> table_sizes;
+  std::unordered_map<db_table_oid_pair, uint64_t, DBTableOidPairHasher> table_sizes;
 
   // Get <table_id, num_rows> pairs with num_rows > 0
   auto query = fmt::format(
@@ -486,7 +485,7 @@ void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_co
   // Calculating queries' changes in the number of rows
   auto &metadata = forecast->GetWorkloadMetadata();
   // <query_id, <table_id, number of rows changed by that query in that table>>
-  std::unordered_map<execution::query_id_t, std::pair<pilot::db_table_oid_pair, int64_t>> query_row_changes;
+  std::unordered_map<execution::query_id_t, std::pair<db_table_oid_pair, int64_t>> query_row_changes;
   for (const auto &[query_id, query_text] : metadata.query_id_to_text_) {
     // Parse the query
     auto parse_result = parser::PostgresParser::BuildParseTree(query_text);
@@ -528,7 +527,7 @@ void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_co
   for (uint64_t idx = 0; idx < forecast->GetNumberOfSegments(); ++idx) {
     // Get the table num row changes in this segment
     auto &id_to_num_exec = forecast->GetSegmentByIndex(idx).GetIdToNumexec();
-    std::unordered_map<pilot::db_table_oid_pair, double, pilot::DBTableOidPairHasher> table_size_deltas;
+    std::unordered_map<db_table_oid_pair, double, DBTableOidPairHasher> table_size_deltas;
     for (const auto &[query_id, table_id_to_delta] : query_row_changes) {
       auto table_id = table_id_to_delta.first;
       if (table_size_deltas.find(table_id) == table_size_deltas.end()) table_size_deltas[table_id] = 0;
@@ -546,7 +545,7 @@ void PilotUtil::ComputeTableSizeRatios(const pilot::PlanningContext &planning_co
   }
 }
 
-void PilotUtil::ComputeTableIndexSizes(const pilot::PlanningContext &planning_context, pilot::MemoryInfo *memory_info) {
+void PilotUtil::ComputeTableIndexSizes(const PlanningContext &planning_context, MemoryInfo *memory_info) {
   // Traverse all databases to find the info (since we don't know which table belongs to which database)
   for (auto db_oid : planning_context.GetDBOids()) {
     auto accessor = planning_context.GetCatalogAccessor(db_oid);
@@ -572,9 +571,8 @@ void PilotUtil::ComputeTableIndexSizes(const pilot::PlanningContext &planning_co
   }
 }
 
-void PilotUtil::EstimateCreateIndexAction(const pilot::PlanningContext &planning_context,
-                                          pilot::CreateIndexAction *create_action,
-                                          pilot::DropIndexAction *drop_action) {
+void PilotUtil::EstimateCreateIndexAction(const PlanningContext &planning_context, CreateIndexAction *create_action,
+                                          DropIndexAction *drop_action) {
   // Just compile the queries (generate the bytecodes) to get features with statistics
   std::string query_text = create_action->GetSQLCommand();
 
@@ -637,15 +635,15 @@ void PilotUtil::EstimateCreateIndexAction(const pilot::PlanningContext &planning
   create_action->SetEstimatedMetrics(std::move(pipeline_sum));
 }
 
-size_t PilotUtil::CalculateMemoryConsumption(
-    const pilot::MemoryInfo &memory_info, const pilot::ActionState &action_state, uint64_t segment_index,
-    const std::map<pilot::action_id_t, std::unique_ptr<pilot::AbstractAction>> &action_map) {
+size_t PilotUtil::CalculateMemoryConsumption(const MemoryInfo &memory_info, const ActionState &action_state,
+                                             uint64_t segment_index,
+                                             const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map) {
   auto &created_indexes = action_state.GetCreatedIndexes();
   auto &dropped_indexes = action_state.GetDroppedIndexes();
   auto &index_action_map = action_state.GetIndexActionMap();
 
   // First count the table sizes
-  std::unordered_map<pilot::db_table_oid_pair, double, pilot::DBTableOidPairHasher> table_memory_sizes;
+  std::unordered_map<db_table_oid_pair, double, DBTableOidPairHasher> table_memory_sizes;
   for (auto &[table_id, size] : memory_info.table_memory_bytes_) table_memory_sizes[table_id] = size;
 
   // Then count the index sizes for each table, if they're not dropped
@@ -659,9 +657,9 @@ size_t PilotUtil::CalculateMemoryConsumption(
   for (auto &name : created_indexes) {
     auto const &action = action_map.at(index_action_map.at(name));
     double size = action->GetEstimatedMemoryBytes();
-    NOISEPAGE_ASSERT(action->GetActionType() == pilot::ActionType::CREATE_INDEX, "This must be a create index action");
+    NOISEPAGE_ASSERT(action->GetActionType() == ActionType::CREATE_INDEX, "This must be a create index action");
     auto db_id = action->GetDatabaseOid();
-    auto table_id = reinterpret_cast<pilot::CreateIndexAction *>(action.get())->GetTableOid();
+    auto table_id = reinterpret_cast<CreateIndexAction *>(action.get())->GetTableOid();
     table_memory_sizes[std::make_pair(db_id, table_id)] += size;
   }
 
@@ -679,7 +677,7 @@ size_t PilotUtil::CalculateMemoryConsumption(
   return total_memory;
 }
 
-std::string PilotUtil::ConfigToString(const std::set<pilot::action_id_t> &config_set) {
+std::string PilotUtil::ConfigToString(const std::set<action_id_t> &config_set) {
   std::string set_string = "{";
   for (auto action : config_set) {
     set_string += fmt::format(" action_id {} ", action);
@@ -688,7 +686,7 @@ std::string PilotUtil::ConfigToString(const std::set<pilot::action_id_t> &config
   return set_string;
 }
 
-void PilotUtil::ExecuteForecast(const pilot::PlanningContext &planning_context,
+void PilotUtil::ExecuteForecast(const PlanningContext &planning_context,
                                 common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                 uint64_t start_segment_index, uint64_t end_segment_index,
                                 std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
@@ -721,4 +719,4 @@ void PilotUtil::ExecuteForecast(const pilot::PlanningContext &planning_context,
                                         query_info, segment_to_offset, interference_result_matrix);
 }
 
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot

@@ -86,7 +86,7 @@ class WorkloadForecast {
   }
 
  private:
-  friend class PilotUtil;
+  friend class pilot::PilotUtil;
 
   uint64_t GetForecastInterval() const { return forecast_interval_; }
 

@@ -21,9 +21,9 @@ class GarbageCollector;
 class RecoveryManager;
 }  // namespace noisepage::storage
 
-namespace noisepage::selfdriving {
+namespace noisepage::selfdriving::pilot {
 class PilotUtil;
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot
 
 namespace noisepage::catalog {
 
@@ -141,7 +141,7 @@ class Catalog {
  private:
   DISALLOW_COPY_AND_MOVE(Catalog);
   friend class storage::RecoveryManager;
-  friend class selfdriving::PilotUtil;
+  friend class selfdriving::pilot::PilotUtil;
   const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   const common::ManagedPointer<storage::BlockStore> catalog_block_store_;
   const common::ManagedPointer<storage::GarbageCollector> garbage_collector_;

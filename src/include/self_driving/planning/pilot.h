@@ -62,14 +62,10 @@ class TaskManager;
 
 }  // namespace noisepage
 
-namespace noisepage::selfdriving {
-namespace pilot {
+namespace noisepage::selfdriving::pilot {
 class AbstractAction;
-class MonteCarloTreeSearch;
 class TreeNode;
 class ActionTreeNode;
-}  // namespace pilot
-
 class PilotUtil;
 
 /**
@@ -127,7 +123,7 @@ class Pilot {
    * Search for and apply the best action for the current timestamp
    * @param best_action_seq pointer to the vector to be filled with the sequence of best actions to take at current time
    */
-  void ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq);
+  void ActionSearch(std::vector<ActionTreeNode> *best_action_seq);
 
   /**
    * Search for and apply the best set of actions for the current timestamp using the Sequence Tuning baseline
@@ -155,7 +151,7 @@ class Pilot {
    */
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 
-  pilot::PlanningContext planning_context_;
+  PlanningContext planning_context_;
 
   Forecaster forecaster_;
   uint64_t action_planning_horizon_{15};
@@ -164,4 +160,4 @@ class Pilot {
   std::mutex forecaster_train_mutex_;
 };
 
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot
