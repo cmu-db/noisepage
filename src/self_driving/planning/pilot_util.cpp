@@ -35,6 +35,7 @@
 #include "storage/sql_table.h"
 #include "task/task.h"
 #include "task/task_manager.h"
+#include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
 
 namespace noisepage::selfdriving::pilot {
@@ -47,8 +48,7 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
   // just pick a random database in PlanningContext
   if (db_oid == catalog::INVALID_DATABASE_OID) db_oid = *planning_context.GetDBOids().begin();
 
-  common::ManagedPointer<transaction::TransactionManager> txn_manager = planning_context.GetTxnManager();
-  auto policy = txn_manager->GetDefaultTransactionPolicy();
+  auto policy = planning_context.GetTxnManager()->GetDefaultTransactionPolicy();
   policy.replication_ = transaction::ReplicationPolicy::DISABLE;
 
   auto query_exec_util = planning_context.GetQueryExecUtil();
