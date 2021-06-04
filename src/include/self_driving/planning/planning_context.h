@@ -73,17 +73,9 @@ class PlanningContext {
                   common::ManagedPointer<optimizer::StatsStorage> stats_storage,
                   common::ManagedPointer<transaction::TransactionManager> txn_manager,
                   std::unique_ptr<util::QueryExecUtil> query_exec_util,
-                  common::ManagedPointer<task::TaskManager> task_manager)
-      : ou_model_save_path_(std::move(ou_model_save_path)),
-        interference_model_save_path_(std::move(interference_model_save_path)),
-        catalog_(catalog),
-        metrics_thread_(metrics_thread),
-        model_server_manager_(model_server_manager),
-        settings_manager_(settings_manager),
-        stats_storage_(stats_storage),
-        txn_manager_(txn_manager),
-        query_exec_util_(std::move(query_exec_util)),
-        task_manager_(task_manager) {}
+                  common::ManagedPointer<task::TaskManager> task_manager);
+
+  ~PlanningContext();
 
   /** @brief Getter for ou_model_save_path */
   const std::string &GetOuModelSavePath() const { return ou_model_save_path_; }

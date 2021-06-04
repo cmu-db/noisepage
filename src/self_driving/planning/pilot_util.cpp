@@ -1,6 +1,7 @@
 #include "self_driving/planning/pilot_util.h"
 
 #include "binder/bind_node_visitor.h"
+#include "catalog/catalog_accessor.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "common/managed_pointer.h"

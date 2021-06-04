@@ -6,6 +6,28 @@
 
 namespace noisepage::selfdriving::pilot {
 
+PlanningContext::PlanningContext(std::string ou_model_save_path, std::string interference_model_save_path,
+                                 common::ManagedPointer<catalog::Catalog> catalog,
+                                 common::ManagedPointer<metrics::MetricsThread> metrics_thread,
+                                 common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+                                 common::ManagedPointer<settings::SettingsManager> settings_manager,
+                                 common::ManagedPointer<optimizer::StatsStorage> stats_storage,
+                                 common::ManagedPointer<transaction::TransactionManager> txn_manager,
+                                 std::unique_ptr<util::QueryExecUtil> query_exec_util,
+                                 common::ManagedPointer<task::TaskManager> task_manager)
+    : ou_model_save_path_(std::move(ou_model_save_path)),
+      interference_model_save_path_(std::move(interference_model_save_path)),
+      catalog_(catalog),
+      metrics_thread_(metrics_thread),
+      model_server_manager_(model_server_manager),
+      settings_manager_(settings_manager),
+      stats_storage_(stats_storage),
+      txn_manager_(txn_manager),
+      query_exec_util_(std::move(query_exec_util)),
+      task_manager_(task_manager) {}
+
+PlanningContext::~PlanningContext() = default;
+
 void PlanningContext::AddDatabase(catalog::db_oid_t db_oid) {
   auto txn = txn_manager_->BeginTransaction();
   db_oids_.insert(db_oid);
