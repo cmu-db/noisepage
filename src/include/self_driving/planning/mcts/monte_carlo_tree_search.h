@@ -12,11 +12,10 @@
 #include "self_driving/planning/mcts/tree_node.h"
 
 namespace noisepage::selfdriving {
-class Pilot;
 class WorkloadForecast;
 
 namespace pilot {
-
+class Pilot;
 class PlanningContext;
 
 /**

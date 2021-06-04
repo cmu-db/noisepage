@@ -14,7 +14,9 @@
 namespace noisepage {
 namespace selfdriving {
 class PipelineOperatingUnits;
+namespace pilot {
 class PilotUtil;
+}  // namespace pilot
 }  // namespace selfdriving
 
 namespace execution {
@@ -207,7 +209,7 @@ class ExecutableQuery {
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;
   friend class noisepage::runner::ExecutionRunners_SEQ0_OutputRunners_Benchmark;
-  friend class noisepage::selfdriving::PilotUtil;
+  friend class noisepage::selfdriving::pilot::PilotUtil;
   friend class noisepage::execution::compiler::CompilationContext;  // SetQueryId
   friend class noisepage::runner::ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 };
