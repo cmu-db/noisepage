@@ -48,7 +48,8 @@ void PilotUtil::ApplyAction(const pilot::PlanningContext &planning_context, cons
   // just pick a random database in PlanningContext
   if (db_oid == catalog::INVALID_DATABASE_OID) db_oid = *planning_context.GetDBOids().begin();
 
-  auto policy = planning_context.GetTxnManager()->GetDefaultTransactionPolicy();
+  common::ManagedPointer<transaction::TransactionManager> txn_manager = planning_context.GetTxnManager();
+  auto policy = txn_manager->GetDefaultTransactionPolicy();
   policy.replication_ = transaction::ReplicationPolicy::DISABLE;
 
   auto query_exec_util = planning_context.GetQueryExecUtil();
