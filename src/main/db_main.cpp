@@ -45,7 +45,7 @@ void DBMain::TryLoadStartupDDL() {
 
   // Run the startup DDL commands, waiting for successful completion one-by-one.
   for (auto &ddl : startup_ddls) {
-    COMMON_LOG_INFO("Executing startup DDL: {}", ddl);
+    COMMON_LOG_DEBUG("Executing startup DDL: {}", ddl);
     common::FutureDummy sync;
     task_manager_->AddTask(task::TaskDDL::Builder()
                                .SetDatabaseOid(default_db_oid)
