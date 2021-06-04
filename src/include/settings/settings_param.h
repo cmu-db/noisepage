@@ -77,6 +77,9 @@ class ParamInfo {
         max_value_(max_value),
         callback_(callback) {}
 
+  /** @return The current value of the parameter. */
+  const parser::ConstantValueExpression &GetValue() const { return value_; }
+
  private:
   friend void noisepage::runner::InitializeRunnersState();
   friend class noisepage::DBMain;

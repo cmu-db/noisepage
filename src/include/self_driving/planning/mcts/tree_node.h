@@ -15,11 +15,10 @@
 #define NULL_ACTION INT32_MAX
 
 namespace noisepage::selfdriving {
-class Pilot;
 class WorkloadForecast;
 
 namespace pilot {
-
+class Pilot;
 class PlanningContext;
 
 STRONG_TYPEDEF_HEADER(tree_node_id_t, uint64_t);

@@ -29,12 +29,22 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
 #include "parser/explain_statement.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "parser/variable_show_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
+#include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
+#include "planner/plannodes/create_namespace_plan_node.h"
+#include "planner/plannodes/create_table_plan_node.h"
+#include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_index_plan_node.h"
+#include "planner/plannodes/drop_namespace_plan_node.h"
+#include "planner/plannodes/drop_table_plan_node.h"
 #include "settings/settings_manager.h"
+#include "settings/settings_param.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -53,6 +63,7 @@ struct CommitCallbackArg {
     persist_countdown_ = 0;
 
     // Cases: Durability, Replication
+    // - DISABLE, DISABLE => 1. The callback is invoked on LogCommit in TransactionManager.
     // - ASYNC, SYNC => This is too weird. Not supporting this.
     // - ASYNC, ASYNC => 1. The callback is invoked immediately in TransactionManager.
     // - SYNC, ASYNC => 2. The callback is invoked by DiskLogConsumerTask and PrimaryReplicationManager.
@@ -65,9 +76,8 @@ struct CommitCallbackArg {
     const transaction::DurabilityPolicy &dur = policy.durability_;
     const transaction::ReplicationPolicy &rep = policy.replication_;
 
-    if (dur != transaction::DurabilityPolicy::DISABLE) {
-      persist_countdown_ += 1;
-    }
+    // Commit callback is always invoked at least once.
+    persist_countdown_ += 1;
     if (rep != transaction::ReplicationPolicy::DISABLE) {
       if (dur == transaction::DurabilityPolicy::ASYNC && rep == transaction::ReplicationPolicy::ASYNC) {
         // Callback will get invoked by TransactionManager, fake EmptyCallback is passed down.
@@ -224,16 +234,19 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
   const auto &show_stmt UNUSED_ATTRIBUTE =
       statement->RootStatement().CastManagedPointerTo<parser::VariableShowStatement>();
 
-  NOISEPAGE_ASSERT(show_stmt->GetName() == "transaction_isolation", "Nothing else is supported right now.");
+  const std::string &param_name = show_stmt->GetName();
+  settings::Param param = settings_manager_->GetParam(param_name);
+  const settings::ParamInfo &param_info = settings_manager_->GetParamInfo(param);
+  std::string param_val = param_info.GetValue().ToString();
 
   auto expr = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR);
-  expr->SetAlias("transaction_isolation");
+  expr->SetAlias(param_name);
   std::vector<noisepage::planner::OutputSchema::Column> cols;
-  cols.emplace_back("transaction_isolation", type::TypeId::VARCHAR, std::move(expr));
-  execution::sql::StringVal dummy_result("snapshot isolation");
+  cols.emplace_back(param_name, type::TypeId::VARCHAR, std::move(expr));
+  execution::sql::StringVal result{param_val.c_str()};
 
   out->WriteRowDescription(cols, {network::FieldFormat::text});
-  out->WriteDataRow(reinterpret_cast<const byte *>(&dummy_result), cols, {network::FieldFormat::text});
+  out->WriteDataRow(reinterpret_cast<const byte *>(&result), cols, {network::FieldFormat::text});
   return {ResultType::COMPLETE, 0u};
 }
 
@@ -357,9 +370,15 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   std::vector<planner::OutputSchema::Column> output_columns;
   output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
 
-  // TODO(WAN): Integrate with Matt's PR.
-#if 0
-  {
+  const auto format =
+      portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>()->GetFormat();
+  std::string plan_string;
+  if (format == parser::ExplainStatementFormat::JSON) {
+    plan_string = portal->OptimizeResult()->GetPlanNode()->ToJson().dump(4);
+  } else {
+    NOISEPAGE_ASSERT(format == parser::ExplainStatementFormat::TPL || format == parser::ExplainStatementFormat::TBC,
+                     "We only support JSON, TPL, and TBC formats.");
+
     // Codegen must happen for certain types of EXPLAIN metadata to be collected, e.g., collection of TPL.
     auto codegen = CodegenPhysicalPlan(connection_ctx, out, portal);
     if (codegen.type_ != ResultType::COMPLETE) {
@@ -370,15 +389,15 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
     const auto &fragments = portal->GetStatement()->GetExecutableQuery()->GetFragments();
     NOISEPAGE_ASSERT(fragments.size() == 1, "We currently always compile with just one query fragment.");
     const auto &metadata = fragments.at(0)->GetModuleMetadata().GetCompileTimeMetadata();
-    std::string output = metadata.GetTPL() + "\n\n" + metadata.GetTBC();
-    const execution::sql::StringVal plan_string_val = execution::sql::StringVal(output.c_str(), output.length());
-  }
-#endif
 
-  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
-  const std::string plan_string = physical_plan->ToJson().dump(4);
-  const execution::sql::StringVal plan_string_val =
-      execution::sql::StringVal(plan_string.c_str(), plan_string.length());
+    if (format == parser::ExplainStatementFormat::TPL) {
+      plan_string = metadata.GetTPL();
+    } else {
+      NOISEPAGE_ASSERT(format == parser::ExplainStatementFormat::TBC, "Did you add a new case?");
+      plan_string = metadata.GetTBC();
+    }
+  }
+  const auto plan_string_val = execution::sql::StringVal(plan_string.c_str(), plan_string.length());
   out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
                     {network::FieldFormat::text});
 
@@ -473,13 +492,15 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.UpdateFromSettingsManager(settings_manager_);
 
-  // TODO(WAN): Integrate with Matt's PR.
   // Set any compilation settings based on the original query type.
   if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_EXPLAIN) {
     execution::compiler::CompilerSettings settings;
-    // if (portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>().GetFormat()...)
-    settings.SetShouldCaptureTPL(true);
-    settings.SetShouldCaptureTBC(true);
+    auto stmt = portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>();
+    if (stmt->GetFormat() == parser::ExplainStatementFormat::TPL) {
+      settings.SetShouldCaptureTPL(true);
+    } else if (stmt->GetFormat() == parser::ExplainStatementFormat::TBC) {
+      settings.SetShouldCaptureTBC(true);
+    }
     exec_settings.SetCompilerSettings(settings);
   }
 

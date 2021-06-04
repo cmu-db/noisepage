@@ -1874,9 +1874,35 @@ std::vector<common::ManagedPointer<AbstractExpression>> PostgresParser::ParamLis
 }
 
 std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ParseResult *parse_result, ExplainStmt *root) {
+  static constexpr char k_format_tok[] = "format";
   std::unique_ptr<ExplainStatement> result;
   auto query = NodeTransform(parse_result, root->query_);
   result = std::make_unique<ExplainStatement>(std::move(query));
+
+  if (root->options_ != nullptr) {
+    for (ListCell *cell = root->options_->head; cell != nullptr; cell = cell->next) {
+      NOISEPAGE_ASSERT(reinterpret_cast<Node *>(cell->data.ptr_value)->type == T_DefElem, "Expect a DefElem.");
+      const auto *const def_elem UNUSED_ATTRIBUTE = reinterpret_cast<DefElem *>(cell->data.ptr_value);
+
+      if (strncmp(def_elem->defname_, k_format_tok, sizeof(k_format_tok)) == 0) {
+        const auto *const format_cstr = reinterpret_cast<value *>(def_elem->arg_)->val_.str_;
+        // lowercase
+        if (strncmp(format_cstr, "tpl", 3) == 0) {
+          result->SetFormat(ExplainStatementFormat::TPL);
+        } else if (strncmp(format_cstr, "tbc", 3) == 0) {
+          result->SetFormat(ExplainStatementFormat::TBC);
+        } else if (strncmp(format_cstr, "json", 4) == 0) {
+          // this is the default format for us anyway so it's a noop
+          NOISEPAGE_ASSERT(result->GetFormat() == ExplainStatementFormat::JSON,
+                           "We assume this is the default format.");
+        } else {
+          throw ParserException("Unsupported format string for EXPLAIN.", __FILE__, __LINE__, def_elem->location_);
+        }
+      } else {
+        throw ParserException("Unsupported option string for EXPLAIN.", __FILE__, __LINE__, def_elem->location_);
+      }
+    }
+  }
   return result;
 }
 

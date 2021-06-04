@@ -22,6 +22,8 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
+#include "planner/plannodes/create_index_plan_node.h"
+#include "planner/plannodes/drop_index_plan_node.h"
 #include "settings/settings_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"

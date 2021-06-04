@@ -3,6 +3,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -23,10 +24,6 @@ namespace modelserver {
 class ModelServerManager;
 }
 
-namespace transaction {
-class TransactionManager;
-}
-
 namespace optimizer {
 class StatsStorage;
 }
@@ -38,16 +35,15 @@ class AbstractPlanNode;
 
 namespace noisepage::selfdriving {
 class WorkloadForecast;
-class Pilot;
 
 namespace pilot {
+class Pilot;
 class CreateIndexAction;
 class DropIndexAction;
 struct MemoryInfo;
 class ActionState;
 class AbstractAction;
 class PlanningContext;
-}  // namespace pilot
 
 /**
  * Utility class for helper functions
@@ -124,13 +120,11 @@ class PilotUtil {
    * @param planning_context pilot planning context
    * @param forecast pointer to the forecast segments
    * @param end_segment_index end index (inclusive)
-   * @param txn the transaction context that would be used for action generation as well
    * @param plan_vecs the vector that would store the generated abstract plans of forecasted queries before the end
    * index
    */
   static void GetQueryPlans(const pilot::PlanningContext &planning_context,
                             common::ManagedPointer<WorkloadForecast> forecast, uint64_t end_segment_index,
-                            transaction::TransactionContext *txn,
                             std::vector<std::unique_ptr<planner::AbstractPlanNode>> *plan_vecs);
 
   /**
@@ -174,6 +168,13 @@ class PilotUtil {
    */
   static pilot::MemoryInfo ComputeMemoryInfo(const pilot::PlanningContext &planning_context,
                                              const WorkloadForecast *forecast);
+
+  /**
+   * Utility function for printing a configuration (set of structures)
+   * @param config_set configuration
+   * @return string representation
+   */
+  static std::string ConfigToString(const std::set<pilot::action_id_t> &config_set);
 
  private:
   /**
@@ -254,4 +255,5 @@ class PilotUtil {
   static const uint64_t INTERFERENCE_DIMENSION{27};
 };
 
+}  // namespace pilot
 }  // namespace noisepage::selfdriving
