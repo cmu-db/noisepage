@@ -24,33 +24,37 @@
 #include "self_driving/planning/planning_context.h"
 
 namespace noisepage {
+namespace catalog {
+class Catalog;
+}  // namespace catalog
+
 namespace messenger {
 class Messenger;
-}
+}  // namespace messenger
 
 namespace metrics {
 class MetricsThread;
-}
+}  // namespace metrics
 
 namespace modelserver {
 class ModelServerManager;
-}
+}  // namespace modelserver
 
 namespace optimizer {
 class StatsStorage;
-}
+}  // namespace optimizer
 
 namespace planner {
 class AbstractPlanNode;
-}
+}  // namespace planner
 
 namespace settings {
 class SettingsManager;
-}
+}  // namespace settings
 
 namespace transaction {
 class TransactionManager;
-}
+}  // namespace transaction
 
 namespace util {
 class QueryExecUtil;
@@ -58,8 +62,7 @@ class QueryExecUtil;
 
 namespace task {
 class TaskManager;
-}
-
+}  // namespace task
 }  // namespace noisepage
 
 namespace noisepage::selfdriving::pilot {
