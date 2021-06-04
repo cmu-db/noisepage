@@ -213,4 +213,9 @@ void StructuredStatement::AddScope(const std::size_t scope, const std::size_t de
   NOISEPAGE_ASSERT(scopes_.find(scope) == scopes_.cend(), "Attempt to add duplicate scope");
   scopes_[scope] = depth;
 }
+
+const std::vector<ContextSensitiveTableRef> &StructuredStatement::References() const { return references_; }
+
+const std::unordered_map<std::size_t, std::size_t> &StructuredStatement::Scopes() const { return scopes_; }
+
 }  // namespace noisepage::binder::cte

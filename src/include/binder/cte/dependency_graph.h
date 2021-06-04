@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -86,9 +87,93 @@ class Edge {
  * table references produced by common table expressions.
  */
 class DependencyGraph {
+  /**
+   * The LexicalScope class represents a scope within the associated statement.
+   */
+  class LexicalScope {
+   public:
+    /**
+     * Construct a new LexicalScope instance.
+     *
+     * NOTE: We provide this default constructor so we can
+     * lazily emplace LexicalScope instances in a std::map.
+     */
+    LexicalScope() = default;
+
+    /**
+     * Construct a new Scope instance.
+     * @param id A unique identifier for the scope
+     */
+    LexicalScope(const std::size_t id, const std::size_t depth) : id_{id}, depth_{depth} {}
+
+    /** @return The depth of the scope */
+    std::size_t Depth() const noexcept { return depth_; }
+
+    /** Equality test with `rhs` */
+    bool operator==(const LexicalScope &rhs) const { return id_ == rhs.id_; }
+
+    /** Inequality test with `rhs` */
+    bool operator!=(const LexicalScope &rhs) const { return id_ != rhs.id_; }
+
+   private:
+    // The unique identifier for the scope
+    std::size_t id_;
+    // The depth of the scope relative to the root statement
+    std::size_t depth_;
+  };
+
+  /**
+   * The TableReference class provides an internal representation
+   * for table references within the dependency graph.
+   */
+  class TableReference {
+   public:
+    /**
+     * Construct a new Vertex instance.
+     * @param scope The scope in which the associated table reference appears
+     * @param position The lateral position of the table reference within its scope
+     * @param table The associated table reference
+     */
+    TableReference(const LexicalScope &scope, const std::size_t position,
+                   common::ManagedPointer<parser::TableRef> table)
+        : scope_{scope}, position_{position}, table_{table} {}
+
+    /** @return The scope for this table reference */
+    const LexicalScope &Scope() const { return scope_; }
+
+    /** @return The depth for this table reference */
+    std::size_t Depth() const { return scope_.Depth(); }
+
+    /** @return The position for this table reference */
+    std::size_t Position() const { return position_; }
+
+    /** @return The table reference for this table reference */
+    common::ManagedPointer<parser::TableRef> Table() const { return table_; }
+
+    /**
+     * Add a new dependency for this table reference.
+     * @param ref A pointer to the the dependency
+     */
+    void AddDependency(const TableReference *ref) { dependencies_.push_back(ref); }
+
+   private:
+    // The scope in which the reference appears
+    const LexicalScope scope_;
+
+    // The lateral position of the table reference within its scope
+    const std::size_t position_;
+
+    // The associated table reference
+    common::ManagedPointer<parser::TableRef> table_;
+
+    // A collection of the dependencies for this vertex
+    std::vector<const TableReference *> dependencies_;
+  };
+
  public:
   /**
    * Construct a new dependency graph instance from a structured statement.
+   * @param statement The structured statement
    */
   explicit DependencyGraph(const StructuredStatement &statement);
 
@@ -205,5 +290,15 @@ class DependencyGraph {
    * @return A pair of pointers to the table references, or `nullptr`s
    */
   std::pair<const ContextSensitiveTableRef *, const ContextSensitiveTableRef *> GetEdge(const Edge &edge) const;
+
+  const TableReference *Resolve(
+      std::size_t id, const std::vector<ContextSensitiveTableRef> &references,
+      const std::unordered_map<const TableReference *, const ContextSensitiveTableRef *> &backpointers) const;
+
+ private:
+  /**
+   * The underlying representation for the graph.
+   */
+  std::vector<TableReference> graph_;
 };
 }  // namespace noisepage::binder::cte

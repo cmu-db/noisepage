@@ -21,6 +21,7 @@ class DeleteStatement;
 namespace noisepage::binder::cte {
 
 enum class RefType;
+class DependencyGraph;
 class ContextSensitiveTableRef;
 
 /**
@@ -132,6 +133,8 @@ class StructuredStatement {
   std::vector<std::size_t> Identifiers() const;
 
  private:
+  friend class DependencyGraph;
+
   /** Dummy identifier we use during statement construction */
   static constexpr const std::size_t DONT_CARE_ID = 0UL;
 
@@ -215,6 +218,12 @@ class StructuredStatement {
    * @return An immutable reference to the reference
    */
   const ContextSensitiveTableRef &GetRef(const RefDescriptor &ref) const;
+
+  /** @return An immutable reference to the underlying references collection */
+  const std::vector<ContextSensitiveTableRef> &References() const;
+
+  /** @return An immutable reference to the underlying scopes map */
+  const std::unordered_map<std::size_t, std::size_t> &Scopes() const;
 
  private:
   // The collection of references extracted from the statement
