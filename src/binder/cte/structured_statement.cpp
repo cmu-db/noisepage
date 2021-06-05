@@ -87,20 +87,23 @@ std::size_t StructuredStatement::RefCount() const {
                                [](const LexicalScope *s) { return s->References().size(); });
 }
 
-std::size_t StructuredStatement::ReadRefCount() const {
-  std::size_t count = 0;
-  for (const auto *scope : flat_scopes_) {
-    count += std::count_if(scope->References().cbegin(), scope->References().cend(),
-                           [](const TypedTableRef &r) { return r.Type() == RefType::READ; });
-  }
-  return count;
+std::size_t StructuredStatement::RefCount(const RefDescriptor &ref) const {
+  return ReadRefCount(ref) + WriteRefCount(ref);
 }
 
-std::size_t StructuredStatement::WriteRefCount() const {
+std::size_t StructuredStatement::ReadRefCount() const { return RefCountWithType(RefType::READ); }
+
+std::size_t StructuredStatement::ReadRefCount(const RefDescriptor &ref) const { return RefCount(ref, RefType::READ); }
+
+std::size_t StructuredStatement::WriteRefCount() const { return RefCountWithType(RefType::WRITE); }
+
+std::size_t StructuredStatement::WriteRefCount(const RefDescriptor &ref) const { return RefCount(ref, RefType::WRITE); }
+
+std::size_t StructuredStatement::RefCountWithType(RefType type) const {
   std::size_t count = 0;
   for (const auto *scope : flat_scopes_) {
     count += std::count_if(scope->References().cbegin(), scope->References().cend(),
-                           [](const TypedTableRef &r) { return r.Type() == RefType::WRITE; });
+                           [=](const TypedTableRef &r) { return r.Type() == type; });
   }
   return count;
 }
@@ -108,21 +111,23 @@ std::size_t StructuredStatement::WriteRefCount() const {
 std::size_t StructuredStatement::ScopeCount() const { return flat_scopes_.size(); }
 
 bool StructuredStatement::HasReadRef(const StructuredStatement::RefDescriptor &ref) const {
-  return HasRef(ref, RefType::READ);
+  return RefCount(ref, RefType::READ) > 0UL;
 }
 
 bool StructuredStatement::HasWriteRef(const StructuredStatement::RefDescriptor &ref) const {
-  return HasRef(ref, RefType::WRITE);
+  return RefCount(ref, RefType::WRITE) > 0UL;
 }
 
 bool StructuredStatement::HasRef(const StructuredStatement::RefDescriptor &ref) const {
-  return HasRef(ref, RefType::READ) || HasRef(ref, RefType::WRITE);
+  return HasReadRef(ref) || HasWriteRef(ref);
 }
 
-bool StructuredStatement::HasRef(const StructuredStatement::RefDescriptor &ref, RefType type) const {
+std::size_t StructuredStatement::RefCount(const StructuredStatement::RefDescriptor &ref, RefType type) const {
   const auto &alias = std::get<0>(ref);
   const auto &depth = std::get<1>(ref);
   const auto &position = std::get<2>(ref);
+
+  std::size_t count = 0;
   for (const auto *scope : flat_scopes_) {
     if (scope->Depth() == depth) {
       for (auto it = scope->References().cbegin(); it != scope->References().cend(); ++it) {
@@ -130,14 +135,13 @@ bool StructuredStatement::HasRef(const StructuredStatement::RefDescriptor &ref, 
         if (pos == position) {
           const auto &table_ref = *it;
           if (table_ref.Table()->GetAlias() == alias && table_ref.Type() == type) {
-            return true;
+            ++count;
           }
         }
       }
     }
   }
-  // Not found
-  return false;
+  return count;
 }
 
 LexicalScope &StructuredStatement::RootScope() { return *root_scope_; }

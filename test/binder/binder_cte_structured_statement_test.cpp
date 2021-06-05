@@ -317,4 +317,73 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement13) {
 
   EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
+
+TEST_F(BinderCteStructuredStatementTest, BuildStatement14) {
+  const std::string sql = "WITH x(i) AS (SELECT 1 UNION SELECT 2) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  EXPECT_EQ(2UL, statement.RefCount());
+  EXPECT_EQ(2UL, statement.ScopeCount());
+
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, 1UL}));
+}
+
+TEST_F(BinderCteStructuredStatementTest, BuildStatement15) {
+  const std::string sql = "WITH x(i) AS (SELECT 1 UNION ALL SELECT 2) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  EXPECT_EQ(2UL, statement.RefCount());
+  EXPECT_EQ(2UL, statement.ScopeCount());
+
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, 1UL}));
+}
+
+TEST_F(BinderCteStructuredStatementTest, BuildStatement16) {
+  const std::string sql = "WITH RECURSIVE x(i) AS (SELECT 1 UNION SELECT i FROM x WHERE i < 5) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  EXPECT_EQ(3UL, statement.RefCount());
+  EXPECT_EQ(2UL, statement.ScopeCount());
+
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
+}
+
+TEST_F(BinderCteStructuredStatementTest, BuildStatement17) {
+  const std::string sql = "WITH RECURSIVE x(i) AS (SELECT 1 UNION ALL SELECT i FROM x WHERE i < 5) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  EXPECT_EQ(3UL, statement.RefCount());
+  EXPECT_EQ(2UL, statement.ScopeCount());
+
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
+}
+
+TEST_F(BinderCteStructuredStatementTest, BuildStatement18) {
+  const std::string sql =
+      "WITH RECURSIVE x(i) AS (SELECT 1 UNION ALL SELECT i FROM x WHERE i < 5), y(j) AS (SELECT * FROM x) SELECT * "
+      "FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  EXPECT_EQ(5UL, statement.RefCount());
+  EXPECT_EQ(3UL, statement.ScopeCount());
+
+  EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
+  EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+
+  // Same alias, identical relative positions within scopes
+  EXPECT_EQ(2UL, statement.ReadRefCount({"x", 1UL, 0UL}));
+}
+
 }  // namespace noisepage

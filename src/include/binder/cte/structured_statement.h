@@ -85,11 +85,20 @@ class StructuredStatement {
   /** @return The number of table references in the structured statement */
   std::size_t RefCount() const;
 
+  /** @return The number of table references that match the specified description */
+  std::size_t RefCount(const RefDescriptor &ref) const;
+
   /** @return The number of read table references in the structured statement */
   std::size_t ReadRefCount() const;
 
+  /** @return The number of read table references that match the specified description */
+  std::size_t ReadRefCount(const RefDescriptor &ref) const;
+
   /** @return The number of write table references in the structured statement */
   std::size_t WriteRefCount() const;
+
+  /** @return The number of write table references that match the specified description */
+  std::size_t WriteRefCount(const RefDescriptor &ref) const;
 
   /** @return The number of scopes in the structured statement */
   std::size_t ScopeCount() const;
@@ -136,12 +145,19 @@ class StructuredStatement {
   void BuildFromVisit(common::ManagedPointer<parser::TableRef> table_ref, LexicalScope *scope, BuildContext *context);
 
   /**
-   * Determine if the structured statement contains the specified reference.
+   * Count the number of references that match the given
+   * reference descriptor, with the given type.
    * @param ref A descriptor for the reference of interest
    * @param type The reference type
-   * @return `true` if the structured statement contains the reference, `false` otherwise
+   * @return The number of references that match the description
    */
-  bool HasRef(const RefDescriptor &ref, RefType type) const;
+  std::size_t RefCount(const RefDescriptor &ref, RefType type) const;
+
+  /**
+   * Compute the number of table references with the given type.
+   * @param type The reference type of interest
+   */
+  std::size_t RefCountWithType(RefType type) const;
 
   /** @return A mutable reference to the root scope of the statement */
   LexicalScope &RootScope();
