@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -182,29 +183,37 @@ class DependencyGraph {
    */
   bool CheckMutualRecursion() const;
 
-  /**
-   * Check nested scope dependency constraints for the underlying dependency graph.
-   *
-   * A dependency on a nested scope occurs when CTE A reads CTE C that appears within
-   * the subsquery that defines CTE B. For instance, the following query is invalid
-   * because it contains a dependency on a nested scope:
-   *
-   *  WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM a) SELECT * FROM y;
-   *
-   * @return `true` if the graph is valid, `false` otherwise
-   */
-  bool CheckNestedScopes() const;
-
  private:
   /**
    * Recursively populate the graph from the given LexicalScope.
    * @param scope The root lexical scope from which to continue population
    */
-  void PopulateGraphVisit(const LexicalScope &scope);
+  void PopulateGraphVisit(LexicalScope &scope);
+
+  /**
+   * Resolve the dependencies for the specified table reference.
+   * @param table_ref The table reference for which dependencies should be resolved
+   */
+  std::unordered_set<const ContextSensitiveTableRef *> ResolveDependenciesFor(
+      const ContextSensitiveTableRef &table_ref) const;
+
+  /**
+   *
+   */
+  const ContextSensitiveTableRef *ResolveDependency(const ContextSensitiveTableRef &table_ref) const;
 
  private:
+  /** The key type in the underlying map */
+  using KeyType = ContextSensitiveTableRef *;
+
+  /** The value type in the underlying map */
+  using ValueType = std::unordered_set<const ContextSensitiveTableRef *>;
+
+  /** The entry type for (key, value) pairs in the map */
+  using EntryType = std::pair<KeyType, ValueType>;
+
   /** The underlying representation for the graph */
-  std::unordered_map<ContextSensitiveTableRef *, std::vector<ContextSensitiveTableRef *>> graph_;
+  std::unordered_map<KeyType, ValueType> graph_;
 
   /** The corresponding structured statement */
   std::unique_ptr<StructuredStatement> statement_;

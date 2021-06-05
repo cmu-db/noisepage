@@ -17,4 +17,8 @@ ContextSensitiveTableRef::ContextSensitiveTableRef(common::ManagedPointer<parser
   NOISEPAGE_ASSERT(type == RefType::WRITE, "READ Table References Should Not Define a Scope");
 }
 
+const LexicalScope *ContextSensitiveTableRef::EnclosingScope() const { return enclosing_scope_; }
+
+const LexicalScope *ContextSensitiveTableRef::Scope() const { return scope_; }
+
 }  // namespace noisepage::binder::cte

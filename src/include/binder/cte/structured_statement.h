@@ -124,6 +124,12 @@ class StructuredStatement {
    */
   bool HasWriteRef(const RefDescriptor &ref) const;
 
+  /** @return A flattened collection of mutable pointers to all table references in the statement */
+  std::vector<ContextSensitiveTableRef *> MutableReferences();
+
+  /** @return A flattened collection of immutable pointers to all table references in the statement */
+  std::vector<const ContextSensitiveTableRef *> References() const;
+
  private:
   friend class DependencyGraph;
 
@@ -165,9 +171,6 @@ class StructuredStatement {
   /** @return An immutable reference to the root scope of the statement */
   const LexicalScope &RootScope() const;
 
-  /** @return A flattened collection of all table references in the statement */
-  std::vector<const ContextSensitiveTableRef *> References() const;
-
   /**
    * Recursively determine if the invariants of the structured statement are satisfied.
    * @param scope The scope from which to begin the check
@@ -181,14 +184,14 @@ class StructuredStatement {
    * @param root The root scope
    * @param result The container to which the hierarchy is flattened
    */
-  static void FlattenTo(const LexicalScope *root, std::vector<const LexicalScope *> *result);
+  static void FlattenTo(LexicalScope *root, std::vector<LexicalScope *> *result);
 
  private:
   // The root scope for the structured statement
   std::unique_ptr<LexicalScope> root_scope_;
 
   // A flattened view of the scope hierarchy so we can easily apply std algorithms
-  std::vector<const LexicalScope *> flat_scopes_;
+  std::vector<LexicalScope *> flat_scopes_;
 };
 
 }  // namespace noisepage::binder::cte
