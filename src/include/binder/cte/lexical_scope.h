@@ -5,7 +5,7 @@
 namespace noisepage::binder::cte {
 
 enum class RefType;
-class TypedTableRef;
+class ContextSensitiveTableRef;
 
 /**
  * The LexicalScope class is the fundamental unit of organization
@@ -42,10 +42,10 @@ class LexicalScope {
   const std::vector<LexicalScope> &EnclosedScopes() const { return enclosed_scopes_; }
 
   /** @return A mutable reference to the collection of table references in this scope */
-  std::vector<TypedTableRef> &References();
+  std::vector<ContextSensitiveTableRef> &References();
 
   /** @return An immutable reference to the collection of table references in this scope */
-  const std::vector<TypedTableRef> &References() const;
+  const std::vector<ContextSensitiveTableRef> &References() const;
 
   /**
    * Push an enclosed scope at the back of the collection.
@@ -63,13 +63,13 @@ class LexicalScope {
    * Push a reference at the back of the collection.
    * @param ref The table reference
    */
-  void AddReference(const TypedTableRef &ref);
+  void AddReference(const ContextSensitiveTableRef &ref);
 
   /**
    * Push a reference at the back of the collection.
    * @param ref The table reference
    */
-  void AddReference(TypedTableRef &&ref);
+  void AddReference(ContextSensitiveTableRef &&ref);
 
   /** Equality comparison with another scope instance */
   bool operator==(const LexicalScope &rhs) const { return id_ == rhs.id_; }
@@ -105,7 +105,7 @@ class LexicalScope {
   std::vector<LexicalScope> enclosed_scopes_;
 
   /** The ordered collection of table references in this scope */
-  std::vector<TypedTableRef> references_;
+  std::vector<ContextSensitiveTableRef> references_;
 };
 
 }  // namespace noisepage::binder::cte

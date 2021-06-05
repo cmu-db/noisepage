@@ -21,7 +21,7 @@ namespace noisepage::binder::cte {
 
 enum class RefType;
 class LexicalScope;
-class TypedTableRef;
+class ContextSensitiveTableRef;
 
 /**
  * The StructuredStatement class encapsulates the logic for traversing
@@ -166,7 +166,7 @@ class StructuredStatement {
   const LexicalScope &RootScope() const;
 
   /** @return A flattened collection of all table references in the statement */
-  std::vector<const TypedTableRef *> References() const;
+  std::vector<const ContextSensitiveTableRef *> References() const;
 
   /**
    * Recursively determine if the invariants of the structured statement are satisfied.

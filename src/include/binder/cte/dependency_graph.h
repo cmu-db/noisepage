@@ -20,6 +20,7 @@ namespace noisepage::binder::cte {
 
 class LexicalScope;
 class StructuredStatement;
+class ContextSensitiveTableRef;
 
 /**
  * The Vertex class provides a convenient way to query the graph.
@@ -88,48 +89,6 @@ class Edge {
  * table references produced by common table expressions.
  */
 class DependencyGraph {
-  /**
-   * The TableReference class provides an internal representation
-   * for table references within the dependency graph; it serves
-   * as a graph vertex. Apologies in advance for the overloading
-   * of the terms "ref" and "reference" that is going on here.
-   */
-  class TableReference {
-   public:
-    /**
-     * Construct a new Vertex instance.
-     * @param scope The scope in which the associated table reference appears
-     * @param position The lateral position of the table reference within its scope
-     * @param table The associated table reference
-     */
-    TableReference(common::ManagedPointer<parser::TableRef> table, const LexicalScope *scope);
-
-    /** @return The scope for this table reference */
-    const LexicalScope *Scope() const { return scope_; }
-
-    /** @return The table reference for this table reference */
-    common::ManagedPointer<parser::TableRef> Table() const { return table_; }
-
-    /** @return The dependencies for this table reference */
-    const std::vector<const TableReference *> &Dependencies() const { return dependencies_; }
-
-    /**
-     * Add a new dependency for this table reference.
-     * @param ref A pointer to the the dependency
-     */
-    void AddDependency(const TableReference *ref) { dependencies_.push_back(ref); }
-
-   private:
-    // The associated table reference
-    common::ManagedPointer<parser::TableRef> table_;
-
-    // The scope in which the reference appears
-    const LexicalScope *scope_;
-
-    // A collection of the dependencies for this vertex
-    std::vector<const TableReference *> dependencies_;
-  };
-
  public:
   /**
    * Construct a dependency graph from a StructuredStatement.
@@ -243,14 +202,9 @@ class DependencyGraph {
    */
   void PopulateGraphVisit(const LexicalScope &scope);
 
-  /**
-   *
-   */
-  void ResolveReference(TableReference *table_ref);
-
  private:
   /** The underlying representation for the graph */
-  std::vector<TableReference> graph_;
+  std::unordered_map<ContextSensitiveTableRef *, std::vector<ContextSensitiveTableRef *>> graph_;
 
   /** The corresponding structured statement */
   std::unique_ptr<StructuredStatement> statement_;

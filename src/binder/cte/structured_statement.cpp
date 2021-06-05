@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <numeric>
 
+#include "binder/cte/context_sensitive_table_ref.h"
 #include "binder/cte/lexical_scope.h"
-#include "binder/cte/typed_table_ref.h"
 #include "parser/delete_statement.h"
 #include "parser/insert_statement.h"
 #include "parser/select_statement.h"
@@ -24,17 +24,18 @@ StructuredStatement::StructuredStatement(common::ManagedPointer<parser::SelectSt
   root_scope_ = std::make_unique<LexicalScope>(context.NextScopeId(), 0UL);
 
   for (const auto &table_ref : root->GetSelectWith()) {
-    // Add the table reference to its enclosing scope
-    root_scope_->AddReference(TypedTableRef{table_ref, RefType::WRITE});
     // Create a new scope for the temporary table definition
     root_scope_->AddEnclosedScope(LexicalScope{context.NextScopeId(), root_scope_->Depth() + 1});
+    // Add the table reference to its enclosing scope
+    root_scope_->AddReference(
+        ContextSensitiveTableRef{table_ref, RefType::WRITE, root_scope_.get(), &root_scope_->EnclosedScopes().back()});
     // Visit the nested scope
     BuildFromVisit(table_ref, &root_scope_->EnclosedScopes().back(), &context);
   }
 
   if (root->HasSelectTable()) {
     // Insert the target table for the SELECT
-    root_scope_->AddReference(TypedTableRef{root->GetSelectTable(), RefType::READ});
+    root_scope_->AddReference(ContextSensitiveTableRef{root->GetSelectTable(), RefType::READ, root_scope_.get()});
   }
 
   // Flatten the hierarchy
@@ -55,17 +56,17 @@ void StructuredStatement::BuildFromVisit(common::ManagedPointer<parser::SelectSt
                                          StructuredStatement::BuildContext *context) {
   // Recursively consider nested table references
   for (const auto &table_ref : select->GetSelectWith()) {
-    // Add the table reference to its enclosing scope
-    scope->AddReference(TypedTableRef{table_ref, RefType::WRITE});
     // Create a new scope for the temporary table definition
     scope->AddEnclosedScope(LexicalScope{context->NextScopeId(), scope->Depth() + 1});
+    // Add the table reference to its enclosing scope
+    scope->AddReference(ContextSensitiveTableRef{table_ref, RefType::WRITE, scope, &scope->EnclosedScopes().back()});
     // Visit the nested scope
     BuildFromVisit(table_ref, &scope->EnclosedScopes().back(), context);
   }
 
   if (select->HasSelectTable()) {
     // Insert the target table for the SELECT
-    scope->AddReference(TypedTableRef{select->GetSelectTable(), RefType::READ});
+    scope->AddReference(ContextSensitiveTableRef{select->GetSelectTable(), RefType::READ, scope});
   }
 }
 
@@ -114,7 +115,7 @@ std::size_t StructuredStatement::RefCountWithType(RefType type) const {
   std::size_t count = 0;
   for (const auto *scope : flat_scopes_) {
     count += std::count_if(scope->References().cbegin(), scope->References().cend(),
-                           [=](const TypedTableRef &r) { return r.Type() == type; });
+                           [=](const ContextSensitiveTableRef &r) { return r.Type() == type; });
   }
   return count;
 }
@@ -159,11 +160,11 @@ LexicalScope &StructuredStatement::RootScope() { return *root_scope_; }
 
 const LexicalScope &StructuredStatement::RootScope() const { return *root_scope_; }
 
-std::vector<const TypedTableRef *> StructuredStatement::References() const {
-  std::vector<const TypedTableRef *> references{};
+std::vector<const ContextSensitiveTableRef *> StructuredStatement::References() const {
+  std::vector<const ContextSensitiveTableRef *> references{};
   for (const auto *scope : flat_scopes_) {
     std::transform(scope->References().cbegin(), scope->References().cend(), std::back_inserter(references),
-                   [](const TypedTableRef &r) { return &r; });
+                   [](const ContextSensitiveTableRef &r) { return &r; });
   }
   return references;
 }

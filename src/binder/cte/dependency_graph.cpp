@@ -3,22 +3,14 @@
 #include <algorithm>
 #include <numeric>
 
+#include "binder/cte/context_sensitive_table_ref.h"
 #include "binder/cte/lexical_scope.h"
 #include "binder/cte/structured_statement.h"
-#include "binder/cte/typed_table_ref.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "parser/table_ref.h"
 
 namespace noisepage::binder::cte {
-
-// ----------------------------------------------------------------------------
-// DepdenencyGraph::TableReference
-// ----------------------------------------------------------------------------
-
-DependencyGraph::TableReference::TableReference(common::ManagedPointer<parser::TableRef> table,
-                                                const LexicalScope *scope)
-    : table_{table}, scope_{scope} {}
 
 // ----------------------------------------------------------------------------
 // TableReference
@@ -45,34 +37,20 @@ DependencyGraph::DependencyGraph(std::unique_ptr<StructuredStatement> &&statemen
   // Populate the graph with all of the WRITE references in the statement
   PopulateGraphVisit(statement_->RootScope());
   // Populate the dependencies for each of the references in the graph
-  for (auto &table_ref : graph_) {
-    ResolveReference(&table_ref);
-  }
-}
-
-void DependencyGraph::ResolveReference(TableReference *table_ref) {
-  // Locate the scope in which the table reference appears
-  // const auto *scope = table_ref->Scope();
-  // Locate any READ references in the scope
 }
 
 void DependencyGraph::PopulateGraphVisit(const LexicalScope &scope) {
   for (const auto &enclosed_scope : scope.EnclosedScopes()) {
     PopulateGraphVisit(enclosed_scope);
   }
-  for (const auto &table_ref : scope.References()) {
-    // Our graph vertices only consist of WRITE table references
-    if (table_ref.Type() == RefType::WRITE) {
-      graph_.emplace_back(table_ref.Table(), &scope);
-    }
-  }
 }
 
 std::size_t DependencyGraph::Order() const { return graph_.size(); }
 
 std::size_t DependencyGraph::Size() const {
+  using EntryType = std::pair<ContextSensitiveTableRef *, std::vector<ContextSensitiveTableRef *>>;
   return std::transform_reduce(graph_.cbegin(), graph_.cend(), 0UL, std::plus{},
-                               [](const TableReference &r) { return r.Dependencies().size(); });
+                               [](const EntryType &entry) { return entry.second.size(); });
 }
 
 bool DependencyGraph::HasVertex(const Vertex &vertex) const { return false; }
