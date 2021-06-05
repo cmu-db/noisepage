@@ -1,7 +1,6 @@
 #include <memory>
 
 #include "binder/bind_node_visitor.h"
-#include "binder/cte/context_sensitive_table_ref.h"
 #include "binder/cte/structured_statement.h"
 #include "catalog/catalog.h"
 #include "common/managed_pointer.h"

@@ -1,10 +1,23 @@
 #include "binder/cte/lexical_scope.h"
 
+#include <algorithm>
+
 #include "binder/cte/typed_table_ref.h"
 
 namespace noisepage::binder::cte {
 
 LexicalScope::LexicalScope(std::size_t id, std::size_t depth) : id_{id}, depth_{depth} {}
+
+std::size_t LexicalScope::RefCount() const { return references_.size(); }
+
+std::size_t LexicalScope::ReadRefCount() const { return RefCountWithType(RefType::READ); }
+
+std::size_t LexicalScope::WriteRefCount() const { return RefCountWithType(RefType::WRITE); }
+
+std::size_t LexicalScope::RefCountWithType(RefType type) const {
+  return std::count_if(references_.cbegin(), references_.cend(),
+                       [=](const TypedTableRef &r) { return r.Type() == type; });
+}
 
 std::vector<TypedTableRef> &LexicalScope::References() { return references_; }
 

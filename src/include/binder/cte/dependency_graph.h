@@ -243,6 +243,11 @@ class DependencyGraph {
    */
   void PopulateGraphVisit(const LexicalScope &scope);
 
+  /**
+   *
+   */
+  void ResolveReference(TableReference *table_ref);
+
  private:
   /** The underlying representation for the graph */
   std::vector<TableReference> graph_;

@@ -44,6 +44,16 @@ DependencyGraph::DependencyGraph(std::unique_ptr<StructuredStatement> &&statemen
   statement_ = std::move(statement);
   // Populate the graph with all of the WRITE references in the statement
   PopulateGraphVisit(statement_->RootScope());
+  // Populate the dependencies for each of the references in the graph
+  for (auto &table_ref : graph_) {
+    ResolveReference(&table_ref);
+  }
+}
+
+void DependencyGraph::ResolveReference(TableReference *table_ref) {
+  // Locate the scope in which the table reference appears
+  // const auto *scope = table_ref->Scope();
+  // Locate any READ references in the scope
 }
 
 void DependencyGraph::PopulateGraphVisit(const LexicalScope &scope) {
@@ -51,7 +61,10 @@ void DependencyGraph::PopulateGraphVisit(const LexicalScope &scope) {
     PopulateGraphVisit(enclosed_scope);
   }
   for (const auto &table_ref : scope.References()) {
-    graph_.emplace_back(table_ref.Table(), &scope);
+    // Our graph vertices only consist of WRITE table references
+    if (table_ref.Type() == RefType::WRITE) {
+      graph_.emplace_back(table_ref.Table(), &scope);
+    }
   }
 }
 

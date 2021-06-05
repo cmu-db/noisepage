@@ -39,6 +39,8 @@ StructuredStatement::StructuredStatement(common::ManagedPointer<parser::SelectSt
 
   // Flatten the hierarchy
   FlattenTo(root_scope_.get(), &flat_scopes_);
+
+  NOISEPAGE_ASSERT(InvariantsSatisfied(*root_scope_), "Broken Invariant");
 }
 
 StructuredStatement::StructuredStatement(common::ManagedPointer<parser::InsertStatement> root) {}
@@ -76,6 +78,15 @@ void StructuredStatement::BuildFromVisit(common::ManagedPointer<parser::TableRef
       BuildFromVisit(table_ref->GetSelect()->GetUnionSelect(), scope, context);
     }
   }
+}
+
+bool StructuredStatement::InvariantsSatisfied(const LexicalScope &scope) {
+  // Ensure that there is a one-to-one mapping between WRITE
+  // table references in this scope and enclosed scopes;
+  // the WRITE table references are what define enclosed scopes!
+  const auto satisfied = scope.WriteRefCount() == scope.EnclosedScopes().size();
+  return satisfied && std::all_of(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
+                                  [](const LexicalScope &scope) { return InvariantsSatisfied(scope); });
 }
 
 // ----------------------------------------------------------------------------

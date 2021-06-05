@@ -4,6 +4,7 @@
 
 namespace noisepage::binder::cte {
 
+enum class RefType;
 class TypedTableRef;
 
 /**
@@ -24,6 +25,15 @@ class LexicalScope {
 
   /** @return The depth of this scope in the statement */
   std::size_t Depth() const { return depth_; }
+
+  /** @return The number of references contained in this scope */
+  std::size_t RefCount() const;
+
+  /** @return The number of read references contained in this scope */
+  std::size_t ReadRefCount() const;
+
+  /** @return The number of write references contained in this scope */
+  std::size_t WriteRefCount() const;
 
   /** @return A mutable reference to the collection of enclosed scopes */
   std::vector<LexicalScope> &EnclosedScopes() { return enclosed_scopes_; }
@@ -66,6 +76,14 @@ class LexicalScope {
 
   /** Inequality comparison with another scope instance */
   bool operator!=(const LexicalScope &rhs) const { return id_ != rhs.id_; }
+
+ private:
+  /**
+   * Compute the number of references in this scope with the given type.
+   * @param type The reference type
+   * @return The number of references of the specified type
+   */
+  std::size_t RefCountWithType(RefType type) const;
 
  private:
   /** The unique identifier for the scope */

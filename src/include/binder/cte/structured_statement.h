@@ -169,6 +169,14 @@ class StructuredStatement {
   std::vector<const TypedTableRef *> References() const;
 
   /**
+   * Recursively determine if the invariants of the structured statement are satisfied.
+   * @param scope The scope from which to begin the check
+   * @return `true` if invariants are satisfied for the root scope
+   * and all enclosed scopes, `false` otherwise
+   */
+  static bool InvariantsSatisfied(const LexicalScope &scope);
+
+  /**
    * Flatten the scope hierarchy.
    * @param root The root scope
    * @param result The container to which the hierarchy is flattened
