@@ -1,9 +1,8 @@
 #pragma once
 
-#include <limits>
+#include <memory>
 #include <string>
 #include <tuple>
-#include <unordered_map>
 #include <vector>
 
 #include "common/error/exception.h"
@@ -21,8 +20,8 @@ class DeleteStatement;
 namespace noisepage::binder::cte {
 
 enum class RefType;
-class DependencyGraph;
-class ContextSensitiveTableRef;
+class LexicalScope;
+class TypedTableRef;
 
 /**
  * The StructuredStatement class encapsulates the logic for traversing
@@ -44,21 +43,13 @@ class StructuredStatement {
    */
   class BuildContext {
    public:
-    /** @return The next unique identifier */
-    std::size_t NextId() noexcept { return next_id_++; }
-
     /** @return The next unique scope identifier */
-    std::size_t NextScopeId() noexcept { return next_scope_++; }
+    std::size_t NextScopeId() noexcept { return next_scope_id_++; }
 
    private:
-    // The unique ID counter
-    std::size_t next_id_;
     // The unique scope counter
-    std::size_t next_scope_;
+    std::size_t next_scope_id_;
   };
-
-  /** Dummy position identifier for the read reference that is the target of a statement */
-  static constexpr const std::size_t END_POSITION = std::numeric_limits<std::size_t>::max();
 
  public:
   /**
@@ -85,6 +76,12 @@ class StructuredStatement {
    */
   explicit StructuredStatement(common::ManagedPointer<parser::DeleteStatement> root);
 
+  /**
+   * Must declare the destructor here and define in the .cpp file in order
+   * to avoid issues with type-incompleteness of LexicalScope.
+   */
+  ~StructuredStatement();
+
   /** @return The number of table references in the structured statement */
   std::size_t RefCount() const;
 
@@ -93,9 +90,6 @@ class StructuredStatement {
 
   /** @return The number of write table references in the structured statement */
   std::size_t WriteRefCount() const;
-
-  /** @return The number of reference dependencies in the structured statement */
-  std::size_t DependencyCount() const;
 
   /** @return The number of scopes in the structured statement */
   std::size_t ScopeCount() const;
@@ -121,67 +115,25 @@ class StructuredStatement {
    */
   bool HasWriteRef(const RefDescriptor &ref) const;
 
-  /**
-   * Determine if the structured statement contains the specified dependency.
-   * @param src A descriptor for the source reference
-   * @param dst A descriptor for the destination reference
-   * @return `true` if the structured statement contains the reference, `false` otherwise
-   */
-  bool HasDependency(const RefDescriptor &src, const RefDescriptor &dst) const;
-
-  /** @return A collection of the unique identifiers for nodes in the graph */
-  std::vector<std::size_t> Identifiers() const;
-
  private:
   friend class DependencyGraph;
-
-  /** Dummy identifier we use during statement construction */
-  static constexpr const std::size_t DONT_CARE_ID = 0UL;
 
   /**
    * Recursively construct the structured statement.
    * @param select The SELECT statement from which to continue graph construction
-   * @param id The unique identifier for the context-sensitive table reference
-   * that is defined (at least in part) by thie SELECT statement
-   * @param scope The scope in which this statement appears
-   * @param depth The depth of this statement, relative to the root statement
-   * @param position The lateral position of this statement within its scope
+   * @param scope The scope in which the statement appears
    * @param context The build context
    */
-  void BuildFromVisit(common::ManagedPointer<parser::SelectStatement> select, std::size_t id, std::size_t scope,
-                      std::size_t depth, std::size_t position, BuildContext *context);
+  void BuildFromVisit(common::ManagedPointer<parser::SelectStatement> select, LexicalScope *scope,
+                      BuildContext *context);
 
   /**
    * Recursively construct the structured statement.
    * @param select The TableRef from which to continue graph construction
-   * @param id The unique identifier for the context-sensitive table reference
-   * that is considered in this recursive invocation
-   * @param scope The scope in which this table reference appears
-   * @param depth The depth of this table reference, relative to the root statement
-   * @param position The lateral position of this table reference within its scope
+   * @param scope The scope in the table reference appears
    * @param context The build context
    */
-  void BuildFromVisit(common::ManagedPointer<parser::TableRef> table_ref, std::size_t id, std::size_t scope,
-                      std::size_t depth, std::size_t position, BuildContext *context);
-
-  /**
-   * Add a context-sensitive table reference to the collection.
-   * @param ref The new reference to add
-   */
-  void AddRef(const ContextSensitiveTableRef &ref);
-
-  /**
-   * Add a context-sensitive table reference to the collection.
-   * @param ref The new reference to add
-   */
-  void AddRef(ContextSensitiveTableRef &&ref);
-
-  /**
-   * Add a new scope to the scope map.
-   * @param scope The scope identifier
-   * @param depth The depth of the scope
-   */
-  void AddScope(std::size_t scope, std::size_t depth);
+  void BuildFromVisit(common::ManagedPointer<parser::TableRef> table_ref, LexicalScope *scope, BuildContext *context);
 
   /**
    * Determine if the structured statement contains the specified reference.
@@ -191,46 +143,25 @@ class StructuredStatement {
    */
   bool HasRef(const RefDescriptor &ref, RefType type) const;
 
-  /**
-   * Get the identified reference.
-   * @param ref A descriptor for the reference of interest
-   * @return A mutable reference to the reference
-   */
-  ContextSensitiveTableRef &GetRef(std::size_t id);
+  /** @return A mutable reference to the root scope of the statement */
+  LexicalScope &RootScope();
+
+  /** @return An immutable reference to the root scope of the statement */
+  const LexicalScope &RootScope() const;
 
   /**
-   * Get the identified reference.
-   * @param ref A descriptor for the reference of interest
-   * @return An immutable reference to the reference
+   * Flatten the scope hierarchy.
+   * @param root The root scope
+   * @param result The container to which the hierarchy is flattened
    */
-  const ContextSensitiveTableRef &GetRef(std::size_t id) const;
-
-  /**
-   * Get the identified reference.
-   * @param ref A descriptor for the reference of interest
-   * @return A mutable reference to the reference
-   */
-  ContextSensitiveTableRef &GetRef(const RefDescriptor &ref);
-
-  /**
-   * Get the identified reference.
-   * @param ref A descriptor for the reference of interest
-   * @return An immutable reference to the reference
-   */
-  const ContextSensitiveTableRef &GetRef(const RefDescriptor &ref) const;
-
-  /** @return An immutable reference to the underlying references collection */
-  const std::vector<ContextSensitiveTableRef> &References() const;
-
-  /** @return An immutable reference to the underlying scopes map */
-  const std::unordered_map<std::size_t, std::size_t> &Scopes() const;
+  static void FlattenTo(const LexicalScope *root, std::vector<const LexicalScope *> *result);
 
  private:
-  // The collection of references extracted from the statement
-  std::vector<ContextSensitiveTableRef> references_;
+  // The root scope for the structured statement
+  std::unique_ptr<LexicalScope> root_scope_;
 
-  // The map from scope identifier -> depth
-  std::unordered_map<std::size_t, std::size_t> scopes_;
+  // A flattened view of the scope hierarchy so we can easily apply std algorithms
+  std::vector<const LexicalScope *> flat_scopes_;
 };
 
 }  // namespace noisepage::binder::cte

@@ -13,8 +13,6 @@
 
 using noisepage::binder::cte::StructuredStatement;
 
-static constexpr const auto END_POSITION = StructuredStatement::END_POSITION;
-
 namespace noisepage {
 class BinderCteStructuredStatementTest : public TerrierTest {
  public:
@@ -110,20 +108,6 @@ ParseToSelectStatement(const std::string &sql) {
   return std::make_pair(std::move(parse_tree), select);
 }
 
-/**
- * Check that internal identifiers follow the expected pattern in `graph`.
- * @param graph The graph of interest
- * @return `true` if the check passes, `false` otherwise
- */
-static bool CheckIdentifiers(const StructuredStatement &statement) {
-  std::vector<std::size_t> expected(statement.RefCount());
-  std::iota(expected.begin(), expected.end(), 0UL);
-  const auto identifiers = statement.Identifiers();
-  std::vector<std::size_t> actual{identifiers.cbegin(), identifiers.cend()};
-  std::sort(actual.begin(), actual.end());
-  return std::equal(actual.cbegin(), actual.cend(), expected.cbegin());
-}
-
 TEST_F(BinderCteStructuredStatementTest, ItWorks) {
   const std::string sql = "SELECT * FROM TestTable;";
   auto [_, select] = ParseToSelectStatement(sql);
@@ -138,11 +122,8 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement0) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(1UL, statement.RefCount());
-  EXPECT_EQ(0UL, statement.DependencyCount());
   EXPECT_EQ(1UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasRef({"testtable", 0UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasReadRef({"testtable", 0UL, END_POSITION}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasRef({"testtable", 0UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement1) {
@@ -151,12 +132,9 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement1) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(2UL, statement.RefCount());
-  EXPECT_EQ(1UL, statement.DependencyCount());
   EXPECT_EQ(2UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, 1UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement2) {
@@ -165,14 +143,10 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement2) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(3UL, statement.RefCount());
-  EXPECT_EQ(2UL, statement.DependencyCount());
   EXPECT_EQ(3UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement3) {
@@ -181,16 +155,11 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement3) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
-  EXPECT_EQ(3UL, statement.DependencyCount());
   EXPECT_EQ(4UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"z", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
   EXPECT_TRUE(statement.HasWriteRef({"z", 0UL, 2UL}));
-  EXPECT_TRUE(statement.HasDependency({"z", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"z", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"z", 0UL, END_POSITION}, {"z", 0UL, 2UL}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"z", 0UL, 3UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement4) {
@@ -199,16 +168,11 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement4) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
-  EXPECT_EQ(3UL, statement.DependencyCount());
   EXPECT_EQ(3UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement5) {
@@ -217,16 +181,11 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement5) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
-  EXPECT_EQ(3UL, statement.DependencyCount());
   EXPECT_EQ(3UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement6) {
@@ -235,16 +194,11 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement6) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
-  EXPECT_EQ(3UL, statement.DependencyCount());
   EXPECT_EQ(3UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"y", 1UL, END_POSITION}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, 2UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement7) {
@@ -253,16 +207,11 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement7) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
-  EXPECT_EQ(3UL, statement.DependencyCount());
   EXPECT_EQ(3UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"y", 1UL, END_POSITION}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"x", 0UL, 2UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement8) {
@@ -271,18 +220,12 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement8) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(5UL, statement.RefCount());
-  EXPECT_EQ(4UL, statement.DependencyCount());
   EXPECT_EQ(3UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"y", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement9) {
@@ -291,18 +234,12 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement9) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(5UL, statement.RefCount());
-  EXPECT_EQ(4UL, statement.DependencyCount());
   EXPECT_EQ(3UL, statement.ScopeCount());
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"y", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 1UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement10) {
@@ -312,23 +249,16 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement10) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(6UL, statement.RefCount());
-  EXPECT_EQ(5UL, statement.DependencyCount());
   EXPECT_EQ(4UL, statement.ScopeCount());
 
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+
   EXPECT_TRUE(statement.HasWriteRef({"a", 1UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, 1UL}));
 
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"a", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"a", 1UL, END_POSITION}, {"a", 1UL, 0UL}));
-
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement11) {
@@ -338,23 +268,16 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement11) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(6UL, statement.RefCount());
-  EXPECT_EQ(5UL, statement.DependencyCount());
   EXPECT_EQ(4UL, statement.ScopeCount());
 
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+
   EXPECT_TRUE(statement.HasWriteRef({"a", 1UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, 1UL}));
 
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"a", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"a", 1UL, END_POSITION}, {"a", 1UL, 0UL}));
-
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement12) {
@@ -364,23 +287,16 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement12) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(6UL, statement.RefCount());
-  EXPECT_EQ(5UL, statement.DependencyCount());
   EXPECT_EQ(4UL, statement.ScopeCount());
 
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+
   EXPECT_TRUE(statement.HasWriteRef({"a", 1UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, 1UL}));
 
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"a", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"a", 1UL, END_POSITION}, {"a", 1UL, 0UL}));
-
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement13) {
@@ -390,22 +306,15 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement13) {
 
   StructuredStatement statement{select};
   EXPECT_EQ(6UL, statement.RefCount());
-  EXPECT_EQ(5UL, statement.DependencyCount());
   EXPECT_EQ(4UL, statement.ScopeCount());
 
-  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, END_POSITION}));
   EXPECT_TRUE(statement.HasWriteRef({"x", 0UL, 0UL}));
   EXPECT_TRUE(statement.HasWriteRef({"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, END_POSITION}));
+  EXPECT_TRUE(statement.HasReadRef({"y", 0UL, 2UL}));
+
   EXPECT_TRUE(statement.HasWriteRef({"a", 1UL, 0UL}));
+  EXPECT_TRUE(statement.HasReadRef({"a", 1UL, 1UL}));
 
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"x", 0UL, 0UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, END_POSITION}, {"y", 0UL, 1UL}));
-  EXPECT_TRUE(statement.HasDependency({"y", 0UL, 1UL}, {"x", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"x", 0UL, 0UL}, {"a", 1UL, END_POSITION}));
-  EXPECT_TRUE(statement.HasDependency({"a", 1UL, END_POSITION}, {"a", 1UL, 0UL}));
-
-  EXPECT_TRUE(CheckIdentifiers(statement));
+  EXPECT_TRUE(statement.HasReadRef({"x", 1UL, 0UL}));
 }
 }  // namespace noisepage
