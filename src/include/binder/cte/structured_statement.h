@@ -165,6 +165,9 @@ class StructuredStatement {
   /** @return An immutable reference to the root scope of the statement */
   const LexicalScope &RootScope() const;
 
+  /** @return A flattened collection of all table references in the statement */
+  std::vector<const TypedTableRef *> References() const;
+
   /**
    * Flatten the scope hierarchy.
    * @param root The root scope

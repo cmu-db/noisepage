@@ -148,6 +148,15 @@ LexicalScope &StructuredStatement::RootScope() { return *root_scope_; }
 
 const LexicalScope &StructuredStatement::RootScope() const { return *root_scope_; }
 
+std::vector<const TypedTableRef *> StructuredStatement::References() const {
+  std::vector<const TypedTableRef *> references{};
+  for (const auto *scope : flat_scopes_) {
+    std::transform(scope->References().cbegin(), scope->References().cend(), std::back_inserter(references),
+                   [](const TypedTableRef &r) { return &r; });
+  }
+  return references;
+}
+
 void StructuredStatement::FlattenTo(const LexicalScope *root, std::vector<const LexicalScope *> *result) {
   // Recursively visit each nested scope
   for (const auto &enclosed_scope : root->EnclosedScopes()) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -17,8 +18,8 @@ class DeleteStatement;
 
 namespace noisepage::binder::cte {
 
+class LexicalScope;
 class StructuredStatement;
-class ContextSensitiveTableRef;
 
 /**
  * The Vertex class provides a convenient way to query the graph.
@@ -88,43 +89,10 @@ class Edge {
  */
 class DependencyGraph {
   /**
-   * The LexicalScope class represents a scope within the associated statement.
-   */
-  class LexicalScope {
-   public:
-    /**
-     * Construct a new LexicalScope instance.
-     *
-     * NOTE: We provide this default constructor so we can
-     * lazily emplace LexicalScope instances in a std::map.
-     */
-    LexicalScope() = default;
-
-    /**
-     * Construct a new Scope instance.
-     * @param id A unique identifier for the scope
-     */
-    LexicalScope(const std::size_t id, const std::size_t depth) : id_{id}, depth_{depth} {}
-
-    /** @return The depth of the scope */
-    std::size_t Depth() const noexcept { return depth_; }
-
-    /** Equality test with `rhs` */
-    bool operator==(const LexicalScope &rhs) const { return id_ == rhs.id_; }
-
-    /** Inequality test with `rhs` */
-    bool operator!=(const LexicalScope &rhs) const { return id_ != rhs.id_; }
-
-   private:
-    // The unique identifier for the scope
-    std::size_t id_;
-    // The depth of the scope relative to the root statement
-    std::size_t depth_;
-  };
-
-  /**
    * The TableReference class provides an internal representation
-   * for table references within the dependency graph.
+   * for table references within the dependency graph; it serves
+   * as a graph vertex. Apologies in advance for the overloading
+   * of the terms "ref" and "reference" that is going on here.
    */
   class TableReference {
    public:
@@ -134,21 +102,16 @@ class DependencyGraph {
      * @param position The lateral position of the table reference within its scope
      * @param table The associated table reference
      */
-    TableReference(const LexicalScope &scope, const std::size_t position,
-                   common::ManagedPointer<parser::TableRef> table)
-        : scope_{scope}, position_{position}, table_{table} {}
+    TableReference(common::ManagedPointer<parser::TableRef> table, const LexicalScope *scope);
 
     /** @return The scope for this table reference */
-    const LexicalScope &Scope() const { return scope_; }
-
-    /** @return The depth for this table reference */
-    std::size_t Depth() const { return scope_.Depth(); }
-
-    /** @return The position for this table reference */
-    std::size_t Position() const { return position_; }
+    const LexicalScope *Scope() const { return scope_; }
 
     /** @return The table reference for this table reference */
     common::ManagedPointer<parser::TableRef> Table() const { return table_; }
+
+    /** @return The dependencies for this table reference */
+    const std::vector<const TableReference *> &Dependencies() const { return dependencies_; }
 
     /**
      * Add a new dependency for this table reference.
@@ -157,14 +120,11 @@ class DependencyGraph {
     void AddDependency(const TableReference *ref) { dependencies_.push_back(ref); }
 
    private:
-    // The scope in which the reference appears
-    const LexicalScope scope_;
-
-    // The lateral position of the table reference within its scope
-    const std::size_t position_;
-
     // The associated table reference
     common::ManagedPointer<parser::TableRef> table_;
+
+    // The scope in which the reference appears
+    const LexicalScope *scope_;
 
     // A collection of the dependencies for this vertex
     std::vector<const TableReference *> dependencies_;
@@ -172,34 +132,34 @@ class DependencyGraph {
 
  public:
   /**
-   * Construct a new dependency graph instance from a structured statement.
+   * Construct a dependency graph from a StructuredStatement.
    * @param statement The structured statement
    */
-  explicit DependencyGraph(const StructuredStatement &statement);
+  explicit DependencyGraph(std::unique_ptr<StructuredStatement> &&statement);
 
   /**
    * Construct a new dependency graph instance from a root SELECT statement.
-   * @param root The root statement of the parse tree
+   * @param root The root statement
    */
-  explicit DependencyGraph(common::ManagedPointer<parser::SelectStatement> root);
+  static std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::SelectStatement> root);
 
   /**
-   * Construct a new dependency graph instance a root INSERT statement.
-   * @param root The root statement of the parse tree
+   * Construct a new dependency graph instance from a root SELECT statement.
+   * @param root The root statement
    */
-  explicit DependencyGraph(common::ManagedPointer<parser::InsertStatement> root);
+  static std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::InsertStatement> root);
 
   /**
-   * Construct a new dependency graph instance from a root UPDATE statement.
-   * @param root The root statement of the parse tree
+   * Construct a new dependency graph instance from a root SELECT statement.
+   * @param root The root statement
    */
-  explicit DependencyGraph(common::ManagedPointer<parser::UpdateStatement> root);
+  static std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::UpdateStatement> root);
 
   /**
-   * Construct a new dependency graph instance from a root DELETE statement.
-   * @param root The root statement of the parse tree
+   * Construct a new dependency graph instance from a root SELECT statement.
+   * @param root The root statement
    */
-  explicit DependencyGraph(common::ManagedPointer<parser::DeleteStatement> root);
+  static std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::DeleteStatement> root);
 
   /** @return The order of the graph (cardinality of the vertex set) */
   std::size_t Order() const;
@@ -278,27 +238,16 @@ class DependencyGraph {
 
  private:
   /**
-   * Get a pointer to the table reference identified by `vertex`.
-   * @param vertex The vertex that represents the graph query
-   * @return A pointer to the table reference, or `nullptr`
+   * Recursively populate the graph from the given LexicalScope.
+   * @param scope The root lexical scope from which to continue population
    */
-  const ContextSensitiveTableRef *GetVertex(const Vertex &vertex) const;
-
-  /**
-   * Get pointers to the table references identified by `edge`.
-   * @param edge The edge that represents the graph query
-   * @return A pair of pointers to the table references, or `nullptr`s
-   */
-  std::pair<const ContextSensitiveTableRef *, const ContextSensitiveTableRef *> GetEdge(const Edge &edge) const;
-
-  const TableReference *Resolve(
-      std::size_t id, const std::vector<ContextSensitiveTableRef> &references,
-      const std::unordered_map<const TableReference *, const ContextSensitiveTableRef *> &backpointers) const;
+  void PopulateGraphVisit(const LexicalScope &scope);
 
  private:
-  /**
-   * The underlying representation for the graph.
-   */
+  /** The underlying representation for the graph */
   std::vector<TableReference> graph_;
+
+  /** The corresponding structured statement */
+  std::unique_ptr<StructuredStatement> statement_;
 };
 }  // namespace noisepage::binder::cte
