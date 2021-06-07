@@ -113,6 +113,9 @@ class MetricsManager {
     return metrics_output_[static_cast<uint8_t>(component)];
   }
 
+  /** @return The transaction policy under which all metrics data is written. */
+  const transaction::TransactionPolicy &GetTransactionPolicy() const { return txn_policy_; }
+
  private:
   /**
    * Dump aggregated metrics to CSV files.
@@ -135,6 +138,8 @@ class MetricsManager {
 
   std::array<std::vector<bool>, NUM_COMPONENTS> samples_mask_;  // std::vector<bool> may use a bitset for efficiency
   std::array<MetricsOutput, NUM_COMPONENTS> metrics_output_;
+
+  transaction::TransactionPolicy txn_policy_;  ///< Transaction policy for metrics which are written to DB.
 };
 
 }  // namespace noisepage::metrics

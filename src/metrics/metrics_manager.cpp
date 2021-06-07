@@ -36,7 +36,9 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
   }
 }
 
-MetricsManager::MetricsManager() {
+MetricsManager::MetricsManager()
+    : txn_policy_(transaction::TransactionPolicy{transaction::DurabilityPolicy::SYNC,
+                                                 transaction::ReplicationPolicy::DISABLE}) {
   // construct a bitset of all true (sampling rate 100) by default
   std::vector<bool> samples_mask(100, true);
   for (uint8_t i = 0; i < NUM_COMPONENTS; i++) {
@@ -168,7 +170,7 @@ void MetricsManager::ToOutput(common::ManagedPointer<task::TaskManager> task_man
 
 void MetricsManager::ToDB(uint8_t component, common::ManagedPointer<task::TaskManager> task_manager) const {
   NOISEPAGE_ASSERT(task_manager != nullptr, "MetricsManager::ToDB invoked with null task_manager");
-  aggregated_metrics_[component]->ToDB(task_manager);
+  aggregated_metrics_[component]->ToDB(task_manager, txn_policy_);
 }
 
 void MetricsManager::ToCSV(uint8_t component) const {

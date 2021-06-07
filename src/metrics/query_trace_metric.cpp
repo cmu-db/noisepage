@@ -55,16 +55,18 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
           .Build());
 }
 
-void QueryTraceMetricRawData::ToDB(common::ManagedPointer<task::TaskManager> task_manager) {
+void QueryTraceMetricRawData::ToDB(common::ManagedPointer<task::TaskManager> task_manager,
+                                   const transaction::TransactionPolicy &txn_policy) {
   // On regular ToDB calls from metrics manager, we don't want to flush the time data or parameters.
   // Only on a forecast interval should we be doing that. Rather, ToDB will write out time-series data
   // only if a segment has elapsed.
   uint64_t timestamp = metrics::MetricsUtil::Now();
-  WriteToDB(task_manager, false, timestamp, nullptr, nullptr);
+  WriteToDB(task_manager, txn_policy, false, timestamp, nullptr, nullptr);
 }
 
 void QueryTraceMetricRawData::WriteToDB(
-    common::ManagedPointer<task::TaskManager> task_manager, bool write_parameters, uint64_t write_timestamp,
+    common::ManagedPointer<task::TaskManager> task_manager, const transaction::TransactionPolicy &txn_policy,
+    bool write_parameters, uint64_t write_timestamp,
     std::unordered_map<execution::query_id_t, QueryTraceMetadata::QueryMetadata> *out_metadata,
     std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params) {
   NOISEPAGE_ASSERT(task_manager != nullptr, "Task Manager not initialized");

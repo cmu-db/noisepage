@@ -261,7 +261,8 @@ std::unique_ptr<selfdriving::WorkloadForecast> Forecaster::LoadWorkloadForecast(
     if (raw != nullptr) {
       // Perform a flush to database. This will also get any temporary data.
       // This is also used to flush all parameter information at a forecast interval.
-      raw->WriteToDB(task_manager_, true, timestamp, &out_metadata, &out_params);
+      raw->WriteToDB(task_manager_, metrics_thread_->GetMetricsManager()->GetTransactionPolicy(), true, timestamp,
+                     &out_metadata, &out_params);
 
       // We don't have to worry about flushing the tasks submitted by WriteToDB.
       // The query metadata and parameters that would have been flushed out

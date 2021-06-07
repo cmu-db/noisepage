@@ -5,13 +5,17 @@
 #include "common/macros.h"
 #include "metrics/metrics_defs.h"
 
+namespace noisepage::task {
+class TaskManager;
+}  // namespace noisepage::task
+
+namespace noisepage::transaction {
+struct TransactionPolicy;
+}  // namespace noisepage::transaction
+
 namespace noisepage::util {
 class QueryExecUtil;
 }  // namespace noisepage::util
-
-namespace noisepage::task {
-class TaskManager;
-}
 
 namespace noisepage::metrics {
 /**
@@ -44,10 +48,12 @@ class AbstractRawData {
   virtual MetricsComponent GetMetricType() const = 0;
 
   /**
-   * Writes the data to internal tables
-   * @param task_manager Task manager to submit tasks to
+   * Write the data to internal tables.
+   * @param task_manager    Task manager to submit tasks to.
+   * @param txn_policy      The policy under which data should be written.
    */
-  virtual void ToDB(common::ManagedPointer<task::TaskManager> task_manager) {}
+  virtual void ToDB(common::ManagedPointer<task::TaskManager> task_manager,
+                    const transaction::TransactionPolicy &txn_policy) {}
 
   /**
    * Writes the data to files, and then clears the data
