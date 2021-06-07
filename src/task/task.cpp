@@ -18,7 +18,7 @@ std::unique_ptr<TaskDDL> TaskDDL::Builder::Build() {
   NOISEPAGE_ASSERT(*db_oid_ != catalog::INVALID_DATABASE_OID, "You're doing something hacky. Get a real database OID.");
   NOISEPAGE_ASSERT(query_text_.has_value(), "Query text must be specified.");
   NOISEPAGE_ASSERT(policy_.has_value(), "Transaction policy must be specified.");
-  return std::unique_ptr<TaskDDL>(new TaskDDL(*db_oid_, std::move(*query_text_), *policy_, sync_));
+  return std::make_unique<TaskDDL>(*db_oid_, std::move(*query_text_), *policy_, sync_);
 }
 
 std::unique_ptr<TaskDML> TaskDML::Builder::Build() {
@@ -44,34 +44,42 @@ TaskDML::Builder &TaskDML::Builder::SetCostModel(std::unique_ptr<optimizer::Abst
   cost_model_ = std::move(cost_model);
   return *this;
 }
+
 TaskDML::Builder &TaskDML::Builder::SetParameters(std::vector<std::vector<parser::ConstantValueExpression>> params) {
   params_ = std::move(params);
   return *this;
 }
+
 TaskDML::Builder &TaskDML::Builder::SetParameterTypes(std::vector<type::TypeId> param_types) {
   param_types_ = std::move(param_types);
   return *this;
 }
+
 TaskDML::Builder &TaskDML::Builder::SetMetricsManager(common::ManagedPointer<metrics::MetricsManager> metrics_manager) {
   metrics_manager_ = metrics_manager;
   return *this;
 }
+
 TaskDML::Builder &TaskDML::Builder::SetExecutionSettings(execution::exec::ExecutionSettings settings) {
   settings_ = settings;
   return *this;
 }
+
 TaskDML::Builder &TaskDML::Builder::SetShouldForceAbort(bool should_force_abort) {
   should_force_abort_ = should_force_abort;
   return *this;
 }
+
 TaskDML::Builder &TaskDML::Builder::SetShouldSkipQueryCache(bool should_skip_query_cache) {
   should_skip_query_cache_ = should_skip_query_cache;
   return *this;
 }
+
 TaskDML::Builder &TaskDML::Builder::SetOverrideQueryId(execution::query_id_t query_id) {
   override_qid_ = query_id;
   return *this;
 }
+
 TaskDML::Builder &TaskDML::Builder::SetTupleFn(util::TupleFunction tuple_fn) {
   tuple_fn_ = std::move(tuple_fn);
   return *this;
