@@ -111,8 +111,8 @@ const ContextSensitiveTableRef *DependencyGraph::ResolveDependency(const Context
    * The priority for resolution of references goes like:
    *
    *  1. WRITE table references (WITH ...) in the same scope
-   *  2. WRITE table references (non-forward) defined in the enclosing scope
-   *  3. WRITE table references (any) in scopes that enclose the enclosing scope (if present)
+   *  2. WRITE table references (backward) defined in the enclosing scope
+   *  3. WRITE table references (any) defined in scopes that enclose the enclosing scope (if present)
    *  4. WRITE table references (forward) defined in the enclosing scope
    *
    * Naturally, referring to temporary tables in "lower" scopes is an error.
@@ -126,26 +126,108 @@ const ContextSensitiveTableRef *DependencyGraph::ResolveDependency(const Context
    * down because of the precendence of rules 3. and 4. above.
    */
 
-  // 1. WRITE table references in the same scope
-
   const auto &target_alias = table_ref.Table()->GetAlias();
-  const auto *enclosing_scope = table_ref.EnclosingScope();
-  auto it = std::find_if(enclosing_scope->References().cbegin(), enclosing_scope->References().cend(),
-                         [&target_alias](const ContextSensitiveTableRef &r) {
-                           return r.Type() == RefType::WRITE && r.Table()->GetAlias() == target_alias;
-                         });
-  if (it != enclosing_scope->References().cend()) {
-    // Found it
-    return std::addressof(*it);
+
+  // `scope` is the scope that conatins the READ reference that we want to resolve
+  const auto *scope = table_ref.EnclosingScope();
+
+  // 1. WRITE table references defined in the same scope
+
+  const auto *local_ref = FindWriteReferenceInScope(target_alias, *scope);
+  if (local_ref != NOT_FOUND) {
+    return local_ref;
   }
 
-  // 2. WRITE table references (non-forward) defined in the enclosing scope
-
-  if (!enclosing_scope->HasEnclosingScope()) {
+  if (!scope->HasEnclosingScope()) {
     throw BINDER_EXCEPTION("Table Not Found", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
   }
 
+  // 2. WRITE table references (backward) defined in the enclosing scope
+
+  const auto *backward_ref =
+      FindBackwardWriteReferenceInScope(target_alias, *scope->EnclosingScope(), *table_ref.EnclosingScope());
+  if (backward_ref != NOT_FOUND) {
+    return backward_ref;
+  }
+
+  // 3. WRITE table reference (any) defined in scopes that enclose the enclosing scope
+
+  const auto *upward_ref = FindWriteReferenceInAnyEnclosingScope(target_alias, *scope->EnclosingScope());
+  if (upward_ref != NOT_FOUND) {
+    return upward_ref;
+  }
+
+  // 4. WRITE table references (forward) defined in the enclosing scope
+
+  const auto *forward_ref =
+      FindForwardWriteReferenceInScope(target_alias, *scope->EnclosingScope(), *table_ref.EnclosingScope());
+  if (forward_ref != NOT_FOUND) {
+    return forward_ref;
+  }
+
   throw BINDER_EXCEPTION("Table Not Found", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+}
+
+const ContextSensitiveTableRef *DependencyGraph::FindWriteReferenceInScope(std::string_view alias,
+                                                                           const LexicalScope &scope) {
+  auto it =
+      std::find_if(scope.References().cbegin(), scope.References().cend(), [&alias](const ContextSensitiveTableRef &r) {
+        return r.Type() == RefType::WRITE && r.Table()->GetAlias() == alias;
+      });
+  return (it == scope.References().cend()) ? NOT_FOUND : std::addressof(*it);
+}
+
+const ContextSensitiveTableRef *DependencyGraph::FindWriteReferenceInAnyEnclosingScope(std::string_view alias,
+                                                                                       const LexicalScope &scope) {
+  auto *upward_scope = scope.EnclosingScope();
+  while (upward_scope != LexicalScope::GLOBAL_SCOPE) {
+    const auto *upward_ref = FindWriteReferenceInScope(alias, *upward_scope);
+    if (upward_ref != NOT_FOUND) {
+      return upward_ref;
+    }
+    // Traverse upward to the enclosing scope
+    upward_scope = upward_scope->EnclosingScope();
+  }
+  return NOT_FOUND;
+}
+
+const ContextSensitiveTableRef *DependencyGraph::FindForwardWriteReferenceInScope(std::string_view alias,
+                                                                                  const LexicalScope &scope,
+                                                                                  const LexicalScope &partition_point) {
+  // Locate the partition point within the scope
+  auto partition = std::find_if(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
+                                [&partition_point](const LexicalScope &s) { return s == partition_point; });
+  NOISEPAGE_ASSERT(partition != scope.EnclosedScopes().cend(), "Partition point must be present in scope");
+
+  // Compute an iterator into the references collection
+  const auto pos = std::distance(scope.EnclosedScopes().begin(), partition);
+  auto begin = scope.References().cbegin();
+  std::advance(begin, pos);
+
+  // Search the appropriate range for the target alias
+  auto it = std::find_if(begin, scope.References().cend(), [&alias](const ContextSensitiveTableRef &r) {
+    return r.Type() == RefType::WRITE && r.Table()->GetAlias() == alias;
+  });
+  return (it == scope.References().cend()) ? NOT_FOUND : std::addressof(*it);
+}
+
+const ContextSensitiveTableRef *DependencyGraph::FindBackwardWriteReferenceInScope(
+    std::string_view alias, const LexicalScope &scope, const LexicalScope &partition_point) {
+  // Locate the partition point within the scope
+  auto partition = std::find_if(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
+                                [&partition_point](const LexicalScope &s) { return s == partition_point; });
+  NOISEPAGE_ASSERT(partition != scope.EnclosedScopes().cend(), "Partition point must be present in scope");
+
+  // Compute an iterator into the references collection
+  const auto pos = std::distance(scope.EnclosedScopes().cbegin(), partition);
+  auto end = scope.References().cbegin();
+  std::advance(end, pos);
+
+  // Search the appropriate range for the target alias
+  auto it = std::find_if(scope.References().cbegin(), end, [&alias](const ContextSensitiveTableRef &r) {
+    return r.Type() == RefType::WRITE && r.Table()->GetAlias() == alias;
+  });
+  return (it == end) ? NOT_FOUND : std::addressof(*it);
 }
 
 // ----------------------------------------------------------------------------

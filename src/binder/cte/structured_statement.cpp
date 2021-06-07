@@ -27,6 +27,8 @@ StructuredStatement::StructuredStatement(common::ManagedPointer<parser::SelectSt
     // Create a new scope for the temporary table definition
     root_scope_->AddEnclosedScope(LexicalScope{context.NextScopeId(), root_scope_->Depth() + 1, root_scope_.get()});
     // Add the table reference to its enclosing scope
+    std::cout << "adding " << table_ref->GetAlias() << '\n';
+    std::cout << root_scope_->EnclosedScopes().back().Id() << '\n';
     root_scope_->AddReference(
         ContextSensitiveTableRef{table_ref, RefType::WRITE, root_scope_.get(), &root_scope_->EnclosedScopes().back()});
     // Visit the nested scope

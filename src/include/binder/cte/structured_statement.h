@@ -130,6 +130,12 @@ class StructuredStatement {
   /** @return A flattened collection of immutable pointers to all table references in the statement */
   std::vector<const ContextSensitiveTableRef *> References() const;
 
+  /** @return A mutable reference to the root scope of the statement */
+  LexicalScope &RootScope();
+
+  /** @return An immutable reference to the root scope of the statement */
+  const LexicalScope &RootScope() const;
+
  private:
   friend class DependencyGraph;
 
@@ -164,12 +170,6 @@ class StructuredStatement {
    * @param type The reference type of interest
    */
   std::size_t RefCountWithType(RefType type) const;
-
-  /** @return A mutable reference to the root scope of the statement */
-  LexicalScope &RootScope();
-
-  /** @return An immutable reference to the root scope of the statement */
-  const LexicalScope &RootScope() const;
 
   /**
    * Recursively determine if the invariants of the structured statement are satisfied.

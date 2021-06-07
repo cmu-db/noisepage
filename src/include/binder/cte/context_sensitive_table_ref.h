@@ -54,6 +54,12 @@ class ContextSensitiveTableRef {
   /** @return The scope defined by this table reference */
   const LexicalScope *Scope() const;
 
+  /** Equality comparison for context-sensitive table references */
+  bool operator==(const ContextSensitiveTableRef &rhs) const;
+
+  /** Inequality comparison for context-sensitive table references */
+  bool operator!=(const ContextSensitiveTableRef &rhs) const;
+
  private:
   // The associated table reference
   common::ManagedPointer<parser::TableRef> table_;

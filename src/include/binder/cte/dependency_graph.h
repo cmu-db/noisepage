@@ -196,6 +196,33 @@ class DependencyGraph {
    */
   const ContextSensitiveTableRef *ResolveDependency(const ContextSensitiveTableRef &table_ref) const;
 
+ public:
+  /**
+   *
+   */
+  static const ContextSensitiveTableRef *FindWriteReferenceInScope(std::string_view alias, const LexicalScope &scope);
+
+  /**
+   *
+   */
+  static const ContextSensitiveTableRef *FindWriteReferenceInAnyEnclosingScope(std::string_view alias,
+                                                                               const LexicalScope &scope);
+
+  /**
+   *
+   */
+  static const ContextSensitiveTableRef *FindForwardWriteReferenceInScope(std::string_view alias,
+                                                                          const LexicalScope &scope,
+                                                                          const LexicalScope &partition_point);
+
+  /**
+   *
+   */
+  static const ContextSensitiveTableRef *FindBackwardWriteReferenceInScope(std::string_view alias,
+                                                                           const LexicalScope &scope,
+                                                                           const LexicalScope &partition_point);
+
+ private:
   /**
    * Determine if the given structured statement is valid.
    * @param statement The structured statement to validate
@@ -208,6 +235,10 @@ class DependencyGraph {
    * @param scope The scope from which to begin the validation
    */
   static bool ContainsAmbiguousReferences(const LexicalScope &scope);
+
+ public:
+  /** Denotes the scope is not found when resolving references */
+  static constexpr const ContextSensitiveTableRef *NOT_FOUND{nullptr};
 
  private:
   /** The key type in the underlying map */

@@ -21,4 +21,10 @@ const LexicalScope *ContextSensitiveTableRef::EnclosingScope() const { return en
 
 const LexicalScope *ContextSensitiveTableRef::Scope() const { return scope_; }
 
+bool ContextSensitiveTableRef::operator==(const ContextSensitiveTableRef &rhs) const {
+  return table_ == rhs.table_ && type_ == rhs.type_ && scope_ == rhs.scope_ && enclosing_scope_ == rhs.enclosing_scope_;
+}
+
+bool ContextSensitiveTableRef::operator!=(const ContextSensitiveTableRef &rhs) const { return !(*this == rhs); }
+
 }  // namespace noisepage::binder::cte

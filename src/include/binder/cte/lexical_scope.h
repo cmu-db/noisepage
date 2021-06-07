@@ -24,6 +24,9 @@ class LexicalScope {
    */
   LexicalScope(std::size_t id, std::size_t depth, const LexicalScope *enclosing_scope);
 
+  /** @return The unique identifier for this scope */
+  std::size_t Id() const { return id_; }
+
   /** @return The depth of this scope in the statement */
   std::size_t Depth() const { return depth_; }
 
