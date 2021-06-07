@@ -185,12 +185,6 @@ class DependencyGraph {
 
  private:
   /**
-   * Recursively populate the graph from the given LexicalScope.
-   * @param scope The root lexical scope from which to continue population
-   */
-  void PopulateGraphVisit(LexicalScope &scope);
-
-  /**
    * Resolve the dependencies for the specified table reference.
    * @param table_ref The table reference for which dependencies should be resolved
    */
@@ -201,6 +195,19 @@ class DependencyGraph {
    *
    */
   const ContextSensitiveTableRef *ResolveDependency(const ContextSensitiveTableRef &table_ref) const;
+
+  /**
+   * Determine if the given structured statement is valid.
+   * @param statement The structured statement to validate
+   * @throws BINDER_EXCEPTION on invalid statement
+   */
+  static void ValidateStructuredStatement(const StructuredStatement &statement);
+
+  /**
+   * Determine if the given scope contains any ambiguous references.
+   * @param scope The scope from which to begin the validation
+   */
+  static bool ContainsAmbiguousReferences(const LexicalScope &scope);
 
  private:
   /** The key type in the underlying map */

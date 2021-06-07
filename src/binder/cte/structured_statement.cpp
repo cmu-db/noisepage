@@ -21,11 +21,11 @@ StructuredStatement::StructuredStatement(common::ManagedPointer<parser::SelectSt
   BuildContext context{};
 
   // Construct the root scope
-  root_scope_ = std::make_unique<LexicalScope>(context.NextScopeId(), 0UL);
+  root_scope_ = std::make_unique<LexicalScope>(context.NextScopeId(), 0UL, LexicalScope::GLOBAL_SCOPE);
 
   for (const auto &table_ref : root->GetSelectWith()) {
     // Create a new scope for the temporary table definition
-    root_scope_->AddEnclosedScope(LexicalScope{context.NextScopeId(), root_scope_->Depth() + 1});
+    root_scope_->AddEnclosedScope(LexicalScope{context.NextScopeId(), root_scope_->Depth() + 1, root_scope_.get()});
     // Add the table reference to its enclosing scope
     root_scope_->AddReference(
         ContextSensitiveTableRef{table_ref, RefType::WRITE, root_scope_.get(), &root_scope_->EnclosedScopes().back()});
@@ -57,7 +57,7 @@ void StructuredStatement::BuildFromVisit(common::ManagedPointer<parser::SelectSt
   // Recursively consider nested table references
   for (const auto &table_ref : select->GetSelectWith()) {
     // Create a new scope for the temporary table definition
-    scope->AddEnclosedScope(LexicalScope{context->NextScopeId(), scope->Depth() + 1});
+    scope->AddEnclosedScope(LexicalScope{context->NextScopeId(), scope->Depth() + 1, scope});
     // Add the table reference to its enclosing scope
     scope->AddReference(ContextSensitiveTableRef{table_ref, RefType::WRITE, scope, &scope->EnclosedScopes().back()});
     // Visit the nested scope

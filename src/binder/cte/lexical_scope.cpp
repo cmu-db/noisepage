@@ -6,7 +6,8 @@
 
 namespace noisepage::binder::cte {
 
-LexicalScope::LexicalScope(std::size_t id, std::size_t depth) : id_{id}, depth_{depth} {}
+LexicalScope::LexicalScope(std::size_t id, std::size_t depth, const LexicalScope *enclosing_scope)
+    : id_{id}, depth_{depth}, enclosing_scope_{enclosing_scope} {}
 
 std::size_t LexicalScope::RefCount() const { return references_.size(); }
 

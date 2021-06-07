@@ -18,13 +18,20 @@ class LexicalScope {
   /**
    * Construct a new LexicalScope instance.
    * @param id The unique identifier for the scope
-   * @param depth The depth of the scope in the statement,
+   * @param depth The depth of the scope in the statement
    * relative to the root scope
+   * @param enclosing_scope A pointer to the enclosing scope
    */
-  LexicalScope(std::size_t id, std::size_t depth);
+  LexicalScope(std::size_t id, std::size_t depth, const LexicalScope *enclosing_scope);
 
   /** @return The depth of this scope in the statement */
   std::size_t Depth() const { return depth_; }
+
+  /** @return The enclosing scope for this scope */
+  const LexicalScope *EnclosingScope() const { return enclosing_scope_; }
+
+  /** @return `true` if this scope has an enclosing scope, `false` otherwise */
+  bool HasEnclosingScope() const { return enclosing_scope_ != nullptr; }
 
   /** @return The number of references contained in this scope */
   std::size_t RefCount() const;
@@ -85,12 +92,19 @@ class LexicalScope {
    */
   std::size_t RefCountWithType(RefType type) const;
 
+ public:
+  /** The enclosing scope for the root scope */
+  static constexpr const LexicalScope *GLOBAL_SCOPE{nullptr};
+
  private:
   /** The unique identifier for the scope */
   std::size_t id_;
 
   /** The depth of the scope, relative to the root scope */
   std::size_t depth_;
+
+  /** A pointer to the scope that encloses this scope */
+  const LexicalScope *enclosing_scope_;
 
   /**
    * The ordered collection of enclosed scopes.
