@@ -49,7 +49,6 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(const PlanningContext &planning_conte
   // root correspond to no action applied to any segment
   root_ = std::make_unique<TreeNode>(nullptr, static_cast<action_id_t>(NULL_ACTION), 0, 0, later_cost,
                                      planning_context_.GetMemoryInfo().initial_memory_bytes_, action_state);
-  // TODO(lin): actually using the cost map during the search to reduce computation
   action_state_cost_map_.emplace(std::make_pair(std::move(action_state), later_cost));
 }
 
@@ -61,7 +60,7 @@ void MonteCarloTreeSearch::RunSimulation(uint64_t simulation_number, uint64_t me
                                       end_segment_index_);
 
     vertex->ChildrenRollout(planning_context_, forecast_, levels_to_plan_.at(vertex->GetDepth()), end_segment_index_,
-                            action_map_, candidate_actions, memory_constraint);
+                            action_map_, candidate_actions, &action_state_cost_map_, memory_constraint);
     vertex->BackPropogate(planning_context_, action_map_, use_min_cost_);
   }
 }

@@ -147,7 +147,9 @@ void TreeNode::ChildrenRollout(const PlanningContext &planning_context,
                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t action_horizon,
                                uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-                               const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint) {
+                               const std::unordered_set<action_id_t> &candidate_actions,
+                               std::unordered_map<ActionState, double, ActionStateHasher> *action_state_cost_map,
+                               uint64_t memory_constraint) {
   action_plan_end_index_ = std::min(action_start_segment_index_ + action_horizon - 1, tree_end_segment_index);
 
   SELFDRIVING_LOG_DEBUG("action_start_segment_index: {} action_plan_end_index: {} tree_end_segment_index: {}",
@@ -175,7 +177,7 @@ void TreeNode::ChildrenRollout(const PlanningContext &planning_context,
       if (memory > memory_constraint) satisfy_memory_constraint = false;
     }
     // For bookkeeping purpose
-    size_t plan_end_memory_consumption = PilotUtil::CalculateMemoryConsumption(
+    size_t action_plan_end_memory_consumption = PilotUtil::CalculateMemoryConsumption(
         planning_context.GetMemoryInfo(), new_action_state, action_plan_end_index_, action_map);
 
     // Initialize to large enough value when the memory constraint is not satisfied
@@ -185,13 +187,34 @@ void TreeNode::ChildrenRollout(const PlanningContext &planning_context,
       PilotUtil::ApplyAction(planning_context, action_ptr->GetSQLCommand(), action_ptr->GetDatabaseOid(),
                              Pilot::WHAT_IF);
 
-      child_segment_cost =
-          PilotUtil::ComputeCost(planning_context, forecast, action_start_segment_index_, action_plan_end_index_);
-      if (action_plan_end_index_ == tree_end_segment_index)
-        later_segments_cost = 0;
-      else
-        later_segments_cost =
-            PilotUtil::ComputeCost(planning_context, forecast, action_plan_end_index_ + 1, tree_end_segment_index);
+      new_action_state.SetIntervals(action_start_segment_index_, action_plan_end_index_);
+      if (action_state_cost_map->find(new_action_state) != action_state_cost_map->end()) {
+        child_segment_cost = action_state_cost_map->at(new_action_state);
+        printf("Get child cost from map with action %d start interval %lu end interval %lu: %f\n",
+               action_ptr->GetActionID().UnderlyingValue(), action_start_segment_index_, action_plan_end_index_,
+               child_segment_cost);
+      } else {
+        // Compute cost and add to the cache
+        child_segment_cost =
+            PilotUtil::ComputeCost(planning_context, forecast, action_start_segment_index_, action_plan_end_index_);
+        action_state_cost_map->emplace(std::make_pair(new_action_state, child_segment_cost));
+      }
+
+      new_action_state.SetIntervals(action_plan_end_index_ + 1, tree_end_segment_index);
+      if (action_state_cost_map->find(new_action_state) != action_state_cost_map->end()) {
+        later_segments_cost = action_state_cost_map->at(new_action_state);
+        printf("Get later cost from map with action %d start interval %lu end interval %lu: %f\n",
+               action_ptr->GetActionID().UnderlyingValue(), action_plan_end_index_ + 1, tree_end_segment_index,
+               later_segments_cost);
+      } else {
+        // Compute cost and add to the cache
+        if (action_plan_end_index_ == tree_end_segment_index)
+          later_segments_cost = 0;
+        else
+          later_segments_cost =
+              PilotUtil::ComputeCost(planning_context, forecast, action_plan_end_index_ + 1, tree_end_segment_index);
+        action_state_cost_map->emplace(std::make_pair(new_action_state, later_segments_cost));
+      }
 
       // apply one reverse action to undo the above
       auto rev_actions = action_ptr->GetReverseActions();
@@ -202,8 +225,8 @@ void TreeNode::ChildrenRollout(const PlanningContext &planning_context,
     // Add new child with proper action state
     new_action_state.SetIntervals(action_plan_end_index_ + 1, tree_end_segment_index);
     children_.push_back(std::make_unique<TreeNode>(common::ManagedPointer(this), action_id, action_plan_end_index_ + 1,
-                                                   child_segment_cost, later_segments_cost, plan_end_memory_consumption,
-                                                   new_action_state));
+                                                   child_segment_cost, later_segments_cost,
+                                                   action_plan_end_memory_consumption, new_action_state));
 
     // Reverse the action state
     action_map.at(action_ptr->GetReverseActions()[0])->ModifyActionState(&new_action_state);
