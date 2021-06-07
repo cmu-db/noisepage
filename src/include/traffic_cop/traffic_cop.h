@@ -261,6 +261,14 @@ class TrafficCop {
   void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
 
   /**
+   * Adjust the TrafficCop's execution mode value (for use by SettingsManager)
+   * @param is_compiled set execution_mode_ to Compiled if true; Interpret if false
+   */
+  void SetExecutionMode(bool is_compiled) {
+    execution_mode_ = is_compiled ? execution::vm::ExecutionMode::Compiled : execution::vm::ExecutionMode::Interpret;
+  }
+
+  /**
    * @return true if query caching enabled, false otherwise
    */
   bool UseQueryCache() const { return use_query_cache_; }
@@ -274,7 +282,7 @@ class TrafficCop {
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
   const bool use_query_cache_;
-  const execution::vm::ExecutionMode execution_mode_;
+  execution::vm::ExecutionMode execution_mode_;
 };
 
 }  // namespace noisepage::trafficcop

@@ -29,6 +29,7 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
 #include "parser/explain_statement.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
 #include "parser/variable_show_statement.h"
@@ -43,6 +44,7 @@
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "settings/settings_manager.h"
+#include "settings/settings_param.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -232,16 +234,19 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
   const auto &show_stmt UNUSED_ATTRIBUTE =
       statement->RootStatement().CastManagedPointerTo<parser::VariableShowStatement>();
 
-  NOISEPAGE_ASSERT(show_stmt->GetName() == "transaction_isolation", "Nothing else is supported right now.");
+  const std::string &param_name = show_stmt->GetName();
+  settings::Param param = settings_manager_->GetParam(param_name);
+  const settings::ParamInfo &param_info = settings_manager_->GetParamInfo(param);
+  std::string param_val = param_info.GetValue().ToString();
 
   auto expr = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR);
-  expr->SetAlias("transaction_isolation");
+  expr->SetAlias(param_name);
   std::vector<noisepage::planner::OutputSchema::Column> cols;
-  cols.emplace_back("transaction_isolation", type::TypeId::VARCHAR, std::move(expr));
-  execution::sql::StringVal dummy_result("snapshot isolation");
+  cols.emplace_back(param_name, type::TypeId::VARCHAR, std::move(expr));
+  execution::sql::StringVal result{param_val.c_str()};
 
   out->WriteRowDescription(cols, {network::FieldFormat::text});
-  out->WriteDataRow(reinterpret_cast<const byte *>(&dummy_result), cols, {network::FieldFormat::text});
+  out->WriteDataRow(reinterpret_cast<const byte *>(&result), cols, {network::FieldFormat::text});
   return {ResultType::COMPLETE, 0u};
 }
 

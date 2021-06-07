@@ -13,6 +13,9 @@
 #include "self_driving/forecasting/workload_forecast_segment.h"
 
 namespace noisepage::selfdriving {
+namespace pilot {
+class PilotUtil;
+}
 
 /**
  * A workload forecast prediction is described as:
@@ -86,7 +89,7 @@ class WorkloadForecast {
   }
 
  private:
-  friend class PilotUtil;
+  friend class pilot::PilotUtil;
 
   uint64_t GetForecastInterval() const { return forecast_interval_; }
 
