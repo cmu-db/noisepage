@@ -96,6 +96,10 @@ class Callbacks {
   static void MetricsQueryTraceOutput(void *old_value, void *new_value, DBMain *db_main,
                                       common::ManagedPointer<common::ActionContext> action_context);
 
+  /** Update the query execution mode in TrafficCop */
+  static void CompiledQueryExecution(void *old_value, void *new_value, DBMain *db_main,
+                                     common::ManagedPointer<common::ActionContext> action_context);
+
   /** Set the forecast sample limit. */
   static void ForecastSampleLimit(void *old_value, void *new_value, DBMain *db_main,
                                   common::ManagedPointer<common::ActionContext> action_context);
