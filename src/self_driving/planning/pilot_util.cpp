@@ -226,7 +226,11 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
               .SetDatabaseOid(db_oid)
               .SetQueryText(std::move(query_text))
               .SetFuture(common::ManagedPointer(&sync))
-              // TODO(WAN): Copying of params and param_types, is that intentional?
+              // Per the discussion in #1594, on the copying of params and param_types, by Lin:
+              // Synchronous tasks don't need copying, but asynchronous tasks may go out of the scope of the original
+              // params and param_types. If this becomes too expensive, we may be able to avoid copying for synchronous
+              // tasks by adding a new API (see the comments at the top of this code block). Addressing the life cycle
+              // issue for asynchronous tasks may be challenging though.
               .SetParameters(*params)
               .SetParameterTypes(*param_types)
               .SetMetricsManager(metrics_manager)
