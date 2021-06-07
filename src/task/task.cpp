@@ -18,7 +18,7 @@ std::unique_ptr<TaskDDL> TaskDDL::Builder::Build() {
   NOISEPAGE_ASSERT(*db_oid_ != catalog::INVALID_DATABASE_OID, "You're doing something hacky. Get a real database OID.");
   NOISEPAGE_ASSERT(query_text_.has_value(), "Query text must be specified.");
   NOISEPAGE_ASSERT(policy_.has_value(), "Transaction policy must be specified.");
-  return std::make_unique<TaskDDL>(*db_oid_, std::move(*query_text_), *policy_, sync_);
+  return std::unique_ptr<TaskDDL>(new TaskDDL(*db_oid_, std::move(*query_text_), *policy_, sync_));
 }
 
 std::unique_ptr<TaskDML> TaskDML::Builder::Build() {
