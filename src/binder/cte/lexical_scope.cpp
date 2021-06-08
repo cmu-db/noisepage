@@ -17,19 +17,19 @@ std::size_t LexicalScope::WriteRefCount() const { return RefCountWithType(RefTyp
 
 std::size_t LexicalScope::RefCountWithType(RefType type) const {
   return std::count_if(references_.cbegin(), references_.cend(),
-                       [=](const ContextSensitiveTableRef &r) { return r.Type() == type; });
+                       [=](const std::unique_ptr<ContextSensitiveTableRef> &r) { return r->Type() == type; });
 }
 
-std::vector<ContextSensitiveTableRef> &LexicalScope::References() { return references_; }
+std::vector<std::unique_ptr<ContextSensitiveTableRef>> &LexicalScope::References() { return references_; }
 
-const std::vector<ContextSensitiveTableRef> &LexicalScope::References() const { return references_; }
+const std::vector<std::unique_ptr<ContextSensitiveTableRef>> &LexicalScope::References() const { return references_; }
 
-void LexicalScope::AddEnclosedScope(const LexicalScope &scope) { enclosed_scopes_.push_back(scope); }
+void LexicalScope::AddEnclosedScope(std::unique_ptr<LexicalScope> &&scope) {
+  enclosed_scopes_.push_back(std::move(scope));
+}
 
-void LexicalScope::AddEnclosedScope(LexicalScope &&scope) { enclosed_scopes_.emplace_back(std::move(scope)); }
-
-void LexicalScope::AddReference(const ContextSensitiveTableRef &ref) { references_.push_back(ref); }
-
-void LexicalScope::AddReference(ContextSensitiveTableRef &&ref) { references_.push_back(ref); }
+void LexicalScope::AddReference(std::unique_ptr<ContextSensitiveTableRef> &&ref) {
+  references_.push_back(std::move(ref));
+}
 
 }  // namespace noisepage::binder::cte

@@ -25,19 +25,21 @@ StructuredStatement::StructuredStatement(common::ManagedPointer<parser::SelectSt
 
   for (const auto &table_ref : root->GetSelectWith()) {
     // Create a new scope for the temporary table definition
-    root_scope_->AddEnclosedScope(LexicalScope{context.NextScopeId(), root_scope_->Depth() + 1, root_scope_.get()});
-    // Add the table reference to its enclosing scope
-    std::cout << "adding " << table_ref->GetAlias() << '\n';
-    std::cout << root_scope_->EnclosedScopes().back().Id() << '\n';
+    auto scope = std::make_unique<LexicalScope>(context.NextScopeId(), root_scope_->Depth() + 1, root_scope_.get());
+
+    // Add the scope and the corresponding reference to the enclosing scope
     root_scope_->AddReference(
-        ContextSensitiveTableRef{table_ref, RefType::WRITE, root_scope_.get(), &root_scope_->EnclosedScopes().back()});
+        std::make_unique<ContextSensitiveTableRef>(table_ref, RefType::WRITE, root_scope_.get(), scope.get()));
+    root_scope_->AddEnclosedScope(std::move(scope));
+
     // Visit the nested scope
-    BuildFromVisit(table_ref, &root_scope_->EnclosedScopes().back(), &context);
+    BuildFromVisit(table_ref, root_scope_->EnclosedScopes().back().get(), &context);
   }
 
   if (root->HasSelectTable()) {
     // Insert the target table for the SELECT
-    root_scope_->AddReference(ContextSensitiveTableRef{root->GetSelectTable(), RefType::READ, root_scope_.get()});
+    root_scope_->AddReference(
+        std::make_unique<ContextSensitiveTableRef>(root->GetSelectTable(), RefType::READ, root_scope_.get()));
   }
 
   // Flatten the hierarchy
@@ -59,16 +61,19 @@ void StructuredStatement::BuildFromVisit(common::ManagedPointer<parser::SelectSt
   // Recursively consider nested table references
   for (const auto &table_ref : select->GetSelectWith()) {
     // Create a new scope for the temporary table definition
-    scope->AddEnclosedScope(LexicalScope{context->NextScopeId(), scope->Depth() + 1, scope});
-    // Add the table reference to its enclosing scope
-    scope->AddReference(ContextSensitiveTableRef{table_ref, RefType::WRITE, scope, &scope->EnclosedScopes().back()});
+    auto new_scope = std::make_unique<LexicalScope>(context->NextScopeId(), scope->Depth() + 1, scope);
+
+    // Add the scope and the corresponding reference to the enclosing scope
+    scope->AddReference(std::make_unique<ContextSensitiveTableRef>(table_ref, RefType::WRITE, scope, new_scope.get()));
+    scope->AddEnclosedScope(std::move(new_scope));
+
     // Visit the nested scope
-    BuildFromVisit(table_ref, &scope->EnclosedScopes().back(), context);
+    BuildFromVisit(table_ref, scope->EnclosedScopes().back().get(), context);
   }
 
   if (select->HasSelectTable()) {
     // Insert the target table for the SELECT
-    scope->AddReference(ContextSensitiveTableRef{select->GetSelectTable(), RefType::READ, scope});
+    scope->AddReference(std::make_unique<ContextSensitiveTableRef>(select->GetSelectTable(), RefType::READ, scope));
   }
 }
 
@@ -88,8 +93,9 @@ bool StructuredStatement::InvariantsSatisfied(const LexicalScope &scope) {
   // table references in this scope and enclosed scopes;
   // the WRITE table references are what define enclosed scopes!
   const auto satisfied = scope.WriteRefCount() == scope.EnclosedScopes().size();
-  return satisfied && std::all_of(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
-                                  [](const LexicalScope &scope) { return InvariantsSatisfied(scope); });
+  return satisfied &&
+         std::all_of(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
+                     [](const std::unique_ptr<LexicalScope> &scope) { return InvariantsSatisfied(*scope); });
 }
 
 // ----------------------------------------------------------------------------
@@ -117,7 +123,7 @@ std::size_t StructuredStatement::RefCountWithType(RefType type) const {
   std::size_t count = 0;
   for (const auto *scope : flat_scopes_) {
     count += std::count_if(scope->References().cbegin(), scope->References().cend(),
-                           [=](const ContextSensitiveTableRef &r) { return r.Type() == type; });
+                           [=](const std::unique_ptr<ContextSensitiveTableRef> &r) { return r->Type() == type; });
   }
   return count;
 }
@@ -148,7 +154,7 @@ std::size_t StructuredStatement::RefCount(const StructuredStatement::RefDescript
         const std::size_t pos = std::distance(scope->References().cbegin(), it);
         if (pos == position) {
           const auto &table_ref = *it;
-          if (table_ref.Table()->GetAlias() == alias && table_ref.Type() == type) {
+          if (table_ref->Table()->GetAlias() == alias && table_ref->Type() == type) {
             ++count;
           }
         }
@@ -166,7 +172,7 @@ std::vector<ContextSensitiveTableRef *> StructuredStatement::MutableReferences()
   std::vector<ContextSensitiveTableRef *> references{};
   for (auto *scope : flat_scopes_) {
     std::transform(scope->References().begin(), scope->References().end(), std::back_inserter(references),
-                   [](ContextSensitiveTableRef &r) { return &r; });
+                   [](std::unique_ptr<ContextSensitiveTableRef> &r) { return r.get(); });
   }
   return references;
 }
@@ -175,7 +181,7 @@ std::vector<const ContextSensitiveTableRef *> StructuredStatement::References() 
   std::vector<const ContextSensitiveTableRef *> references{};
   for (const auto *scope : flat_scopes_) {
     std::transform(scope->References().cbegin(), scope->References().cend(), std::back_inserter(references),
-                   [](const ContextSensitiveTableRef &r) { return &r; });
+                   [](const std::unique_ptr<ContextSensitiveTableRef> &r) { return r.get(); });
   }
   return references;
 }
@@ -183,7 +189,7 @@ std::vector<const ContextSensitiveTableRef *> StructuredStatement::References() 
 void StructuredStatement::FlattenTo(LexicalScope *root, std::vector<LexicalScope *> *result) {
   // Recursively visit each nested scope
   for (auto &enclosed_scope : root->EnclosedScopes()) {
-    FlattenTo(&enclosed_scope, result);
+    FlattenTo(enclosed_scope.get(), result);
   }
   result->push_back(root);
 }

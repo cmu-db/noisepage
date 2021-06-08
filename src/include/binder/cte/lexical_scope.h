@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 namespace noisepage::binder::cte {
@@ -46,40 +47,28 @@ class LexicalScope {
   std::size_t WriteRefCount() const;
 
   /** @return A mutable reference to the collection of enclosed scopes */
-  std::vector<LexicalScope> &EnclosedScopes() { return enclosed_scopes_; }
+  std::vector<std::unique_ptr<LexicalScope>> &EnclosedScopes() { return enclosed_scopes_; }
 
   /** @return An immutable reference to the collection of enclosed scopes */
-  const std::vector<LexicalScope> &EnclosedScopes() const { return enclosed_scopes_; }
+  const std::vector<std::unique_ptr<LexicalScope>> &EnclosedScopes() const { return enclosed_scopes_; }
 
   /** @return A mutable reference to the collection of table references in this scope */
-  std::vector<ContextSensitiveTableRef> &References();
+  std::vector<std::unique_ptr<ContextSensitiveTableRef>> &References();
 
   /** @return An immutable reference to the collection of table references in this scope */
-  const std::vector<ContextSensitiveTableRef> &References() const;
+  const std::vector<std::unique_ptr<ContextSensitiveTableRef>> &References() const;
 
   /**
    * Push an enclosed scope at the back of the collection.
    * @param scope The enclosed scope
    */
-  void AddEnclosedScope(const LexicalScope &scope);
-
-  /**
-   * Push an enclosed scope at the back of the collection.
-   * @param scope The enclosed scope
-   */
-  void AddEnclosedScope(LexicalScope &&scope);
+  void AddEnclosedScope(std::unique_ptr<LexicalScope> &&scope);
 
   /**
    * Push a reference at the back of the collection.
    * @param ref The table reference
    */
-  void AddReference(const ContextSensitiveTableRef &ref);
-
-  /**
-   * Push a reference at the back of the collection.
-   * @param ref The table reference
-   */
-  void AddReference(ContextSensitiveTableRef &&ref);
+  void AddReference(std::unique_ptr<ContextSensitiveTableRef> &&ref);
 
   /** Equality comparison with another scope instance */
   bool operator==(const LexicalScope &rhs) const { return id_ == rhs.id_; }
@@ -119,10 +108,10 @@ class LexicalScope {
    * a depth-first traversal of the "scope tree" that allows
    * us to identify forward references.
    */
-  std::vector<LexicalScope> enclosed_scopes_;
+  std::vector<std::unique_ptr<LexicalScope>> enclosed_scopes_;
 
   /** The ordered collection of table references in this scope */
-  std::vector<ContextSensitiveTableRef> references_;
+  std::vector<std::unique_ptr<ContextSensitiveTableRef>> references_;
 };
 
 }  // namespace noisepage::binder::cte

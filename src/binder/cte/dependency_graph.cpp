@@ -62,16 +62,17 @@ bool DependencyGraph::ContainsAmbiguousReferences(const LexicalScope &scope) {
   std::unordered_set<std::string> read_aliases{};
   std::unordered_set<std::string> write_aliases{};
   for (const auto &table_ref : scope.References()) {
-    if (table_ref.Type() == RefType::READ) {
-      read_aliases.insert(table_ref.Table()->GetAlias());
-    } else if (table_ref.Type() == RefType::WRITE) {
-      write_aliases.insert(table_ref.Table()->GetAlias());
+    if (table_ref->Type() == RefType::READ) {
+      read_aliases.insert(table_ref->Table()->GetAlias());
+    } else if (table_ref->Type() == RefType::WRITE) {
+      write_aliases.insert(table_ref->Table()->GetAlias());
     }
   }
   const auto contains_ambiguous_ref =
       (scope.ReadRefCount() > read_aliases.size()) || (scope.WriteRefCount() > write_aliases.size());
-  return contains_ambiguous_ref || std::any_of(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
-                                               [](const LexicalScope &s) { return ContainsAmbiguousReferences(s); });
+  return contains_ambiguous_ref ||
+         std::any_of(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
+                     [](const std::unique_ptr<LexicalScope> &s) { return ContainsAmbiguousReferences(*s); });
 }
 
 // ----------------------------------------------------------------------------
@@ -92,9 +93,9 @@ std::unordered_set<const ContextSensitiveTableRef *> DependencyGraph::ResolveDep
   // For each READ reference in the defined scope, resolve it to the
   // corresponding WRITE reference that defines the read table
   std::unordered_set<const ContextSensitiveTableRef *> dependencies{};
-  for (const auto ref : defined_scope->References()) {
-    if (ref.Type() == RefType::READ) {
-      dependencies.insert(ResolveDependency(ref));
+  for (const auto &ref : defined_scope->References()) {
+    if (ref->Type() == RefType::READ) {
+      dependencies.insert(ResolveDependency(*ref));
     }
   }
 
@@ -170,11 +171,11 @@ const ContextSensitiveTableRef *DependencyGraph::ResolveDependency(const Context
 
 const ContextSensitiveTableRef *DependencyGraph::FindWriteReferenceInScope(std::string_view alias,
                                                                            const LexicalScope &scope) {
-  auto it =
-      std::find_if(scope.References().cbegin(), scope.References().cend(), [&alias](const ContextSensitiveTableRef &r) {
-        return r.Type() == RefType::WRITE && r.Table()->GetAlias() == alias;
-      });
-  return (it == scope.References().cend()) ? NOT_FOUND : std::addressof(*it);
+  auto it = std::find_if(scope.References().cbegin(), scope.References().cend(),
+                         [&alias](const std::unique_ptr<ContextSensitiveTableRef> &r) {
+                           return r->Type() == RefType::WRITE && r->Table()->GetAlias() == alias;
+                         });
+  return (it == scope.References().cend()) ? NOT_FOUND : (*it).get();
 }
 
 const ContextSensitiveTableRef *DependencyGraph::FindWriteReferenceInAnyEnclosingScope(std::string_view alias,
@@ -195,8 +196,9 @@ const ContextSensitiveTableRef *DependencyGraph::FindForwardWriteReferenceInScop
                                                                                   const LexicalScope &scope,
                                                                                   const LexicalScope &partition_point) {
   // Locate the partition point within the scope
-  auto partition = std::find_if(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
-                                [&partition_point](const LexicalScope &s) { return s == partition_point; });
+  auto partition =
+      std::find_if(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
+                   [&partition_point](const std::unique_ptr<LexicalScope> &s) { return *s == partition_point; });
   NOISEPAGE_ASSERT(partition != scope.EnclosedScopes().cend(), "Partition point must be present in scope");
 
   // Compute an iterator into the references collection
@@ -205,17 +207,19 @@ const ContextSensitiveTableRef *DependencyGraph::FindForwardWriteReferenceInScop
   std::advance(begin, pos);
 
   // Search the appropriate range for the target alias
-  auto it = std::find_if(begin, scope.References().cend(), [&alias](const ContextSensitiveTableRef &r) {
-    return r.Type() == RefType::WRITE && r.Table()->GetAlias() == alias;
-  });
-  return (it == scope.References().cend()) ? NOT_FOUND : std::addressof(*it);
+  auto it =
+      std::find_if(begin, scope.References().cend(), [&alias](const std::unique_ptr<ContextSensitiveTableRef> &r) {
+        return r->Type() == RefType::WRITE && r->Table()->GetAlias() == alias;
+      });
+  return (it == scope.References().cend()) ? NOT_FOUND : (*it).get();
 }
 
 const ContextSensitiveTableRef *DependencyGraph::FindBackwardWriteReferenceInScope(
     std::string_view alias, const LexicalScope &scope, const LexicalScope &partition_point) {
   // Locate the partition point within the scope
-  auto partition = std::find_if(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
-                                [&partition_point](const LexicalScope &s) { return s == partition_point; });
+  auto partition =
+      std::find_if(scope.EnclosedScopes().cbegin(), scope.EnclosedScopes().cend(),
+                   [&partition_point](const std::unique_ptr<LexicalScope> &s) { return *s == partition_point; });
   NOISEPAGE_ASSERT(partition != scope.EnclosedScopes().cend(), "Partition point must be present in scope");
 
   // Compute an iterator into the references collection
@@ -224,10 +228,11 @@ const ContextSensitiveTableRef *DependencyGraph::FindBackwardWriteReferenceInSco
   std::advance(end, pos);
 
   // Search the appropriate range for the target alias
-  auto it = std::find_if(scope.References().cbegin(), end, [&alias](const ContextSensitiveTableRef &r) {
-    return r.Type() == RefType::WRITE && r.Table()->GetAlias() == alias;
-  });
-  return (it == end) ? NOT_FOUND : std::addressof(*it);
+  auto it =
+      std::find_if(scope.References().cbegin(), end, [&alias](const std::unique_ptr<ContextSensitiveTableRef> &r) {
+        return r->Type() == RefType::WRITE && r->Table()->GetAlias() == alias;
+      });
+  return (it == end) ? NOT_FOUND : (*it).get();
 }
 
 // ----------------------------------------------------------------------------
