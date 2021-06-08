@@ -29,8 +29,9 @@ static constexpr const char *COVERAGE_RUN = "run";
 static constexpr const char *COVERAGE_RUNM = "-m";
 // used to generate a unique coverage file name and then potentially combine multiple coverage files together
 static constexpr const char *COVERAGE_PARALLEL = "-p";
-static constexpr const char *COVERAGE_INCLUDE = "--include";
-static constexpr const char *COVERAGE_INCLUDE_PATH = "\"*/script/self_driving/*\"";
+static constexpr const char *COVERAGE_SOURCE = "--source=";
+static constexpr const char *COVERAGE_UP_DIR = "/../";
+static constexpr const char *COVERAGE_INCLUDE_PATH = "script/self_driving";
 
 /**
  * Use 128 as convention to indicate failure in a subprocess:
@@ -156,16 +157,19 @@ void ModelServerManager::StartModelServer(bool enable_python_coverage) {
     std::string coverage_run = COVERAGE_RUN;
     std::string coverage_runm = COVERAGE_RUNM;
     std::string coverage_parallel = COVERAGE_PARALLEL;
-    std::string coverage_include = COVERAGE_INCLUDE;
     std::string coverage_include_path = COVERAGE_INCLUDE_PATH;
     std::string python3 = PYTHON3;
     std::string python3m = PYTHON3M;
     std::string module = MODULE_NAME;
+    char *build_abs_path_cstr = getenv("BUILD_ABS_PATH");
+    NOISEPAGE_ASSERT(build_abs_path_cstr != nullptr, "build path cannot be NULL");
+    std::string build_abs_path = build_abs_path_cstr;
+    std::string coverage_src = COVERAGE_SOURCE + build_abs_path +
+                               COVERAGE_UP_DIR + COVERAGE_INCLUDE_PATH;
     char *coverage_args[] = {coverage_command.data(),
                              coverage_run.data(),
                              coverage_parallel.data(),
-                             coverage_include.data(),
-                             coverage_include_path.data(),
+                             coverage_src.data(),
                              coverage_runm.data(),
                              module.data(),
                              ipc_path.data(),

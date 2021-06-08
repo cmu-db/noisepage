@@ -1,1 +1,3 @@
-PHYSICAL_CORE_NUM = 10
+import psutil
+
+PHYSICAL_CORE_NUM = psutil.cpu_count(logical = False)
