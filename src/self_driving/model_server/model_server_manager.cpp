@@ -164,16 +164,10 @@ void ModelServerManager::StartModelServer(bool enable_python_coverage) {
     char *build_abs_path_cstr = getenv("BUILD_ABS_PATH");
     NOISEPAGE_ASSERT(build_abs_path_cstr != nullptr, "build path cannot be NULL");
     std::string build_abs_path = build_abs_path_cstr;
-    std::string coverage_src = COVERAGE_SOURCE + build_abs_path +
-                               COVERAGE_UP_DIR + COVERAGE_INCLUDE_PATH;
-    char *coverage_args[] = {coverage_command.data(),
-                             coverage_run.data(),
-                             coverage_parallel.data(),
-                             coverage_src.data(),
-                             coverage_runm.data(),
-                             module.data(),
-                             ipc_path.data(),
-                             nullptr};
+    std::string coverage_src = COVERAGE_SOURCE + build_abs_path + COVERAGE_UP_DIR + COVERAGE_INCLUDE_PATH;
+    char *coverage_args[] = {
+        coverage_command.data(), coverage_run.data(), coverage_parallel.data(), coverage_src.data(),
+        coverage_runm.data(),    module.data(),       ipc_path.data(),          nullptr};
     // Args to directly execute model server
     char *direct_args[] = {python3.data(), python3m.data(), module.data(), ipc_path.data(), nullptr};
     MODEL_SERVER_LOG_TRACE("Invoking ModelServer at: {}", module);
