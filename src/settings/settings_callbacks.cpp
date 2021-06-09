@@ -186,6 +186,14 @@ void Callbacks::MetricsQueryTraceOutput(void *const old_value, void *const new_v
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::CompiledQueryExecution(void *const old_value, void *const new_value, DBMain *const db_main,
+                                       common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  bool is_compiled = *static_cast<bool *>(new_value);
+  db_main->GetTrafficCop()->SetExecutionMode(is_compiled);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 void Callbacks::ForecastSampleLimit(void *old_value, void *new_value, DBMain *db_main,
                                     common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
