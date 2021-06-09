@@ -846,6 +846,7 @@ add_custom_target(jumbotests
         USES_TERMINAL)
 add_custom_target(self_driving_e2e_test         # For now, this target is specifically used for self-driving pipeline
         ctest
+        --extra-verbose                     # Print out the details of test failure.
         --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
         ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails.
         -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
