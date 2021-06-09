@@ -939,7 +939,10 @@ function(add_noisepage_test
     # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
     add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
     # Label each test with TEST_LABEL so that ctest can run all the tests under the TEST_LABEL label later.
-    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "${TEST_LABEL};${TEST_NAME}")
+    set_tests_properties(${TEST_NAME} PROPERTIES
+            LABELS "${TEST_LABEL};${TEST_NAME}"                 # Label the test.
+            ENVIRONMENT "PYTHONPATH=${PROJECT_SOURCE_DIR}"      # Set the PYTHONPATH to project root for self-driving.
+            )
     # Add TEST_NAME as a dependency to TEST_LABEL. Note that TEST_LABEL must be a valid target!
     add_dependencies(${TEST_LABEL} ${TEST_NAME})
 endfunction()
