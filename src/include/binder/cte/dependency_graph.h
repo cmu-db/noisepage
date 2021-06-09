@@ -183,20 +183,19 @@ class DependencyGraph {
    */
   bool CheckMutualRecursion() const;
 
- private:
+ public:
   /**
    * Resolve the dependencies for the specified table reference.
    * @param table_ref The table reference for which dependencies should be resolved
    */
-  std::unordered_set<const ContextSensitiveTableRef *> ResolveDependenciesFor(
-      const ContextSensitiveTableRef &table_ref) const;
+  static std::unordered_set<const ContextSensitiveTableRef *> ResolveDependenciesFor(
+      const ContextSensitiveTableRef &table_ref);
 
   /**
    *
    */
-  const ContextSensitiveTableRef *ResolveDependency(const ContextSensitiveTableRef &table_ref) const;
+  static const ContextSensitiveTableRef *ResolveDependency(const ContextSensitiveTableRef &table_ref);
 
- public:
   /**
    *
    */

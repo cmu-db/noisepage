@@ -212,11 +212,15 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolutionUnit4) {
   // Check references from `x`
   const auto &x_scope = *x_ref->Scope();
 
+  const auto *x_forward_from_x = DependencyGraph::FindForwardWriteReferenceInScope("x", root, x_scope);
+  EXPECT_EQ(DependencyGraph::NOT_FOUND, x_forward_from_x);
   const auto *y_forward_from_x = DependencyGraph::FindForwardWriteReferenceInScope("y", root, x_scope);
   EXPECT_NE(DependencyGraph::NOT_FOUND, y_forward_from_x);
   const auto *z_forward_from_x = DependencyGraph::FindForwardWriteReferenceInScope("z", root, x_scope);
   EXPECT_NE(DependencyGraph::NOT_FOUND, z_forward_from_x);
 
+  const auto *x_backward_from_x = DependencyGraph::FindBackwardWriteReferenceInScope("x", root, x_scope);
+  EXPECT_EQ(DependencyGraph::NOT_FOUND, x_backward_from_x);
   const auto *y_backward_from_x = DependencyGraph::FindBackwardWriteReferenceInScope("y", root, x_scope);
   EXPECT_EQ(DependencyGraph::NOT_FOUND, y_backward_from_x);
   const auto *z_backward_from_x = DependencyGraph::FindBackwardWriteReferenceInScope("z", root, x_scope);
@@ -227,11 +231,15 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolutionUnit4) {
 
   const auto *x_forward_from_y = DependencyGraph::FindForwardWriteReferenceInScope("x", root, y_scope);
   EXPECT_EQ(DependencyGraph::NOT_FOUND, x_forward_from_y);
+  const auto *y_forward_from_y = DependencyGraph::FindForwardWriteReferenceInScope("y", root, y_scope);
+  EXPECT_EQ(DependencyGraph::NOT_FOUND, y_forward_from_y);
   const auto *z_forward_from_y = DependencyGraph::FindForwardWriteReferenceInScope("z", root, y_scope);
   EXPECT_NE(DependencyGraph::NOT_FOUND, z_forward_from_y);
 
   const auto *x_backward_from_y = DependencyGraph::FindBackwardWriteReferenceInScope("x", root, y_scope);
   EXPECT_NE(DependencyGraph::NOT_FOUND, x_backward_from_y);
+  const auto *y_backward_from_y = DependencyGraph::FindBackwardWriteReferenceInScope("y", root, y_scope);
+  EXPECT_EQ(DependencyGraph::NOT_FOUND, y_backward_from_y);
   const auto *z_backward_from_y = DependencyGraph::FindBackwardWriteReferenceInScope("z", root, y_scope);
   EXPECT_EQ(DependencyGraph::NOT_FOUND, z_backward_from_y);
 
@@ -242,11 +250,303 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolutionUnit4) {
   EXPECT_EQ(DependencyGraph::NOT_FOUND, x_forward_from_z);
   const auto *y_forward_from_z = DependencyGraph::FindForwardWriteReferenceInScope("y", root, z_scope);
   EXPECT_EQ(DependencyGraph::NOT_FOUND, y_forward_from_z);
+  const auto *z_forward_from_z = DependencyGraph::FindForwardWriteReferenceInScope("z", root, z_scope);
+  EXPECT_EQ(DependencyGraph::NOT_FOUND, z_forward_from_z);
 
   const auto *x_backward_from_z = DependencyGraph::FindBackwardWriteReferenceInScope("x", root, z_scope);
   EXPECT_NE(DependencyGraph::NOT_FOUND, x_backward_from_z);
   const auto *y_backward_from_z = DependencyGraph::FindBackwardWriteReferenceInScope("y", root, z_scope);
   EXPECT_NE(DependencyGraph::NOT_FOUND, y_backward_from_z);
+  const auto *z_backward_from_z = DependencyGraph::FindBackwardWriteReferenceInScope("z", root, z_scope);
+  EXPECT_EQ(DependencyGraph::NOT_FOUND, z_backward_from_z);
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolutionUnit5) {
+  const std::string sql =
+      "WITH RECURSIVE x(i) AS (WITH y(m) AS (SELECT 1), a(n) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 2) "
+      "SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  const auto &root = statement.RootScope();
+  EXPECT_EQ(root.EnclosedScopes().size(), 2UL);
+
+  // Descend into the scope defined by `x`
+  const auto &x_scope = root.EnclosedScopes().at(0);
+  EXPECT_EQ(x_scope->EnclosedScopes().size(), 2UL);
+  EXPECT_EQ(x_scope->RefCount(), 3UL);
+  EXPECT_EQ(x_scope->ReadRefCount(), 1UL);
+  EXPECT_EQ(x_scope->WriteRefCount(), 2UL);
+
+  // Search from the scope defined by `a`, as if we are trying to resolve `SELECT * FROM y`
+  const auto *a_ref = DependencyGraph::FindWriteReferenceInScope("a", *x_scope);
+  EXPECT_NE(DependencyGraph::NOT_FOUND, a_ref);
+  const auto &a_scope = *a_ref->Scope();
+
+  // Attempt to resolve in precedence-order
+  const auto *y_backward_from_a = DependencyGraph::FindBackwardWriteReferenceInScope("y", *x_scope, a_scope);
+  EXPECT_NE(DependencyGraph::NOT_FOUND, y_backward_from_a);
+  const auto *y_upward_from_a = DependencyGraph::FindWriteReferenceInAnyEnclosingScope("y", *x_scope);
+  EXPECT_NE(DependencyGraph::NOT_FOUND, y_upward_from_a);
+  const auto *y_forward_from_a = DependencyGraph::FindForwardWriteReferenceInScope("y", *x_scope, a_scope);
+  EXPECT_EQ(DependencyGraph::NOT_FOUND, y_forward_from_a);
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolutionUnit6) {
+  const std::string sql =
+      "WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y), y(n) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT 2) "
+      "SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  const auto &root = statement.RootScope();
+  EXPECT_EQ(root.EnclosedScopes().size(), 2UL);
+
+  // Descend into the scope defined by `x`
+  const auto &x_scope = root.EnclosedScopes().at(0);
+  EXPECT_EQ(x_scope->EnclosedScopes().size(), 2UL);
+  EXPECT_EQ(x_scope->RefCount(), 3UL);
+  EXPECT_EQ(x_scope->ReadRefCount(), 1UL);
+  EXPECT_EQ(x_scope->WriteRefCount(), 2UL);
+
+  // Search from the scope defined by `a`, as if we are trying to resolve `SELECT * FROM y`
+  const auto *a_ref = DependencyGraph::FindWriteReferenceInScope("a", *x_scope);
+  EXPECT_NE(DependencyGraph::NOT_FOUND, a_ref);
+  const auto &a_scope = *a_ref->Scope();
+
+  // Attempt to resolve in precedence-order
+  const auto *y_backward_from_a = DependencyGraph::FindBackwardWriteReferenceInScope("y", *x_scope, a_scope);
+  EXPECT_EQ(DependencyGraph::NOT_FOUND, y_backward_from_a);
+  const auto *y_upward_from_a = DependencyGraph::FindWriteReferenceInAnyEnclosingScope("y", *x_scope);
+  EXPECT_NE(DependencyGraph::NOT_FOUND, y_upward_from_a);
+  const auto *y_forward_from_a = DependencyGraph::FindForwardWriteReferenceInScope("y", *x_scope, a_scope);
+  EXPECT_NE(DependencyGraph::NOT_FOUND, y_forward_from_a);
+}
+
+// ----------------------------------------------------------------------------
+// Dependency Graph Construction: Reference Resolution
+// ----------------------------------------------------------------------------
+
+TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution0) {
+  const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  const auto &root = statement.RootScope();
+  EXPECT_EQ(root.RefCount(), 2UL);
+  EXPECT_EQ(root.ReadRefCount(), 1UL);
+  EXPECT_EQ(root.WriteRefCount(), 1UL);
+
+  // Grab a reference to the read on `x`
+  const auto &x_read = *root.References().at(1);
+  EXPECT_EQ(RefType::READ, x_read.Type());
+  EXPECT_EQ("x", x_read.Table()->GetAlias());
+
+  // Resolve dependencies for `x` (READ references do not introduce dependencies)
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_read));
+  const auto deps = DependencyGraph::ResolveDependenciesFor(x_read);
+  EXPECT_EQ(0UL, deps.size());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution1) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  const auto &root = statement.RootScope();
+  EXPECT_EQ(root.RefCount(), 3UL);
+  EXPECT_EQ(root.ReadRefCount(), 1UL);
+  EXPECT_EQ(root.WriteRefCount(), 2UL);
+
+  // Resolve dependencies for write on `x`
+  const auto &x_write = *root.References().at(0);
+  EXPECT_EQ(RefType::WRITE, x_write.Type());
+  EXPECT_EQ("x", x_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_write));
+  const auto x_write_deps = DependencyGraph::ResolveDependenciesFor(x_write);
+  EXPECT_EQ(0UL, x_write_deps.size());
+
+  // Resolve dependencies for write on `y`
+  const auto &y_write = *root.References().at(1);
+  EXPECT_EQ(RefType::WRITE, y_write.Type());
+  EXPECT_EQ("y", y_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_write));
+  const auto y_write_deps = DependencyGraph::ResolveDependenciesFor(y_write);
+  EXPECT_EQ(1UL, y_write_deps.size());
+
+  const auto *y_write_dep = *y_write_deps.begin();
+  EXPECT_EQ(*y_write_dep, x_write);
+
+  // Resolve dependencies for read on `y`
+  const auto &y_read = *root.References().at(2);
+  EXPECT_EQ(RefType::READ, y_read.Type());
+  EXPECT_EQ("y", y_read.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_read));
+  const auto deps = DependencyGraph::ResolveDependenciesFor(y_read);
+  EXPECT_EQ(0UL, deps.size());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution2) {
+  const std::string sql = "WITH RECURSIVE y(j) AS (SELECT * FROM x), x(i) AS (SELECT 1) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  const auto &root = statement.RootScope();
+  EXPECT_EQ(root.RefCount(), 3UL);
+  EXPECT_EQ(root.ReadRefCount(), 1UL);
+  EXPECT_EQ(root.WriteRefCount(), 2UL);
+
+  const auto &y_write = *root.References().at(0);
+  const auto &x_write = *root.References().at(1);
+  const auto &y_read = *root.References().at(2);
+
+  // Resolve dependencies for write on `y`
+  EXPECT_EQ(RefType::WRITE, y_write.Type());
+  EXPECT_EQ("y", y_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_write));
+  const auto y_write_deps = DependencyGraph::ResolveDependenciesFor(y_write);
+  EXPECT_EQ(1UL, y_write_deps.size());
+
+  const auto *y_write_dep = *y_write_deps.begin();
+  EXPECT_EQ(*y_write_dep, x_write);
+
+  // Resolve dependencies for write on `x`
+  EXPECT_EQ(RefType::WRITE, x_write.Type());
+  EXPECT_EQ("x", x_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_write));
+  const auto x_write_deps = DependencyGraph::ResolveDependenciesFor(x_write);
+  EXPECT_EQ(0UL, x_write_deps.size());
+
+  // Resolve dependencies for read on `y`
+  EXPECT_EQ(RefType::READ, y_read.Type());
+  EXPECT_EQ("y", y_read.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_read));
+  const auto deps = DependencyGraph::ResolveDependenciesFor(y_read);
+  EXPECT_EQ(0UL, deps.size());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution3) {
+  const std::string sql =
+      "WITH RECURSIVE x(i) AS (WITH y(m) AS (SELECT 1), a(n) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 2) "
+      "SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  const auto &root = statement.RootScope();
+  EXPECT_EQ(root.RefCount(), 3UL);
+  EXPECT_EQ(root.ReadRefCount(), 1UL);
+  EXPECT_EQ(root.WriteRefCount(), 2UL);
+  EXPECT_EQ(root.EnclosedScopes().size(), 2UL);
+
+  // Resolve top-level write dependencies
+
+  const auto &x_write = *root.References().at(0);
+  const auto &y_write = *root.References().at(1);
+
+  EXPECT_EQ(RefType::WRITE, x_write.Type());
+  EXPECT_EQ("x", x_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_write));
+  const auto x_write_deps = DependencyGraph::ResolveDependenciesFor(x_write);
+  EXPECT_EQ(1UL, x_write_deps.size());
+
+  EXPECT_EQ(RefType::WRITE, y_write.Type());
+  EXPECT_EQ("y", y_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_write));
+  const auto y_write_deps = DependencyGraph::ResolveDependenciesFor(y_write);
+  EXPECT_EQ(0UL, y_write_deps.size());
+
+  // Resolve nested write dependencies
+
+  const auto &x_scope = root.EnclosedScopes().front();
+  EXPECT_EQ(x_scope->EnclosedScopes().size(), 2UL);
+  EXPECT_EQ(x_scope->RefCount(), 3UL);
+  EXPECT_EQ(x_scope->ReadRefCount(), 1UL);
+  EXPECT_EQ(x_scope->WriteRefCount(), 2UL);
+
+  const auto &nested_y_write = *x_scope->References().at(0);
+  const auto &nested_a_write = *x_scope->References().at(1);
+
+  EXPECT_EQ(RefType::WRITE, nested_y_write.Type());
+  EXPECT_EQ("y", nested_y_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(nested_y_write));
+  const auto nested_y_write_deps = DependencyGraph::ResolveDependenciesFor(nested_y_write);
+  EXPECT_EQ(0UL, nested_y_write_deps.size());
+
+  EXPECT_EQ(RefType::WRITE, nested_a_write.Type());
+  EXPECT_EQ("a", nested_a_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(nested_a_write));
+  const auto nested_a_write_deps = DependencyGraph::ResolveDependenciesFor(nested_a_write);
+  EXPECT_EQ(1UL, nested_a_write_deps.size());
+
+  // Resolved reference nested_a -(backward)-> nested_y
+  const auto *nested_a_write_dep = *nested_a_write_deps.begin();
+  EXPECT_EQ(*nested_a_write_dep, nested_y_write);
+
+  // Resolved reference x -(local)-> nested_a
+  const auto *x_write_dep = *x_write_deps.begin();
+  EXPECT_EQ(*x_write_dep, nested_a_write);
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution4) {
+  const std::string sql =
+      "WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y), y(n) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT 2) "
+      "SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+
+  StructuredStatement statement{select};
+  const auto &root = statement.RootScope();
+  EXPECT_EQ(root.RefCount(), 3UL);
+  EXPECT_EQ(root.ReadRefCount(), 1UL);
+  EXPECT_EQ(root.WriteRefCount(), 2UL);
+  EXPECT_EQ(root.EnclosedScopes().size(), 2UL);
+
+  // Resolve top-level write dependencies
+
+  const auto &x_write = *root.References().at(0);
+  const auto &y_write = *root.References().at(1);
+
+  EXPECT_EQ(RefType::WRITE, x_write.Type());
+  EXPECT_EQ("x", x_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_write));
+  const auto x_write_deps = DependencyGraph::ResolveDependenciesFor(x_write);
+  EXPECT_EQ(1UL, x_write_deps.size());
+
+  EXPECT_EQ(RefType::WRITE, y_write.Type());
+  EXPECT_EQ("y", y_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_write));
+  const auto y_write_deps = DependencyGraph::ResolveDependenciesFor(y_write);
+  EXPECT_EQ(0UL, y_write_deps.size());
+
+  // Resolve nested write dependencies
+
+  const auto &x_scope = root.EnclosedScopes().front();
+  EXPECT_EQ(x_scope->EnclosedScopes().size(), 2UL);
+  EXPECT_EQ(x_scope->RefCount(), 3UL);
+  EXPECT_EQ(x_scope->ReadRefCount(), 1UL);
+  EXPECT_EQ(x_scope->WriteRefCount(), 2UL);
+
+  const auto &nested_a_write = *x_scope->References().at(0);
+  const auto &nested_y_write = *x_scope->References().at(1);
+
+  EXPECT_EQ(RefType::WRITE, nested_a_write.Type());
+  EXPECT_EQ("a", nested_a_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(nested_a_write));
+  const auto nested_a_write_deps = DependencyGraph::ResolveDependenciesFor(nested_a_write);
+  EXPECT_EQ(1UL, nested_a_write_deps.size());
+
+  EXPECT_EQ(RefType::WRITE, nested_y_write.Type());
+  EXPECT_EQ("y", nested_y_write.Table()->GetAlias());
+  EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(nested_y_write));
+  const auto nested_y_write_deps = DependencyGraph::ResolveDependenciesFor(nested_y_write);
+  EXPECT_EQ(0UL, nested_y_write_deps.size());
+
+  // Resolved: nested_a -(upward)-> y
+  const auto *nested_a_write_dep = *nested_a_write_deps.begin();
+  EXPECT_EQ(*nested_a_write_dep, y_write);
+
+  // Resolved reference x -(local)-> nested_a
+  const auto *x_write_dep = *x_write_deps.begin();
+  EXPECT_EQ(*x_write_dep, nested_a_write);
 }
 
 // ----------------------------------------------------------------------------

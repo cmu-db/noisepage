@@ -80,7 +80,7 @@ bool DependencyGraph::ContainsAmbiguousReferences(const LexicalScope &scope) {
 // ----------------------------------------------------------------------------
 
 std::unordered_set<const ContextSensitiveTableRef *> DependencyGraph::ResolveDependenciesFor(
-    const ContextSensitiveTableRef &table_ref) const {
+    const ContextSensitiveTableRef &table_ref) {
   if (table_ref.Type() == RefType::READ) {
     // READ references cannot introduce a dependency
     return {};
@@ -102,7 +102,7 @@ std::unordered_set<const ContextSensitiveTableRef *> DependencyGraph::ResolveDep
   return dependencies;
 }
 
-const ContextSensitiveTableRef *DependencyGraph::ResolveDependency(const ContextSensitiveTableRef &table_ref) const {
+const ContextSensitiveTableRef *DependencyGraph::ResolveDependency(const ContextSensitiveTableRef &table_ref) {
   NOISEPAGE_ASSERT(table_ref.Type() == RefType::READ, "Resolving WRITE reference dependencies is ambiguous");
 
   /**
@@ -130,38 +130,36 @@ const ContextSensitiveTableRef *DependencyGraph::ResolveDependency(const Context
   const auto &target_alias = table_ref.Table()->GetAlias();
 
   // `scope` is the scope that conatins the READ reference that we want to resolve
-  const auto *scope = table_ref.EnclosingScope();
+  const auto &scope = *table_ref.EnclosingScope();
 
   // 1. WRITE table references defined in the same scope
 
-  const auto *local_ref = FindWriteReferenceInScope(target_alias, *scope);
+  const auto *local_ref = FindWriteReferenceInScope(target_alias, scope);
   if (local_ref != NOT_FOUND) {
     return local_ref;
   }
 
-  if (!scope->HasEnclosingScope()) {
+  if (!scope.HasEnclosingScope()) {
     throw BINDER_EXCEPTION("Table Not Found", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
   }
 
   // 2. WRITE table references (backward) defined in the enclosing scope
 
-  const auto *backward_ref =
-      FindBackwardWriteReferenceInScope(target_alias, *scope->EnclosingScope(), *table_ref.EnclosingScope());
+  const auto *backward_ref = FindBackwardWriteReferenceInScope(target_alias, *scope.EnclosingScope(), scope);
   if (backward_ref != NOT_FOUND) {
     return backward_ref;
   }
 
   // 3. WRITE table reference (any) defined in scopes that enclose the enclosing scope
 
-  const auto *upward_ref = FindWriteReferenceInAnyEnclosingScope(target_alias, *scope->EnclosingScope());
+  const auto *upward_ref = FindWriteReferenceInAnyEnclosingScope(target_alias, *scope.EnclosingScope());
   if (upward_ref != NOT_FOUND) {
     return upward_ref;
   }
 
   // 4. WRITE table references (forward) defined in the enclosing scope
 
-  const auto *forward_ref =
-      FindForwardWriteReferenceInScope(target_alias, *scope->EnclosingScope(), *table_ref.EnclosingScope());
+  const auto *forward_ref = FindForwardWriteReferenceInScope(target_alias, *scope.EnclosingScope(), scope);
   if (forward_ref != NOT_FOUND) {
     return forward_ref;
   }
@@ -204,7 +202,8 @@ const ContextSensitiveTableRef *DependencyGraph::FindForwardWriteReferenceInScop
   // Compute an iterator into the references collection
   const auto pos = std::distance(scope.EnclosedScopes().begin(), partition);
   auto begin = scope.References().cbegin();
-  std::advance(begin, pos);
+  // Advance 1 passed the partition point so that it is not considered in the search
+  std::advance(begin, pos + 1);
 
   // Search the appropriate range for the target alias
   auto it =
