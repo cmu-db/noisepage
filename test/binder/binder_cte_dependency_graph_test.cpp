@@ -739,11 +739,52 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction6) {
 }
 
 // ----------------------------------------------------------------------------
-// Dependency Graph Validation: Forward References
+// Dependency Graph Validation: Mutual Recursion
 // ----------------------------------------------------------------------------
 
+TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion0) {
+  const std::string sql = "SELECT * FROM TestTable";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_FALSE(graph->ContainsInvalidMutualRecursion());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion1) {
+  const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_FALSE(graph->ContainsInvalidMutualRecursion());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion2) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_FALSE(graph->ContainsInvalidMutualRecursion());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion3) {
+  const std::string sql = "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_TRUE(graph->ContainsInvalidMutualRecursion());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion4) {
+  const std::string sql =
+      "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM z), z(k) AS (SELECT * FROM x) SELECT * FROM z;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_TRUE(graph->ContainsInvalidMutualRecursion());
+}
+
 // ----------------------------------------------------------------------------
-// Dependency Graph Validation: Mutual Recursion
+// Dependency Graph Validation: Forward References
 // ----------------------------------------------------------------------------
 
 }  // namespace noisepage

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <string_view>
 
 namespace noisepage::binder::cte {
 

@@ -8,6 +8,8 @@
 #include "binder/cte/structured_statement.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
+#include "common/graph.h"
+#include "common/graph_algorithm.h"
 #include "parser/table_ref.h"
 
 namespace noisepage::binder::cte {
@@ -293,10 +295,44 @@ ContextSensitiveTableRef *DependencyGraph::FindRef(std::string_view alias, RefTy
 // Graph Validation
 // ----------------------------------------------------------------------------
 
-bool DependencyGraph::CheckAll() const { return CheckForwardReferences() && CheckMutualRecursion(); }
+bool DependencyGraph::Validate() const {
+  const std::vector<bool> violations{ContainsInvalidForwardReference(), ContainsInvalidMutualRecursion()};
+  return std::none_of(violations.cbegin(), violations.cend(), [](const bool r) { return r; });
+}
 
-bool DependencyGraph::CheckForwardReferences() const { return true; }
+bool DependencyGraph::ContainsInvalidForwardReference() const { return false; }
 
-bool DependencyGraph::CheckMutualRecursion() const { return true; }
+bool DependencyGraph::ContainsInvalidMutualRecursion() const {
+  // To check for mutual recursion among CTEs in the query,
+  // we construct an abstract graph from the dependency
+  // graph we have constructed and check for cycles in this
+  // abstract representation. If a cycle is present, we
+  // report that the query contains mutual recursion.
+
+  // In order to construct an abstract Graph representation,
+  // we need to map each of the entries to a unique identifier.
+  std::unordered_map<const ContextSensitiveTableRef *, std::size_t> ids{};
+  std::size_t id{0};
+  for (const auto &[ref, _] : graph_) {
+    ids[ref] = id++;
+  }
+
+  // Now we can construct the graph itself
+  common::Graph graph{};
+  for (const auto &[ref, deps] : graph_) {
+    const auto src_id = ids.at(ref);
+    for (const auto *dep : deps) {
+      const auto dst_id = ids.at(dep);
+      graph.AddEdge(src_id, dst_id);
+    }
+  }
+
+  NOISEPAGE_ASSERT(graph.Size() == Size(),
+                   "The size of the abstract graph should be equivalent to the size of the dependency graph");
+
+  // With the graph constructed, all that remains
+  // is to determine if the graph contains a cycle
+  return common::graph::HasCycle(graph);
+}
 
 }  // namespace noisepage::binder::cte

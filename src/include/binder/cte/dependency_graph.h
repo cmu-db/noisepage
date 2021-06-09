@@ -150,7 +150,7 @@ class DependencyGraph {
    * Check all consistency constraints for the underlying dependency graph.
    * @return `true` if the graph is valid, `false` otherwise
    */
-  bool CheckAll() const;
+  bool Validate() const;
 
   /**
    * Check forward reference constraints for the underlying dependency graph.
@@ -177,7 +177,7 @@ class DependencyGraph {
    *
    * @return `true` if the graph is valid, `false` otherwise
    */
-  bool CheckForwardReferences() const;
+  bool ContainsInvalidForwardReference() const;
 
   /**
    * Check mutual recursion constraints for the underlying dependency graph.
@@ -194,7 +194,7 @@ class DependencyGraph {
    *
    * @return `true` if the graph is valid, `false` otherwise
    */
-  bool CheckMutualRecursion() const;
+  bool ContainsInvalidMutualRecursion() const;
 
  public:
   /**
