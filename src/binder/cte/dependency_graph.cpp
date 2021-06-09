@@ -235,7 +235,7 @@ const ContextSensitiveTableRef *DependencyGraph::FindBackwardWriteReferenceInSco
 }
 
 // ----------------------------------------------------------------------------
-// Reference Resolution
+// Graph Queries
 // ----------------------------------------------------------------------------
 
 std::size_t DependencyGraph::Order() const { return graph_.size(); }
@@ -248,7 +248,6 @@ std::size_t DependencyGraph::Size() const {
 bool DependencyGraph::HasVertex(const Vertex &vertex) const {
   // Map the vertex type to its corresponding reference type
   const auto ref_type = (vertex.Type() == VertexType::READ) ? RefType::READ : RefType::WRITE;
-
   for (const auto &[ref, _] : graph_) {
     if (ref->Type() == ref_type && ref->Table()->GetAlias() == vertex.Alias()) {
       const auto &scope = *ref->EnclosingScope();
@@ -258,7 +257,7 @@ bool DependencyGraph::HasVertex(const Vertex &vertex) const {
     }
   }
   // Not found
-  return true;
+  return false;
 }
 
 bool DependencyGraph::HasEdge(const Edge &edge) const {
@@ -290,7 +289,11 @@ ContextSensitiveTableRef *DependencyGraph::FindRef(std::string_view alias, RefTy
   UNREACHABLE("Reference Does Not Exist");
 }
 
-bool DependencyGraph::CheckAll() const { return true; }
+// ----------------------------------------------------------------------------
+// Graph Validation
+// ----------------------------------------------------------------------------
+
+bool DependencyGraph::CheckAll() const { return CheckForwardReferences() && CheckMutualRecursion(); }
 
 bool DependencyGraph::CheckForwardReferences() const { return true; }
 

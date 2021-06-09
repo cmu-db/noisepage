@@ -16,9 +16,14 @@
 
 using noisepage::binder::cte::ContextSensitiveTableRef;
 using noisepage::binder::cte::DependencyGraph;
+using noisepage::binder::cte::Edge;
 using noisepage::binder::cte::RefType;
 using noisepage::binder::cte::StructuredStatement;
+using noisepage::binder::cte::Vertex;
 using noisepage::binder::cte::VertexType;
+
+// Alias, Type, Depth, Position
+using PseudoVertex = std::tuple<std::string, VertexType, std::size_t, std::size_t>;
 
 namespace noisepage {
 class BinderCteDepdendencyGraphTest : public TerrierTest {
@@ -115,19 +120,16 @@ ParseToSelectStatement(const std::string &sql) {
   return std::make_pair(std::move(parse_tree), select);
 }
 
-// /**
-//  * Build an edge from `src` to `dst`.
-//  * @param src The source vertex, as std::tuple
-//  * @param dst The destination vertex, as std::tuple
-//  * @return The new edge
-//  */
-// static TableDependencyGraph::Edge MakeEdge(const std::tuple<std::string, std::size_t, std::size_t> &src,
-//                                            const std::tuple<std::string, std::size_t, std::size_t> &dst) {
-//   return TableDependencyGraph::Edge{TableDependencyGraph::Vertex{std::get<0>(src), std::get<1>(src),
-//   std::get<2>(src)},
-//                                     TableDependencyGraph::Vertex{std::get<0>(dst), std::get<1>(dst),
-//                                     std::get<2>(dst)}};
-// }
+/**
+ * Build an edge from `src` to `dst`.
+ * @param src The source vertex, as PsuedoVertex (std::tuple)
+ * @param dst The destination vertex, as PseudoVertex (std::tuple)
+ * @return The new edge
+ */
+static Edge MakeEdge(const PseudoVertex &src, const PseudoVertex &dst) {
+  return Edge{Vertex{std::get<0>(src), std::get<1>(src), std::get<2>(src), std::get<3>(src)},
+              Vertex{std::get<0>(dst), std::get<1>(dst), std::get<2>(dst), std::get<3>(dst)}};
+}
 
 // ----------------------------------------------------------------------------
 // Dependency Graph Construction: Reference Resolution Helpers
@@ -633,6 +635,107 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction1) {
   EXPECT_EQ(graph->Size(), 0UL);
   EXPECT_TRUE(graph->HasVertex({"x", VertexType::WRITE, 0UL, 0UL}));
   EXPECT_TRUE(graph->HasVertex({"x", VertexType::READ, 0UL, 1UL}));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction2) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_EQ(graph->Order(), 4UL);
+  EXPECT_EQ(graph->Size(), 1UL);
+
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::WRITE, 0UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::WRITE, 0UL, 1UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::READ, 0UL, 2UL}));
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::READ, 1UL, 0UL}));
+
+  EXPECT_TRUE(graph->HasEdge(MakeEdge({"y", VertexType::WRITE, 0UL, 1UL}, {"x", VertexType::WRITE, 0UL, 0UL})));
+  EXPECT_FALSE(graph->HasEdge(MakeEdge({"x", VertexType::WRITE, 0UL, 0UL}, {"y", VertexType::WRITE, 0UL, 1UL})));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction3) {
+  const std::string sql = "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_EQ(graph->Order(), 4UL);
+  EXPECT_EQ(graph->Size(), 1UL);
+
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::WRITE, 0UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::WRITE, 0UL, 1UL}));
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::READ, 0UL, 2UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::READ, 1UL, 0UL}));
+
+  EXPECT_TRUE(graph->HasEdge(MakeEdge({"x", VertexType::WRITE, 0UL, 0UL}, {"y", VertexType::WRITE, 0UL, 1UL})));
+  EXPECT_FALSE(graph->HasEdge(MakeEdge({"y", VertexType::WRITE, 0UL, 1UL}, {"x", VertexType::WRITE, 0UL, 0UL})));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction4) {
+  const std::string sql =
+      "WITH RECURSIVE x(i) AS (WITH y(m) AS (SELECT 1), a(n) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 2) "
+      "SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_EQ(graph->Order(), 7UL);
+  EXPECT_EQ(graph->Size(), 2UL);
+
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::WRITE, 0UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::WRITE, 0UL, 1UL}));
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::READ, 0UL, 2UL}));
+
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::WRITE, 1UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"a", VertexType::WRITE, 1UL, 1UL}));
+  EXPECT_TRUE(graph->HasVertex({"a", VertexType::READ, 1UL, 2UL}));
+
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::READ, 2UL, 0UL}));
+
+  EXPECT_TRUE(graph->HasEdge(MakeEdge({"x", VertexType::WRITE, 0UL, 0UL}, {"a", VertexType::WRITE, 1UL, 1UL})));
+  EXPECT_TRUE(graph->HasEdge(MakeEdge({"a", VertexType::WRITE, 1UL, 1UL}, {"y", VertexType::WRITE, 1UL, 0UL})));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction5) {
+  const std::string sql =
+      "WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y), y(n) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT 2) "
+      "SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_EQ(graph->Order(), 7UL);
+  EXPECT_EQ(graph->Size(), 2UL);
+
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::WRITE, 0UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::WRITE, 0UL, 1UL}));
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::READ, 0UL, 2UL}));
+
+  EXPECT_TRUE(graph->HasVertex({"a", VertexType::WRITE, 1UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::WRITE, 1UL, 1UL}));
+  EXPECT_TRUE(graph->HasVertex({"a", VertexType::READ, 1UL, 2UL}));
+
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::READ, 2UL, 0UL}));
+
+  EXPECT_TRUE(graph->HasEdge(MakeEdge({"x", VertexType::WRITE, 0UL, 0UL}, {"a", VertexType::WRITE, 1UL, 0UL})));
+  EXPECT_TRUE(graph->HasEdge(MakeEdge({"a", VertexType::WRITE, 1UL, 0UL}, {"y", VertexType::WRITE, 0UL, 1UL})));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction6) {
+  const std::string sql = "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_EQ(graph->Order(), 5UL);
+  EXPECT_EQ(graph->Size(), 2UL);
+
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::WRITE, 0UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::WRITE, 0UL, 1UL}));
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::READ, 0UL, 2UL}));
+
+  EXPECT_TRUE(graph->HasVertex({"y", VertexType::READ, 1UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::READ, 1UL, 0UL}));
+
+  EXPECT_TRUE(graph->HasEdge(MakeEdge({"x", VertexType::WRITE, 0UL, 0UL}, {"y", VertexType::WRITE, 0UL, 1UL})));
+  EXPECT_TRUE(graph->HasEdge(MakeEdge({"y", VertexType::WRITE, 0UL, 1UL}, {"x", VertexType::WRITE, 0UL, 0UL})));
 }
 
 // ----------------------------------------------------------------------------
