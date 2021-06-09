@@ -143,7 +143,7 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
   return curr;
 }
 
-void TreeNode::ChildrenRollout(const PlanningContext &planning_context,
+void TreeNode::ChildrenRollout(PlanningContext &planning_context,
                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t action_horizon,
                                uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,

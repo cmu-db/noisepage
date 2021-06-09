@@ -11,7 +11,7 @@
 
 namespace noisepage::selfdriving::pilot {
 
-GraphSolver::GraphSolver(const PlanningContext &planning_context,
+GraphSolver::GraphSolver(PlanningContext &planning_context,
                          common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
                          const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                          const std::vector<double> &default_segment_cost,
@@ -80,7 +80,7 @@ GraphSolver::GraphSolver(const PlanningContext &planning_context,
   dest_node_->RelaxNode(structure_map, nodes_by_segment_index_.back());
 }
 
-double GraphSolver::ComputeConfigCost(const PlanningContext &planning_context,
+double GraphSolver::ComputeConfigCost(PlanningContext &planning_context,
                                       common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                       const std::map<action_id_t, std::unique_ptr<AbstractAction>> &structure_map,
                                       const std::set<action_id_t> &config_set, uint64_t segment_index) {

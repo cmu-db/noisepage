@@ -29,7 +29,6 @@ import os
 import pickle
 import pprint
 import sys
-import time
 from abc import ABC, abstractmethod
 from enum import Enum, IntEnum, auto
 from pathlib import Path
@@ -220,7 +219,6 @@ def _infer_with_cache(model, features, cache):
             #  fine for now
             pred = model.predict(features[i:i+1])[0]
             cache[feature] = pred
-            print("predicting without cache")
 
         results.append(cache[feature])
 
@@ -238,8 +236,8 @@ class OUModel(AbstractModel):
     EXPOSE_ALL = True
     TXN_SAMPLE_RATE = 2
 
-    # Whether to cache the inference results
-    USE_INFER_CACHE = True
+    # Whether to cache the inference results (This is deprecated. We normally cache the inference results on c++ side)
+    USE_INFER_CACHE = False
 
     def __init__(self) -> None:
         # Initialize the infer cache
@@ -364,8 +362,8 @@ class InterferenceModel(AbstractModel):
     TXN_SAMPLE_RATE = 2
     NETWORK_SAMPLE_RATE = 2
 
-    # Whether to cache the inference results
-    USE_INFER_CACHE = True
+    # Whether to cache the inference results (This is deprecated. We normally cache the inference results on c++ side)
+    USE_INFER_CACHE = False
 
     def __init__(self) -> None:
         # Initialize the infer cache

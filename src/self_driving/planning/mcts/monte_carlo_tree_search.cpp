@@ -12,7 +12,7 @@
 
 namespace noisepage::selfdriving::pilot {
 
-MonteCarloTreeSearch::MonteCarloTreeSearch(const PlanningContext &planning_context,
+MonteCarloTreeSearch::MonteCarloTreeSearch(PlanningContext &planning_context,
                                            common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                            uint64_t end_segment_index, bool use_min_cost)
     : planning_context_(planning_context),

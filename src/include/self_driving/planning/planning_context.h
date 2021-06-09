@@ -8,6 +8,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "self_driving/modeling/operating_unit_defs.h"
 #include "self_driving/planning/memory_info.h"
 #include "util/query_exec_util.h"
 
@@ -157,6 +158,38 @@ class PlanningContext {
     return common::ManagedPointer(db_oid_to_accessor_.at(db_oid));
   }
 
+  void AddOUInference(ExecutionOperatingUnitType ou_type, const std::vector<int> &feature, std::vector<double> label) {
+    ou_inference_cache_.try_emplace(ou_type);
+    ou_inference_cache_[ou_type][feature] = std::make_unique<std::vector<double>>(std::move(label));
+  };
+
+  bool HasOUInference(ExecutionOperatingUnitType ou_type, const std::vector<int> &feature) const {
+    if (ou_inference_cache_.find(ou_type) == ou_inference_cache_.end()) return false;
+    if (ou_inference_cache_.at(ou_type).find(feature) == ou_inference_cache_.at(ou_type).end()) return false;
+    return true;
+  }
+
+  const std::vector<double> *GetOUInference(ExecutionOperatingUnitType ou_type, const std::vector<int> &feature) const {
+    NOISEPAGE_ASSERT(ou_inference_cache_.find(ou_type) != ou_inference_cache_.end(), "Cannot find OU type");
+    NOISEPAGE_ASSERT(ou_inference_cache_[ou_type].find(feature) != ou_inference_cache_[ou_type].end(),
+                     "Cannot find feature");
+    return ou_inference_cache_.at(ou_type).at(feature).get();
+  };
+
+  void AddInterferenceInference(const std::vector<int> &feature, std::vector<double> label) {
+    interference_inference_cache_[feature] = std::make_unique<std::vector<double>>(std::move(label));
+  };
+
+  bool HasInterferenceInference(const std::vector<int> &feature) const {
+    return interference_inference_cache_.find(feature) != interference_inference_cache_.end();
+  }
+
+  const std::vector<double> *GetInterferenceInference(const std::vector<int> &feature) const {
+    NOISEPAGE_ASSERT(interference_inference_cache_.find(feature) != interference_inference_cache_.end(),
+                     "Cannot find feature");
+    return interference_inference_cache_.at(feature).get();
+  };
+
  private:
   const std::string ou_model_save_path_;
   const std::string interference_model_save_path_;
@@ -172,6 +205,11 @@ class PlanningContext {
   std::set<catalog::db_oid_t> db_oids_;
   std::unordered_map<catalog::db_oid_t, common::ManagedPointer<transaction::TransactionContext>> db_oid_to_txn_;
   std::unordered_map<catalog::db_oid_t, std::unique_ptr<catalog::CatalogAccessor>> db_oid_to_accessor_;
+  // <ou, <feature, cached label>>
+  std::map<ExecutionOperatingUnitType, std::map<std::vector<int>, std::unique_ptr<std::vector<double>>>>
+      ou_inference_cache_;
+  // <feature, cached label>
+  std::map<std::vector<int>, std::unique_ptr<std::vector<double>>> interference_inference_cache_;
 };
 
 }  // namespace noisepage::selfdriving::pilot

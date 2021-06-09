@@ -94,7 +94,7 @@ class MonteCarloTreeSearch {
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
-  MonteCarloTreeSearch(const PlanningContext &planning_context,
+  MonteCarloTreeSearch(PlanningContext &planning_context,
                        common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
                        bool use_min_cost = true);
 
@@ -116,7 +116,7 @@ class MonteCarloTreeSearch {
   void BestAction(std::vector<std::vector<ActionTreeNode>> *best_action_seq, size_t topk);
 
  private:
-  const PlanningContext &planning_context_;
+  PlanningContext &planning_context_;
   const common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;
   const uint64_t end_segment_index_;
   std::unique_ptr<TreeNode> root_;

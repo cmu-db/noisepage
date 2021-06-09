@@ -13,7 +13,7 @@
 
 namespace noisepage::selfdriving::pilot {
 
-SequenceTuning::SequenceTuning(const PlanningContext &planning_context,
+SequenceTuning::SequenceTuning(PlanningContext &planning_context,
                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                uint64_t end_segment_index)
     : planning_context_(planning_context), forecast_(forecast), end_segment_index_(end_segment_index) {

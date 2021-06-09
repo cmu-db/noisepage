@@ -31,8 +31,8 @@ class SequenceTuning {
    * @param forecast pointer to workload forecast
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    */
-  SequenceTuning(const PlanningContext &planning_context,
-                 common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index);
+  SequenceTuning(PlanningContext &planning_context, common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                 uint64_t end_segment_index);
 
   /**
    * Returns sequence of actions that lead to the best sequence of configurations,
@@ -109,7 +109,7 @@ class SequenceTuning {
   void MergeConfigs(std::multiset<PathSolution> *global_path_set, std::set<std::set<action_id_t>> *global_config_set,
                     uint64_t memory_constraint);
 
-  const PlanningContext &planning_context_;
+  PlanningContext &planning_context_;
   const common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;
   const uint64_t end_segment_index_;
   std::vector<double> default_segment_cost_;

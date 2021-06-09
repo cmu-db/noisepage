@@ -69,15 +69,13 @@ class PilotUtil {
   /**
    * Perform inference on OU models through model server manager with collected pipeline metrics
    * To recover the result for each pipeline, also maintain a multimap pipeline_to_ou_position
-   * @param model_save_path model save path
-   * @param model_server_manager model server manager
+   * @param planning_context pilot planning context
    * @param pipeline_qids vector of real qids (those from forecast) for pipelines in pipeline data; necessary since the
    * auto-incremental nature of qid in pipeline metrics
    * @param pipeline_data collected pipeline metrics after executing the forecasted queries
    * @param pipeline_to_prediction list of tuples of query id, pipeline id and result of prediction
    */
-  static void OUModelInference(const std::string &model_save_path,
-                               common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+  static void OUModelInference(pilot::PlanningContext &planning_context,
                                const std::vector<execution::query_id_t> &pipeline_qids,
                                const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
                                std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
@@ -85,8 +83,7 @@ class PilotUtil {
 
   /**
    * Perform inference on the interference model through model server manager
-   * @param interference_model_save_path Model save path
-   * @param model_server_manager Model server manager
+   * @param planning_context pilot planning context
    * @param pipeline_to_prediction List of tuples of query id, pipeline id and result of prediction
    * @param forecast The predicted workload
    * @param start_segment_index The start segment in the workload forecast to do inference
@@ -96,8 +93,7 @@ class PilotUtil {
    * @param interference_result_matrix Stores the inference results as return values
    */
   static void InterferenceModelInference(
-      const std::string &interference_model_save_path,
-      common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+      pilot::PlanningContext &planning_context,
       const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
                      std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
       common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
@@ -135,9 +131,8 @@ class PilotUtil {
    * @param end_segment_index end index (inclusive)
    * @return total latency of queries calculated based on their num of exec
    */
-  static double ComputeCost(const pilot::PlanningContext &planning_context,
-                            common::ManagedPointer<WorkloadForecast> forecast, uint64_t start_segment_index,
-                            uint64_t end_segment_index);
+  static double ComputeCost(pilot::PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
+                            uint64_t start_segment_index, uint64_t end_segment_index);
 
   /**
    * Predict the runtime metrics of a create index action
@@ -145,7 +140,7 @@ class PilotUtil {
    * @param create_action Pointer to the CreateIndexAction
    * @param drop_action Pointer to the DropIndexAction (reverse action)
    */
-  static void EstimateCreateIndexAction(const pilot::PlanningContext &planning_context,
+  static void EstimateCreateIndexAction(pilot::PlanningContext &planning_context,
                                         pilot::CreateIndexAction *create_action, pilot::DropIndexAction *drop_action);
 
   /**
@@ -207,7 +202,7 @@ class PilotUtil {
    * @param segment_to_offset start index of ou records belonging to a segment in input to the interference model
    * @param interference_result_matrix stores the final results of the interference model
    */
-  static void ExecuteForecast(const pilot::PlanningContext &planning_context,
+  static void ExecuteForecast(pilot::PlanningContext &planning_context,
                               common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                               uint64_t start_segment_index, uint64_t end_segment_index,
                               std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,

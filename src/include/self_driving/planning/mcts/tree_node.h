@@ -84,7 +84,7 @@ class TreeNode {
    * @param action_state_cost_map caches the previous rollout cost calculation based on the action state
    * @param memory_constraint maximum allowed memory in bytes
    */
-  void ChildrenRollout(const PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
+  void ChildrenRollout(PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
                        uint64_t action_horizon, uint64_t tree_end_segment_index,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions,

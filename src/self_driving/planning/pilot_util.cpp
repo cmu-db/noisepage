@@ -35,7 +35,6 @@
 #include "storage/sql_table.h"
 #include "task/task.h"
 #include "task/task_manager.h"
-#include "util/query_exec_util.h"
 
 namespace noisepage::selfdriving::pilot {
 
@@ -130,9 +129,8 @@ std::vector<double> PilotUtil::GetInterferenceFeature(const std::vector<double> 
   return interference_feat;
 }
 
-double PilotUtil::ComputeCost(const PlanningContext &planning_context,
-                              common::ManagedPointer<WorkloadForecast> forecast, uint64_t start_segment_index,
-                              uint64_t end_segment_index) {
+double PilotUtil::ComputeCost(PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
+                              uint64_t start_segment_index, uint64_t end_segment_index) {
   // Compute cost as total latency of queries based on their num of exec
   // query id, <num_param of this query executed, total number of collected ous for this query>
   std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> query_info;
@@ -273,8 +271,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
   return aggregated_data;
 }
 
-void PilotUtil::OUModelInference(const std::string &model_save_path,
-                                 common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+void PilotUtil::OUModelInference(pilot::PlanningContext &planning_context,
                                  const std::vector<execution::query_id_t> &pipeline_qids,
                                  const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
                                  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
@@ -288,13 +285,45 @@ void PilotUtil::OUModelInference(const std::string &model_save_path,
   NOISEPAGE_ASSERT(model_server_manager->ModelServerStarted(), "Model Server should have been started");
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
-    auto res = model_server_manager->InferOUModel(
-        selfdriving::OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_map_it.first), model_save_path,
-        ou_map_it.second);
-    if (!res.second) {
-      throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
+    auto ou_type = ou_map_it.first;
+    // TODO(lin): There's a bit duplicated logic between this and InterferenceModelInference(), but I haven't found a
+    //  clean way to unify them
+    // int features to look up in the cache
+    std::vector<std::vector<int>> int_features;
+    // Features that required to infer from the ModelServer
+    std::vector<std::vector<double>> inference_features;
+    // Index of the inference_features in the original interference_features
+    std::vector<int> infer_index;
+    int idx = 0;
+    for (auto &feature : ou_map_it.second) {
+      // Convert features to int with two-digit precision used for cache
+      std::vector<int> int_feature;
+      for (auto &value : feature) int_feature.emplace_back(static_cast<int>(value * 100));
+      if (!planning_context.HasOUInference(ou_type, int_feature)) {
+        inference_features.emplace_back(feature);
+        infer_index.emplace_back(idx);
+      }
+      int_features.emplace_back(std::move(int_feature));
+      idx++;
     }
-    inference_result.emplace(ou_map_it.first, res.first);
+
+    if (!inference_features.empty()) {
+      // Perform inference only for uncached features
+      auto res = planning_context.GetModelServerManager()->InferOUModel(
+          OperatingUnitUtil::ExecutionOperatingUnitTypeToString(ou_type), planning_context.GetOuModelSavePath(),
+          inference_features);
+      if (!res.second) {
+        throw PILOT_EXCEPTION("Inference through model server manager has error", common::ErrorCode::ERRCODE_WARNING);
+      }
+
+      // Put the new inference results into cache
+      idx = 0;
+      for (auto &result : res.first) planning_context.AddOUInference(ou_type, int_features[infer_index[idx++]], result);
+    }
+
+    inference_result[ou_type] = std::vector<std::vector<double>>();
+    for (auto &feature : int_features)
+      inference_result[ou_type].emplace_back(*planning_context.GetOUInference(ou_type, feature));
   }
 
   // populate pipeline_to_prediction using pipeline_to_ou_position and inference_result
@@ -315,8 +344,7 @@ void PilotUtil::OUModelInference(const std::string &model_save_path,
 }
 
 void PilotUtil::InterferenceModelInference(
-    const std::string &interference_model_save_path,
-    common::ManagedPointer<modelserver::ModelServerManager> model_server_manager,
+    pilot::PlanningContext &planning_context,
     const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
                    std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
     common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
@@ -382,10 +410,41 @@ void PilotUtil::InterferenceModelInference(
     }
   }
 
-  auto interference_result =
-      model_server_manager->InferInterferenceModel(interference_model_save_path, interference_features);
-  NOISEPAGE_ASSERT(interference_result.second, "Inference through interference model has error");
-  *interference_result_matrix = interference_result.first;
+  // int features to look up in the cache
+  std::vector<std::vector<int>> int_features;
+  // Features that required to infer from the ModelServer
+  std::vector<std::vector<double>> inference_features;
+  // Index of the inference_features in the original interference_features
+  std::vector<int> infer_index;
+  int idx = 0;
+  for (auto &feature : interference_features) {
+    // Convert features to int with two-digit precision used for cache
+    std::vector<int> int_feature;
+    for (auto &value : feature) int_feature.emplace_back(static_cast<int>(value * 100));
+    if (!planning_context.HasInterferenceInference(int_feature)) {
+      inference_features.emplace_back(feature);
+      infer_index.emplace_back(idx);
+    }
+    int_features.emplace_back(std::move(int_feature));
+    idx++;
+  }
+
+  if (!inference_features.empty()) {
+    // Perform inference only for uncached features
+    auto inference_result = planning_context.GetModelServerManager()->InferInterferenceModel(
+        planning_context.GetInterferenceModelSavePath(), inference_features);
+    NOISEPAGE_ASSERT(inference_result.second, "Inference through interference model has error");
+
+    // Put the new inference results into cache
+    idx = 0;
+    for (auto &result : inference_result.first)
+      planning_context.AddInterferenceInference(int_features[infer_index[idx++]], result);
+  }
+
+  // Populate all results
+  interference_result_matrix->clear();
+  for (auto &feature : int_features)
+    interference_result_matrix->emplace_back(*planning_context.GetInterferenceInference(feature));
 }
 
 void PilotUtil::GroupFeaturesByOU(
@@ -571,7 +630,7 @@ void PilotUtil::ComputeTableIndexSizes(const PlanningContext &planning_context, 
   }
 }
 
-void PilotUtil::EstimateCreateIndexAction(const PlanningContext &planning_context, CreateIndexAction *create_action,
+void PilotUtil::EstimateCreateIndexAction(PlanningContext &planning_context, CreateIndexAction *create_action,
                                           DropIndexAction *drop_action) {
   // Just compile the queries (generate the bytecodes) to get features with statistics
   std::string query_text = create_action->GetSQLCommand();
@@ -616,8 +675,8 @@ void PilotUtil::EstimateCreateIndexAction(const PlanningContext &planning_contex
       pipeline_to_prediction;
 
   // Then we perform inference through model server to get ou prediction results for all pipelines
-  PilotUtil::OUModelInference(planning_context.GetOuModelSavePath(), planning_context.GetModelServerManager(),
-                              pipeline_qids, aggregated_data->pipeline_data_, &pipeline_to_prediction);
+  PilotUtil::OUModelInference(planning_context, pipeline_qids, aggregated_data->pipeline_data_,
+                              &pipeline_to_prediction);
 
   auto pred_dim = pipeline_to_prediction.begin()->second.back().back().size();
 
@@ -686,7 +745,7 @@ std::string PilotUtil::ConfigToString(const std::set<action_id_t> &config_set) {
   return set_string;
 }
 
-void PilotUtil::ExecuteForecast(const PlanningContext &planning_context,
+void PilotUtil::ExecuteForecast(PlanningContext &planning_context,
                                 common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                 uint64_t start_segment_index, uint64_t end_segment_index,
                                 std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
@@ -710,13 +769,11 @@ void PilotUtil::ExecuteForecast(const PlanningContext &planning_context,
       pipeline_to_prediction;
 
   // Then we perform inference through model server to get ou prediction results for all pipelines
-  PilotUtil::OUModelInference(planning_context.GetOuModelSavePath(), planning_context.GetModelServerManager(),
-                              pipeline_qids, pipeline_data->pipeline_data_, &pipeline_to_prediction);
+  PilotUtil::OUModelInference(planning_context, pipeline_qids, pipeline_data->pipeline_data_, &pipeline_to_prediction);
 
-  PilotUtil::InterferenceModelInference(planning_context.GetInterferenceModelSavePath(),
-                                        planning_context.GetModelServerManager(), pipeline_to_prediction,
-                                        common::ManagedPointer(forecast), start_segment_index, end_segment_index,
-                                        query_info, segment_to_offset, interference_result_matrix);
+  PilotUtil::InterferenceModelInference(planning_context, pipeline_to_prediction, common::ManagedPointer(forecast),
+                                        start_segment_index, end_segment_index, query_info, segment_to_offset,
+                                        interference_result_matrix);
 }
 
 }  // namespace noisepage::selfdriving::pilot
