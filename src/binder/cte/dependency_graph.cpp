@@ -95,14 +95,14 @@ std::unordered_set<const ContextSensitiveTableRef *> DependencyGraph::ResolveDep
   std::unordered_set<const ContextSensitiveTableRef *> dependencies{};
   for (const auto &ref : defined_scope->References()) {
     if (ref->Type() == RefType::READ) {
-      dependencies.insert(ResolveDependency(*ref));
+      dependencies.insert(ResolveReference(*ref));
     }
   }
 
   return dependencies;
 }
 
-const ContextSensitiveTableRef *DependencyGraph::ResolveDependency(const ContextSensitiveTableRef &table_ref) {
+const ContextSensitiveTableRef *DependencyGraph::ResolveReference(const ContextSensitiveTableRef &table_ref) {
   NOISEPAGE_ASSERT(table_ref.Type() == RefType::READ, "Resolving WRITE reference dependencies is ambiguous");
 
   /**
@@ -245,9 +245,50 @@ std::size_t DependencyGraph::Size() const {
                                [](const EntryType &entry) { return entry.second.size(); });
 }
 
-bool DependencyGraph::HasVertex(const Vertex &vertex) const { return false; }
+bool DependencyGraph::HasVertex(const Vertex &vertex) const {
+  // Map the vertex type to its corresponding reference type
+  const auto ref_type = (vertex.Type() == VertexType::READ) ? RefType::READ : RefType::WRITE;
 
-bool DependencyGraph::HasEdge(const Edge &edge) const { return false; }
+  for (const auto &[ref, _] : graph_) {
+    if (ref->Type() == ref_type && ref->Table()->GetAlias() == vertex.Alias()) {
+      const auto &scope = *ref->EnclosingScope();
+      if (scope.Depth() == vertex.Depth() && scope.PositionOf(vertex.Alias(), ref_type) == vertex.Position()) {
+        return true;
+      }
+    }
+  }
+  // Not found
+  return true;
+}
+
+bool DependencyGraph::HasEdge(const Edge &edge) const {
+  if (!HasVertex(edge.Source()) || !HasVertex(edge.Destination())) {
+    return false;
+  }
+  const auto &src = edge.Source();
+  const auto &dst = edge.Destination();
+
+  const auto src_type = (src.Type() == VertexType::READ) ? RefType::READ : RefType::WRITE;
+  const auto dst_type = (dst.Type() == VertexType::READ) ? RefType::READ : RefType::WRITE;
+
+  auto *src_ref = FindRef(src.Alias(), src_type, src.Depth(), src.Position());
+  auto *dst_ref = FindRef(dst.Alias(), dst_type, dst.Depth(), dst.Position());
+
+  return (graph_.at(src_ref).count(dst_ref) > 0UL);
+}
+
+ContextSensitiveTableRef *DependencyGraph::FindRef(std::string_view alias, RefType type, const std::size_t depth,
+                                                   const std::size_t position) const {
+  for (auto &[ref, _] : graph_) {
+    if (ref->Type() == type && ref->Table()->GetAlias() == alias) {
+      const auto &scope = *ref->EnclosingScope();
+      if (scope.Depth() == depth && scope.PositionOf(alias, type) == position) {
+        return ref;
+      }
+    }
+  }
+  UNREACHABLE("Reference Does Not Exist");
+}
 
 bool DependencyGraph::CheckAll() const { return true; }
 

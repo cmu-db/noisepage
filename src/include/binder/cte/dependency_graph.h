@@ -19,9 +19,16 @@ class DeleteStatement;
 
 namespace noisepage::binder::cte {
 
+enum class RefType;
 class LexicalScope;
 class StructuredStatement;
 class ContextSensitiveTableRef;
+
+/**
+ * Defines the type of the reference represented by the vertex;
+ * there is a one-to-one relationship between VertexType and RefType.
+ */
+enum class VertexType { READ, WRITE };
 
 /**
  * The Vertex class provides a convenient way to query the graph.
@@ -34,11 +41,14 @@ class Vertex {
    * @param depth The vertex depth
    * @param position The vertex position
    */
-  Vertex(std::string alias, const std::size_t depth, const std::size_t position)
-      : alias_{std::move(alias)}, depth_{depth}, position_{position} {}
+  Vertex(std::string alias, VertexType type, const std::size_t depth, const std::size_t position)
+      : alias_{std::move(alias)}, type_{type}, depth_{depth}, position_{position} {}
 
   /** @return The vertex alias */
   const std::string &Alias() const { return alias_; }
+
+  /** @return The vertex type */
+  VertexType Type() const { return type_; }
 
   /** @return The vertex depth */
   std::size_t Depth() const { return depth_; }
@@ -49,6 +59,9 @@ class Vertex {
  private:
   // The vertex alias
   const std::string alias_;
+
+  // The type of the vertex
+  const VertexType type_;
 
   // The vertex depth
   const std::size_t depth_;
@@ -187,35 +200,60 @@ class DependencyGraph {
   /**
    * Resolve the dependencies for the specified table reference.
    * @param table_ref The table reference for which dependencies should be resolved
+   * @return A set of all resolved dependencies for the reference
+   * @throws BINDER_EXCEPTION in the event that reference resolution fails
    */
   static std::unordered_set<const ContextSensitiveTableRef *> ResolveDependenciesFor(
       const ContextSensitiveTableRef &table_ref);
 
   /**
-   *
+   * Resolve a READ reference the corresponding WRITE to which it refers.
+   * @param table_ref The READ reference to be resolved
+   * @return A pointer to the corresponding WRITE table reference
+   * @throws BINDER_EXCEPTION in the event that reference resolution fails
    */
-  static const ContextSensitiveTableRef *ResolveDependency(const ContextSensitiveTableRef &table_ref);
+  static const ContextSensitiveTableRef *ResolveReference(const ContextSensitiveTableRef &table_ref);
 
   /**
-   *
+   * Find a WRITE table reference idenfitied by `alias` within `scope`.
+   * @param alias The alias of the table reference for which to search
+   * @param scope The scope in which to perform the search
+   * @return A pointer to the table reference if found, `NOT_FOUND` (nullptr) otherwise
    */
   static const ContextSensitiveTableRef *FindWriteReferenceInScope(std::string_view alias, const LexicalScope &scope);
 
   /**
-   *
+   * Find a WRITE table reference idenfitied by `alias` within any enclosing scope of `scope`.
+   * @param alias The alias of the table reference for which to search
+   * @param scope The base scope; the search begins from the enclosing scope of `scope`
+   * @return A pointer to the table reference if found, `NOT_FOUND` (nullptr) otherwise
    */
   static const ContextSensitiveTableRef *FindWriteReferenceInAnyEnclosingScope(std::string_view alias,
                                                                                const LexicalScope &scope);
 
   /**
-   *
+   * Find a forward WRITE table reference identified by `alias` within `scope`.
+   * @param alias The alias of the table reference for which to search
+   * @param scope The scope in which to perform the search
+   * @param partition_point The scope that serves as the partition point;
+   * in the case of forward-reference resolution, the search only considers
+   * those WRITE references that define a scope "to the right" of the partition
+   * point. The partition point itself is NOT considered in the search
+   * @return A pointer to the table reference if found, `NOT_FOUND` (nullptr) otherwise
    */
   static const ContextSensitiveTableRef *FindForwardWriteReferenceInScope(std::string_view alias,
                                                                           const LexicalScope &scope,
                                                                           const LexicalScope &partition_point);
 
   /**
-   *
+   * Find a backward WRITE table reference identified by `alias` within `scope`.
+   * @param alias The alias of the table reference for which to search
+   * @param scope The scope in which to perform the search
+   * @param partition_point The scope that serves as the partition point;
+   * in the case of backward-reference resolution, the search only considers
+   * those WRITE references that define a scope "to the left" of the partition
+   * point. The partition point itself is NOT considered in the search
+   * @return A pointer to the table reference if found, `NOT_FOUND` (nullptr) otherwise
    */
   static const ContextSensitiveTableRef *FindBackwardWriteReferenceInScope(std::string_view alias,
                                                                            const LexicalScope &scope,
@@ -234,6 +272,18 @@ class DependencyGraph {
    * @param scope The scope from which to begin the validation
    */
   static bool ContainsAmbiguousReferences(const LexicalScope &scope);
+
+  /**
+   * Locate the reference identified by the given parameters in the graph.
+   * @pre A reference satisfying the parameters is present in the graph
+   * @param alias The alias that identifies the table reference
+   * @param type The type of the table reference
+   * @param depth The depth of the reference in the statement
+   * @param position The position of the reference in its enclosing scope
+   * @return A pointer to the corresponding table reference
+   */
+  ContextSensitiveTableRef *FindRef(std::string_view alias, RefType type, std::size_t depth,
+                                    std::size_t position) const;
 
  public:
   /** Denotes the scope is not found when resolving references */

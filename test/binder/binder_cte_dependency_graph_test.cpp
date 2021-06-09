@@ -6,6 +6,7 @@
 #include "binder/cte/lexical_scope.h"
 #include "binder/cte/structured_statement.h"
 #include "catalog/catalog.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "main/db_main.h"
 #include "parser/postgresparser.h"
@@ -17,6 +18,7 @@ using noisepage::binder::cte::ContextSensitiveTableRef;
 using noisepage::binder::cte::DependencyGraph;
 using noisepage::binder::cte::RefType;
 using noisepage::binder::cte::StructuredStatement;
+using noisepage::binder::cte::VertexType;
 
 namespace noisepage {
 class BinderCteDepdendencyGraphTest : public TerrierTest {
@@ -550,33 +552,95 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution4) {
 }
 
 // ----------------------------------------------------------------------------
+// Dependency Graph Construction Success (THROW/NO_THROW)
+// ----------------------------------------------------------------------------
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess0) {
+  // Ambuguous reference
+  const std::string sql = "WITH x(i) AS (SELECT 1), x(j) AS (SELECT 2) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_THROW(DependencyGraph::Build(select), BinderException);
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess1) {
+  // Ambiguous reference
+  const std::string sql = "WITH x(i) AS (WITH y(j) AS (SELECT 1), y(k) AS (SELECT 2) SELECT * FROM y) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_THROW(DependencyGraph::Build(select), BinderException);
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess2) {
+  // Reference of nested definition
+  const std::string sql =
+      "WITH x(i) AS (SELECT * FROM a), y(j) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_THROW(DependencyGraph::Build(select), BinderException);
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess3) {
+  // Reference of nested definition
+  const std::string sql =
+      "WITH y(j) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), x(i) AS (SELECT * FROM a) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_THROW(DependencyGraph::Build(select), BinderException);
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess4) {
+  const std::string sql = "SELECT * FROM TestTable;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess5) {
+  const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess6) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(i) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess7) {
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(i) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+}
+
+// ----------------------------------------------------------------------------
+// Dependency Graph Construction (Graph Structure)
+// ----------------------------------------------------------------------------
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction0) {
+  const std::string sql = "SELECT * FROM TestTable;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_EQ(graph->Order(), 1UL);
+  EXPECT_EQ(graph->Size(), 0UL);
+  EXPECT_TRUE(graph->HasVertex({"testtable", VertexType::READ, 0UL, 0UL}));
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction1) {
+  const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  const auto graph = DependencyGraph::Build(select);
+  EXPECT_EQ(graph->Order(), 2UL);
+  EXPECT_EQ(graph->Size(), 0UL);
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::WRITE, 0UL, 0UL}));
+  EXPECT_TRUE(graph->HasVertex({"x", VertexType::READ, 0UL, 1UL}));
+}
+
+// ----------------------------------------------------------------------------
 // Dependency Graph Validation: Forward References
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
 // Dependency Graph Validation: Mutual Recursion
 // ----------------------------------------------------------------------------
-
-// ----------------------------------------------------------------------------
-// Dependency Graph Validation: Nested Scope
-// ----------------------------------------------------------------------------
-
-// TEST_F(BinderCteUtilTest, CheckNestedScope0) {
-//   const std::string sql =
-//       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
-
-//   TableDependencyGraph graph{select};
-//   EXPECT_TRUE(graph.CheckNestedScopes());
-// }
-
-// TEST_F(BinderCteUtilTest, CheckNestedScope1) {
-//   const std::string sql =
-//       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM a) SELECT * FROM y;";
-//   auto [_, select] = ParseToSelectStatement(sql);
-
-//   TableDependencyGraph graph{select};
-//   EXPECT_FALSE(graph.CheckNestedScopes());
-// }
 
 }  // namespace noisepage

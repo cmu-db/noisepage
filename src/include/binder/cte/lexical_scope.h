@@ -70,6 +70,15 @@ class LexicalScope {
    */
   void AddReference(std::unique_ptr<ContextSensitiveTableRef> &&ref);
 
+  /**
+   * Determine the position of the table reference identified by `alias` in this scope.
+   * @pre A table reference identified by `alias` is present in the scope
+   * @param alias The alias of the table reference for which to search
+   * @param type The type of the table reference for which to search
+   * @return The position of the table reference within the scope
+   */
+  std::size_t PositionOf(std::string_view alias, RefType type) const;
+
   /** Equality comparison with another scope instance */
   bool operator==(const LexicalScope &rhs) const { return id_ == rhs.id_; }
 

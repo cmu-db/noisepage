@@ -3,6 +3,8 @@
 #include <algorithm>
 
 #include "binder/cte/context_sensitive_table_ref.h"
+#include "common/macros.h"
+#include "parser/table_ref.h"
 
 namespace noisepage::binder::cte {
 
@@ -30,6 +32,15 @@ void LexicalScope::AddEnclosedScope(std::unique_ptr<LexicalScope> &&scope) {
 
 void LexicalScope::AddReference(std::unique_ptr<ContextSensitiveTableRef> &&ref) {
   references_.push_back(std::move(ref));
+}
+
+std::size_t LexicalScope::PositionOf(std::string_view alias, RefType type) const {
+  auto it =
+      std::find_if(references_.cbegin(), references_.cend(), [&](const std::unique_ptr<ContextSensitiveTableRef> &ref) {
+        return ref->Type() == type && ref->Table()->GetAlias() == alias;
+      });
+  NOISEPAGE_ASSERT(it != references_.cend(), "Requested table reference not present in scope");
+  return std::distance(references_.cbegin(), it);
 }
 
 }  // namespace noisepage::binder::cte
