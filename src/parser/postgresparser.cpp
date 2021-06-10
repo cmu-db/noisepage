@@ -2148,9 +2148,8 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
           }
           if (root->iterative_) {
             return select->HasUnionSelect() ? CteType::STRUCTURALLY_ITERATIVE : CteType::ITERATIVE;
-          } else {
-            return CteType::SIMPLE;
           }
+          return CteType::SIMPLE;
         }();
 
         result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
