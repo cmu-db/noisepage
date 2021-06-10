@@ -245,6 +245,7 @@ cmake_build
 .cmake_build
 cmake-build-debug
 cmake-build-release
+cmake-build-relwithdebinfo
 
 # Generated documentation
 apidoc/doc

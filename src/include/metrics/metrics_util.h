@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>  // NOLINT
+#include <optional>
 #include <string>
 
 #include "execution/util/cpu_info.h"
@@ -39,15 +40,16 @@ struct MetricsUtil {
    * @param metrics output string
    * @return MetricsOutput corresponding to it
    */
-  static MetricsOutput FromMetricsOutputString(const std::string &metrics) {
-    if (metrics == "CSV") return MetricsOutput::CSV;
-
-    if (metrics == "DB") return MetricsOutput::DB;
-
-    if (metrics == "CSV_AND_DB") return MetricsOutput::CSV_AND_DB;
-
-    NOISEPAGE_ASSERT(false, "Unknown metrics type specified");
-    return MetricsOutput::CSV;
+  static std::optional<MetricsOutput> FromMetricsOutputString(const std::string_view &metrics) {
+    std::optional<MetricsOutput> type{std::nullopt};
+    if (metrics == "CSV") {
+      type = MetricsOutput::CSV;
+    } else if (metrics == "DB") {
+      type = MetricsOutput::DB;
+    } else if (metrics == "CSV_AND_DB") {
+      type = MetricsOutput::CSV_AND_DB;
+    }
+    return type;
   }
 
   /**
