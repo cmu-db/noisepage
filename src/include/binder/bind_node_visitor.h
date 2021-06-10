@@ -107,12 +107,30 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   static void InitTableRef(common::ManagedPointer<parser::TableRef> node);
 
   /**
-   * Change the type of exprs_ of order_by_description from ConstantValueExpression to ColumnValueExpression.
-   * @param order_by_description OrderByDescription
-   * @param select_items select columns
+   * Replace integer constants in an ORDER BY with the corresponding expressions from the SELECT columns.
+   * @param order_by_description    The ORDER BY that may contain integer constants.
+   * @param select_items            The SELECT columns that the integer constants refer to.
    */
   void UnifyOrderByExpression(common::ManagedPointer<parser::OrderByDescription> order_by_description,
                               const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
+
+  /**
+   * Rewrite aliases in an expression with the corresponding expressions from the SELECT columns.
+   *
+   * @param expression      The expression that may need rewriting. This expression is mutated!
+   * @param select_items    The SELECT columns that may have aliases.
+   */
+  common::ManagedPointer<parser::AbstractExpression> UnaliasExpression(
+      common::ManagedPointer<parser::AbstractExpression> expression,
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
+
+  /** Unalias expressions in the GROUP BY. */
+  void UnaliasGroupBy(common::ManagedPointer<parser::GroupByDescription> group_by_description,
+                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
+
+  /** Unalias expressions in the ORDER BY. */
+  void UnaliasOrderBy(common::ManagedPointer<parser::OrderByDescription> order_by_description,
+                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
 
   void ValidateDatabaseName(const std::string &db_name);
 

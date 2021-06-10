@@ -34,6 +34,7 @@ namespace noisepage::execution::ast {
   /* SQL Functions */                                                   \
   F(Like, like)                                                         \
   F(DatePart, datePart)                                                 \
+  F(DatePartPostgres, datePartPostgres)                                 \
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \

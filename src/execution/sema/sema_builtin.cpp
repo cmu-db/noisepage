@@ -241,25 +241,44 @@ void Sema::CheckBuiltinStringLikeCall(ast::CallExpr *call) {
 }
 
 void Sema::CheckBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
-  if (!CheckArgCountAtLeast(call, 1)) {
+  if (!CheckArgCount(call, 2)) {
     return;
   }
-  // First arg must be a date.
   auto date_kind = ast::BuiltinType::Date;
   auto integer_kind = ast::BuiltinType::Integer;
-  if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(date_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(date_kind));
-    return;
-  }
+  auto str_kind = ast::BuiltinType::StringVal;
+  auto timestamp_kind = ast::BuiltinType::Timestamp;
 
   switch (builtin) {
-    case ast::Builtin::DatePart:
+    case ast::Builtin::DatePart: {
+      if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(date_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(date_kind));
+        return;
+      }
       if (!call->Arguments()[1]->GetType()->IsSpecificBuiltin(integer_kind)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(integer_kind));
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
       return;
+    }
+    case ast::Builtin::DatePartPostgres: {
+      if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(str_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(str_kind));
+        return;
+      }
+      if (!call->Arguments()[1]->GetType()->IsSpecificBuiltin(timestamp_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(timestamp_kind));
+        return;
+      }
+      auto text = call->Arguments()[0]->As<ast::CallExpr>()->Arguments()[0]->As<ast::LitExpr>()->StringVal().GetView();
+      if (text == "year") {
+        call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
+      } else {
+        UNREACHABLE("Case not handled.");
+      }
+      return;
+    }
     default:
       // TODO(Amadou): Support other date function.
       UNREACHABLE("Impossible date function");
@@ -3299,7 +3318,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinStringLikeCall(call);
       break;
     }
-    case ast::Builtin::DatePart: {
+    case ast::Builtin::DatePart:
+    case ast::Builtin::DatePartPostgres: {
       CheckBuiltinDateFunctionCall(call, builtin);
       break;
     }

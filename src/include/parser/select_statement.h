@@ -61,19 +61,13 @@ class OrderByDescription {
    */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
-  /**
-   * @return order by types
-   */
+  /** @return The types of the ORDER BY terms. */
   std::vector<OrderType> GetOrderByTypes() { return types_; }
 
-  /**
-   * @return number of order by expressions
-   */
+  /** @return The number of ORDER BY terms. */
   size_t GetOrderByExpressionsSize() const { return exprs_.size(); }
 
-  /**
-   * @return order by expression
-   */
+  /** @return Mutable reference to the expressions representing the ORDER BY terms. */
   std::vector<common::ManagedPointer<AbstractExpression>> &GetOrderByExpressions() { return exprs_; }
 
   /**
@@ -255,8 +249,8 @@ class GroupByDescription {
    */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
-  /** @return group by columns */
-  const std::vector<common::ManagedPointer<AbstractExpression>> &GetColumns() { return columns_; }
+  /** @return Mutable reference to the expressions representing the GROUP BY terms. */
+  std::vector<common::ManagedPointer<AbstractExpression>> &GetColumns() { return columns_; }
 
   /** @return having clause */
   common::ManagedPointer<AbstractExpression> GetHaving() { return common::ManagedPointer(having_); }
