@@ -300,14 +300,49 @@ bool DependencyGraph::Validate() const {
   return std::none_of(violations.cbegin(), violations.cend(), [](const bool r) { return r; });
 }
 
-bool DependencyGraph::ContainsInvalidForwardReference() const { return false; }
+bool DependencyGraph::ContainsInvalidForwardReference() const {
+  /**
+   * A forward reference in this context is a dependency between
+   * the temporary tables produced by common table expressions
+   * wherein the source and destination tables of the dependency
+   * appear in the same scope and the destination table appears
+   * "to the right" of the source table in the input statement.
+   *
+   * A forward reference is valid if the source CTE is inductive
+   * (RECURSIVE or ITERATIVE); otherwise, it is invalid.
+   */
+
+  // Iterate over each edge in the graph
+  for (const auto &[ref, deps] : graph_) {
+    for (const auto *dep : deps) {
+      if (IsInvalidForwardReference(*ref, *dep)) {
+        return true;
+      }
+    }
+  }
+  // No invalid forward references present
+  return false;
+}
+
+bool DependencyGraph::IsInvalidForwardReference(const ContextSensitiveTableRef &src,
+                                                const ContextSensitiveTableRef &dst) {
+  if (*src.EnclosingScope() != *dst.EnclosingScope()) {
+    return false;
+  }
+  const auto &scope = *src.EnclosingScope();
+  const std::size_t src_position = scope.PositionOf(src.Table()->GetAlias(), src.Type());
+  const std::size_t dst_position = scope.PositionOf(dst.Table()->GetAlias(), dst.Type());
+  return (dst_position > src_position) ? src.Table()->IsSyntacticallyInductiveCte() : false;
+}
 
 bool DependencyGraph::ContainsInvalidMutualRecursion() const {
-  // To check for mutual recursion among CTEs in the query,
-  // we construct an abstract graph from the dependency
-  // graph we have constructed and check for cycles in this
-  // abstract representation. If a cycle is present, we
-  // report that the query contains mutual recursion.
+  /**
+   * To check for mutual recursion among CTEs in the query,
+   * we construct an abstract graph from the dependency
+   * graph we have constructed and check for cycles in this
+   * abstract representation. If a cycle is present, we
+   * report that the query contains mutual recursion.
+   */
 
   // In order to construct an abstract Graph representation,
   // we need to map each of the entries to a unique identifier.

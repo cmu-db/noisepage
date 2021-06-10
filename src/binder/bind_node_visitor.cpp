@@ -435,8 +435,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     if (!ref->HasSelect()) {
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     } else {
-      // Inductive CTEs are iterative/recursive CTEs that have a base case and inductively build up the table
-      const auto inductive = ref->IsInductiveCte();
+      // Inductive CTEs are iterative/recursive CTEs that have a base
+      // case and inductively build up the table; during this stage
+      // of binding, we care about the inductive structure of the CTE
+      // rather than its status as a syntactically-inductive CTE.
+      const auto inductive = ref->IsStructurallyInductiveCte();
       // Get the schema for non-inductive CTEs
       if (!inductive) {
         ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());

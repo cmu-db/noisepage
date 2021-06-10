@@ -2186,7 +2186,7 @@ class CteScan : public OperatorNodeContents<CteScan> {
    * @return a physical cte scan node operator
    */
   static Operator Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       std::string table_name, catalog::table_oid_t table_oid, parser::CTEType cte_type,
+                       std::string table_name, catalog::table_oid_t table_oid, parser::CteType cte_type,
                        std::vector<AnnotatedExpression> &&scan_predicate, catalog::Schema &&table_schema);
 
   /**
@@ -2217,34 +2217,22 @@ class CteScan : public OperatorNodeContents<CteScan> {
    */
   const std::string &GetTableName() const { return table_name_; }
 
-  /**
-   * @return The cte type of the table this is reading from
-   */
-  parser::CTEType GetCTEType() const { return cte_type_; }
+  /** @return The type of table over which this CTE scan is performed */
+  parser::CteType GetCTEType() const { return cte_type_; }
 
-  /**
-   * @return whether or not this is part of an iterative CTE
-   */
-  bool GetIsIterative() const { return cte_type_ == parser::CTEType::ITERATIVE; }
+  /** @return `true` if the CTE is recursive, `false` otherwise */
+  bool GetIsRecursive() const { return cte_type_ == parser::CteType::STRUCTURALLY_RECURSIVE; }
 
-  /**
-   * @return whether or not this is part of a recursive CTE
-   */
-  bool GetIsRecursive() const { return cte_type_ == parser::CTEType::RECURSIVE; }
+  /** @return `true` if the CTE is iterative, `false` otherwise */
+  bool GetIsIterative() const { return cte_type_ == parser::CteType::STRUCTURALLY_ITERATIVE; }
 
-  /**
-   * @return whether or not this is part of an inductive (recursive or iterative) cte
-   */
+  /** @return `true` if the CTE is inductive (recursive or iterative), `false` otherwise */
   bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
-  /**
-   * @return Schema of the table of this cte
-   */
+  /** @return The schema of the table of this CTE */
   const catalog::Schema &GetTableSchema() const { return table_schema_; }
 
-  /**
-   * @return The temporary table oid of this cte table
-   */
+  /** @return The temporary table oid of this CTE table */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
  private:
@@ -2252,7 +2240,7 @@ class CteScan : public OperatorNodeContents<CteScan> {
 
   std::string table_name_;
 
-  parser::CTEType cte_type_;
+  parser::CteType cte_type_;
 
   std::vector<AnnotatedExpression> scan_predicate_;
 

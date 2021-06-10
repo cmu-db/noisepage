@@ -145,10 +145,11 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for the columns
-   * @param cte_type The type of CTE this table is referencing (iterative, recursive, simple)
+   * @param cte_syntactic_type The syntactic type of the CTE referenced by this table
+   * @param cte_structural_type The structural type of the CTE referenced by this table
    */
   TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<AliasType> cte_col_aliases,
-           parser::CTEType cte_type)
+           parser::CteType cte_type)
       : type_(TableReferenceType::SELECT),
         alias_(std::move(alias)),
         select_(std::move(select)),
@@ -191,12 +192,12 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for column names
-   * @param cte_type the type of CTE (simple/recursive/iterative)
+   * @param cte_type the type of CTE
    * @return unique pointer to the created (CTE) table ref
    */
   static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select,
                                                              std::vector<AliasType> cte_col_aliases,
-                                                             parser::CTEType cte_type) {
+                                                             parser::CteType cte_type) {
     return std::make_unique<TableRef>(std::move(alias), std::move(select), std::move(cte_col_aliases), cte_type);
   }
 
@@ -216,16 +217,14 @@ class TableRef {
     return std::make_unique<TableRef>(std::move(join));
   }
 
-  /**
-   * @param v Visitor pattern for the table reference
-   */
+  /** @param v Visitor pattern for the table reference */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
-  /** @return table reference type*/
+  /** @return The table reference type */
   TableReferenceType GetTableReferenceType() { return type_; }
 
-  /** @return alias */
-  std::string GetAlias() {
+  /** @return The table alias */
+  const std::string &GetAlias() {
     if (alias_.empty()) {
       alias_ = table_info_->GetTableName();
     }
@@ -235,14 +234,22 @@ class TableRef {
   /** @return The column alias names */
   std::vector<AliasType> GetCteColumnAliases() { return cte_col_aliases_; }
 
-  /** @return The type of the CTE (CTEType;:INVALID if TableRef does not correspond to CTE) */
-  parser::CTEType GetCteType() { return cte_type_; }
+  /** @return The syntactic type of the CTE (CTEType;:INVALID if TableRef does not correspond to CTE) */
+  CteType GetCteType() const { return cte_type_; }
 
   /** @return `true` if this table reference represents a CTE temporary table, `false` otherwise */
-  bool IsCte() const { return (cte_type_ != CTEType::INVALID); }
+  bool IsCte() const { return cte_type_ != CteType::INVALID; }
 
   /** @return `true` if this table reference represents an inductive CTE, `false` otherwise */
-  bool IsInductiveCte() const { return (cte_type_ == CTEType::RECURSIVE) || (cte_type_ == CTEType::ITERATIVE); }
+  bool IsSyntacticallyInductiveCte() const {
+    return (cte_type_ == CteType::RECURSIVE) || (cte_type_ == CteType::ITERATIVE) ||
+           (cte_type_ == CteType::STRUCTURALLY_RECURSIVE) || (cte_type_ == CteType::STRUCTURALLY_ITERATIVE);
+  }
+
+  /** @return `true` if this table reference represents a CTE with inductive structure, `false` otherwise */
+  bool IsStructurallyInductiveCte() const {
+    return (cte_type_ == CteType::STRUCTURALLY_RECURSIVE) || (cte_type_ == CteType::STRUCTURALLY_ITERATIVE);
+  }
 
   /** @return The table name */
   const std::string &GetTableName() { return table_info_->GetTableName(); }
@@ -269,12 +276,10 @@ class TableRef {
     return list;
   }
 
-  /** @return join */
+  /** @return The join */
   common::ManagedPointer<JoinDefinition> GetJoin() { return common::ManagedPointer(join_); }
 
-  /**
-   * @return the hashed value of this table ref object
-   */
+  /** @return The hashed value of this table ref object */
   common::hash_t Hash() const;
 
   /**
@@ -329,7 +334,7 @@ class TableRef {
   std::vector<AliasType> cte_col_aliases_;
 
   // The CTE type represented by this table reference
-  parser::CTEType cte_type_{CTEType::INVALID};
+  CteType cte_type_{CteType::INVALID};
 
   // List of constitutent table references (if applicable)
   std::vector<std::unique_ptr<TableRef>> list_;

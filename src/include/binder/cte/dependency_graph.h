@@ -180,6 +180,14 @@ class DependencyGraph {
   bool ContainsInvalidForwardReference() const;
 
   /**
+   * Determine if the dependency between `src` and `dst` is an invalid forward reference.
+   * @param src The source table reference
+   * @param dst The destination table reference
+   * @return `true` if the dependency represents and invalid forward reference, `false` otherwise
+   */
+  static bool IsInvalidForwardReference(const ContextSensitiveTableRef &src, const ContextSensitiveTableRef &dst);
+
+  /**
    * Check mutual recursion constraints for the underlying dependency graph.
    *
    * Mutual recursion occurs when CTE A reads CTE B and CTE B reads CTE A.

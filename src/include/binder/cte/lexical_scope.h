@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <string_view>
+#include <vector>
 
 namespace noisepage::binder::cte {
 

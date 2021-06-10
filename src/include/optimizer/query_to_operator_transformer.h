@@ -186,7 +186,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   // TODO(tanujnay112) make all this a separate struct
   std::vector<std::string> cte_table_name_;
   std::vector<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> cte_expressions_;
-  std::vector<parser::CTEType> cte_type_;
+  std::vector<parser::CteType> cte_type_;
   std::vector<catalog::Schema> cte_schemas_;
   std::vector<catalog::table_oid_t> cte_oids_;
 

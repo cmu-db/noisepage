@@ -2140,23 +2140,18 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
           }
         }
 
-        // Determine if the SELECT that defines the CTE has inductive structure
-        const auto has_inductive_form = select->HasUnionSelect();
+        // Determine the type of the CTE based on the syntax of the
+        // expression as well as the expression's structure
+        const CteType cte_type = [&]() {
+          if (root->recursive_) {
+            return select->HasUnionSelect() ? CteType::STRUCTURALLY_RECURSIVE : CteType::RECURSIVE;
+          } else if (root->iterative_) {
+            return select->HasUnionSelect() ? CteType::STRUCTURALLY_ITERATIVE : CteType::ITERATIVE;
+          } else {
+            return CteType::SIMPLE;
+          }
+        }();
 
-        // Determine the CTE type based on the parse result
-        // as well as the actual structure of the statement
-        // that defines the CTE; if a CTE is declared as
-        // inductive yet does not actually have an inductive
-        // structure (i.e. no UNION / UNION ALL) we simply
-        // ignore the inductive declaration of the CTE and
-        // process it as if it were a simple one
-
-        CTEType cte_type = CTEType::SIMPLE;
-        if (root->recursive_ && has_inductive_form) {
-          cte_type = CTEType::RECURSIVE;
-        } else if (root->iterative_ && has_inductive_form) {
-          cte_type = CTEType::ITERATIVE;
-        }
         result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
         ctes.push_back(std::move(result));
         current = current->next;
