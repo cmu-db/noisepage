@@ -561,14 +561,14 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess0) {
   // Ambuguous reference
   const std::string sql = "WITH x(i) AS (SELECT 1), x(j) AS (SELECT 2) SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_THROW(DependencyGraph::Build(select), BinderException);
+  EXPECT_THROW(DependencyGraph::BuildUnchecked(select), BinderException);
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess1) {
   // Ambiguous reference
   const std::string sql = "WITH x(i) AS (WITH y(j) AS (SELECT 1), y(k) AS (SELECT 2) SELECT * FROM y) SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_THROW(DependencyGraph::Build(select), BinderException);
+  EXPECT_THROW(DependencyGraph::BuildUnchecked(select), BinderException);
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess2) {
@@ -576,7 +576,7 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess2) {
   const std::string sql =
       "WITH x(i) AS (SELECT * FROM a), y(j) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a) SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_THROW(DependencyGraph::Build(select), BinderException);
+  EXPECT_THROW(DependencyGraph::BuildUnchecked(select), BinderException);
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess3) {
@@ -584,32 +584,32 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess3) {
   const std::string sql =
       "WITH y(j) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), x(i) AS (SELECT * FROM a) SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_THROW(DependencyGraph::Build(select), BinderException);
+  EXPECT_THROW(DependencyGraph::BuildUnchecked(select), BinderException);
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess4) {
   const std::string sql = "SELECT * FROM TestTable;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess5) {
   const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess6) {
   const std::string sql = "WITH x(i) AS (SELECT 1), y(i) AS (SELECT * FROM x) SELECT * FROM y;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess7) {
   const std::string sql =
       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(i) AS (SELECT * FROM x) SELECT * FROM y;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
 }
 
 // ----------------------------------------------------------------------------
@@ -619,8 +619,8 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstructionSuccess7) {
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction0) {
   const std::string sql = "SELECT * FROM TestTable;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_EQ(graph->Order(), 1UL);
   EXPECT_EQ(graph->Size(), 0UL);
   EXPECT_TRUE(graph->HasVertex({"testtable", VertexType::READ, 0UL, 0UL}));
@@ -629,8 +629,8 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction0) {
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction1) {
   const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_EQ(graph->Order(), 2UL);
   EXPECT_EQ(graph->Size(), 0UL);
   EXPECT_TRUE(graph->HasVertex({"x", VertexType::WRITE, 0UL, 0UL}));
@@ -640,8 +640,8 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction1) {
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction2) {
   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_EQ(graph->Order(), 4UL);
   EXPECT_EQ(graph->Size(), 1UL);
 
@@ -657,8 +657,8 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction2) {
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction3) {
   const std::string sql = "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_EQ(graph->Order(), 4UL);
   EXPECT_EQ(graph->Size(), 1UL);
 
@@ -676,8 +676,8 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction4) {
       "WITH RECURSIVE x(i) AS (WITH y(m) AS (SELECT 1), a(n) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 2) "
       "SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_EQ(graph->Order(), 7UL);
   EXPECT_EQ(graph->Size(), 2UL);
 
@@ -700,8 +700,8 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction5) {
       "WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y), y(n) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT 2) "
       "SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_EQ(graph->Order(), 7UL);
   EXPECT_EQ(graph->Size(), 2UL);
 
@@ -722,8 +722,8 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction5) {
 TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction6) {
   const std::string sql = "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_EQ(graph->Order(), 5UL);
   EXPECT_EQ(graph->Size(), 2UL);
 
@@ -745,32 +745,32 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckGraphConstruction6) {
 TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion0) {
   const std::string sql = "SELECT * FROM TestTable";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_FALSE(graph->ContainsInvalidMutualRecursion());
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion1) {
   const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_FALSE(graph->ContainsInvalidMutualRecursion());
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion2) {
   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_FALSE(graph->ContainsInvalidMutualRecursion());
 }
 
 TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion3) {
   const std::string sql = "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_TRUE(graph->ContainsInvalidMutualRecursion());
 }
 
@@ -778,13 +778,71 @@ TEST_F(BinderCteDepdendencyGraphTest, CheckMutualRecursion4) {
   const std::string sql =
       "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM z), z(k) AS (SELECT * FROM x) SELECT * FROM z;";
   auto [_, select] = ParseToSelectStatement(sql);
-  EXPECT_NO_THROW(DependencyGraph::Build(select));
-  const auto graph = DependencyGraph::Build(select);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
   EXPECT_TRUE(graph->ContainsInvalidMutualRecursion());
 }
 
 // ----------------------------------------------------------------------------
 // Dependency Graph Validation: Forward References
 // ----------------------------------------------------------------------------
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckForwardReferences0) {
+  const std::string sql = "SELECT * FROM TestTable;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
+  EXPECT_FALSE(graph->ContainsInvalidForwardReference());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckForwardReferences1) {
+  const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
+  EXPECT_FALSE(graph->ContainsInvalidForwardReference());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckForwardReferences2) {
+  const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
+  EXPECT_FALSE(graph->ContainsInvalidForwardReference());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckForwardReferences3) {
+  const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
+  EXPECT_TRUE(graph->ContainsInvalidForwardReference());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckForwardReferences4) {
+  const std::string sql = "WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
+  EXPECT_FALSE(graph->ContainsInvalidForwardReference());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckForwardReferences5) {
+  const std::string sql =
+      "WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT * FROM x) SELECT * FROM a) SELECT * FROM y;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
+  EXPECT_FALSE(graph->ContainsInvalidForwardReference());
+}
+
+TEST_F(BinderCteDepdendencyGraphTest, CheckForwardReferences6) {
+  const std::string sql =
+      "WITH x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;";
+  auto [_, select] = ParseToSelectStatement(sql);
+  EXPECT_NO_THROW(DependencyGraph::BuildUnchecked(select));
+  const auto graph = DependencyGraph::BuildUnchecked(select);
+  EXPECT_FALSE(graph->ContainsInvalidForwardReference());
+}
 
 }  // namespace noisepage

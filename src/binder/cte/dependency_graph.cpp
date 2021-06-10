@@ -18,19 +18,43 @@ namespace noisepage::binder::cte {
 // Construction
 // ----------------------------------------------------------------------------
 
-std::unique_ptr<DependencyGraph> DependencyGraph::Build(common::ManagedPointer<parser::SelectStatement> root) {
+std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::SelectStatement> root) {
+  auto graph = std::make_unique<DependencyGraph>(std::make_unique<StructuredStatement>(root));
+  graph->Validate();
+  return graph;
+}
+
+std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::InsertStatement> root) {
+  auto graph = std::make_unique<DependencyGraph>(std::make_unique<StructuredStatement>(root));
+  graph->Validate();
+  return graph;
+}
+
+std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::UpdateStatement> root) {
+  auto graph = std::make_unique<DependencyGraph>(std::make_unique<StructuredStatement>(root));
+  graph->Validate();
+  return graph;
+}
+
+std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::DeleteStatement> root) {
+  auto graph = std::make_unique<DependencyGraph>(std::make_unique<StructuredStatement>(root));
+  graph->Validate();
+  return graph;
+}
+
+std::unique_ptr<DependencyGraph> DependencyGraph::BuildUnchecked(common::ManagedPointer<parser::SelectStatement> root) {
   return std::make_unique<DependencyGraph>(std::make_unique<StructuredStatement>(root));
 }
 
-std::unique_ptr<DependencyGraph> DependencyGraph::Build(common::ManagedPointer<parser::InsertStatement> root) {
+std::unique_ptr<DependencyGraph> DependencyGraph::BuildUnchecked(common::ManagedPointer<parser::InsertStatement> root) {
   return std::make_unique<DependencyGraph>(std::make_unique<StructuredStatement>(root));
 }
 
-std::unique_ptr<DependencyGraph> DependencyGraph::Build(common::ManagedPointer<parser::UpdateStatement> root) {
+std::unique_ptr<DependencyGraph> DependencyGraph::BuildUnchecked(common::ManagedPointer<parser::UpdateStatement> root) {
   return std::make_unique<DependencyGraph>(std::make_unique<StructuredStatement>(root));
 }
 
-std::unique_ptr<DependencyGraph> DependencyGraph::Build(common::ManagedPointer<parser::DeleteStatement> root) {
+std::unique_ptr<DependencyGraph> DependencyGraph::BuildUnchecked(common::ManagedPointer<parser::DeleteStatement> root) {
   return std::make_unique<DependencyGraph>(std::make_unique<StructuredStatement>(root));
 }
 
@@ -295,9 +319,15 @@ ContextSensitiveTableRef *DependencyGraph::FindRef(std::string_view alias, RefTy
 // Graph Validation
 // ----------------------------------------------------------------------------
 
-bool DependencyGraph::Validate() const {
-  const std::vector<bool> violations{ContainsInvalidForwardReference(), ContainsInvalidMutualRecursion()};
-  return std::none_of(violations.cbegin(), violations.cend(), [](const bool r) { return r; });
+void DependencyGraph::Validate() const {
+  if (ContainsInvalidMutualRecursion()) {
+    throw BINDER_EXCEPTION("Mutual recursion is not supported", common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
+  }
+  if (ContainsInvalidForwardReference()) {
+    // TODO(Kyle): Is there a better error code to provide for this?
+    throw BINDER_EXCEPTION("Invalid forward reference; use WITH RECURSIVE",
+                           common::ErrorCode::ERRCODE_SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION);
+  }
 }
 
 bool DependencyGraph::ContainsInvalidForwardReference() const {
@@ -332,7 +362,7 @@ bool DependencyGraph::IsInvalidForwardReference(const ContextSensitiveTableRef &
   const auto &scope = *src.EnclosingScope();
   const std::size_t src_position = scope.PositionOf(src.Table()->GetAlias(), src.Type());
   const std::size_t dst_position = scope.PositionOf(dst.Table()->GetAlias(), dst.Type());
-  return (dst_position > src_position) ? src.Table()->IsSyntacticallyInductiveCte() : false;
+  return (dst_position > src_position) ? !src.Table()->IsSyntacticallyInductiveCte() : false;
 }
 
 bool DependencyGraph::ContainsInvalidMutualRecursion() const {

@@ -164,7 +164,7 @@ class NoisePageServer:
         finally:
             unix_socket = os.path.join("/tmp/", f".s.PGSQL.{self.db_port}")
             if os.path.exists(unix_socket):
-                os.remove(unix_socket)
+                # os.remove(unix_socket)
                 LOG.info(f"Removing: {unix_socket}")
         self.print_db_logs()
         exit_code = self.db_process.returncode

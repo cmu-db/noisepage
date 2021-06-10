@@ -2145,7 +2145,8 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
         const CteType cte_type = [&]() {
           if (root->recursive_) {
             return select->HasUnionSelect() ? CteType::STRUCTURALLY_RECURSIVE : CteType::RECURSIVE;
-          } else if (root->iterative_) {
+          }
+          if (root->iterative_) {
             return select->HasUnionSelect() ? CteType::STRUCTURALLY_ITERATIVE : CteType::ITERATIVE;
           } else {
             return CteType::SIMPLE;

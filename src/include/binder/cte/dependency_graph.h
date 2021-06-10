@@ -134,6 +134,34 @@ class DependencyGraph {
    */
   static std::unique_ptr<DependencyGraph> Build(common::ManagedPointer<parser::DeleteStatement> root);
 
+  /**
+   * Construct a new dependency graph instance from a root SELECT statement.
+   * NOTE: Validation of the completed graph is NOT performed.
+   * @param root The root statement
+   */
+  static std::unique_ptr<DependencyGraph> BuildUnchecked(common::ManagedPointer<parser::SelectStatement> root);
+
+  /**
+   * Construct a new dependency graph instance from a root SELECT statement.
+   * NOTE: Validation of the completed graph is NOT performed.
+   * @param root The root statement
+   */
+  static std::unique_ptr<DependencyGraph> BuildUnchecked(common::ManagedPointer<parser::InsertStatement> root);
+
+  /**
+   * Construct a new dependency graph instance from a root SELECT statement.
+   * NOTE: Validation of the completed graph is NOT performed.
+   * @param root The root statement
+   */
+  static std::unique_ptr<DependencyGraph> BuildUnchecked(common::ManagedPointer<parser::UpdateStatement> root);
+
+  /**
+   * Construct a new dependency graph instance from a root SELECT statement.
+   * NOTE: Validation of the completed graph is NOT performed.
+   * @param root The root statement
+   */
+  static std::unique_ptr<DependencyGraph> BuildUnchecked(common::ManagedPointer<parser::DeleteStatement> root);
+
   /** @return The order of the graph (cardinality of the vertex set) */
   std::size_t Order() const;
 
@@ -148,9 +176,10 @@ class DependencyGraph {
 
   /**
    * Check all consistency constraints for the underlying dependency graph.
-   * @return `true` if the graph is valid, `false` otherwise
+   * @throw BINDER_EXCEPTION if any of the contraints are violated. The
+   * message attached to the exception reflects the details of the violation.
    */
-  bool Validate() const;
+  void Validate() const;
 
   /**
    * Check forward reference constraints for the underlying dependency graph.
