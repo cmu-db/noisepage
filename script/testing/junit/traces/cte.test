@@ -267,3 +267,219 @@ WITH q1(x,y) AS (SELECT 1,2) SELECT * FROM q1, q1 AS q2;
 1
 2
 
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- Custom Cases Targeting Specific Functionality
+
+statement ok
+
+
+statement ok
+-- TODO(Kyle): Currently, we can't handle any of the queries below.
+
+statement ok
+-- Eventually, we need to add the functionality required to support
+
+statement ok
+-- these queries (and others like them). When that time comes, these
+
+statement ok
+-- will serve as useful test cases.
+
+statement ok
+
+
+statement ok
+-- -- variations with nested CTE, all valid
+
+statement ok
+-- -- CTE y may refer to CTE x because they are defined at the same scope
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT i FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT j FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT i FROM x) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- variations with nested CTE, all invalid
+
+statement ok
+-- -- CTE y may not refer to CTE a because a is defined within the scope of CTE x
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT * FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT m FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM a) SELECT j FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT m FROM a) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- variations with nested CTE, all valid
+
+statement ok
+-- -- CTE a within CTE y may refer to CTE x because x is defined at a broader scope
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT * FROM x) SELECT * FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT i FROM x) SELECT * FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT * FROM x) SELECT m FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT * FROM x) SELECT * FROM a) SELECT j FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT i FROM x) SELECT m FROM a) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- forward references in non-recursive CTEs, all invalid
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT i FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT j FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT i FROM x) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- mutually-recursive references in recursive CTEs, all invalid
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT j FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT i FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT j FROM y;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT j FROM y), y(j) AS (SELECT i FROM x) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- forward references in non-recursive CTEs, all invalid
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+-- WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+
+
+statement ok
+-- -- forward references in recursive CTEs, all valid
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+
+
+statement ok
+-- -- forward reference from nested, non-recursive CTE, all invalid
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT j FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT m FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT j FROM y) SELECT m FROM a), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+
+
+statement ok
+-- -- forward reference from nested, recursive CTE, all valid
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT j FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT m FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT j FROM y) SELECT m FROM a), y(j) AS (SELECT 1) SELECT i FROM x;
+

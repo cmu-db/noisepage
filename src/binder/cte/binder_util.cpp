@@ -10,7 +10,7 @@ namespace noisepage::binder::cte {
 
 std::vector<common::ManagedPointer<parser::TableRef>> BinderUtil::GetSelectWithOrder(
     common::ManagedPointer<parser::SelectStatement> select_statement) {
-  return {};
+  throw NOT_IMPLEMENTED_EXCEPTION("Statement Dependency Analysis for WITH ... SELECT Not Implemeneted");
 }
 
 std::vector<common::ManagedPointer<parser::TableRef>> BinderUtil::GetInsertWithOrder(

@@ -6,7 +6,7 @@
 namespace noisepage::execution::sql {
 
 /**
- * An iterator over a CTE Temp table's data
+ * An iterator over a CTE Temp table's data.
  */
 class EXPORT IndCteScanIterator {
  public:
@@ -15,6 +15,11 @@ class EXPORT IndCteScanIterator {
    */
   IndCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *schema_cols_ids,
                      uint32_t *schema_cols_type, uint32_t num_schema_cols, bool is_recursive);
+
+  /**
+   * Destructor
+   */
+  ~IndCteScanIterator() = default;
 
   /**
    * @return Returns the temporary table that the cte has made
@@ -55,32 +60,39 @@ class EXPORT IndCteScanIterator {
   bool Accumulate();
 
   /**
-   * Destructor
-   */
-  ~IndCteScanIterator() = default;
-
-  /**
    * This class cannot be copied or moved
    */
   DISALLOW_COPY_AND_MOVE(IndCteScanIterator);
 
  private:
+  /** The execution context */
   exec::ExecutionContext *exec_ctx_;
-  // Three CTEScanIterators that we use to store various results
-  // cte_scan_read and cte_scan_write are always pointers to one of these each,
-  // though which iterator they point to is not necessarily constant
+
+  /**
+   * Three CTEScanIterators that we use to store various results;
+   * cte_scan_read and cte_scan_write are always pointers to one of these each,
+   * though which iterator they point to varies over the lifetime of the operator
+   */
   CteScanIterator cte_scan_1_;
   CteScanIterator cte_scan_2_;
   CteScanIterator cte_scan_3_;
 
-  // Read table containing the results of the inductive queries so far
+  /** Read table containing the results of the inductive queries so far */
   CteScanIterator *cte_scan_read_;
-  // Write table containing the results of the next inductive iteration
-  // These results are then moved into the read table
+  /** Write table containing the results of the next inductive iteration; these results are then moved into the read
+   * table */
   CteScanIterator *cte_scan_write_;
+
+  /** The OID for the underlying temporary table */
   catalog::table_oid_t table_oid_;
+
+  /** The associated transaction */
   common::ManagedPointer<transaction::TransactionContext> txn_;
+
+  /** Flag used internally to track state */
   bool written_;
+
+  /** `true` if the CTE is syntactically recursive */
   bool is_recursive_;
 };
 

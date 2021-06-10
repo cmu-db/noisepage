@@ -5,10 +5,9 @@
 #include "storage/sql_table.h"
 
 namespace noisepage::execution::sql {
-class TableVectorIterator;
 
 /**
- * An iterator over a CTE Temp table's data
+ * An iterator over a CTE Temp table's data.
  */
 class EXPORT CteScanIterator {
  public:
@@ -17,6 +16,11 @@ class EXPORT CteScanIterator {
    */
   CteScanIterator(execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
                   uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols);
+
+  /**
+   * Destructor
+   */
+  ~CteScanIterator() = default;
 
   /**
    * @return Returns the temporary table that the cte has made
@@ -39,20 +43,20 @@ class EXPORT CteScanIterator {
   storage::TupleSlot TableInsert();
 
   /**
-   * Destructor
-   */
-  ~CteScanIterator() = default;
-
-  /**
    * This class cannot be copied or moved
    */
   DISALLOW_COPY_AND_MOVE(CteScanIterator);
 
  private:
+  /** The execution context */
   noisepage::execution::exec::ExecutionContext *exec_ctx_;
+  /** The underlying temporary table */
   storage::SqlTable *cte_table_;
+  /** The OID for the underlying temporary table */
   catalog::table_oid_t cte_table_oid_;
+  /** The OIDs for the columns of the underlying table */
   std::vector<catalog::col_oid_t> col_oids_;
+  /** The associated REDO record */
   storage::RedoRecord *table_redo_;
 };
 
