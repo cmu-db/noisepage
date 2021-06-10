@@ -38,6 +38,7 @@ class Vertex {
   /**
    * Construct a new Vertex instance.
    * @param alias The vertex alias
+   * @param type The type of the reference
    * @param depth The vertex depth
    * @param position The vertex position
    */

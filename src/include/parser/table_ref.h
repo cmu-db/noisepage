@@ -145,8 +145,7 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for the columns
-   * @param cte_syntactic_type The syntactic type of the CTE referenced by this table
-   * @param cte_structural_type The structural type of the CTE referenced by this table
+   * @param cte_type The type of the CTE referenced by this table
    */
   TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<AliasType> cte_col_aliases,
            parser::CteType cte_type)
