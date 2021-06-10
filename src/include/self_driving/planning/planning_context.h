@@ -1,10 +1,12 @@
 #pragma once
 
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
@@ -161,7 +163,7 @@ class PlanningContext {
   void AddOUInference(ExecutionOperatingUnitType ou_type, const std::vector<int> &feature, std::vector<double> label) {
     ou_inference_cache_.try_emplace(ou_type);
     ou_inference_cache_[ou_type][feature] = std::make_unique<std::vector<double>>(std::move(label));
-  };
+  }
 
   bool HasOUInference(ExecutionOperatingUnitType ou_type, const std::vector<int> &feature) const {
     if (ou_inference_cache_.find(ou_type) == ou_inference_cache_.end()) return false;
@@ -174,11 +176,11 @@ class PlanningContext {
     NOISEPAGE_ASSERT(ou_inference_cache_[ou_type].find(feature) != ou_inference_cache_[ou_type].end(),
                      "Cannot find feature");
     return ou_inference_cache_.at(ou_type).at(feature).get();
-  };
+  }
 
   void AddInterferenceInference(const std::vector<int> &feature, std::vector<double> label) {
     interference_inference_cache_[feature] = std::make_unique<std::vector<double>>(std::move(label));
-  };
+  }
 
   bool HasInterferenceInference(const std::vector<int> &feature) const {
     return interference_inference_cache_.find(feature) != interference_inference_cache_.end();
@@ -188,7 +190,7 @@ class PlanningContext {
     NOISEPAGE_ASSERT(interference_inference_cache_.find(feature) != interference_inference_cache_.end(),
                      "Cannot find feature");
     return interference_inference_cache_.at(feature).get();
-  };
+  }
 
  private:
   const std::string ou_model_save_path_;

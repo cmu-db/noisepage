@@ -143,7 +143,7 @@ common::ManagedPointer<TreeNode> TreeNode::Selection(
   return curr;
 }
 
-void TreeNode::ChildrenRollout(PlanningContext &planning_context,
+void TreeNode::ChildrenRollout(PlanningContext *planning_context,
                                common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t action_horizon,
                                uint64_t tree_end_segment_index,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
@@ -172,19 +172,19 @@ void TreeNode::ChildrenRollout(PlanningContext &planning_context,
     // We may apply actions to reduce memory consumption in future, so we only need to evaluate the memory constraint
     // up to action_plan_end_index_
     for (auto segment_index = action_start_segment_index_; segment_index <= action_plan_end_index_; segment_index++) {
-      size_t memory = PilotUtil::CalculateMemoryConsumption(planning_context.GetMemoryInfo(), new_action_state,
+      size_t memory = PilotUtil::CalculateMemoryConsumption(planning_context->GetMemoryInfo(), new_action_state,
                                                             segment_index, action_map);
       if (memory > memory_constraint) satisfy_memory_constraint = false;
     }
     // For bookkeeping purpose
     size_t action_plan_end_memory_consumption = PilotUtil::CalculateMemoryConsumption(
-        planning_context.GetMemoryInfo(), new_action_state, action_plan_end_index_, action_map);
+        planning_context->GetMemoryInfo(), new_action_state, action_plan_end_index_, action_map);
 
     // Initialize to large enough value when the memory constraint is not satisfied
     double child_segment_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
     double later_segments_cost = MEMORY_CONSUMPTION_VIOLATION_COST;
     if (satisfy_memory_constraint) {
-      PilotUtil::ApplyAction(planning_context, action_ptr->GetSQLCommand(), action_ptr->GetDatabaseOid(),
+      PilotUtil::ApplyAction(*planning_context, action_ptr->GetSQLCommand(), action_ptr->GetDatabaseOid(),
                              Pilot::WHAT_IF);
 
       new_action_state.SetIntervals(action_start_segment_index_, action_plan_end_index_);
@@ -218,7 +218,7 @@ void TreeNode::ChildrenRollout(PlanningContext &planning_context,
 
       // apply one reverse action to undo the above
       auto rev_actions = action_ptr->GetReverseActions();
-      PilotUtil::ApplyAction(planning_context, action_map.at(rev_actions[0])->GetSQLCommand(),
+      PilotUtil::ApplyAction(*planning_context, action_map.at(rev_actions[0])->GetSQLCommand(),
                              action_map.at(rev_actions[0])->GetDatabaseOid(), Pilot::WHAT_IF);
     }
 

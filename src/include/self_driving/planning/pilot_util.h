@@ -75,7 +75,7 @@ class PilotUtil {
    * @param pipeline_data collected pipeline metrics after executing the forecasted queries
    * @param pipeline_to_prediction list of tuples of query id, pipeline id and result of prediction
    */
-  static void OUModelInference(pilot::PlanningContext &planning_context,
+  static void OUModelInference(pilot::PlanningContext *planning_context,
                                const std::vector<execution::query_id_t> &pipeline_qids,
                                const std::list<metrics::PipelineMetricRawData::PipelineData> &pipeline_data,
                                std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
@@ -93,7 +93,7 @@ class PilotUtil {
    * @param interference_result_matrix Stores the inference results as return values
    */
   static void InterferenceModelInference(
-      pilot::PlanningContext &planning_context,
+      PlanningContext *planning_context,
       const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
                      std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
       common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
@@ -131,7 +131,7 @@ class PilotUtil {
    * @param end_segment_index end index (inclusive)
    * @return total latency of queries calculated based on their num of exec
    */
-  static double ComputeCost(pilot::PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
+  static double ComputeCost(pilot::PlanningContext *planning_context, common::ManagedPointer<WorkloadForecast> forecast,
                             uint64_t start_segment_index, uint64_t end_segment_index);
 
   /**
@@ -140,7 +140,7 @@ class PilotUtil {
    * @param create_action Pointer to the CreateIndexAction
    * @param drop_action Pointer to the DropIndexAction (reverse action)
    */
-  static void EstimateCreateIndexAction(pilot::PlanningContext &planning_context,
+  static void EstimateCreateIndexAction(pilot::PlanningContext *planning_context,
                                         pilot::CreateIndexAction *create_action, pilot::DropIndexAction *drop_action);
 
   /**
@@ -202,7 +202,7 @@ class PilotUtil {
    * @param segment_to_offset start index of ou records belonging to a segment in input to the interference model
    * @param interference_result_matrix stores the final results of the interference model
    */
-  static void ExecuteForecast(pilot::PlanningContext &planning_context,
+  static void ExecuteForecast(pilot::PlanningContext *planning_context,
                               common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                               uint64_t start_segment_index, uint64_t end_segment_index,
                               std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
