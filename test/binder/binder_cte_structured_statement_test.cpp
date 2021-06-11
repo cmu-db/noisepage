@@ -7,6 +7,7 @@
 #include "main/db_main.h"
 #include "parser/postgresparser.h"
 #include "parser/statements.h"
+#include "test_util/binder_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/transaction_manager.h"
 
@@ -90,26 +91,9 @@ class BinderCteStructuredStatementTest : public TerrierTest {
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 };
 
-/**
- * Get the SELECT statement from a raw SQL query.
- * @param sql The query string
- * @return A pair of the parse tree and the SELECT statement;
- * we must return both in order to extend the parse tree's lifetime
- */
-static std::pair<std::unique_ptr<parser::ParseResult>, common::ManagedPointer<parser::SelectStatement>>
-ParseToSelectStatement(const std::string &sql) {
-  auto parse_tree = parser::PostgresParser::BuildParseTree(sql);
-  if (parse_tree->GetStatement(0)->GetType() != parser::StatementType::SELECT) {
-    // Just die, don't really care how
-    throw std::runtime_error{""};
-  }
-  auto select = parse_tree->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
-  return std::make_pair(std::move(parse_tree), select);
-}
-
 TEST_F(BinderCteStructuredStatementTest, ItWorks) {
   const std::string sql = "SELECT * FROM TestTable;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
   EXPECT_EQ(select->GetDepth(), -1);
   EXPECT_TRUE(select->HasSelectTable());
   EXPECT_EQ(select->GetSelectTable()->GetAlias(), "testtable");
@@ -117,7 +101,7 @@ TEST_F(BinderCteStructuredStatementTest, ItWorks) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement0) {
   const std::string sql = "SELECT * FROM TestTable;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(1UL, statement.RefCount());
@@ -127,7 +111,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement0) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement1) {
   const std::string sql = "WITH x(i) AS (SELECT 1) SELECT * FROM x;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(2UL, statement.RefCount());
@@ -138,7 +122,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement1) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement2) {
   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT 1) SELECT * FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(3UL, statement.RefCount());
@@ -150,7 +134,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement2) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement3) {
   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT 1), z(k) AS (SELECT 1) SELECT * FROM z;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
@@ -163,7 +147,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement3) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement4) {
   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
@@ -176,7 +160,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement4) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement5) {
   const std::string sql = "WITH x(i) AS (SELECT 1), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
@@ -189,7 +173,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement5) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement6) {
   const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
@@ -202,7 +186,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement6) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement7) {
   const std::string sql = "WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT * FROM x;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(4UL, statement.RefCount());
@@ -215,7 +199,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement7) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement8) {
   const std::string sql = "WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(5UL, statement.RefCount());
@@ -229,7 +213,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement8) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement9) {
   const std::string sql = "WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(5UL, statement.RefCount());
@@ -244,7 +228,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement9) {
 TEST_F(BinderCteStructuredStatementTest, BuildStatement10) {
   const std::string sql =
       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(6UL, statement.RefCount());
@@ -263,7 +247,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement10) {
 TEST_F(BinderCteStructuredStatementTest, BuildStatement11) {
   const std::string sql =
       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(6UL, statement.RefCount());
@@ -282,7 +266,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement11) {
 TEST_F(BinderCteStructuredStatementTest, BuildStatement12) {
   const std::string sql =
       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT i FROM x) SELECT * FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(6UL, statement.RefCount());
@@ -301,7 +285,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement12) {
 TEST_F(BinderCteStructuredStatementTest, BuildStatement13) {
   const std::string sql =
       "WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT i FROM x) SELECT j FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(6UL, statement.RefCount());
@@ -319,7 +303,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement13) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement14) {
   const std::string sql = "WITH x(i) AS (SELECT 1 UNION SELECT 2) SELECT * FROM x;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(2UL, statement.RefCount());
@@ -331,7 +315,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement14) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement15) {
   const std::string sql = "WITH x(i) AS (SELECT 1 UNION ALL SELECT 2) SELECT * FROM x;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(2UL, statement.RefCount());
@@ -343,7 +327,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement15) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement16) {
   const std::string sql = "WITH RECURSIVE x(i) AS (SELECT 1 UNION SELECT i FROM x WHERE i < 5) SELECT * FROM x;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(3UL, statement.RefCount());
@@ -356,7 +340,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement16) {
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement17) {
   const std::string sql = "WITH RECURSIVE x(i) AS (SELECT 1 UNION ALL SELECT i FROM x WHERE i < 5) SELECT * FROM x;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(3UL, statement.RefCount());
@@ -371,7 +355,7 @@ TEST_F(BinderCteStructuredStatementTest, BuildStatement18) {
   const std::string sql =
       "WITH RECURSIVE x(i) AS (SELECT 1 UNION ALL SELECT i FROM x WHERE i < 5), y(j) AS (SELECT * FROM x) SELECT * "
       "FROM y;";
-  auto [_, select] = ParseToSelectStatement(sql);
+  auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
 
   StructuredStatement statement{select};
   EXPECT_EQ(5UL, statement.RefCount());
