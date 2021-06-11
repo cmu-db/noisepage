@@ -12,7 +12,6 @@ WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JO
 WITH cte(x) AS (SELECT 1) SELECT * FROM cte;
 
 -- A CTE declared as recursive but without recursive structure
--- TODO: We fail during code generation
 WITH RECURSIVE cte(x) AS (SELECT 1) SELECT * FROM cte;
 
 -----------------------------------------------------------
@@ -34,7 +33,7 @@ WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t WHERE n < 100) SELE
 -- TODO: We loop on this
 -- WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t) SELECT * FROM t LIMIT 10;
 
--- TODO: Fails in parser (relation 'y' does not exist)
+-- TODO: Fails in binder (relation 'y' does not exist)
 -- WITH RECURSIVE x(id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5), y(id) AS (SELECT 1) SELECT * FROM x;
 
 -- variant of the above with order of CTEs swapped
@@ -57,6 +56,9 @@ INSERT INTO department VALUES (7, 5, 'G');
 -- WITH RECURSIVE subdepartment AS (SELECT name as root_name, * FROM department WHERE name = 'A' UNION ALL SELECT sd.root_name, d.* FROM department AS d, subdepartment AS sd WHERE d.parent_department = sd.id) SELECT * FROM subdepartment ORDER BY name;
 
 -- handle the case were recursive structure is ignored
+WITH RECURSIVE subdepartment AS (SELECT * FROM department WHERE name = 'A') SELECT * FROM subdepartment;
+
+-- add an outer ORDER BY 
 -- TODO: Crashes the DBMS
 -- WITH RECURSIVE subdepartment AS (SELECT * FROM department WHERE name = 'A') SELECT * FROM subdepartment ORDER BY name;
 

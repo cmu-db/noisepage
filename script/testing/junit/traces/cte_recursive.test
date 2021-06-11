@@ -50,9 +50,6 @@ statement ok
 statement ok
 -- A CTE declared as recursive but without recursive structure
 
-statement ok
--- TODO: We fail during code generation
-
 query I rowsort
 WITH RECURSIVE cte(x) AS (SELECT 1) SELECT * FROM cte;
 ----
@@ -188,6 +185,19 @@ statement ok
 
 statement ok
 -- handle the case were recursive structure is ignored
+
+query IIT rowsort
+WITH RECURSIVE subdepartment AS (SELECT * FROM department WHERE name = 'A') SELECT * FROM subdepartment;
+----
+1
+0
+A
+
+statement ok
+
+
+statement ok
+-- add an outer ORDER BY
 
 statement ok
 -- TODO: Crashes the DBMS
