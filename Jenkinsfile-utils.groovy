@@ -227,34 +227,8 @@ void stageModeling() {
     ])
     buildNoisePageTarget("execution_runners")
 
-    // The forecaster_standalone script runs TPC-C with query trace enabled.
-    // The forecaster_standalone script uses SET to enable query trace.
-    // --pattern_iter determines how many times to run a sequence of TPC-C phases.
-    // --pattern_iter is set to 3 (magic number) to generate enough data for training and testing.
-    sh script :'''
-    cd build
-    PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
-    ''', label: 'Generate training data for forecasting model.'
-
-    // This script runs TPC-C with pipeline metrics enabled, saving to build/concurrent_runner_input/pipeline.csv.
-    sh script :'''
-    cd build
-    PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --record_pipeline_metrics_with_counters --pattern_iter=1
-    mkdir concurrent_runner_input
-    mv pipeline.csv concurrent_runner_input
-    ''', label: 'Interference model training data generation'
-
-    // The parameters to the execution_runners target are arbitrarily picked to complete tests within 10 minutes while
-    // still exercising all OUs and generating a reasonable amount of training data.
-    //
-    // Specifically, the parameters chosen are:
-    // - execution_runner_rows_limit=100, which sets the max number of rows/tuples processed to be 100 (small table).
-    // - rerun=0, which skips rerun since we are not testing benchmark performance here.
-    // - warm_num=1, which also tests the warm up phase for the execution_runners.
-    sh script :'''
-    cd build/bin
-    ../benchmark/execution_runners --execution_runner_rows_limit=100 --rerun=0 --warm_num=1
-    ''', label: 'OU model training data generation'
+    selfDrivingGenerateTrainingDataForecast()
+    selfDrivingTrainModels()
 
     // Recompile the noisepage DBMS in Debug mode with code coverage.
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
@@ -288,38 +262,9 @@ void stagePilot() {
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
         '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON'
     ])
-
     buildNoisePageTarget("execution_runners")
-    // The parameters to the execution_runners target are arbitrarily picked to complete tests within 10 minutes while
-    // still exercising all OUs and generating a reasonable amount of training data.
-    //
-    // Specifically, the parameters chosen are:
-    // - execution_runner_rows_limit=100, which sets the max number of rows/tuples processed to be 100 (small table).
-    // - rerun=0, which skips rerun since we are not testing benchmark performance here.
-    // - warm_num=1, which also tests the warm up phase for the execution_runners.
-    sh script :'''
-    cd build/bin
-    ../benchmark/execution_runners --execution_runner_rows_limit=100 --rerun=0 --warm_num=1
-    ''', label: 'OU model training data generation'
 
-    // This generates execution_SEQ(numbers).csv files in the build/bin directory.
-
-    sh script:'''
-    cd build/bin
-    mkdir ou_runner_input
-    mkdir ou_runner_model_results
-    mkdir ou_runner_trained_model
-    ''', label: 'Create folders for OU model training.'
-
-    sh script:'''
-    cd build/bin
-    mv *SEQ*.csv ou_runner_input
-    ''', label: 'Move OU model training data to the ou_runner_input folder.'
-
-    sh script:'''
-    cd build/bin
-    PYTHONPATH=../.. python3 -m script.self_driving.modeling.ou_model_trainer --input_path=./ou_runner_input --model_results_path=./ou_runner_model_results --save_path=./ou_runner_trained_model
-    ''', label: 'Train OU models.'
+    trainSelfDrivingModels()
 
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
         '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON'
@@ -327,7 +272,9 @@ void stagePilot() {
 
     sh script :'''
     cd build
-    PYTHONPATH=.. timeout 20m python3 -m script.testing.self_driving.jenkins
+    export BUILD_ABS_PATH=`pwd`
+    cd bin
+    PYTHONPATH=../.. timeout 20m python3 -m script.testing.self_driving.jenkins
     ''', label: 'Test the pilot planning.'
 
     sh script :'''
@@ -464,6 +411,25 @@ void buildNoisePageTarget(String target) {
     cd build
     ninja $target
     """
+}
+
+/** Generate training data for the forecast model. */
+void selfDrivingGenerateTrainingDataForecast() {
+    // The forecaster_standalone script runs TPC-C with query trace enabled to generate training data for forecasting.
+    // --pattern_iter determines how many times to run a sequence of TPC-C phases.
+    // --pattern_iter is set to 3 (magic number) to generate enough data for training and testing.
+    sh script :'''
+    cd build
+    PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
+    ''', label: 'Generate training data for forecasting model.'
+}
+
+/** Train the OU and interference models. The noisepage and execution_runners targets must have been built! */
+void selfDrivingTrainModels() {
+    sh script :'''
+    cd build/bin
+    ../../script/self_driving/train_models.sh
+    ''', label: 'Train OU and interference models.'
 }
 
 /** Collect and process coverage information from the build directory; upload coverage to Codecov. */
