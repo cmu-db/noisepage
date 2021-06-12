@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # This script trains the OU and interference models for self-driving.
 # The script must be run from the bin folder, e.g., noisepage/build/bin.
 #
