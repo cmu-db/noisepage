@@ -3,7 +3,6 @@
 #include <memory>
 #include <utility>
 
-#include "common/action_context.h"
 #include "common/error/error_code.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/exec/execution_context.h"
@@ -13,19 +12,19 @@
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "network/postgres/statement.h"
-#include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/model_server/model_server_manager.h"
 #include "self_driving/planning/mcts/monte_carlo_tree_search.h"
 #include "self_driving/planning/pilot_util.h"
+#include "self_driving/planning/seq_tuning/sequence_tuning.h"
 #include "settings/settings_manager.h"
 #include "task/task_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/query_exec_util.h"
 #include "util/self_driving_recording_util.h"
 
-namespace noisepage::selfdriving {
+namespace noisepage::selfdriving::pilot {
 
 Pilot::Pilot(std::string ou_model_save_path, std::string interference_model_save_path,
              std::string forecast_model_save_path, common::ManagedPointer<catalog::Catalog> catalog,
@@ -37,29 +36,23 @@ Pilot::Pilot(std::string ou_model_save_path, std::string interference_model_save
              std::unique_ptr<util::QueryExecUtil> query_exec_util,
              common::ManagedPointer<task::TaskManager> task_manager, uint64_t workload_forecast_interval,
              uint64_t sequence_length, uint64_t horizon_length)
-    : ou_model_save_path_(std::move(ou_model_save_path)),
-      interference_model_save_path_(std::move(interference_model_save_path)),
-      catalog_(catalog),
-      metrics_thread_(metrics_thread),
-      model_server_manager_(model_server_manager),
-      settings_manager_(settings_manager),
-      stats_storage_(stats_storage),
-      txn_manager_(txn_manager),
-      query_exec_util_(std::move(query_exec_util)),
-      task_manager_(task_manager),
+    : planning_context_(std::move(ou_model_save_path), std::move(interference_model_save_path), catalog, metrics_thread,
+                        model_server_manager, settings_manager, stats_storage, txn_manager, std::move(query_exec_util),
+                        task_manager),
       forecaster_(std::move(forecast_model_save_path), metrics_thread, model_server_manager, settings_manager,
                   task_manager, workload_forecast_interval, sequence_length, horizon_length) {
   forecast_ = nullptr;
-  while (!model_server_manager_->ModelServerStarted()) {
+  while (!planning_context_.GetModelServerManager()->ModelServerStarted()) {
   }
 }
 
 void Pilot::PerformPlanning() {
   // Suspend the metrics thread while we are handling the data (snapshot).
-  metrics_thread_->PauseMetrics();
+  auto metrics_thread = planning_context_.GetMetricsThread();
+  metrics_thread->PauseMetrics();
 
   // Populate the workload forecast
-  auto metrics_output = metrics_thread_->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
+  auto metrics_output = metrics_thread->GetMetricsManager()->GetMetricOutput(metrics::MetricsComponent::QUERY_TRACE);
   bool metrics_in_db =
       metrics_output == metrics::MetricsOutput::DB || metrics_output == metrics::MetricsOutput::CSV_AND_DB;
   forecast_ = forecaster_.LoadWorkloadForecast(
@@ -67,31 +60,42 @@ void Pilot::PerformPlanning() {
                     : Forecaster::WorkloadForecastInitMode::DISK_WITH_INFERENCE);
   if (forecast_ == nullptr) {
     SELFDRIVING_LOG_ERROR("Unable to initialize the WorkloadForecast information");
-    metrics_thread_->ResumeMetrics();
+    metrics_thread->ResumeMetrics();
     return;
   }
 
   // Perform planning
-  std::vector<pilot::ActionTreeNode> best_action_seq;
-  Pilot::ActionSearch(&best_action_seq);
+  if (planning_context_.GetSettingsManager()->GetBool(settings::Param::enable_seq_tuning)) {
+    std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_actions_seq;
+    Pilot::ActionSearchBaseline(&best_actions_seq);
+  } else {
+    std::vector<ActionTreeNode> best_action_seq;
+    Pilot::ActionSearch(&best_action_seq);
+  }
 
-  metrics_thread_->ResumeMetrics();
+  metrics_thread->ResumeMetrics();
 }
 
-void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
+void Pilot::ActionSearch(std::vector<ActionTreeNode> *best_action_seq) {
+  // Put every database into planning_context to create transaction context and catalog accessor
+  std::set<catalog::db_oid_t> db_oids = forecast_->GetDBOidSet();
+  for (auto db_oid : db_oids) planning_context_.AddDatabase(db_oid);
+
+  auto memory_info = PilotUtil::ComputeMemoryInfo(planning_context_, forecast_.get());
+  planning_context_.SetMemoryInfo(std::move(memory_info));
+
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
-
-  auto mcst =
-      pilot::MonteCarloTreeSearch(common::ManagedPointer(this), common::ManagedPointer(forecast_), end_segment_index);
-  mcst.RunSimulation(simulation_number_, settings_manager_->GetInt64(settings::Param::pilot_memory_constraint));
+  auto mcst = MonteCarloTreeSearch(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
+  mcst.RunSimulation(simulation_number_,
+                     planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint));
 
   // Record the top 3 at each level along the "best action path".
   // TODO(wz2): May want to improve this at a later time.
-  std::vector<std::vector<pilot::ActionTreeNode>> layered_action;
+  std::vector<std::vector<ActionTreeNode>> layered_action;
   mcst.BestAction(&layered_action, 3);
   for (size_t i = 0; i < layered_action.size(); i++) {
-    pilot::ActionTreeNode &action = layered_action[i].front();
+    ActionTreeNode &action = layered_action[i].front();
     best_action_seq->emplace_back(action);
 
     SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}", i,
@@ -100,43 +104,53 @@ void Pilot::ActionSearch(std::vector<pilot::ActionTreeNode> *best_action_seq) {
   }
 
   uint64_t timestamp = metrics::MetricsUtil::Now();
-  util::SelfDrivingRecordingUtil::RecordBestActions(timestamp, layered_action, task_manager_);
+  util::SelfDrivingRecordingUtil::RecordBestActions(timestamp, layered_action, planning_context_.GetTaskManager());
 
-  pilot::ActionTreeNode &best_action = (*best_action_seq)[0];
+  ActionTreeNode &best_action = (*best_action_seq)[0];
   util::SelfDrivingRecordingUtil::RecordAppliedAction(timestamp, best_action.GetActionId(), best_action.GetCost(),
                                                       best_action.GetDbOid(), best_action.GetActionText(),
-                                                      task_manager_);
-  PilotUtil::ApplyAction(common::ManagedPointer(this), best_action.GetActionText(), best_action.GetDbOid(), false);
+                                                      planning_context_.GetTaskManager());
+
+  // Invalidate database and memory information
+  planning_context_.ClearDatabases();
+  planning_context_.SetMemoryInfo(MemoryInfo());
+
+  // Apply the best action WITHOUT "what-if"
+  PilotUtil::ApplyAction(planning_context_, best_action.GetActionText(), best_action.GetDbOid(), false);
 }
 
-void Pilot::ExecuteForecast(uint64_t start_segment_index, uint64_t end_segment_index,
-                            std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
-                            std::map<uint32_t, uint64_t> *segment_to_offset,
-                            std::vector<std::vector<double>> *interference_result_matrix) {
-  NOISEPAGE_ASSERT(forecast_ != nullptr, "Need forecast_ initialized.");
-  // first we make sure the pipeline metrics flag as well as the counters is enabled. Also set the sample rate to be 0
-  // so that every query execution is being recorded
+void Pilot::ActionSearchBaseline(
+    std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> *best_actions_seq) {
+  std::set<catalog::db_oid_t> db_oids = forecast_->GetDBOidSet();
+  for (auto db_oid : db_oids) planning_context_.AddDatabase(db_oid);
 
-  std::vector<execution::query_id_t> pipeline_qids;
-  // Collect pipeline metrics of forecasted queries within the interval of segments
-  auto pipeline_data = PilotUtil::CollectPipelineFeatures(common::ManagedPointer<selfdriving::Pilot>(this),
-                                                          common::ManagedPointer(forecast_), start_segment_index,
-                                                          end_segment_index, &pipeline_qids, !WHAT_IF);
+  auto memory_info = PilotUtil::ComputeMemoryInfo(planning_context_, forecast_.get());
+  planning_context_.SetMemoryInfo(std::move(memory_info));
 
-  // pipeline_to_prediction maps each pipeline to a vector of ou inference results for all ous of this pipeline
-  // (where each entry corresponds to a different query param)
-  // Each element of the outermost vector is a vector of ou prediction (each being a double vector) for one set of
-  // parameters
-  std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>, std::vector<std::vector<std::vector<double>>>>
-      pipeline_to_prediction;
+  auto num_segs = forecast_->GetNumberOfSegments();
+  auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
 
-  // Then we perform inference through model server to get ou prediction results for all pipelines
-  PilotUtil::OUModelInference(ou_model_save_path_, model_server_manager_, pipeline_qids, pipeline_data->pipeline_data_,
-                              &pipeline_to_prediction);
+  auto seq_tunining = SequenceTuning(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
 
-  PilotUtil::InterferenceModelInference(interference_model_save_path_, model_server_manager_, pipeline_to_prediction,
-                                        common::ManagedPointer(forecast_), start_segment_index, end_segment_index,
-                                        query_info, segment_to_offset, interference_result_matrix);
+  std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_action_set_seq;
+  seq_tunining.BestAction(planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint),
+                          &best_action_set_seq);
+
+  for (uint64_t action_set_idx = 0; action_set_idx < best_action_set_seq.size(); action_set_idx++) {
+    auto action_set = best_action_set_seq.at(action_set_idx);
+    for (auto const &action UNUSED_ATTRIBUTE : action_set) {
+      SELFDRIVING_LOG_INFO(fmt::format("Action Selected: Time Interval: {}; Action Command: {} Applied to Database {}",
+                                       action_set_idx, action.first, static_cast<uint32_t>(action.second)));
+    }
+    best_actions_seq->emplace_back(action_set);
+  }
+
+  // Invalidate database and memory information
+  planning_context_.ClearDatabases();
+  planning_context_.SetMemoryInfo(MemoryInfo());
+
+  for (auto const &action : *best_actions_seq->begin())
+    PilotUtil::ApplyAction(planning_context_, action.first, action.second, false);
 }
 
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot

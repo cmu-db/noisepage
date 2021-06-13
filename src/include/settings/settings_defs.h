@@ -298,6 +298,14 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    enable_seq_tuning,
+    "Use sequence tuning instead of monte carlo tree search for pilot planning (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
     logging_metrics_enable,
     "Metrics collection for the Logging component (default: false).",
     false,
@@ -401,8 +409,8 @@ SETTING_bool(
     compiled_query_execution,
     "Compile queries to native machine code using LLVM, rather than relying on TPL interpretation (default: false).",
     false,
-    false,
-    noisepage::settings::Callbacks::NoOp
+    true,
+    noisepage::settings::Callbacks::CompiledQueryExecution
 )
 
 SETTING_string(
@@ -560,4 +568,121 @@ SETTING_string(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_bool(
+    train_forecast_model,
+    "Train the forecast model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainForecastModel
+)
+
+SETTING_bool(
+    train_interference_model,
+    "Train the interference model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainInterferenceModel
+)
+
+SETTING_string(
+    interference_model_input_path,
+    "Input path to the directory containing training the interference model",
+    "concurrent_runner_input/",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    interference_model_train_methods,
+    "Methods to be used for training the interference model (comma delimited)",
+    "rf",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    interference_model_train_timeout,
+    "Timeout in milliseconds for training the interference model (default: 2 minutes)",
+    120000,
+    1000,
+    600000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    interference_model_pipeline_sample_rate,
+    "Sampling rate of pipeline metrics OUs (0 is ignored)",
+    2,
+    0,
+    10,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    train_ou_model,
+    "Train the OU model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainOUModel
+)
+
+SETTING_string(
+    ou_model_input_path,
+    "Input path to the directory containing training the OU model",
+    "ou_runner_input/",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    ou_model_train_methods,
+    "Methods to be used for training the OU model (comma delimited)",
+    "lr,rf,gbm,nn",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    ou_model_train_timeout,
+    "Timeout in milliseconds for training the OU model (default: 2 minutes)",
+    120000,
+    1000,
+    600000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+
+// The default log level is unspecified because people may have inserted calls
+// to set_level directly in the codebase, which would make a default inaccurate.
+#define SETTINGS_LOG_LEVEL(component)                      \
+SETTING_string(                                            \
+    log_level_##component,                                 \
+    "Set the log level for the component.",                \
+    "(unspecified)",                                       \
+    true,                                                  \
+    noisepage::settings::Callbacks::LogLevelSet##component \
+)
+
+SETTINGS_LOG_LEVEL(binder)
+SETTINGS_LOG_LEVEL(catalog)
+SETTINGS_LOG_LEVEL(common)
+SETTINGS_LOG_LEVEL(execution)
+SETTINGS_LOG_LEVEL(index)
+SETTINGS_LOG_LEVEL(messenger)
+SETTINGS_LOG_LEVEL(metrics)
+SETTINGS_LOG_LEVEL(modelserver)
+SETTINGS_LOG_LEVEL(network)
+SETTINGS_LOG_LEVEL(optimizer)
+SETTINGS_LOG_LEVEL(parser)
+SETTINGS_LOG_LEVEL(replication)
+SETTINGS_LOG_LEVEL(selfdriving)
+SETTINGS_LOG_LEVEL(settings)
+SETTINGS_LOG_LEVEL(storage)
+SETTINGS_LOG_LEVEL(transaction)
+
+#undef SETTINGS_LOG_LEVEL
     // clang-format on

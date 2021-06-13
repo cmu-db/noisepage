@@ -7,17 +7,19 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "self_driving/planning/action/abstract_action.h"
 #include "self_driving/planning/action/action_defs.h"
+#include "self_driving/planning/mcts/action_state.h"
 
 #define EPSILON 1e-3
 #define NULL_ACTION INT32_MAX
 
 namespace noisepage::selfdriving {
-class Pilot;
 class WorkloadForecast;
 
 namespace pilot {
-class AbstractAction;
+class Pilot;
+class PlanningContext;
 
 STRONG_TYPEDEF_HEADER(tree_node_id_t, uint64_t);
 
@@ -37,9 +39,10 @@ class TreeNode {
    * @param action_start_segment_index start of segment index that this node will influence
    * @param later_segments_cost cost of later segments when actions applied on path from root to current node
    * @param memory memory consumption at the current node in bytes
+   * @param action_state the state of the action after the intervals represented by this node.
    */
   TreeNode(common::ManagedPointer<TreeNode> parent, action_id_t current_action, uint64_t action_start_segment_index,
-           double current_segment_cost, double later_segments_cost, uint64_t memory);
+           double current_segment_cost, double later_segments_cost, uint64_t memory, ActionState action_state);
 
   /**
    * @return action id at node with least cost
@@ -59,20 +62,20 @@ class TreeNode {
   /**
    * Recursively sample the vertex whose children will be assigned values through rollout.
    * @param root pointer to root of the search tree
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions that can be applied at curent node
    * @param end_segment_index last segment index to be considered in forecast (needed so that when sampled leaf is
    * beyond this index, we repeat the selection process)
    */
   static common::ManagedPointer<TreeNode> Selection(
-      common::ManagedPointer<TreeNode> root, common::ManagedPointer<Pilot> pilot,
+      common::ManagedPointer<TreeNode> root, const PlanningContext &planning_context,
       const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
       std::unordered_set<action_id_t> *candidate_actions, uint64_t end_segment_index);
 
   /**
    * Expand each child of current node and update its cost and num of visits accordingly
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to forecasted workload
    * @param action_horizon number of next levels only influenced by the action selected at current node
    * @param tree_end_segment_index end_segment_index of the search tree
@@ -80,7 +83,7 @@ class TreeNode {
    * @param candidate_actions candidate actions of the search tree
    * @param memory_constraint maximum allowed memory in bytes
    */
-  void ChildrenRollout(common::ManagedPointer<Pilot> pilot, common::ManagedPointer<WorkloadForecast> forecast,
+  void ChildrenRollout(const PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
                        uint64_t action_horizon, uint64_t tree_end_segment_index,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint);
@@ -88,11 +91,11 @@ class TreeNode {
   /**
    * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children,
    * also apply reverse actions
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param action_map action map of the search tree
    * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
-  void BackPropogate(common::ManagedPointer<Pilot> pilot,
+  void BackPropogate(const PlanningContext &planning_context,
                      const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map, bool use_min_cost);
 
   /**
@@ -171,6 +174,8 @@ class TreeNode {
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
+  static constexpr double MEMORY_CONSUMPTION_VIOLATION_COST = 1e10;
+
   tree_node_id_t tree_node_id_;
   bool is_leaf_;
   const uint64_t depth_;                       // number of edges in path from root
@@ -184,6 +189,7 @@ class TreeNode {
   std::vector<std::unique_ptr<TreeNode>> children_;
   double cost_;
   uint64_t memory_;
+  ActionState action_state_;
 
   static tree_node_id_t tree_node_identifier;
 };

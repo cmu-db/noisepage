@@ -3,18 +3,20 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "self_driving/planning/action/abstract_action.h"
-#include "self_driving/planning/action/action_defs.h"
+#include "catalog/catalog_defs.h"
+#include "self_driving/planning/mcts/action_state.h"
 #include "self_driving/planning/mcts/tree_node.h"
-#include "self_driving/planning/pilot.h"
 
 namespace noisepage::selfdriving {
-class Pilot;
+class WorkloadForecast;
 
 namespace pilot {
+class Pilot;
+class PlanningContext;
 
 /**
  * Used to represent information that encapsulates a given tree
@@ -87,12 +89,12 @@ class MonteCarloTreeSearch {
  public:
   /**
    * Constructor for the monte carlo search tree
-   * @param pilot pointer to pilot
+   * @param planning_context pilot planning context
    * @param forecast pointer to workload forecast
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
-  MonteCarloTreeSearch(common::ManagedPointer<Pilot> pilot,
+  MonteCarloTreeSearch(const PlanningContext &planning_context,
                        common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
                        bool use_min_cost = true);
 
@@ -114,13 +116,15 @@ class MonteCarloTreeSearch {
   void BestAction(std::vector<std::vector<ActionTreeNode>> *best_action_seq, size_t topk);
 
  private:
-  const common::ManagedPointer<Pilot> pilot_;
+  const PlanningContext &planning_context_;
   const common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;
   const uint64_t end_segment_index_;
   std::unique_ptr<TreeNode> root_;
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map_;
   std::vector<action_id_t> candidate_actions_;
   bool use_min_cost_;  // Use the minimum cost of all leaves (instead of the average) as the cost for internal nodes
+  std::unordered_map<ActionState, double, ActionStateHasher> action_state_cost_map_;
+
   std::vector<uint64_t> levels_to_plan_ = {1, 2, 2, 3, 3, 3, 4, 4, 4};
 };
 }  // namespace pilot

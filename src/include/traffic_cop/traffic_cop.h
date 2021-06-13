@@ -224,12 +224,12 @@ class TrafficCop {
    * Contains the logic to reason about EXPLAIN execution.
    * @param connection_ctx context to be used to access the internal txn
    * @param out packet writer to return results
-   * @param physical_plan to be executed
+   * @param portal to be executed
    * @return result of the operation
    */
   TrafficCopResult ExecuteExplainStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                            common::ManagedPointer<network::PostgresPacketWriter> out,
-                                           common::ManagedPointer<planner::AbstractPlanNode> physical_plan) const;
+                                           common::ManagedPointer<network::Portal> portal) const;
 
   /**
    * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
@@ -261,6 +261,14 @@ class TrafficCop {
   void SetOptimizerTimeout(const uint64_t optimizer_timeout) { optimizer_timeout_ = optimizer_timeout; }
 
   /**
+   * Adjust the TrafficCop's execution mode value (for use by SettingsManager)
+   * @param is_compiled set execution_mode_ to Compiled if true; Interpret if false
+   */
+  void SetExecutionMode(bool is_compiled) {
+    execution_mode_ = is_compiled ? execution::vm::ExecutionMode::Compiled : execution::vm::ExecutionMode::Interpret;
+  }
+
+  /**
    * @return true if query caching enabled, false otherwise
    */
   bool UseQueryCache() const { return use_query_cache_; }
@@ -274,7 +282,7 @@ class TrafficCop {
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
   const bool use_query_cache_;
-  const execution::vm::ExecutionMode execution_mode_;
+  execution::vm::ExecutionMode execution_mode_;
 };
 
 }  // namespace noisepage::trafficcop

@@ -14,7 +14,9 @@
 namespace noisepage {
 namespace selfdriving {
 class PipelineOperatingUnits;
+namespace pilot {
 class PilotUtil;
+}  // namespace pilot
 }  // namespace selfdriving
 
 namespace execution {
@@ -33,6 +35,7 @@ class Region;
 
 namespace vm {
 class Module;
+class ModuleMetadata;
 }  // namespace vm
 }  // namespace execution
 
@@ -88,6 +91,9 @@ class ExecutableQuery {
      * @return True if this fragment is compiled and executable.
      */
     bool IsCompiled() const { return module_ != nullptr; }
+
+    /** @return The metadata of this module. */
+    const vm::ModuleMetadata &GetModuleMetadata() const;
 
    private:
     // The functions that must be run (in the provided order) to execute this
@@ -157,6 +163,9 @@ class ExecutableQuery {
   /** @return The Query Identifier */
   query_id_t GetQueryId() { return query_id_; }
 
+  /** @return The query fragments in this module. */
+  const std::vector<std::unique_ptr<Fragment>> &GetFragments() const { return fragments_; }
+
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
@@ -200,7 +209,7 @@ class ExecutableQuery {
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;
   friend class noisepage::runner::ExecutionRunners_SEQ0_OutputRunners_Benchmark;
-  friend class noisepage::selfdriving::PilotUtil;
+  friend class noisepage::selfdriving::pilot::PilotUtil;
   friend class noisepage::execution::compiler::CompilationContext;  // SetQueryId
   friend class noisepage::runner::ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 };

@@ -5,6 +5,8 @@
 #include "common/error/exception.h"
 #include "common/json.h"
 #include "loggers/replication_logger.h"
+#include "replication/primary_replication_manager.h"
+#include "replication/replica_replication_manager.h"
 
 namespace noisepage::replication {
 

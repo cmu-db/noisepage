@@ -1,6 +1,6 @@
 #include "self_driving/planning/pilot_thread.h"
 
-namespace noisepage::selfdriving {
+namespace noisepage::selfdriving::pilot {
 PilotThread::PilotThread(common::ManagedPointer<Pilot> pilot, std::chrono::microseconds pilot_interval,
                          std::chrono::microseconds forecaster_train_interval, bool pilot_planning)
     : pilot_(pilot),
@@ -11,4 +11,4 @@ PilotThread::PilotThread(common::ManagedPointer<Pilot> pilot, std::chrono::micro
       forecaster_remain_period_(forecaster_train_interval),
       pilot_thread_(std::thread([this] { PilotThreadLoop(); })) {}
 
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot
