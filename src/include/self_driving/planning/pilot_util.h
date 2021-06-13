@@ -44,6 +44,7 @@ struct MemoryInfo;
 class ActionState;
 class AbstractAction;
 class PlanningContext;
+struct InferenceResults;
 
 /**
  * Utility class for helper functions
@@ -84,21 +85,16 @@ class PilotUtil {
   /**
    * Perform inference on the interference model through model server manager
    * @param planning_context pilot planning context
-   * @param pipeline_to_prediction List of tuples of query id, pipeline id and result of prediction
    * @param forecast The predicted workload
    * @param start_segment_index The start segment in the workload forecast to do inference
    * @param end_segment_index The end segment in the workload forecast to do inference
-   * @param query_info Query id, <num_param of this query executed, total number of collected ous for this query>
-   * @param segment_to_offset The start index of ou records belonging to a segment in input to the interference model
-   * @param interference_result_matrix Stores the inference results as return values
+   * @param action An action applied concurrently
+   * @param inference_results inference results through the OU and interference models
    */
-  static void InterferenceModelInference(
-      PlanningContext *planning_context,
-      const std::map<std::pair<execution::query_id_t, execution::pipeline_id_t>,
-                     std::vector<std::vector<std::vector<double>>>> &pipeline_to_prediction,
-      common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t start_segment_index,
-      uint64_t end_segment_index, std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
-      std::map<uint32_t, uint64_t> *segment_to_offset, std::vector<std::vector<double>> *interference_result_matrix);
+  static void InterferenceModelInference(PlanningContext *planning_context,
+                                         common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
+                                         uint64_t start_segment_index, uint64_t end_segment_index,
+                                         std::optional<AbstractAction *> action, InferenceResults *inference_results);
 
   /**
    * Apply an action supplied through its query string to the database specified
@@ -198,16 +194,12 @@ class PilotUtil {
    * @param forecast workload forecast information
    * @param start_segment_index start segment index in forecast to be considered
    * @param end_segment_index end segment index in forecast to be considered
-   * @param query_info <query id, <num_param of this query executed, total number of collected ous for this query>>
-   * @param segment_to_offset start index of ou records belonging to a segment in input to the interference model
-   * @param interference_result_matrix stores the final results of the interference model
+   * @param inference_results inference results through the OU and interference models
    */
   static void ExecuteForecast(pilot::PlanningContext *planning_context,
                               common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                               uint64_t start_segment_index, uint64_t end_segment_index,
-                              std::map<execution::query_id_t, std::pair<uint8_t, uint64_t>> *query_info,
-                              std::map<uint32_t, uint64_t> *segment_to_offset,
-                              std::vector<std::vector<double>> *interference_result_matrix);
+                              InferenceResults *inference_results);
 
   /**
    * Add features to existing features
