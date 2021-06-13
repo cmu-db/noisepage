@@ -43,7 +43,8 @@ MonteCarloTreeSearch::MonteCarloTreeSearch(common::ManagedPointer<PlanningContex
   }
 
   // create root_
-  auto later_cost = PilotUtil::ComputeCost(planning_context_.Get(), forecast, 0, end_segment_index);
+  auto later_cost =
+      PilotUtil::ComputeCost(planning_context_.Get(), forecast, 0, end_segment_index, std::nullopt, std::nullopt);
   ActionState action_state;
   action_state.SetIntervals(0, end_segment_index);
   // root correspond to no action applied to any segment

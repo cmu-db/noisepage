@@ -46,8 +46,8 @@ SequenceTuning::SequenceTuning(common::ManagedPointer<PlanningContext> planning_
   std::vector<double> default_segment_cost;
   // first compute the cost of each segment when no action is applied
   for (uint64_t segment_index = 0; segment_index <= end_segment_index_; segment_index++) {
-    default_segment_cost.emplace_back(
-        PilotUtil::ComputeCost(planning_context_.Get(), forecast_, segment_index, segment_index));
+    default_segment_cost.emplace_back(PilotUtil::ComputeCost(planning_context_.Get(), forecast_, segment_index,
+                                                             segment_index, std::nullopt, std::nullopt));
   }
   default_segment_cost_ = default_segment_cost;
 }

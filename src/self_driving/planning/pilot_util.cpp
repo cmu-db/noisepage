@@ -131,10 +131,20 @@ std::vector<double> PilotUtil::GetInterferenceFeature(const std::vector<double> 
 }
 
 double PilotUtil::ComputeCost(PlanningContext *planning_context, common::ManagedPointer<WorkloadForecast> forecast,
-                              uint64_t start_segment_index, uint64_t end_segment_index) {
+                              uint64_t start_segment_index, uint64_t end_segment_index,
+                              std::optional<AbstractAction *> action, std::optional<uint64_t *> action_segments) {
   // Compute cost as total latency of queries based on their num of exec
   InferenceResults inference_results;
-  PilotUtil::ExecuteForecast(planning_context, forecast, start_segment_index, end_segment_index, &inference_results);
+  // Get the initial action_segments
+  if (action_segments.has_value()) {
+    inference_results.action_segments_ = *action_segments.value();
+  }
+  PilotUtil::ExecuteForecast(planning_context, forecast, start_segment_index, end_segment_index, action,
+                             &inference_results);
+  // Update action_segments
+  if (action_segments.has_value()) {
+    *action_segments.value() = inference_results.action_segments_;
+  }
 
   double total_cost = 0.0;
   auto &query_info = inference_results.query_info_;
@@ -380,13 +390,6 @@ void PilotUtil::InterferenceModelInference(PlanningContext *planning_context,
   // Compute sum of all ous in a segment, normalized by its interval
   std::vector<std::vector<double>> interference_features;
   std::vector<std::vector<double>> normalized_feat_sums;
-  // By default normalize the action (if provided) across all the segments in consideration
-  double action_normalize_value = (end_segment_index - start_segment_index + 1) * forecast->GetForecastInterval();
-  if (action.has_value()) {
-    // Normalize against the action elapsed time if the action is too long
-    double estimated_action_elapsed = action.value()->GetEstimatedElapsedUs();
-    if (estimated_action_elapsed > action_normalize_value) action_normalize_value = estimated_action_elapsed;
-  }
   for (auto i = start_segment_index; i <= end_segment_index; i++) {
     std::vector<double> normalized_feat_sum(feat_dim, 0.0);
     auto id_to_num_exec = forecast->GetSegmentByIndex(i).GetIdToNumexec();
@@ -405,8 +408,10 @@ void PilotUtil::InterferenceModelInference(PlanningContext *planning_context,
 
     // Next put the action OU prediction into the normalized feature if provided a concurrent action
     if (action.has_value()) {
-      auto &action_metrics = action.value()->GetEstimatedMetrics();
-      SumFeatureInPlace(&normalized_feat_sum, action_metrics, action_normalize_value);
+      if (inference_results->action_segments_ > i - start_segment_index) {
+        auto &action_metrics = action.value()->GetEstimatedMetrics();
+        SumFeatureInPlace(&normalized_feat_sum, action_metrics, action_metrics.back() + 0.1);
+      }
     }
 
     // curr_feat_sum now holds the sum of ous for queries contained in this segment (averaged over diff set of param)
@@ -429,19 +434,18 @@ void PilotUtil::InterferenceModelInference(PlanningContext *planning_context,
   if (action.has_value()) {
     auto &action_metrics = action.value()->GetEstimatedMetrics();
     // How many segments that this action spans
-    uint64_t action_segment_num =
-        static_cast<uint64_t>(action.value()->GetEstimatedElapsedUs()) / forecast->GetForecastInterval() + 1;
+    uint64_t action_segments = inference_results->action_segments_;
     std::vector<double> action_normalized_feat_sum;
     // Average the normalized_feat_sum across the segments that the action spans
     for (uint64_t feat_idx = 0; feat_idx < feat_dim; ++feat_idx) {
       double value_sum = 0;
-      for (uint64_t segment_idx = 0; segment_idx < action_segment_num; ++segment_idx) {
+      for (uint64_t segment_idx = 0; segment_idx < action_segments; ++segment_idx) {
         value_sum += normalized_feat_sums[segment_idx][feat_idx];
       }
-      action_normalized_feat_sum.emplace_back(value_sum / action_segment_num);
+      action_normalized_feat_sum.emplace_back(value_sum / action_segments);
     }
     // Remove the impact of the action itself
-    SumFeatureInPlace(&action_normalized_feat_sum, action_metrics, -action_normalize_value);
+    SumFeatureInPlace(&action_normalized_feat_sum, action_metrics, -action_metrics.back() - 0.1);
     interference_features.emplace_back(GetInterferenceFeature(action_metrics, action_normalized_feat_sum));
   }
 
@@ -479,9 +483,10 @@ void PilotUtil::InterferenceModelInference(PlanningContext *planning_context,
   // Store the action result
   if (action.has_value()) {
     size_t action_feature_idx = int_features.size() - 1;
-    // lin: I think we can't just move the element here, can we?
-    inference_results->action_inference_result_ =
-        *planning_context->GetInterferenceInference(int_features[action_feature_idx]);
+    auto action_inference_result = *planning_context->GetInterferenceInference(int_features[action_feature_idx]);
+    inference_results->action_segments_ =
+        static_cast<uint64_t>(action_inference_result.back()) / forecast->GetForecastInterval() + 1;
+    inference_results->action_inference_result_ = std::move(action_inference_result);
     int_features.erase(int_features.begin() + action_feature_idx);
   }
 
@@ -791,7 +796,7 @@ std::string PilotUtil::ConfigToString(const std::set<action_id_t> &config_set) {
 void PilotUtil::ExecuteForecast(PlanningContext *planning_context,
                                 common::ManagedPointer<selfdriving::WorkloadForecast> forecast,
                                 uint64_t start_segment_index, uint64_t end_segment_index,
-                                InferenceResults *inference_results) {
+                                std::optional<AbstractAction *> action, InferenceResults *inference_results) {
   NOISEPAGE_ASSERT(forecast != nullptr, "Need forecast_ initialized.");
   // first we make sure the pipeline metrics flag as well as the counters is enabled. Also set the sample rate to be 0
   // so that every query execution is being recorded
@@ -807,7 +812,7 @@ void PilotUtil::ExecuteForecast(PlanningContext *planning_context,
                               &inference_results->pipeline_to_prediction_);
 
   PilotUtil::InterferenceModelInference(planning_context, common::ManagedPointer(forecast), start_segment_index,
-                                        end_segment_index, std::nullopt, inference_results);
+                                        end_segment_index, action, inference_results);
 }
 
 }  // namespace noisepage::selfdriving::pilot

@@ -178,6 +178,9 @@ class TreeNode {
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
 
+  double ComputeCostWithAction(PlanningContext *planning_context, common::ManagedPointer<WorkloadForecast> forecast,
+                               uint64_t tree_end_segment_index, AbstractAction *action);
+
   static constexpr double MEMORY_CONSUMPTION_VIOLATION_COST = 1e10;
 
   tree_node_id_t tree_node_id_;

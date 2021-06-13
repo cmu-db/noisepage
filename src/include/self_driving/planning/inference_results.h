@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "execution/exec_defs.h"
+
 namespace noisepage::selfdriving::pilot {
 
 /** Bundles the inference results to compute cost during the Pilot's planning */
@@ -22,7 +24,7 @@ struct InferenceResults {
       pipeline_to_prediction_;
 
   // OU Inference results for queries across each segments (one-to-one mapping to query_interference_results_)
-  // In theory this can be index references to pipeline_to_prediction_ to save space. But it would be more complex
+  // In theory this can be index references to pipeline_to_prediction_ to save space. But it would be more complicated
   std::vector<std::vector<double>> query_ou_inference_results_;
 
   // Inference results for queries after (interference model applied). Ordered by the OUs across each forecast segment
@@ -30,6 +32,9 @@ struct InferenceResults {
 
   // Inference result for an optional action (interference model applied)
   std::vector<double> action_inference_result_;
+
+  // How many forecast segments that the (optional) action spans (considering the interference)
+  uint64_t action_segments_;
 };
 
 }  // namespace noisepage::selfdriving::pilot

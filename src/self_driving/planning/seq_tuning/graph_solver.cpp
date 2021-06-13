@@ -90,7 +90,8 @@ double GraphSolver::ComputeConfigCost(PlanningContext *planning_context,
   }
 
   // if configuration is valid, include it as a node in the graph
-  auto node_cost = PilotUtil::ComputeCost(planning_context, forecast, segment_index, segment_index);
+  auto node_cost =
+      PilotUtil::ComputeCost(planning_context, forecast, segment_index, segment_index, std::nullopt, std::nullopt);
 
   for (auto const action : config_set) {
     // clean up by applying one reverse action to undo the above
