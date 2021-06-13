@@ -451,7 +451,7 @@ connection_id_t Messenger::MakeConnection(const ConnectionDestination &target) {
 
 void Messenger::SendMessage(const connection_id_t connection_id, const std::string &message, CallbackFn callback,
                             callback_id_t remote_cb_id) {
-  SendMessage(connection_id, message, {}, callback, remote_cb_id);
+  SendMessage(connection_id, message, {}, std::move(callback), remote_cb_id);
 }
 
 void Messenger::SendMessage(const connection_id_t connection_id, const std::string &message,
@@ -482,7 +482,7 @@ void Messenger::SendMessage(const connection_id_t connection_id, const std::stri
 
 void Messenger::SendMessage(const router_id_t router_id, const std::string &recv_id, const std::string &message,
                             CallbackFn callback, callback_id_t remote_cb_id) {
-  SendMessage(router_id, recv_id, message, {}, callback, remote_cb_id);
+  SendMessage(router_id, recv_id, message, {}, std::move(callback), remote_cb_id);
 }
 
 void Messenger::SendMessage(const router_id_t router_id, const std::string &recv_id, const std::string &message,

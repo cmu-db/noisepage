@@ -27,7 +27,7 @@ void ReplicaReplicationManager::Handle(const messenger::ZmqMessage &zmq_msg,
                                     msg->GetMessageId(), msg->GetBatchId()));
   NOISEPAGE_ASSERT(zmq_msg.GetFollowupPayloads().size() == 1,
                    "Records batch messages should have the actual records batch as a followup message");
-  msg->SetContents(std::move(zmq_msg.GetFollowupPayloads()[0]));
+  msg->SetContents(zmq_msg.GetFollowupPayloads()[0]);
   // Add the batch of log records directly to the provider, which handles out of order batches.
   provider_.AddBatchOfRecords(*msg);
 }
