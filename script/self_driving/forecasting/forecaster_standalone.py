@@ -52,7 +52,7 @@ argp.add_argument(
     action="store_true",
     help="If specified, OLTP benchmark would be downloaded and built to generate the query trace data")
 argp.add_argument(
-    "--record_pipeline_metrics",
+    "--record_pipeline_metrics_with_counters",
     default=False,
     action="store_true",
     help="If specified, the database records the pipeline metrics data instead of the query trace data")
@@ -125,13 +125,14 @@ if __name__ == "__main__":
             tpcc_weight=args.tpcc_weight,
             tpcc_rates=args.tpcc_rates,
             pattern_iter=args.pattern_iter,
-            record_pipeline_metrics=args.record_pipeline_metrics)
+            record_pipeline_metrics_with_counters=args.record_pipeline_metrics_with_counters)
     elif args.test_file is None:
         # Parse models arguments
         models_kwargs = parse_model_config(args.models, args.models_config)
 
         forecaster = Forecaster(
             trace_file=args.trace_file,
+            trace_sequence=None,
             test_mode=False,
             interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,
@@ -151,6 +152,7 @@ if __name__ == "__main__":
 
         forecaster = Forecaster(
             trace_file=args.test_file,
+            trace_sequence=None,
             test_mode=True,
             interval_us=INTERVAL_MICRO_SEC,
             seq_len=args.seq_len,

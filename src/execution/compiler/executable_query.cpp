@@ -4,7 +4,6 @@
 
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
-#include "execution/ast/ast_dump.h"
 #include "execution/ast/context.h"
 #include "execution/compiler/compiler.h"
 #include "execution/exec/execution_context.h"
@@ -56,6 +55,8 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
   }
 }
 
+const vm::ModuleMetadata &ExecutableQuery::Fragment::GetModuleMetadata() const { return module_->GetMetadata(); }
+
 //===----------------------------------------------------------------------===//
 //
 // Executable Query
@@ -71,7 +72,8 @@ std::string GetFileName(const std::string &path) {
 }
 }  // namespace
 
-std::atomic<query_id_t> ExecutableQuery::query_identifier{0};
+// We use 0 to represent NULL_QUERY_ID so the query id starts from 1.
+std::atomic<query_id_t> ExecutableQuery::query_identifier{1};
 
 void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<selfdriving::PipelineOperatingUnits> &&units) {
   pipeline_operating_units_ = std::move(units);
@@ -113,7 +115,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
     source = contents;
   }
 
-  auto input = Compiler::Input("tpl_source", ast_context_.get(), &source);
+  auto input = Compiler::Input("tpl_source", ast_context_.get(), &source, exec_settings.GetCompilerSettings());
   auto module = compiler::Compiler::RunCompilationSimple(input);
 
   std::vector<std::string> functions{"main"};

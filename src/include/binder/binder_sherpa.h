@@ -96,16 +96,23 @@ class BinderSherpa {
   void CheckDesiredType(common::ManagedPointer<parser::AbstractExpression> expr) const;
 
   /**
-   * Adds a cte table name to the list of table names
-   * @param cte_table_name the cte table name to add
+   * Adds a CTE table name to the list of table names.
+   * @param cte_table_name The name of the CTE table to add
    */
   void AddCTETableName(const std::string &cte_table_name) { cte_table_names_.insert(cte_table_name); }
 
   /**
-   * Gets the set of available cte table names
-   * @return Set of available cte table names
+   * Gets the set of available CTE table names.
+   * @return Set of available CTE table names
    */
   const std::unordered_set<std::string> &GetCTETableNames() const { return cte_table_names_; }
+
+  /**
+   * Determine if the given CTE table name is known to the binder sherpa.
+   * @param cte_table_name The name of the CTE tabke
+   * @return `true` if the CTE identified by `cte_name` is present, `false` otherwise
+   */
+  bool HasCTETableName(const std::string &cte_table_name) const { return cte_table_names_.count(cte_table_name) > 0; }
 
   size_t GetUniqueTableAliasSerialNumber() {
     // TODO(Joe) is it worth handling overflow? It will slow down every query for the sake of addressing an issue that

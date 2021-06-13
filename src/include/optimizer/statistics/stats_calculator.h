@@ -69,29 +69,55 @@ class StatsCalculator : public OperatorVisitor {
   void Visit(const LogicalLimit *op) override;
 
   /**
+   * Visit a LogicalInsert
+   * @param op Operator being visited
+   */
+  void Visit(const LogicalInsert *op) override;
+
+  /**
+   * Visit a LogicalUpdate
+   * @param op Operator being visited
+   */
+  void Visit(const LogicalUpdate *op) override;
+
+  /**
+   * Visit a LogicalDelete
+   * @param op Operator being visited
+   */
+  void Visit(const LogicalDelete *op) override;
+
+  /*
    * Visit a LogicalUnion
    * @param op Operator being visited
    */
   void Visit(const LogicalUnion *op) override;
 
+  /**
+   * Visit a LogicalCreateIndex
+   * @param op Operator being visited
+   */
+  void Visit(const LogicalCreateIndex *op) override;
+
  private:
   /**
    * Return estimated cardinality for a filter
+   * @param group The Group to estimated the cardinality for
    * @param num_rows Number of rows of base table
    * @param predicate_stats The stats for columns in the expression
    * @param predicates conjunction predicates
    * @returns Estimated cardinality
    */
-  size_t EstimateCardinalityForFilter(size_t num_rows, const TableStats &predicate_stats,
+  size_t EstimateCardinalityForFilter(Group *group, size_t num_rows, const TableStats &predicate_stats,
                                       const std::vector<AnnotatedExpression> &predicates);
 
   /**
    * Calculates selectivity for predicate
+   * @param group The Group to calculate selectivity for
    * @param predicate_table_stats Table Statistics
    * @param expr Predicate
    * @returns selectivity estimate
    */
-  double CalculateSelectivityForPredicate(const TableStats &predicate_table_stats,
+  double CalculateSelectivityForPredicate(Group *group, const TableStats &predicate_table_stats,
                                           common::ManagedPointer<parser::AbstractExpression> expr);
 
   /**

@@ -61,6 +61,7 @@
 #   HEADER Tests.
 #   HEADER Benchmarks.
 #   HEADER Generated file destinations.
+#   HEADER startup.sql post-copy command
 #   HEADER Miscellaneous.
 
 #######################################################################################################################
@@ -151,10 +152,11 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 #   In practice people only use Debug or Release.
 #
 # CMake options, specify with -DNOISEPAGE_{option}=On.
-#   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default ON.
-#   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL (but the Self-Driving test) target. Default ON.
-#   NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS  : Enable building self-driving end-to-end tests. Default OFF
+#   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default OFF.
+#   NOISEPAGE_BUILD_TESTS                   : Enable building (non-self-driving-e2e) tests as part of the ALL target. Default OFF.
+#   NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS  : Enable building self-driving end-to-end tests as part of the ALL target. Default OFF.
 #   NOISEPAGE_GENERATE_COVERAGE             : Enable C++ code coverage. Default OFF.
+#   NOISEPAGE_TEST_PARALLELISM              : The number of tests that should run in parallel. Default 1.
 #   NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE    : Enable verbose unittest failures. Default OFF. Can be very verbose.
 #   NOISEPAGE_UNITY_BUILD                   : Enable unity (aka jumbo) builds. Default OFF.
 #   NOISEPAGE_USE_ASAN                      : Enable ASAN, a fast memory error detector. Default OFF.
@@ -170,7 +172,6 @@ print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
 #   NOISEPAGE_INCLUDE_DIRECTORIES : Include directories to be used for NoisePage.
 #   NOISEPAGE_LINK_LIBRARIES      : Link libraries to be added to NoisePage.
 #   NOISEPAGE_LINK_OPTIONS        : Link options to be added to NoisePage.
-#   NOISEPAGE_TEST_PARALLELISM    : The number of tests that should run in parallel.
 #######################################################################################################################
 
 # Default to DEBUG builds if -DCMAKE_BUILD_TYPE was not specified.
@@ -180,11 +181,11 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 option(NOISEPAGE_BUILD_BENCHMARKS
         "Enable building benchmarks as part of the ALL target."
-        ON)
+        OFF)
 
 option(NOISEPAGE_BUILD_TESTS
-        "Enable building tests as part of the ALL target."
-        ON)
+        "Enable building (non-self-driving-e2e) tests as part of the ALL target."
+        OFF)
 
 option(NOISEPAGE_BUILD_SELF_DRIVING_E2E_TESTS
         "Enable building self-driving end-to-end tests as part of the ALL target."
@@ -845,10 +846,11 @@ add_custom_target(jumbotests
         USES_TERMINAL)
 add_custom_target(self_driving_e2e_test         # For now, this target is specifically used for self-driving pipeline
         ctest
+        --extra-verbose                     # Print out the test output as it runs.
         --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
         ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails.
         -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
-        -L self_driving_e2e_test                # Run all tests that have a label like this. See footgun warning above.
+        -L self_driving_e2e_test            # Run all tests that have a label like this. See footgun warning above.
         --no-compress-output                # Output verbosely so that it can be logged.
         -T Test                             # Run tests and log it to Testing/*/Test.xml.
         --timeout 3000                      # 3000 second timeout per test.
@@ -937,7 +939,10 @@ function(add_noisepage_test
     # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
     add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
     # Label each test with TEST_LABEL so that ctest can run all the tests under the TEST_LABEL label later.
-    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "${TEST_LABEL};${TEST_NAME}")
+    set_tests_properties(${TEST_NAME} PROPERTIES
+            LABELS "${TEST_LABEL};${TEST_NAME}"                 # Label the test.
+            ENVIRONMENT "PYTHONPATH=${PROJECT_SOURCE_DIR}"      # Set the PYTHONPATH to project root for self-driving.
+            )
     # Add TEST_NAME as a dependency to TEST_LABEL. Note that TEST_LABEL must be a valid target!
     add_dependencies(${TEST_LABEL} ${TEST_NAME})
 endfunction()
@@ -960,6 +965,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/settings/*.cpp"
         "test/storage/*.cpp"
         "test/sql/*.cpp"
+        "test/task/*.cpp"
         "test/traffic_cop/*.cpp"
         "test/transaction/*.cpp"
         "test/type/*.cpp"
@@ -1087,6 +1093,7 @@ add_jumbotest("test/planner" "")
 add_jumbotest("test/self_driving" "")
 add_jumbotest("test/settings" "")
 add_jumbotest("test/storage" "block_access_controller_test;block_compactor_test;bwtree_test;bwtree_index_test;data_table_test;data_table_concurrent_test;hash_index_test;large_garbage_collector_test;log_test;tuple_access_strategy_test;")
+add_jumbotest("test/task" "")
 add_jumbotest("test/traffic_cop" "traffic_cop_test;")
 add_jumbotest("test/transaction" "large_transaction_test;")
 add_jumbotest("test/type" "")
@@ -1151,6 +1158,7 @@ file(GLOB_RECURSE NOISEPAGE_BENCHMARK_SOURCES
         "benchmark/integration/*.cpp"
         "benchmark/metrics/*.cpp"
         "benchmark/parser/*.cpp"
+        "benchmark/replication/*.cpp"
         "benchmark/storage/*.cpp"
         "benchmark/transaction/*.cpp"
         "benchmark/runner/*.cpp"
@@ -1190,6 +1198,22 @@ if (${NOISEPAGE_ENABLE_SHARED})
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 endif ()
+
+#######################################################################################################################
+# HEADER startup.sql post-copy command.
+# startup.sql           :   Post-copy command for startup.sql into the bin directory
+#######################################################################################################################
+
+add_custom_command(
+        OUTPUT "${CMAKE_BINARY_DIR}/bin/startup.sql"
+        DEPENDS "${PROJECT_SOURCE_DIR}/src/main/startup.sql"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMAND cp ${PROJECT_SOURCE_DIR}/src/main/startup.sql ${CMAKE_BINARY_DIR}/bin/startup.sql
+        USES_TERMINAL
+)
+
+add_custom_target(startup_sql_generator DEPENDS "${CMAKE_BINARY_DIR}/bin/startup.sql")
+add_dependencies(noisepage startup_sql_generator)
 
 #######################################################################################################################
 # HEADER Miscellaneous.
@@ -1411,6 +1435,29 @@ else ()
             )
     add_custom_command(TARGET check-clang-tidy DEPENDS benchmark gflags gtest)
     message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
+endif ()
+unset(CLANG_TIDY_BIN)
+
+#######################################################################################################################
+# check-clang-tidy-full  :   Run clang-tidy static analysis on the codebase in "full", i.e.,
+#                            normally clang-tidy is only run on files that differ from origin/master.
+#######################################################################################################################
+
+find_program(CLANG_TIDY_BIN NAMES clang-tidy-8 clang-tidy HINTS ${CLANG_TOOLS_SEARCH_PATH})
+if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+    message(STATUS "[MISSING] clang-tidy not found, no check-clang-tidy.")
+else ()
+    # Run clang-tidy and exit with a non-zero exit code if any errors are found.
+    # clang-tidy automatically searches for a .clang-tidy file in parent directories.
+    add_custom_target(check-clang-tidy-full
+            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # Run LLVM's clang-tidy script.
+            -clang-tidy-binary ${CLANG_TIDY_BIN}                              # Using the specified clang-tidy binary.
+            -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
+            -full                                                             # Do not apply the git filter.
+            USES_TERMINAL
+            )
+    add_custom_command(TARGET check-clang-tidy-full DEPENDS benchmark gflags gtest)
+    message(STATUS "[ADDED] check-clang-tidy-full (${CLANG_TIDY_BIN})")
 endif ()
 unset(CLANG_TIDY_BIN)
 

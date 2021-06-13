@@ -44,9 +44,8 @@ class JoinDefinition {
    */
   std::unique_ptr<JoinDefinition> Copy();
 
-  // TODO(WAN): not a SQLStatement?
   /**
-   * @param v Visitor pattern for the statement
+   * @param v Visitor pattern for the JOIN definition
    */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
@@ -123,9 +122,10 @@ class TableRef {
   /**
    * @return a copy of the table reference
    */
-  std::unique_ptr<TableRef> Copy();
+  std::unique_ptr<TableRef> Copy() const;
 
   /**
+   * Construct a table reference.
    * @param alias alias for table ref
    * @param table_info table information to use in creation
    */
@@ -133,6 +133,7 @@ class TableRef {
       : type_(TableReferenceType::NAME), alias_(std::move(alias)), table_info_(std::move(table_info)) {}
 
   /**
+   * Construct a table reference.
    * @param alias alias for table ref
    * @param select select statement to use in creation
    */
@@ -140,13 +141,14 @@ class TableRef {
       : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)) {}
 
   /**
+   * Construct a table reference.
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for the columns
-   * @param cte_type The type of cte this table is referencing (iterative, recursive, simple)
+   * @param cte_type The type of the CTE referenced by this table
    */
   TableRef(AliasType alias, std::unique_ptr<SelectStatement> select, std::vector<AliasType> cte_col_aliases,
-           parser::CTEType cte_type)
+           parser::CteType cte_type)
       : type_(TableReferenceType::SELECT),
         alias_(std::move(alias)),
         select_(std::move(select)),
@@ -154,12 +156,14 @@ class TableRef {
         cte_type_(cte_type) {}
 
   /**
+   * Construct a table reference.
    * @param list table refs to use in creation
    */
   explicit TableRef(std::vector<std::unique_ptr<TableRef>> list)
       : type_(TableReferenceType::CROSS_PRODUCT), list_(std::move(list)) {}
 
   /**
+   * Construct a table reference.
    * @param join join definition to use in creation
    */
   explicit TableRef(std::unique_ptr<JoinDefinition> join) : type_(TableReferenceType::JOIN), join_(std::move(join)) {}
@@ -186,12 +190,12 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for column names
-   * @param cte_type the type of cte (simple/recursive/iterative)
+   * @param cte_type the type of CTE
    * @return unique pointer to the created (CTE) table ref
    */
   static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select,
                                                              std::vector<AliasType> cte_col_aliases,
-                                                             parser::CTEType cte_type) {
+                                                             parser::CteType cte_type) {
     return std::make_unique<TableRef>(parser::AliasType(std::move(alias)), std::move(select),
                                       std::move(cte_col_aliases), cte_type);
   }
@@ -212,39 +216,54 @@ class TableRef {
     return std::make_unique<TableRef>(std::move(join));
   }
 
-  /**
-   * @param v Visitor pattern for the statement
-   */
+  /** @param v Visitor pattern for the table reference */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
-  /** @return table reference type*/
+  /** @return The table reference type */
   TableReferenceType GetTableReferenceType() { return type_; }
 
-  /** @return alias */
-  AliasType &GetAlias() {
+  /** @return The table alias */
+  const AliasType &GetAlias() {
     if (alias_.Empty()) {
       alias_ = AliasType(GetTableName());
     }
     return alias_;
   }
 
-  /** @return column alias names */
+  /** @return The column alias names */
   std::vector<AliasType> GetCteColumnAliases() { return cte_col_aliases_; }
 
-  /** @return cte recursive flag */
-  parser::CTEType GetCteType() { return cte_type_; }
+  /** @return The syntactic type of the CTE (CTEType;:INVALID if TableRef does not correspond to CTE) */
+  CteType GetCteType() const { return cte_type_; }
 
-  /** @return table name */
+  /** @return `true` if this table reference represents a CTE temporary table, `false` otherwise */
+  bool IsCte() const { return cte_type_ != CteType::INVALID; }
+
+  /** @return `true` if this table reference represents an inductive CTE, `false` otherwise */
+  bool IsSyntacticallyInductiveCte() const {
+    return (cte_type_ == CteType::RECURSIVE) || (cte_type_ == CteType::ITERATIVE) ||
+           (cte_type_ == CteType::STRUCTURALLY_RECURSIVE) || (cte_type_ == CteType::STRUCTURALLY_ITERATIVE);
+  }
+
+  /** @return `true` if this table reference represents a CTE with inductive structure, `false` otherwise */
+  bool IsStructurallyInductiveCte() const {
+    return (cte_type_ == CteType::STRUCTURALLY_RECURSIVE) || (cte_type_ == CteType::STRUCTURALLY_ITERATIVE);
+  }
+
+  /** @return The table name */
   const std::string &GetTableName() { return table_info_->GetTableName(); }
 
-  /** @return namespace name */
+  /** @return The namespace name */
   const std::string &GetNamespaceName() { return table_info_->GetNamespaceName(); }
 
-  /** @return database name */
+  /** @return The database name */
   const std::string &GetDatabaseName() { return table_info_->GetDatabaseName(); }
 
-  /** @return select statement */
+  /** @return The SELECT statement */
   common::ManagedPointer<SelectStatement> GetSelect() { return common::ManagedPointer(select_); }
+
+  /** @return `true` if this table reference has an associated SELECT, `false` otherwise */
+  bool HasSelect() const { return static_cast<bool>(select_); }
 
   /** @return list of table references */
   std::vector<common::ManagedPointer<TableRef>> GetList() {
@@ -256,12 +275,10 @@ class TableRef {
     return list;
   }
 
-  /** @return join */
+  /** @return The join */
   common::ManagedPointer<JoinDefinition> GetJoin() { return common::ManagedPointer(join_); }
 
-  /**
-   * @return the hashed value of this table ref object
-   */
+  /** @return The hashed value of this table ref object */
   common::hash_t Hash() const;
 
   /**
@@ -280,7 +297,7 @@ class TableRef {
 
   /**
    * Inserts all the table aliases forming a table ref into the input set.
-   * (i.e., all the aliases used in the from clause, including all aliases in all JOINs)
+   * (i.e., all the aliases used in the FROM clause, including all aliases in all JOINs)
    * @param aliases set to insert aliases into
    */
   void GetConstituentTableAliases(std::vector<std::string> *aliases);
@@ -294,16 +311,34 @@ class TableRef {
  private:
   friend class binder::BindNodeVisitor;
 
+  // TODO(Kyle): It seems that this implementation of TableRef
+  // is trying to be "too general" - maybe we should look into
+  // breaking up the implementation between e.g. table references
+  // that are defined SELECT statements vs those that are defined
+  // by JOINs, etc. as it might simplify the logic considerably
+
+  // The type of the table reference
   TableReferenceType type_;
+
+  // The alias for the table reference
   AliasType alias_;
 
+  // Associated information for the referenced table (if applicable)
   std::unique_ptr<TableInfo> table_info_;
+
+  // The SELECT statement associated with the table reference (if applicable)
   std::unique_ptr<SelectStatement> select_;
 
+  // The column aliases provided by this CTE
   std::vector<AliasType> cte_col_aliases_;
-  parser::CTEType cte_type_{CTEType::INVALID};
 
+  // The CTE type represented by this table reference
+  CteType cte_type_{CteType::INVALID};
+
+  // List of constitutent table references (if applicable)
   std::vector<std::unique_ptr<TableRef>> list_;
+
+  // The JOIN definition (if applicable)
   std::unique_ptr<JoinDefinition> join_;
 };
 

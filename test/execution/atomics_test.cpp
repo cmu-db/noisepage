@@ -5,6 +5,7 @@
 #include "execution/ast/context.h"
 #include "execution/compiled_tpl_test.h"
 #include "execution/compiler/compiler.h"
+#include "execution/compiler/compiler_settings.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region.h"
 #include "execution/vm/llvm_engine.h"
@@ -41,7 +42,7 @@ class AtomicsTest : public CompiledTplTest {
                                          tpl_type);
 
     // Compile it...
-    auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
+    auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src, compiler::CompilerSettings{});
     auto module = compiler::Compiler::RunCompilationSimple(input);
     ASSERT_FALSE(module == nullptr);
 
@@ -102,7 +103,7 @@ class AtomicsTest : public CompiledTplTest {
                                          tpl_type);
 
     // Compile it...
-    auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
+    auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src, compiler::CompilerSettings{});
     auto module = compiler::Compiler::RunCompilationSimple(input);
     ASSERT_FALSE(module == nullptr);
 

@@ -792,7 +792,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
 }
 
 std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *parse_result, SelectStmt *root) {
-  std::unique_ptr<SelectStatement> result;
+  std::unique_ptr<SelectStatement> result{};
 
   switch (root->op_) {
     case SETOP_NONE: {
@@ -840,7 +840,7 @@ std::vector<common::ManagedPointer<AbstractExpression>> PostgresParser::TargetTr
     throw PARSER_EXCEPTION("TargetTransform: root==null.");
   }
 
-  std::vector<common::ManagedPointer<AbstractExpression>> result;
+  std::vector<common::ManagedPointer<AbstractExpression>> result{};
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     auto expr = ExprTransform(parse_result, target->val_, target->name_);
@@ -864,7 +864,7 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(ParseResult *parse_resul
 
   // TODO(WAN): this codepath came from the old system. Can simplify?
   if (root->length > 1) {
-    std::vector<std::unique_ptr<TableRef>> refs;
+    std::vector<std::unique_ptr<TableRef>> refs{};
     for (auto cell = root->head; cell != nullptr; cell = cell->next) {
       auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
       switch (node->type) {
@@ -1888,9 +1888,35 @@ std::vector<common::ManagedPointer<AbstractExpression>> PostgresParser::ParamLis
 }
 
 std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ParseResult *parse_result, ExplainStmt *root) {
+  static constexpr char k_format_tok[] = "format";
   std::unique_ptr<ExplainStatement> result;
   auto query = NodeTransform(parse_result, root->query_);
   result = std::make_unique<ExplainStatement>(std::move(query));
+
+  if (root->options_ != nullptr) {
+    for (ListCell *cell = root->options_->head; cell != nullptr; cell = cell->next) {
+      NOISEPAGE_ASSERT(reinterpret_cast<Node *>(cell->data.ptr_value)->type == T_DefElem, "Expect a DefElem.");
+      const auto *const def_elem UNUSED_ATTRIBUTE = reinterpret_cast<DefElem *>(cell->data.ptr_value);
+
+      if (strncmp(def_elem->defname_, k_format_tok, sizeof(k_format_tok)) == 0) {
+        const auto *const format_cstr = reinterpret_cast<value *>(def_elem->arg_)->val_.str_;
+        // lowercase
+        if (strncmp(format_cstr, "tpl", 3) == 0) {
+          result->SetFormat(ExplainStatementFormat::TPL);
+        } else if (strncmp(format_cstr, "tbc", 3) == 0) {
+          result->SetFormat(ExplainStatementFormat::TBC);
+        } else if (strncmp(format_cstr, "json", 4) == 0) {
+          // this is the default format for us anyway so it's a noop
+          NOISEPAGE_ASSERT(result->GetFormat() == ExplainStatementFormat::JSON,
+                           "We assume this is the default format.");
+        } else {
+          throw ParserException("Unsupported format string for EXPLAIN.", __FILE__, __LINE__, def_elem->location_);
+        }
+      } else {
+        throw ParserException("Unsupported option string for EXPLAIN.", __FILE__, __LINE__, def_elem->location_);
+      }
+    }
+  }
   return result;
 }
 
@@ -2086,17 +2112,17 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
 // Postgres.SelectStmt.withClause -> noisepage.TableRef
 std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
   // Postgres parses 'SELECT;' to nullptr
-  std::vector<std::unique_ptr<TableRef>> ctes;
+  std::vector<std::unique_ptr<TableRef>> ctes{};
   if (root == nullptr) {
     return ctes;
   }
 
-  std::unique_ptr<TableRef> result = nullptr;
+  std::unique_ptr<TableRef> result{};
   ListCell *current = root->ctes_->head;
   while (current != nullptr) {
-    auto node = reinterpret_cast<Node *>(current->data.ptr_value);
-    auto common_table_expr = reinterpret_cast<CommonTableExpr *>(node);
-    auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery_);
+    const auto node = reinterpret_cast<Node *>(current->data.ptr_value);
+    const auto common_table_expr = reinterpret_cast<CommonTableExpr *>(node);
+    const auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery_);
     switch (cte_query->type) {
       case T_SelectStmt: {
         auto cte_select_query = reinterpret_cast<SelectStmt *>(cte_query);
@@ -2104,9 +2130,7 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
           // Make left argument the recursive case and right argument the base case,
           // so it is possible to visit the base case without visiting the recursive case
           // (which would otherwise be visited recursively by the visitor in the binder)
-          auto tmp = cte_select_query->larg_;
-          cte_select_query->larg_ = cte_select_query->rarg_;
-          cte_select_query->rarg_ = tmp;
+          std::swap(cte_select_query->larg_, cte_select_query->rarg_);
         }
         auto select = SelectTransform(parse_result, cte_select_query);
         if (select == nullptr) {
@@ -2115,23 +2139,30 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
         }
         auto alias = common_table_expr->ctename_;
 
-        std::vector<parser::AliasType> colnames;
+        std::vector<parser::AliasType> colnames{};
         auto col_names_root = common_table_expr->aliascolnames_;
         if (col_names_root != nullptr) {
-          size_t i = 0;
+          std::size_t i = 0;
           for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
-            auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
-            auto column = target->val_.str_;
+            const auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
+            const auto column = target->val_.str_;
             colnames.emplace_back(parser::AliasType(column, i));
-            i++;
+            ++i;
           }
         }
-        CTEType cte_type = CTEType::SIMPLE;
-        if (root->recursive_) {
-          cte_type = CTEType::RECURSIVE;
-        } else if (root->iterative_) {
-          cte_type = CTEType::ITERATIVE;
-        }
+
+        // Determine the type of the CTE based on the syntax of the
+        // expression as well as the expression's structure
+        const CteType cte_type = [&]() {
+          if (root->recursive_) {
+            return select->HasUnionSelect() ? CteType::STRUCTURALLY_RECURSIVE : CteType::RECURSIVE;
+          }
+          if (root->iterative_) {
+            return select->HasUnionSelect() ? CteType::STRUCTURALLY_ITERATIVE : CteType::ITERATIVE;
+          }
+          return CteType::SIMPLE;
+        }();
+
         result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
         ctes.push_back(std::move(result));
         current = current->next;

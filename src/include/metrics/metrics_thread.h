@@ -1,7 +1,9 @@
 #pragma once
 
 #include <chrono>  //NOLINT
+#include <memory>
 #include <thread>  //NOLINT
+#include <utility>
 
 #include "metrics/metrics_manager.h"
 
@@ -15,11 +17,14 @@ class MetricsThread {
  public:
   /**
    * @param metrics_manager pointer to the object to be run on this thread
+   * @param task_manager task manager for MetricsManager::Output to utilize
    * @param metrics_period sleep time between metrics invocations
    */
   MetricsThread(common::ManagedPointer<MetricsManager> metrics_manager,
+                common::ManagedPointer<task::TaskManager> task_manager,
                 const std::chrono::microseconds metrics_period)  // NOLINT
       : metrics_manager_(metrics_manager),
+        task_manager_(task_manager),
         run_metrics_(true),
         metrics_paused_(false),
         metrics_period_(metrics_period),
@@ -28,7 +33,7 @@ class MetricsThread {
   ~MetricsThread() {
     run_metrics_ = false;
     metrics_thread_.join();
-    metrics_manager_->ToCSV();
+    metrics_manager_->ToOutput(task_manager_);
   }
 
   /**
@@ -54,6 +59,7 @@ class MetricsThread {
 
  private:
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
+  common::ManagedPointer<task::TaskManager> task_manager_;
   volatile bool run_metrics_;
   volatile bool metrics_paused_;
   std::chrono::microseconds metrics_period_;
@@ -64,7 +70,7 @@ class MetricsThread {
       std::this_thread::sleep_for(metrics_period_);
       if (!metrics_paused_) {
         metrics_manager_->Aggregate();
-        metrics_manager_->ToCSV();
+        metrics_manager_->ToOutput(task_manager_);
       }
     }
   }

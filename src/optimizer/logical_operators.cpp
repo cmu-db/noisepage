@@ -850,10 +850,12 @@ bool LogicalCreateFunction::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalCreateIndex::Copy() const { return new LogicalCreateIndex(*this); }
 
-Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                                  parser::IndexType index_type, bool unique, std::string index_name,
+Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                  catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
+                                  std::string index_name,
                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
   auto *op = new LogicalCreateIndex();
+  op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->index_type_ = index_type;
@@ -866,6 +868,7 @@ Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalo
 common::hash_t LogicalCreateIndex::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_type_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
@@ -880,6 +883,7 @@ bool LogicalCreateIndex::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::LOGICALCREATEINDEX) return false;
   const LogicalCreateIndex &node = *dynamic_cast<const LogicalCreateIndex *>(&r);
   if (namespace_oid_ != node.namespace_oid_) return false;
+  if (database_oid_ != node.database_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   if (index_type_ != node.index_type_) return false;
   if (index_name_ != node.index_name_) return false;
@@ -1266,7 +1270,7 @@ Operator LogicalCteScan::Make() {
 Operator LogicalCteScan::Make(
     std::string table_alias, std::string table_name, catalog::table_oid_t table_oid, catalog::Schema table_schema,
     std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-    parser::CTEType cte_type, std::vector<AnnotatedExpression> &&scan_predicate) {
+    parser::CteType cte_type, std::vector<AnnotatedExpression> &&scan_predicate) {
   auto *op = new LogicalCteScan();
   op->table_schema_ = std::move(table_schema);
   op->table_alias_ = std::move(table_alias);

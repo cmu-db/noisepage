@@ -30,6 +30,8 @@ class ChangeKnobAction : public AbstractAction {
 
   const std::string &GetSQLCommand() override;
 
+  void ModifyActionState(ActionState *action_state) override;
+
   bool IsValid() override;
 
  private:

@@ -1368,7 +1368,7 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *CteScan::Copy() const { return new CteScan(*this); }
 
 Operator CteScan::Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       std::string table_name, catalog::table_oid_t table_oid, parser::CTEType cte_type,
+                       std::string table_name, catalog::table_oid_t table_oid, parser::CteType cte_type,
                        std::vector<AnnotatedExpression> &&scan_predicate, catalog::Schema &&table_schema) {
   auto *cte_scan_op = new CteScan();
   cte_scan_op->child_expressions_ = std::move(child_expressions);

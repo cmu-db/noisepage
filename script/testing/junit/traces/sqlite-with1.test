@@ -1,0 +1,248 @@
+statement ok
+-- CTE-related integration tests from SQLite trace file `with1.test`
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 1
+
+statement ok
+
+
+statement ok
+CREATE TABLE t1(x INTEGER, y INTEGER);
+
+statement ok
+
+
+query I rowsort
+WITH x(a) AS (SELECT * FROM t1) SELECT 10;
+----
+10
+
+statement ok
+
+
+statement ok
+-- Postgres does not support this syntax
+
+statement ok
+-- SELECT * FROM ( WITH x AS ( SELECT * FROM t1) SELECT 10);
+
+statement ok
+
+
+statement ok
+WITH x(a) AS (SELECT * FROM t1) INSERT INTO t1 VALUES(1,2);
+
+statement ok
+WITH x(a) AS (SELECT * FROM t1) DELETE FROM t1;
+
+statement ok
+WITH x(a) AS (SELECT * FROM t1) UPDATE t1 SET x = y;
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 2
+
+statement ok
+
+
+statement ok
+DROP TABLE IF EXISTS t1;
+
+statement ok
+CREATE TABLE t1(x INTEGER);
+
+statement ok
+INSERT INTO t1 VALUES(1);
+
+statement ok
+INSERT INTO t1 VALUES(2);
+
+statement ok
+
+
+query I rowsort
+WITH tmp AS (SELECT * FROM t1) SELECT x FROM tmp;
+----
+1
+2
+
+statement ok
+
+
+query I rowsort
+WITH tmp(a) AS (SELECT * FROM t1) SELECT a FROM tmp;
+----
+1
+2
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 3
+
+statement ok
+
+
+statement ok
+CREATE TABLE t3(x VARCHAR);
+
+statement ok
+CREATE TABLE t4(x VARCHAR);
+
+statement ok
+
+
+statement ok
+INSERT INTO t3 VALUES('T3');
+
+statement ok
+INSERT INTO t4 VALUES('T4');
+
+statement ok
+
+
+query T rowsort
+WITH t3(a) AS (SELECT * FROM t4) SELECT * FROM t3;
+----
+T4
+
+statement ok
+
+
+statement ok
+-- TODO: We crash on this query, Postgres returns `T4`
+
+statement ok
+-- WITH tmp AS (SELECT * FROM t3), tmp2 AS (WITH tmp AS (SELECT * FROM t4) SELECT * FROM tmp) SELECT * FROM tmp2;
+
+statement ok
+
+
+statement ok
+-- TODO: We crash on this query; Postgres returns `T3`
+
+statement ok
+-- WITH tmp AS (SELECT * FROM t3), tmp2 AS (WITH xxxx AS (SELECT * FROM t4) SELECT * FROM tmp) SELECT * FROM tmp2;
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 5
+
+statement ok
+
+
+statement ok
+CREATE TABLE edge(xfrom INTEGER, xto INTEGER, seq INTEGER, PRIMARY KEY(xfrom, xto));
+
+statement ok
+INSERT INTO edge VALUES(0, 1, 10);
+
+statement ok
+INSERT INTO edge VALUES(1, 2, 20);
+
+statement ok
+INSERT INTO edge VALUES(0, 3, 30);
+
+statement ok
+INSERT INTO edge VALUES(2, 4, 40);
+
+statement ok
+INSERT INTO edge VALUES(3, 4, 40);
+
+statement ok
+INSERT INTO edge VALUES(2, 5, 50);
+
+statement ok
+INSERT INTO edge VALUES(3, 6, 60);
+
+statement ok
+INSERT INTO edge VALUES(5, 7, 70);
+
+statement ok
+INSERT INTO edge VALUES(3, 7, 70);
+
+statement ok
+INSERT INTO edge VALUES(4, 8, 80);
+
+statement ok
+INSERT INTO edge VALUES(7, 8, 80);
+
+statement ok
+INSERT INTO edge VALUES(8, 9, 90);
+
+statement ok
+
+
+statement ok
+-- TODO: We return an unexpected number of results for this query
+
+statement ok
+-- WITH RECURSIVE ancest(id, mtime) AS (SELECT 0, 0 UNION SELECT edge.xto, edge.seq FROM edge, ancest WHERE edge.xfrom=ancest.id) SELECT * FROM ancest;
+
+statement ok
+
+
+statement ok
+-- This fails in the parser (TargetTransform: root==null)
+
+statement ok
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION ALL SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
+
+statement ok
+
+
+statement ok
+-- This fails in the parser (TargetTransform: root==null)
+
+statement ok
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION SELECT (x + 1) % 10 FROM i) SELECT x FROM i LIMIT 20;
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- with1.test, section 6
+
+statement ok
+
+
+query I rowsort
+WITH RECURSIVE x(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM x WHERE i<10) SELECT COUNT(*) FROM x;
+----
+10
+
+statement ok
+
+
+statement ok
+-- terminator; the testing infrastructure chokes on trailing comments
+
+query I rowsort
+SELECT 1;
+----
+1
+

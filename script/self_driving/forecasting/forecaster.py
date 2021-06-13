@@ -17,6 +17,7 @@ class Forecaster:
     def __init__(
             self,
             trace_file: str,
+            trace_sequence: List,
             interval_us: int,
             test_mode: bool,
             eval_size: int,
@@ -38,6 +39,7 @@ class Forecaster:
 
         self._data_loader = DataLoader(
             query_trace_file=trace_file,
+            query_sequence=trace_sequence,
             interval_us=interval_us)
 
         self._make_clusters()
@@ -200,6 +202,7 @@ class Forecaster:
         """
         test_seqs = self._cluster_seqs(cid, test_mode=True, with_label=False)
         preds = list([model.predict(seq) for seq in test_seqs])
+        logging.info(f"Inference preds: {preds}")
         query_preds = self._clusters[cid].segregate(preds)
 
         return query_preds

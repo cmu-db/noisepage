@@ -1,69 +1,87 @@
-query I nosort
+statement ok
+-- Input queries for vanilla (simple) CTE integration tests.
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- Hand-Rolled Test Cases
+
+statement ok
+
+
+query I rowsort
 WITH cte(x) AS (SELECT 1) SELECT x FROM cte;
 ----
-1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+1
 
-query I nosort
+query I rowsort
 WITH cte AS (SELECT 1) SELECT * FROM cte;
 ----
-1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+1
 
-query I nosort
+query I rowsort
 WITH cte AS (SELECT 1 AS "x") SELECT * FROM cte;
 ----
-1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+1
 
-query I nosort
+query I rowsort
 WITH cte(y) AS (SELECT 1 AS "x") SELECT y FROM cte;
 ----
-1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+1
 
-query I nosort
+query I rowsort
 WITH cte(x) AS (WITH cte2(y) AS (SELECT 1) SELECT y FROM cte2) SELECT x FROM cte;
 ----
-1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+1
 
-query I nosort
+statement ok
+
+
+statement ok
+-- TODO: We currently fail on this query because of the arbitrary SELECT * ordering
+
+statement ok
+-- WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT * FROM cte INNER JOIN cte2 ON cte.x+1 = cte2.y;
+
+statement ok
+
+
+query II rowsort
 WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT cte.x, cte2.y FROM cte INNER JOIN cte2 ON cte.x+1 = cte2.y;
 ----
-2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
+1
+2
 
 statement ok
 
 
-statement ok
-CREATE TABLE tree (node INTEGER, parent INTEGER);
-
-statement ok
-INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 11), (111, 11);
-
-query I nosort
-WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
-----
-7 values hashing to e0147388525f89cdac23192c19c5cc75
-
-statement ok
-
-
-query I nosort
+query II rowsort
 WITH cte(x,x) AS (SELECT 1, 2) SELECT * FROM cte;
 ----
-2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
+1
+2
 
-query I nosort
+query II rowsort
 WITH cte AS (SELECT 4, 3) SELECT * FROM cte;
 ----
-2 values hashing to ba1c8aaf233bb794bc3fc52c7c5c5ac8
+4
+3
 
-query I nosort
+query I rowsort
 WITH cte(y,y,x) AS (SELECT 5,4,3) SELECT x FROM cte;
 ----
-1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+3
 
 statement ok
 
 
-# Porting over junit test cases
+statement ok
+-- Port of some JUnit test cases
+
 statement ok
 CREATE TABLE company (id INT PRIMARY KEY NOT NULL, name TEXT NOT NULL, age INT NOT NULL, address CHAR(50), salary REAL);
 
@@ -76,36 +94,60 @@ INSERT INTO company (id,name,age,address,salary) VALUES (2, 'George', 21, 'NY', 
 statement ok
 
 
-query I nosort
+query T rowsort
 WITH employee AS (SELECT id, name, age FROM company) SELECT name FROM employee;
 ----
-2 values hashing to be0a0e6a6f990291de5dd0ee0d93b07a
+George
+Paul
 
-query I nosort
+query TI rowsort
 WITH employee AS (SELECT age+age AS sumage, name FROM company) SELECT E2.name, E1.sumage FROM employee AS E1, employee AS E2 WHERE E1.name = E2.name;
 ----
-4 values hashing to 17bcc53db5d5a4ed62836d923837a49e
+George
+42
+Paul
+64
 
 statement ok
 
 
-# Aggregate inside cte query
-query I nosort
+statement ok
+-- Aggregate inside CTE query
+
+query I rowsort
 WITH employee AS (SELECT SUM(age) AS sumage FROM company) SELECT * FROM employee;
 ----
-1 values hashing to c92841e00dbfeb12a0ce7fb3ffbd1fcb
+53
 
-# Join inside cte query
-query I nosort
+statement ok
+
+
+statement ok
+-- Join inside CTE query
+
+query TI rowsort
 WITH employee AS (SELECT C1.name AS name, C2.age AS age FROM company AS C1, company AS C2) SELECT * FROM employee;
 ----
-8 values hashing to c0438f480daa73a1e6dbe888b3600da0
+George
+21
+George
+32
+Paul
+21
+Paul
+32
 
-# Aggregate with alias inside cte query
-query I nosort
+statement ok
+
+
+statement ok
+-- Aggregate with alias inside CTE query
+
+query TI rowsort
 WITH employee AS (SELECT MAX(age) AS mxage FROM company) SELECT E2.name, E2.age FROM employee AS E1, company AS E2 WHERE E1.mxage = E2.age;
 ----
-2 values hashing to 00ea2298aacdab6ef3a930939cd949de
+Paul
+32
 
 statement ok
 
@@ -116,14 +158,328 @@ CREATE TABLE tmp(x INT);
 statement ok
 INSERT INTO tmp VALUES (1), (2);
 
-# CTE with self-join
-query I nosort
+statement ok
+
+
+statement ok
+-- CTE with self-join
+
+query III nosort
 WITH cte AS (SELECT * FROM tmp) SELECT A.x, B.x, C.x FROM cte A, cte B, tmp C ORDER BY A.x, B.x, C.x;
 ----
-24 values hashing to 15f5a3ad9d0103293409308a7f45ec34
+1
+1
+1
+1
+1
+2
+1
+2
+1
+1
+2
+2
+2
+1
+1
+2
+1
+2
+2
+2
+1
+2
+2
+2
 
-query I nosort
+query III nosort
 WITH cte AS (SELECT * FROM tmp) SELECT A.x, B.x, C.x FROM cte A, cte B, cte C ORDER BY A.x, B.x, C.x;
 ----
-24 values hashing to 15f5a3ad9d0103293409308a7f45ec34
+1
+1
+1
+1
+1
+2
+1
+2
+1
+1
+2
+2
+2
+1
+1
+2
+1
+2
+2
+2
+1
+2
+2
+2
+
+statement ok
+
+
+statement ok
+-- Infinite loop, but outer query limits the number of rows
+
+statement ok
+-- TODO: We loop on this
+
+statement ok
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+
+statement ok
+
+
+statement ok
+-- Infinite loop, but outer query limits the number of rows
+
+statement ok
+-- TODO: We loop on this
+
+statement ok
+-- WITH RECURSIVE i(x) AS (SELECT 1 UNION ALL SELECT (x+1)%10 FROM i) SELECT x FROM i LIMIT 20;
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- Adapted from Postgres Regression Test (`with.sql`)
+
+statement ok
+-- https://github.com/postgres/postgres/blob/master/src/test/regress/sql/with.sql
+
+statement ok
+
+
+query IIII rowsort
+WITH q1(x,y) AS (SELECT 1,2) SELECT * FROM q1, q1 AS q2;
+----
+1
+2
+1
+2
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- Custom Cases Targeting Specific Functionality
+
+statement ok
+
+
+statement ok
+-- TODO(Kyle): Currently, we can't handle any of the queries below.
+
+statement ok
+-- Eventually, we need to add the functionality required to support
+
+statement ok
+-- these queries (and others like them). When that time comes, these
+
+statement ok
+-- will serve as useful test cases.
+
+statement ok
+
+
+statement ok
+-- -- variations with nested CTE, all valid
+
+statement ok
+-- -- CTE y may refer to CTE x because they are defined at the same scope
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT i FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM x) SELECT j FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT i FROM x) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- variations with nested CTE, all invalid
+
+statement ok
+-- -- CTE y may not refer to CTE a because a is defined within the scope of CTE x
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT * FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT m FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT * FROM a), y(j) AS (SELECT * FROM a) SELECT j FROM y;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT 1) SELECT m FROM a), y(j) AS (SELECT m FROM a) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- variations with nested CTE, all valid
+
+statement ok
+-- -- CTE a within CTE y may refer to CTE x because x is defined at a broader scope
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT * FROM x) SELECT * FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT i FROM x) SELECT * FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT * FROM x) SELECT m FROM a) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT * FROM x) SELECT * FROM a) SELECT j FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT 1), y(j) AS (WITH a(m) AS (SELECT i FROM x) SELECT m FROM a) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- forward references in non-recursive CTEs, all invalid
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT i FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT j FROM y;
+
+statement ok
+-- WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT i FROM x) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- mutually-recursive references in recursive CTEs, all invalid
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT j FROM y), y(j) AS (SELECT * FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT i FROM x) SELECT * FROM y;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT * FROM x) SELECT j FROM y;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT j FROM y), y(j) AS (SELECT i FROM x) SELECT j FROM y;
+
+statement ok
+
+
+statement ok
+-- -- forward references in non-recursive CTEs, all invalid
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+-- WITH x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+
+
+statement ok
+-- -- forward references in recursive CTEs, all valid
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT * FROM y), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (SELECT j FROM y), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+
+
+statement ok
+-- -- forward reference from nested, non-recursive CTE, all invalid
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT j FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT m FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+-- WITH x(i) AS (WITH a(m) AS (SELECT j FROM y) SELECT m FROM a), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+
+
+statement ok
+-- -- forward reference from nested, recursive CTE, all valid
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT j FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT m FROM a), y(j) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT * FROM y) SELECT * FROM a), y(j) AS (SELECT 1) SELECT i FROM x;
+
+statement ok
+-- WITH RECURSIVE x(i) AS (WITH a(m) AS (SELECT j FROM y) SELECT m FROM a), y(j) AS (SELECT 1) SELECT i FROM x;
 

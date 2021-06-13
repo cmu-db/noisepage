@@ -1,6 +1,6 @@
 # Initialize the database and table for testing
 statement ok
-CREATE TABLE functions1 (int_val INT, neg_int_val INT,  mod_int_val INT, double_val DOUBLE, neg_double_val DOUBLE, small_double_a_val DOUBLE, small_double_b_val DOUBLE, str_i_val VARCHAR(32), str_a_val VARCHAR(32), str_b_val VARCHAR(32), is_null INT)
+CREATE TABLE functions1 (int_val INT, neg_int_val INT,  mod_int_val INT, double_val DOUBLE PRECISION, neg_double_val DOUBLE PRECISION, small_double_a_val DOUBLE PRECISION, small_double_b_val DOUBLE PRECISION, str_i_val VARCHAR(32), str_a_val VARCHAR(32), str_b_val VARCHAR(32), is_null INT)
 
 statement ok
 INSERT INTO functions1(int_val, neg_int_val, mod_int_val, double_val, neg_double_val, small_double_a_val, small_double_b_val, str_i_val, str_a_val, str_b_val, is_null) VALUES(123, -123, 3, 12.34, -12.34, 0.5, 3.0, '123456', 'AbCdEf', '  AbCdEf ', 0)
@@ -8,13 +8,12 @@ INSERT INTO functions1(int_val, neg_int_val, mod_int_val, double_val, neg_double
 statement ok
 INSERT INTO functions1(int_val, neg_int_val, mod_int_val, double_val, neg_double_val, small_double_a_val, small_double_b_val, str_i_val, str_a_val, str_b_val, is_null) VALUES(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1)
 
-
 # Tests usage of trig udf functions
 # #744 test
 query I nosort
 SELECT cos(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to f2ec9f8b13a07f120c16def39f4fbbc2
+0.9744873987650982
 
 query I nosort
 SELECT cos(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -24,7 +23,7 @@ SELECT cos(double_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT sin(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 4aaf19241ee767c1185a7815aef61de7
+-0.22444221895185537
 
 query I nosort
 SELECT sin(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -34,7 +33,7 @@ SELECT sin(double_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT tan(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to eb46483c930e203e9e3100f24360bac6
+-0.23031823627096235
 
 query I nosort
 SELECT tan(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -44,7 +43,7 @@ SELECT tan(double_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT cosh(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to b15eb5f3481ab5bee2cf375ef65a98b2
+114330.97603059153
 
 query I nosort
 SELECT cosh(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -54,7 +53,7 @@ SELECT cosh(double_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT sinh(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 830c638d008e5939d1f4884c1a667909
+114330.97602621827
 
 query I nosort
 SELECT sinh(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -64,16 +63,18 @@ SELECT sinh(double_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT tanh(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to ab99c04dd0cc14ddb09d9b5ae68d1fd0
+0.999999999961749
 
 query I nosort
 SELECT tanh(double_val) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
+# TODO(WAN): log2(x) doesn't actually exist in Postgres. Instead, it is log(2, x).
+query I nosort
 SELECT log2(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 79fbd1dc909b6c5a233897815e27b6c9
+3.6252704893746932
 
 query I nosort
 SELECT log2(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -83,7 +84,7 @@ SELECT log2(double_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT ceil(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 3f3b3dc6a2108ee5d50d684513e03240
+13
 
 query I nosort
 SELECT ceil(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -93,27 +94,31 @@ SELECT ceil(double_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT floor(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 5deae25d4a07185eb3b5a410b3214e49
+12
 
 query I nosort
 SELECT floor(double_val) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
+# TODO(WAN): Similar to above, this is log(10, x) in Postgres.
+
 query I nosort
 SELECT log10(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to b411836a7440f67bcdc0100021b2d948
+1.0913151596972229
 
 query I nosort
 SELECT log10(double_val) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
+# TODO(WAN): truncate is trunc in Postgres.
+
 query I nosort
 SELECT truncate(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 5deae25d4a07185eb3b5a410b3214e49
+12
 
 query I nosort
 SELECT truncate(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -123,7 +128,7 @@ SELECT truncate(double_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT acos(small_double_a_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to ea3ad10ef827e0d39c08a4250ffa6a13
+1.0471975511965979
 
 query I nosort
 SELECT acos(small_double_a_val) AS result FROM functions1 WHERE is_null = 1
@@ -133,7 +138,7 @@ SELECT acos(small_double_a_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT asin(small_double_a_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 1ef2c0fb841839d83155861bc9af847f
+0.5235987755982989
 
 query I nosort
 SELECT asin(small_double_a_val) AS result FROM functions1 WHERE is_null = 1
@@ -143,7 +148,7 @@ SELECT asin(small_double_a_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT atan(small_double_a_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to a88a353c9e931df915a8d44861aaae52
+0.4636476090008061
 
 query I nosort
 SELECT atan(small_double_a_val) AS result FROM functions1 WHERE is_null = 1
@@ -163,12 +168,12 @@ SELECT abs(neg_int_val) AS result FROM functions1 WHERE is_null = 0
 query I nosort
 SELECT abs(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 5cd9bf09e956d2ada689753a0e3b9321
+12.34
 
 query I nosort
 SELECT abs(neg_double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 5cd9bf09e956d2ada689753a0e3b9321
+12.34
 
 query I nosort
 SELECT abs(int_val) AS result FROM functions1 WHERE is_null = 1
@@ -178,7 +183,7 @@ SELECT abs(int_val) AS result FROM functions1 WHERE is_null = 1
 query I nosort
 SELECT exp(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 73eeec3b16d21b9f2c49fc66bb912349
+228661.9520568098
 
 query I nosort
 SELECT exp(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -195,10 +200,12 @@ SELECT mod(int_val, mod_int_val) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
+# TODO(WAN): This is actually illegal in postgres.
+
 query R nosort
 SELECT mod(double_val, small_double_b_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 6acfdcb6cc3df14576ba015132b03dcc
+0.33999999999999986
 
 query R nosort
 SELECT mod(double_val, small_double_b_val) AS result FROM functions1 WHERE is_null = 1
@@ -208,7 +215,7 @@ SELECT mod(double_val, small_double_b_val) AS result FROM functions1 WHERE is_nu
 query R nosort
 SELECT sqrt(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 0468f497418e5871184b7d69d3a72033
+3.512833614050059
 
 query R nosort
 SELECT sqrt(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -218,7 +225,7 @@ SELECT sqrt(double_val) AS result FROM functions1 WHERE is_null = 1
 query R nosort
 SELECT cbrt(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 51c4bb819452d03a7db1ec897208f132
+2.3108498088312435
 
 query R nosort
 SELECT cbrt(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -228,7 +235,7 @@ SELECT cbrt(double_val) AS result FROM functions1 WHERE is_null = 1
 query R nosort
 SELECT round(double_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 5deae25d4a07185eb3b5a410b3214e49
+12.0
 
 query R nosort
 SELECT round(double_val) AS result FROM functions1 WHERE is_null = 1
@@ -238,7 +245,7 @@ SELECT round(double_val) AS result FROM functions1 WHERE is_null = 1
 query R nosort
 SELECT round(double_val, 1) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 71ab3e03e07329582f66577f737868a6
+12.3
 
 query R nosort
 SELECT round(double_val, 1) AS result FROM functions1 WHERE is_null = 1
@@ -248,7 +255,7 @@ SELECT round(double_val, 1) AS result FROM functions1 WHERE is_null = 1
 query R nosort
 SELECT pow(double_val, small_double_b_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to 5f65bc630539ceaf58085252f8e32206
+1879.080904
 
 query R nosort
 SELECT pow(double_val, small_double_b_val) AS result FROM functions1 WHERE is_null = 1
@@ -258,7 +265,7 @@ SELECT pow(double_val, small_double_b_val) AS result FROM functions1 WHERE is_nu
 query R nosort
 SELECT atan2(double_val, small_double_b_val) AS result FROM functions1 WHERE is_null = 0
 ----
-1 values hashing to a1cd57d075cf714c7683a6e5a4dfeedb
+1.332311078896258
 
 query R nosort
 SELECT atan2(double_val, small_double_b_val) AS result FROM functions1 WHERE is_null = 1

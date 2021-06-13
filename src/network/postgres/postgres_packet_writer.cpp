@@ -4,6 +4,7 @@
 #include "execution/sql/value.h"
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_protocol_util.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace noisepage::network {
 
@@ -55,6 +56,21 @@ void PostgresPacketWriter::WriteParameterDescription(const std::vector<type::Typ
   for (auto &type : param_types)
     AppendValue<int32_t>(static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(type)));
 
+  EndPacket();
+}
+
+void PostgresPacketWriter::WriteExplainRowDescription() {
+  BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION);
+  AppendValue<int16_t>(static_cast<int16_t>(1));  // number of columns
+  AppendString("QUERY PLAN", true);               // column name
+  AppendValue<int32_t>(0);                        // table oid
+  AppendValue<int16_t>(0);                        // column oid
+  AppendValue(static_cast<int32_t>(
+      PostgresValueType::TEXT));  // postgres expects this return type, which is why we're special-casing this function
+  AppendValue<int16_t>(-1);       // variable length
+
+  AppendValue<int32_t>(-1);  // type modifier, generally -1 (see pg_attribute.atttypmod)
+  AppendValue<int16_t>(static_cast<int16_t>(network::FieldFormat::text));  // format code for the field
   EndPacket();
 }
 
@@ -157,6 +173,9 @@ void PostgresPacketWriter::WriteCommandComplete(const QueryType query_type, cons
       break;
     case QueryType::QUERY_DROP_SCHEMA:
       WriteCommandComplete("DROP SCHEMA");
+      break;
+    case QueryType::QUERY_EXPLAIN:
+      WriteCommandComplete("EXPLAIN");
       break;
     case QueryType::QUERY_SET:
       WriteCommandComplete("SET");
@@ -360,7 +379,7 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
       }
       case type::TypeId::REAL: {
         auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
-        string_value = std::to_string(real_val->val_);
+        string_value = fmt::to_string(real_val->val_);
         break;
       }
       case type::TypeId::DATE: {

@@ -16,6 +16,10 @@ namespace noisepage::settings {
 class Callbacks;
 }
 
+namespace noisepage::task {
+class TaskManager;
+}
+
 namespace noisepage::metrics {
 
 /**
@@ -47,9 +51,7 @@ class MetricsManager {
   /**
    * @return the MetricsManager's aggregated metrics. Currently used in tests
    */
-  const std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> &AggregatedMetrics() const {
-    return aggregated_metrics_;
-  }
+  std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> &AggregatedMetrics() { return aggregated_metrics_; }
 
   /**
    * @param component to be tested
@@ -60,9 +62,9 @@ class MetricsManager {
   }
 
   /**
-   * Dump aggregated metrics to CSV files.
+   * Output aggregated metrics.
    */
-  void ToCSV() const;
+  void ToOutput(common::ManagedPointer<task::TaskManager> task_manager) const;
 
   /**
    * @param component to be enabled
@@ -91,7 +93,37 @@ class MetricsManager {
     aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
   }
 
+  /**
+   * Updates the output type of a specific metric component
+   * @param component to change
+   * @param output of the component
+   */
+  void SetMetricOutput(const MetricsComponent component, MetricsOutput output) {
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    metrics_output_[static_cast<uint8_t>(component)] = output;
+  }
+
+  /**
+   * Retrieves the output type of a specific metric component
+   * @param component whose output to retrieve
+   * @return output type of the specified component
+   */
+  metrics::MetricsOutput GetMetricOutput(const MetricsComponent component) {
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
+    return metrics_output_[static_cast<uint8_t>(component)];
+  }
+
  private:
+  /**
+   * Dump aggregated metrics to CSV files.
+   */
+  void ToCSV(uint8_t component) const;
+
+  /**
+   * Dump aggregated metrics to internal tables.
+   */
+  void ToDB(uint8_t component, common::ManagedPointer<task::TaskManager> task_manager) const;
+
   void ResetMetric(MetricsComponent component) const;
 
   mutable common::SpinLatch latch_;
@@ -102,6 +134,7 @@ class MetricsManager {
   std::bitset<NUM_COMPONENTS> enabled_metrics_ = 0x0;
 
   std::array<std::vector<bool>, NUM_COMPONENTS> samples_mask_;  // std::vector<bool> may use a bitset for efficiency
+  std::array<MetricsOutput, NUM_COMPONENTS> metrics_output_;
 };
 
 }  // namespace noisepage::metrics

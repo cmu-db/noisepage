@@ -29,7 +29,7 @@ void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
   search_path_ = std::move(namespaces);
 
   // Check if 'pg_catalog is explicitly set'
-  for (auto &ns : search_path_)
+  for (const auto &ns : search_path_)
     if (ns == postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID) return;
 
   search_path_.emplace(search_path_.begin(), postgres::PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID);
@@ -50,7 +50,7 @@ bool CatalogAccessor::DropNamespace(namespace_oid_t ns) const { return dbc_->Del
 
 table_oid_t CatalogAccessor::GetTableOid(std::string name) const {
   NormalizeObjectName(&name);
-  for (auto &path : search_path_) {
+  for (const auto &path : search_path_) {
     table_oid_t search_result = dbc_->GetTableOid(txn_, path, name);
     if (search_result != INVALID_TABLE_OID) return search_result;
   }
@@ -121,14 +121,14 @@ std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const 
 }
 
 std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> CatalogAccessor::GetIndexes(
-    table_oid_t table) {
+    const table_oid_t table) {
   return dbc_->GetIndexes(txn_, table);
 }
 
 index_oid_t CatalogAccessor::GetIndexOid(std::string name) const {
   NormalizeObjectName(&name);
-  for (auto &path : search_path_) {
-    index_oid_t search_result = dbc_->GetIndexOid(txn_, path, name);
+  for (const auto &path : search_path_) {
+    const index_oid_t search_result = dbc_->GetIndexOid(txn_, path, name);
     if (search_result != INVALID_INDEX_OID) return search_result;
   }
   return INVALID_INDEX_OID;
@@ -167,6 +167,8 @@ common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oi
   }
   return dbc_->GetIndex(txn_, index);
 }
+
+std::string_view CatalogAccessor::GetIndexName(index_oid_t index) const { return dbc_->GetIndexName(txn_, index); }
 
 language_oid_t CatalogAccessor::CreateLanguage(const std::string &lanname) {
   return dbc_->CreateLanguage(txn_, lanname);

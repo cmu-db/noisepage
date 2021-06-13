@@ -5,6 +5,8 @@
 #include "common/error/exception.h"
 #include "common/json.h"
 #include "loggers/replication_logger.h"
+#include "replication/primary_replication_manager.h"
+#include "replication/replica_replication_manager.h"
 
 namespace noisepage::replication {
 
@@ -19,8 +21,7 @@ ReplicationManager::ReplicationManager(
   messenger_->ListenForConnection(
       listen_destination, network_identity,
       [this](common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg) {
-        auto json = nlohmann::json::parse(msg.GetMessage());
-        auto replication_msg = BaseReplicationMessage::ParseFromJson(json);
+        auto replication_msg = BaseReplicationMessage::ParseFromString(msg.GetMessage());
         EventLoop(messenger, msg, common::ManagedPointer(replication_msg));
       });
   // Connect to all of the other nodes.

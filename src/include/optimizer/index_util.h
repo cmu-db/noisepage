@@ -19,6 +19,10 @@ namespace noisepage::parser {
 class AbstractExpression;
 }  // namespace noisepage::parser
 
+namespace noisepage::selfdriving {
+class OperatingUnitRecorder;
+}
+
 namespace noisepage::optimizer {
 
 /**
@@ -85,6 +89,8 @@ class IndexUtil {
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds);
 
  private:
+  friend class selfdriving::OperatingUnitRecorder;
+
   /**
    * Check whether predicate can take part in index computation
    * @param schema Index Schema

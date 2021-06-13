@@ -92,7 +92,7 @@ INSERT INTO temp2 VALUES (1, 1.37)
 query I nosort
 SELECT a + b AS AB FROM temp2
 ----
-1 values hashing to 8ce0fad9de37990d53615a006836d77a
+2.37
 
 query I nosort
 SELECT 2+3

@@ -99,9 +99,9 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
-  std::unordered_map<parser::AliasType, type::TypeId> column_alias_map;
+  std::unordered_map<parser::AliasType, type::TypeId> column_alias_map{};
   auto cols = col_aliases.size();
-  for (size_t i = 0; i < select_list.size(); i++) {
+  for (std::size_t i = 0; i < select_list.size(); i++) {
     auto &expr = select_list[i];
     parser::AliasType alias;
     if (i < cols) {
@@ -124,10 +124,10 @@ void BinderContext::AddCTETable(const std::string &table_name,
                                 const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
                                 const std::vector<parser::AliasType> &col_aliases) {
   if (nested_table_alias_map_.find(table_name) != nested_table_alias_map_.end()) {
-    throw BINDER_EXCEPTION("Duplicate cte table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
+    throw BINDER_EXCEPTION("Duplicate CTE table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
   }
-  std::unordered_map<parser::AliasType, type::TypeId> nested_column_mappings;
-  for (size_t i = 0; i < col_aliases.size(); i++) {
+  std::unordered_map<parser::AliasType, type::TypeId> nested_column_mappings{};
+  for (std::size_t i = 0; i < col_aliases.size(); i++) {
     NOISEPAGE_ASSERT(select_list[i]->GetReturnValueType() != type::TypeId::INVALID, "CTE column type not resolved");
     nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();
   }
@@ -301,7 +301,8 @@ void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<parser::TableStarExpression> table_star,
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
-  bool target_specified = table_star->IsTargetTableSpecified();
+  const bool target_specified = table_star->IsTargetTableSpecified();
+
   bool target_found = false;
   for (auto &entry : regular_table_alias_list_) {
     // If a target is specified, check that the entry matches the target table
@@ -312,9 +313,9 @@ void BinderContext::GenerateAllColumnExpressions(
     target_found = true;
     auto table_data = regular_table_alias_map_[entry];
     auto &schema = std::get<2>(table_data);
-    auto col_cnt = schema.GetColumns().size();
+    const auto col_cnt = schema.GetColumns().size();
     auto table_alias = GetOrCreateTableAlias(entry);
-    for (uint32_t i = 0; i < col_cnt; i++) {
+    for (std::uint32_t i = 0; i < col_cnt; ++i) {
       const auto &col_obj = schema.GetColumn(i);
       auto tv_expr = new parser::ColumnValueExpression(table_alias, std::string(col_obj.Name()));
       tv_expr->SetReturnValueType(col_obj.Type());
@@ -334,22 +335,22 @@ void BinderContext::GenerateAllColumnExpressions(
 
   if (!target_specified) {
     // If a target is not specified, continue generating column value expressions
-    for (auto &entry : nested_table_alias_map_) {
-      auto &table_alias_name = entry.first;
-      auto &cols = entry.second;
+    for (const auto &entry : nested_table_alias_map_) {
+      const auto &table_alias_name = entry.first;
+      const auto &cols = entry.second;
 
       // TODO(tanujnay112) make the nested_table_alias_map hold ordered maps
-      // this is to order the generated columns in the same order that they appear in the nested table
-      // the serial number of their aliases signifies this ordering
-      std::vector<std::pair<parser::AliasType, type::TypeId>> cols_vector(cols.begin(), cols.end());
+      // this is to order the generated columns in the same order that they appear
+      // in the nested table; the serial number of their aliases signifies this ordering
+      std::vector<std::pair<parser::AliasType, type::TypeId>> cols_vector{cols.begin(), cols.end()};
       std::sort(
           cols_vector.begin(), cols_vector.end(),
           [](const std::pair<parser::AliasType, type::TypeId> &A, const std::pair<parser::AliasType, type::TypeId> &B) {
             return A.first.GetSerialNo() < B.first.GetSerialNo();
           });
-      auto table_alias = GetOrCreateTableAlias(table_alias_name);
-      for (auto &col_entry : cols_vector) {
-        auto tv_expr = new parser::ColumnValueExpression(table_alias, std::string(col_entry.first.GetName()));
+      const auto table_alias = GetOrCreateTableAlias(table_alias_name);
+      for (const auto &col_entry : cols_vector) {
+        auto tv_expr = new parser::ColumnValueExpression{table_alias, col_entry.first.GetName()};
         tv_expr->SetReturnValueType(col_entry.second);
         tv_expr->DeriveExpressionName();
         tv_expr->SetColumnOID(catalog::MakeTempOid<catalog::col_oid_t>(col_entry.first.GetSerialNo()));

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -102,10 +103,22 @@ class UpdateStatement : public SQLStatement {
   /** @return update condition */
   common::ManagedPointer<AbstractExpression> GetUpdateCondition() { return where_; }
 
+  /** @return a collection of the temporary tables available to the UPDATE */
+  std::vector<common::ManagedPointer<TableRef>> GetUpdateWith() const {
+    // TODO(Kyle): This collection is currently NEVER populated
+    std::vector<common::ManagedPointer<TableRef>> table_refs{};
+    table_refs.reserve(with_tables_.size());
+    std::transform(with_tables_.cbegin(), with_tables_.cend(), std::back_inserter(table_refs),
+                   [](const auto &ref) { return common::ManagedPointer<TableRef>(ref); });
+    return table_refs;
+  }
+
  private:
   const std::unique_ptr<TableRef> table_;
   const std::vector<std::unique_ptr<UpdateClause>> updates_;
   const common::ManagedPointer<AbstractExpression> where_;
+
+  std::vector<std::unique_ptr<TableRef>> with_tables_;
 };
 
 }  // namespace parser

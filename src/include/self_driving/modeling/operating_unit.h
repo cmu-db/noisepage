@@ -407,6 +407,15 @@ class PipelineOperatingUnits {
   }
 
   /**
+   * Gets the map from pipeline id to features
+   * @return the pipeline feature map
+   */
+  const std::unordered_map<execution::pipeline_id_t, ExecutionOperatingUnitFeatureVector> &GetPipelineFeatureMap()
+      const {
+    return units_;
+  }
+
+  /**
    * Checks whether a certain pipeline exists
    * @param pipeline Pipeline Identifier
    * @return if exist or not

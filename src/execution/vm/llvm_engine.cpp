@@ -20,6 +20,9 @@
 #include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/IPO/AlwaysInliner.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
 
 #include <map>
 #include <memory>
@@ -948,29 +951,34 @@ void LLVMEngine::CompiledModuleBuilder::Simplify() {
 }
 
 void LLVMEngine::CompiledModuleBuilder::Optimize() {
-  llvm::legacy::PassManager module_passes;
   llvm::legacy::FunctionPassManager function_passes(llvm_module_.get());
 
-  // Add the appropriate TargetLibraryInfo and TargetTransformInfo
-  auto target_library_info_impl = std::make_unique<llvm::TargetLibraryInfoImpl>(target_machine_->getTargetTriple());
+  // Add the appropriate TargetTransformInfo.
   function_passes.add(llvm::createTargetTransformInfoWrapperPass(target_machine_->getTargetIRAnalysis()));
-  module_passes.add(new llvm::TargetLibraryInfoWrapperPass(*target_library_info_impl));
-  module_passes.add(llvm::createTargetTransformInfoWrapperPass(target_machine_->getTargetIRAnalysis()));
 
-  // Build up optimization pipeline
+  // Build up optimization pipeline.
   llvm::PassManagerBuilder pm_builder;
-  pm_builder.OptLevel = 3;
-  pm_builder.Inliner = llvm::createFunctionInliningPass(3, 0, false);
+  uint32_t opt_level = 3;
+  uint32_t size_opt_level = 0;
+  bool disable_inline_hot_call_site = false;
+  pm_builder.OptLevel = opt_level;
+  pm_builder.Inliner = llvm::createFunctionInliningPass(opt_level, size_opt_level, disable_inline_hot_call_site);
   pm_builder.populateFunctionPassManager(function_passes);
-  pm_builder.populateModulePassManager(module_passes);
 
-  // Run optimization passes on module
+  // Add custom passes. Hand-selected based on empirical evaluation.
+  function_passes.add(llvm::createInstructionCombiningPass());
+  function_passes.add(llvm::createReassociatePass());
+  function_passes.add(llvm::createGVNPass());
+  function_passes.add(llvm::createCFGSimplificationPass());
+  function_passes.add(llvm::createAggressiveDCEPass());
+  function_passes.add(llvm::createCFGSimplificationPass());
+
+  // Run optimization passes on all functions.
   function_passes.doInitialization();
-  for (auto &func : *llvm_module_) {
+  for (llvm::Function &func : *llvm_module_) {
     function_passes.run(func);
   }
   function_passes.doFinalization();
-  module_passes.run(*llvm_module_);
 }
 
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::CompiledModuleBuilder::Finalize() {

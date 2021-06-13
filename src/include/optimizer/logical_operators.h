@@ -1273,6 +1273,7 @@ class LogicalCreateFunction : public OperatorNodeContents<LogicalCreateFunction>
 class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
  public:
   /**
+   * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param index_type Type of the index
@@ -1281,8 +1282,9 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @param index_attrs Attributes of the index
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                       parser::IndexType index_type, bool unique, std::string index_name,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
+                       std::string index_name,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
 
   /**
@@ -1298,6 +1300,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the table
@@ -1325,6 +1332,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
 
  private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
   /**
    * OID of the namespace
    */
@@ -1973,26 +1985,24 @@ class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
  */
 class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
  public:
-  /**
-   * @return a CTE scan operator
-   */
+  /** @return A CTE scan operator */
   static Operator Make();
 
   /**
-   * Makes a logical cte scan node
-   * @param table_alias Alias of the table this node is scanning
-   * @param table_name The name of the cte table
-   * @param table_oid The temp oid of the cte table
-   * @param table_schema The schema of the cte table
-   * @param child_expressions The top level expressions that are used to fill the columns of the cte table
-   * @param cte_type The type of cte
+   * Construct a logical CTE scan node.
+   * @param table_alias The alias of the table this node is scanning
+   * @param table_name The name of the CTE table
+   * @param table_oid The temp oid of the CTE table
+   * @param table_schema The schema of the CTE table
+   * @param child_expressions The top level expressions that are used to fill the columns of the CTE table
+   * @param cte_type The type of CTE
    * @param scan_predicate The predicates of this scan
-   * @return
+   * @return The node
    */
   static Operator Make(std::string table_alias, std::string table_name, catalog::table_oid_t table_oid,
                        catalog::Schema table_schema,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       parser::CTEType cte_type, std::vector<AnnotatedExpression> &&scan_predicate);
+                       parser::CteType cte_type, std::vector<AnnotatedExpression> &&scan_predicate);
 
   /**
    * Copy
@@ -2022,48 +2032,41 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
     return child_expressions_;
   }
 
-  /**
-   * @return The type of this cte
-   */
-  parser::CTEType GetCTEType() const { return cte_type_; }
+  /** @return The type of this CTE */
+  parser::CteType GetCTEType() const { return cte_type_; }
 
-  /**
-   * @return whether or not this cte is iterative
-   */
-  bool GetIsIterative() const { return cte_type_ == parser::CTEType::ITERATIVE; }
+  /** @return `true` if this CTE is recursive, `false` otherwise */
+  bool GetIsRecursive() const { return cte_type_ == parser::CteType::STRUCTURALLY_RECURSIVE; }
 
-  /**
-   * @return whether or not this cte is recursive
-   */
-  bool GetIsRecursive() const { return cte_type_ == parser::CTEType::RECURSIVE; }
+  /** @return `true` if this CTE is iterative, `false` otherwise */
+  bool GetIsIterative() const { return cte_type_ == parser::CteType::STRUCTURALLY_ITERATIVE; }
 
-  /**
-   * @return whether or not this cte is inductive (recursive or iterative)
-   */
+  /** @return `true` if this CTE is inductive, `false` otherwise */
   bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
-  /**
-   * @return the temp table oid for the cte table being scanned
-   */
+  /** @return The temporary table OID for the CTE table being scanned */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return the predicates for this cte scan
-   */
+  /** @return The predicates for this CTE scan */
   std::vector<AnnotatedExpression> GetScanPredicate() const { return scan_predicate_; }
 
-  /**
-   * @return the schema for this cte table
-   */
+  /** @return The schema for this CTE table */
   const catalog::Schema &GetTableSchema() const { return table_schema_; }
 
  private:
+  /** The alias for the table defined by this CTE */
   std::string table_alias_;
+  /** The name of the table defined by this CTE */
   std::string table_name_;
+  /** The child expressions for this CTE */
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
-  parser::CTEType cte_type_;
+  /** The type of this CTE */
+  parser::CteType cte_type_;
+  /** The scan predicate for this CTE (if applicable) */
   std::vector<AnnotatedExpression> scan_predicate_;
+  /** The schema for the table defined by this CTE */
   catalog::Schema table_schema_;
+  /** The OID for the table defined by this CTE */
   catalog::table_oid_t table_oid_;
 };
 

@@ -33,10 +33,10 @@ class Schema;
 namespace binder {
 
 /**
- * @brief Store the visible table alias and the corresponding <db_id, table_id>
- *  tuple. Also record the upper level context when traversing into the nested
- *  query. This context keep track of all the table alias that the column in the
- *  current level can bind to.
+ * @brief Store the visible table aliases and the corresponding <db_id, table_id>
+ * tuple. Also record the upper level context when traversing into the nested
+ * query. This context keeps track of all the table aliases to which columns
+ * in the current level can bind.
  */
 class BinderContext {
  public:
@@ -85,7 +85,7 @@ class BinderContext {
                       const std::vector<parser::AliasType> &col_aliases);
 
   /**
-   * Adds a Common Table Expression table to the binder. Currently, this adds it to the nested table aliases map
+   * Adds a Common Table Expression table to the binder. Currently, this adds it to the nested table aliases map.
    * @param table_name Name of the cte table
    * @param select_list List of selected columns that form the query to build the CTE
    * @param col_aliases Aliases for each column (this must be of the same size as the select_list vector)
@@ -95,7 +95,7 @@ class BinderContext {
                    const std::vector<parser::AliasType> &col_aliases);
 
   /**
-   * Update the nested table alias map to create a copy of CTE table's entry for given alias
+   * Update the nested table alias map to create a copy of CTE table's entry for given alias.
    * @param cte_table_name CTE table name
    * @param table_alias Alias of the table
    */
@@ -181,7 +181,7 @@ class BinderContext {
   common::ManagedPointer<BinderContext> GetUpperContext() { return upper_context_; }
 
   /**
-   * Set the upper context of the current context
+   * Set the upper context of the current context.
    * @param upper_context Pointer to the upper binder context
    */
   void SetUpperContext(common::ManagedPointer<BinderContext> upper_context) { upper_context_ = upper_context; }

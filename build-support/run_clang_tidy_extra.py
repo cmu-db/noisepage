@@ -19,10 +19,11 @@ import os
 class CheckConfig(object):
     """ Check paths against the built-in config """
 
-    def __init__(self):
-        self._init_config()
+    def __init__(self, apply_git_filter=True):
         # debug prints
         self.debug = False
+        self.apply_git_filter = apply_git_filter
+        self._init_config()
         return
 
     def _init_config(self):
@@ -31,19 +32,20 @@ class CheckConfig(object):
         """
         self.ignore_pats = ["/third_party/"]
 
-        """ Takes the relative complement of tracked files & modified files.
-            The result is a list of all elements that were NOT modified.
-            We tell clang-tidy to skip these files to speed up builds.
-            
-            Git is told to look relative to the root path (:/)
-            We tell git to only diff into the past (...) 
-            We also tell git to only diff new or modified files (filter=AM)
-        """
-        with os.popen('(git ls-files --full-name :/;'
-                      ' git diff origin/master... --name-only --diff-filter=AM)' 
-                      '| sort | uniq -u') as diff:
-            for line in diff:
-                self.ignore_pats.append("/%s" % line.strip())
+        if self.apply_git_filter:
+            """ Takes the relative complement of tracked files & modified files.
+                The result is a list of all elements that were NOT modified.
+                We tell clang-tidy to skip these files to speed up builds.
+                
+                Git is told to look relative to the root path (:/)
+                We tell git to only diff into the past (...) 
+                We also tell git to only diff new or modified files (filter=AM)
+            """
+            with os.popen('(git ls-files --full-name :/;'
+                          ' git diff origin/master... --name-only --diff-filter=AM)' 
+                          '| sort | uniq -u') as diff:
+                for line in diff:
+                    self.ignore_pats.append("/%s" % line.strip())
 
     def should_skip(self, path):
         """ Should execution of clang-tidy be skipped?

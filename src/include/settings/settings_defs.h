@@ -124,6 +124,15 @@ SETTING_bool(
     noisepage::settings::Callbacks::NoOp
 )
 
+// Asynchronous replication instead of synchronous replication, if replication is enabled.
+SETTING_bool(
+    async_replication_enable,
+    "Asynchronous replication instead of synchronous replication, if replication is enabled. (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
     wal_num_buffers,
@@ -195,10 +204,33 @@ SETTING_int(
 
 SETTING_int64(
     workload_forecast_interval,
-    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000, unit: micro-second)",
-    10000000,
-    10000000,
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 1000000, unit: micro-second)",
+    1000000,
+    1000000,
     1000000000000,
+    true,
+
+    // When this callback is implemented in the near-fuure, do not
+    // forget to update QueryTraceMetricRawData::QUERY_SEGMENT_INTERVAL
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    sequence_length,
+    "Length of a planning data sequence. (default: 10, unit: workload_forecast_intervals)",
+    10,
+    1,
+    1000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    horizon_length,
+    "Length of the planning horizon. (default: 30, unit: workload_forecast_intervals)",
+    30,
+    1,
+    1000000,
     true,
     noisepage::settings::Callbacks::NoOp
 )
@@ -219,6 +251,16 @@ SETTING_int64(
     120000000,
     120000000,
     10000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int64(
+    pilot_memory_constraint,
+    "Maximum amount of memory allowed for the pilot to plan. (default : 1000000000, unit: byte)",
+    1000000000,
+    0,
+    100000000000,
     true,
     noisepage::settings::Callbacks::NoOp
 )
@@ -256,6 +298,14 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    enable_seq_tuning,
+    "Use sequence tuning instead of monte carlo tree search for pilot planning (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
     logging_metrics_enable,
     "Metrics collection for the Logging component (default: false).",
     false,
@@ -285,6 +335,14 @@ SETTING_bool(
     false,
     true,
     noisepage::settings::Callbacks::MetricsQueryTrace
+)
+
+SETTING_string(
+    query_trace_metrics_output,
+    "Output type for Query Traces Metrics (default: CSV, values: NONE, CSV, DB, CSV_AND_DB)",
+    "CSV",
+    true,
+    noisepage::settings::Callbacks::MetricsQueryTraceOutput
 )
 
 SETTING_bool(
@@ -351,8 +409,8 @@ SETTING_bool(
     compiled_query_execution,
     "Compile queries to native machine code using LLVM, rather than relying on TPL interpretation (default: false).",
     false,
-    false,
-    noisepage::settings::Callbacks::NoOp
+    true,
+    noisepage::settings::Callbacks::CompiledQueryExecution
 )
 
 SETTING_string(
@@ -452,9 +510,17 @@ SETTING_string(
 
 // Save path of the model relative to the build path (model saved at ${BUILD_ABS_PATH} + SAVE_PATH)
 SETTING_string(
-    model_save_path,
-    "Save path of the model relative to the build path (default: ../script/model/terrier_model_server_trained/mini_model_test.pickle)",
-    "../script/model/terrier_model_server_trained/mini_model_test.pickle",
+    ou_model_save_path,
+    "Save path of the OU model relative to the build path (default: ou_model_map.pickle)",
+    "ou_model_map.pickle",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    interference_model_save_path,
+    "Save path of the forecast model relative to the build path (default: interference_direct_model.pickle)",
+    "interference_direct_model.pickle",
     false,
     noisepage::settings::Callbacks::NoOp
 )
@@ -467,6 +533,34 @@ SETTING_string(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_int(
+    forecast_sample_limit,
+    "Limit on number of samples for workload forecasting",
+    5,
+    0,
+    100,
+    true,
+    noisepage::settings::Callbacks::ForecastSampleLimit
+)
+
+SETTING_int(
+    task_pool_size,
+    "Number of threads available to the task manager",
+    1,
+    1,
+    32,
+    true,
+    noisepage::settings::Callbacks::TaskPoolSize
+)
+
+SETTING_string(
+    startup_ddl_path,
+    "Path to startup DDL (default: bin/startup.sql)",
+    "bin/startup.sql",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_string(
     bytecode_handlers_path,
     "The path to the bytecode handlers bitcode file (default: ./bytecode_handlers_ir.bc)",
@@ -474,4 +568,121 @@ SETTING_string(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_bool(
+    train_forecast_model,
+    "Train the forecast model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainForecastModel
+)
+
+SETTING_bool(
+    train_interference_model,
+    "Train the interference model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainInterferenceModel
+)
+
+SETTING_string(
+    interference_model_input_path,
+    "Input path to the directory containing training the interference model",
+    "concurrent_runner_input/",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    interference_model_train_methods,
+    "Methods to be used for training the interference model (comma delimited)",
+    "rf",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    interference_model_train_timeout,
+    "Timeout in milliseconds for training the interference model (default: 2 minutes)",
+    120000,
+    1000,
+    600000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    interference_model_pipeline_sample_rate,
+    "Sampling rate of pipeline metrics OUs (0 is ignored)",
+    2,
+    0,
+    10,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    train_ou_model,
+    "Train the OU model (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::TrainOUModel
+)
+
+SETTING_string(
+    ou_model_input_path,
+    "Input path to the directory containing training the OU model",
+    "ou_runner_input/",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    ou_model_train_methods,
+    "Methods to be used for training the OU model (comma delimited)",
+    "lr,rf,gbm,nn",
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    ou_model_train_timeout,
+    "Timeout in milliseconds for training the OU model (default: 2 minutes)",
+    120000,
+    1000,
+    600000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
+
+// The default log level is unspecified because people may have inserted calls
+// to set_level directly in the codebase, which would make a default inaccurate.
+#define SETTINGS_LOG_LEVEL(component)                      \
+SETTING_string(                                            \
+    log_level_##component,                                 \
+    "Set the log level for the component.",                \
+    "(unspecified)",                                       \
+    true,                                                  \
+    noisepage::settings::Callbacks::LogLevelSet##component \
+)
+
+SETTINGS_LOG_LEVEL(binder)
+SETTINGS_LOG_LEVEL(catalog)
+SETTINGS_LOG_LEVEL(common)
+SETTINGS_LOG_LEVEL(execution)
+SETTINGS_LOG_LEVEL(index)
+SETTINGS_LOG_LEVEL(messenger)
+SETTINGS_LOG_LEVEL(metrics)
+SETTINGS_LOG_LEVEL(modelserver)
+SETTINGS_LOG_LEVEL(network)
+SETTINGS_LOG_LEVEL(optimizer)
+SETTINGS_LOG_LEVEL(parser)
+SETTINGS_LOG_LEVEL(replication)
+SETTINGS_LOG_LEVEL(selfdriving)
+SETTINGS_LOG_LEVEL(settings)
+SETTINGS_LOG_LEVEL(storage)
+SETTINGS_LOG_LEVEL(transaction)
+
+#undef SETTINGS_LOG_LEVEL
     // clang-format on

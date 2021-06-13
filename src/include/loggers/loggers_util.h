@@ -3,6 +3,9 @@
 // flush the debug logs, every <n> seconds
 #define DEBUG_LOG_FLUSH_INTERVAL 3
 
+#include <optional>
+#include <string_view>
+
 #include "common/sanctioned_shared_pointer.h"
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -29,5 +32,11 @@ class LoggersUtil {
    * Shut down all of the debug loggers in the system.
    */
   static void ShutDown();
+
+  /** @return The specified level. */
+  static std::optional<spdlog::level::level_enum> GetLevel(const std::string_view &name);
+
+  /** @return The logger for the specified component. */
+  static noisepage::common::SanctionedSharedPtr<spdlog::logger>::Ptr GetLogger(const std::string_view &name);
 };
 }  // namespace noisepage
