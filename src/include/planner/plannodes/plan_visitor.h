@@ -25,6 +25,7 @@ class IndexJoinPlanNode;
 class IndexScanPlanNode;
 class InsertPlanNode;
 class LimitPlanNode;
+class CteScanPlanNode;
 class NestedLoopJoinPlanNode;
 class OrderByPlanNode;
 class ProjectionPlanNode;
@@ -177,6 +178,12 @@ class PlanVisitor {
    * @param plan LimitPlanNode
    */
   virtual void Visit(UNUSED_ATTRIBUTE const LimitPlanNode *plan) {}
+
+  /**
+   * Visit an CteScanPlanNode
+   * @param plan CteScanPlanNode
+   */
+  virtual void Visit(UNUSED_ATTRIBUTE const CteScanPlanNode *plan) {}
 
   /**
    * Visit an NestedLoopJoinPlanNode

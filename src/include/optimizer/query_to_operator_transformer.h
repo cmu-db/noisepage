@@ -10,6 +10,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node.h"
+#include "parser/parser_defs.h"
 
 namespace noisepage {
 
@@ -21,6 +22,7 @@ class AbstractExpression;
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
 }  // namespace catalog
 
 namespace optimizer {
@@ -159,8 +161,17 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
    * @param select_list Select columns in the select statement
    * @return table alias map
    */
-  static std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> ConstructSelectElementMap(
-      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
+  static std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
+  ConstructSelectElementMap(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
+
+  /**
+   * Perform DFS over the expression tree to find leftmost LogicalCTEScanNode and
+   * add the CTE query expression to the node.
+   * @param child_expr The expression to search the CTE node
+   * @return true if cte node was found
+   */
+  bool FindFirstCTEScanNode(common::ManagedPointer<AbstractOptimizerNode> child_expr,
+                            const std::string &cte_table_name);
 
   /** The output logical operator AST */
   std::unique_ptr<OperatorNode> output_expr_;
@@ -171,6 +182,13 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
   /** The catalog accessor object */
   const common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   const catalog::db_oid_t db_oid_;
+
+  // TODO(tanujnay112) make all this a separate struct
+  std::vector<std::string> cte_table_name_;
+  std::vector<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> cte_expressions_;
+  std::vector<parser::CteType> cte_type_;
+  std::vector<catalog::Schema> cte_schemas_;
+  std::vector<catalog::table_oid_t> cte_oids_;
 
   /**
    * A set of predicates the current operator generated, we use them to generate filter operator

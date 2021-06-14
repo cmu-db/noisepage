@@ -2,3 +2,7 @@
 *.json
 *.xml
 *.csv
+
+# Exceptions
+!junit/ivy.xml
+!junit/sun_checks.xml

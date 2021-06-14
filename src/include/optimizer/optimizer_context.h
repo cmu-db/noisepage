@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -18,6 +19,11 @@ class TransactionContext;
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
+}  // namespace catalog
+
+namespace planner {
+class OutputSchema;
 }
 
 namespace optimizer {
@@ -70,6 +76,24 @@ class OptimizerContext {
   catalog::CatalogAccessor *GetCatalogAccessor() { return accessor_; }
 
   /**
+   * Gets the CTE Schema
+   * @returns CTE Schema
+   */
+  catalog::Schema &GetCTESchema(const catalog::table_oid_t cte_oid) { return cte_schemas_.find(cte_oid)->second; }
+
+  /**
+   * Gets a vector of all temp oids of cte tables in the current query context
+   * @return a vector of temporary table oids
+   */
+  std::vector<catalog::table_oid_t> GetCTETables() {
+    std::vector<catalog::table_oid_t> keys;
+    for (auto &it : cte_schemas_) {
+      keys.push_back(it.first);
+    }
+    return keys;
+  }
+
+  /**
    * Gets the StatsStorage
    * @returns StatsStorage
    */
@@ -116,6 +140,15 @@ class OptimizerContext {
    * @param accessor CatalogAccessor
    */
   void SetCatalogAccessor(catalog::CatalogAccessor *accessor) { accessor_ = accessor; }
+
+  /**
+   * Sets the CTE Schema
+   * @param table_id the temp table oid of the cte table we are setting a schema for
+   * @param schema OutputSchema
+   */
+  void SetCTESchema(catalog::table_oid_t table_id, catalog::Schema schema) {
+    cte_schemas_[table_id] = std::move(schema);
+  }
 
   /**
    * Sets the StatsStorage
@@ -219,6 +252,7 @@ class OptimizerContext {
   StatsStorage *stats_storage_{};
   transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
+  std::unordered_map<catalog::table_oid_t, catalog::Schema> cte_schemas_;
   common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params_;
 };
 

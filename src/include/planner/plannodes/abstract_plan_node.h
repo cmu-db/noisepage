@@ -15,6 +15,10 @@ namespace noisepage::runner {
 class ExecutionRunners;
 }
 
+namespace noisepage::optimizer {
+class Optimizer;
+}
+
 namespace noisepage::planner {
 
 class OutputSchema;
@@ -165,6 +169,15 @@ class AbstractPlanNode {
   common::ManagedPointer<OutputSchema> GetOutputSchema() const { return common::ManagedPointer(output_schema_); }
 
   //===--------------------------------------------------------------------===//
+  // Add child
+  //===--------------------------------------------------------------------===//
+
+  /**
+   * @param child child to be added
+   */
+  void AddChild(std::unique_ptr<AbstractPlanNode> child) { children_.emplace_back(std::move(child)); }
+
+  //===--------------------------------------------------------------------===//
   // JSON Serialization/Deserialization
   //===--------------------------------------------------------------------===//
 
@@ -210,6 +223,7 @@ class AbstractPlanNode {
   virtual void Accept(common::ManagedPointer<PlanVisitor> v) const = 0;
 
  private:
+  friend class noisepage::optimizer::Optimizer;
   friend class noisepage::runner::ExecutionRunners;
 
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
@@ -224,6 +238,12 @@ class AbstractPlanNode {
     children_[0] = std::move(children_[1]);
     children_[1] = std::move(left);
   }
+
+  /**
+   * Move children nodes to provided vector
+   * Should only be called from Optimizer::ElectCTELeader
+   */
+  void MoveChildren(std::vector<std::unique_ptr<AbstractPlanNode>> *adoption_list);
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(AbstractPlanNode);

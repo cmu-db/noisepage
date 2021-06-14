@@ -41,7 +41,6 @@ autoconf/aclocal.m4
 autoconf/autom4te.cache
 /compile_commands.json
 
-
 #==============================================================================#
 # Autotools artifacts
 #==============================================================================#
@@ -125,7 +124,6 @@ tmp/
 #==============================================================================#
 *.gcno
 *.gcda
-
 
 #==============================================================================#
 # Eclipse
@@ -247,6 +245,7 @@ cmake_build
 .cmake_build
 cmake-build-debug
 cmake-build-release
+cmake-build-relwithdebinfo
 
 # Generated documentation
 apidoc/doc
@@ -286,3 +285,9 @@ out/
 
 # debug scripts, artifacts
 debug
+
+# JUnit dependencies
+script/testing/junit/lib/
+!script/testing/junit/lib/hamcrest-core-1.3.jar
+!script/testing/junit/lib/junit-platform-console-standalone-1.1.0.jar
+!script/testing/junit/lib/postgresql-42.2.14.jar

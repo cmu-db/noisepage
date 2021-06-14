@@ -240,7 +240,7 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
   std::string param_val = param_info.GetValue().ToString();
 
   auto expr = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR);
-  expr->SetAlias(param_name);
+  expr->SetAlias(parser::AliasType(param_name));
   std::vector<noisepage::planner::OutputSchema::Column> cols;
   cols.emplace_back(param_name, type::TypeId::VARCHAR, std::move(expr));
   execution::sql::StringVal result{param_val.c_str()};
