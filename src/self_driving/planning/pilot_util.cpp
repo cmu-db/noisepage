@@ -307,7 +307,7 @@ void PilotUtil::OUModelInference(pilot::PlanningContext *planning_context,
       // Convert features to int with two-digit precision used for cache
       std::vector<int> int_feature;
       int_feature.reserve(feature.size());
-      for (int i = 0; i < feature.size(); ++i) int_feature[i] = feature[i] * 100;
+      for (uint64_t i = 0; i < feature.size(); ++i) int_feature[i] = feature[i] * 100;
       if (!planning_context->HasOUInference(ou_type, int_feature)) {
         inference_features.emplace_back(feature);
         infer_index.emplace_back(idx);
@@ -463,7 +463,7 @@ void PilotUtil::InterferenceModelInference(PlanningContext *planning_context,
     // Convert features to int with two-digit precision used for cache
     std::vector<int> int_feature;
     int_feature.reserve(feature.size());
-    for (int i = 0; i < feature.size(); ++i) int_feature[i] = feature[i] * 100;
+    for (uint64_t i = 0; i < feature.size(); ++i) int_feature[i] = feature[i] * 100;
     if (!planning_context->HasInterferenceInference(int_feature)) {
       inference_features.emplace_back(feature);
       infer_index.emplace_back(idx);
