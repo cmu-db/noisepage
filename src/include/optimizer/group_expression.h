@@ -146,7 +146,9 @@ class GroupExpression {
    * @returns TRUE if equal to other GroupExpression
    */
   bool operator==(const GroupExpression &r) {
-    return (*contents_ == *(r.contents_)) && (child_groups_ == r.child_groups_);
+    // Having an undefined group id is considered equal to any group id
+    return (*contents_ == *(r.contents_)) && (child_groups_ == r.child_groups_) &&
+           ((group_id_ == UNDEFINED_GROUP) || (r.group_id_ == UNDEFINED_GROUP) || (r.group_id_ == group_id_));
   }
 
   /**

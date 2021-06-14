@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -321,18 +322,19 @@ class SelectStatement : public SQLStatement {
    */
  public:
   /**
-   * @param select columns being selected
-   * @param select_distinct true if "SELECT DISTINCT" was used
-   * @param from table to select from
-   * @param where select condition
-   * @param group_by group by condition
-   * @param order_by order by condition
-   * @param limit limit condition
+   * @param select columns targeted by SELECT
+   * @param select_distinct `true` if "SELECT DISTINCT" was used
+   * @param from table from which to SELECT
+   * @param where WHERE condition
+   * @param group_by GROUP BY condition
+   * @param order_by ORDER BY condition
+   * @param limit LIMIT condition
+   * @param with accompanying CTE query
    */
   SelectStatement(std::vector<common::ManagedPointer<AbstractExpression>> select, bool select_distinct,
                   std::unique_ptr<TableRef> from, common::ManagedPointer<AbstractExpression> where,
                   std::unique_ptr<GroupByDescription> group_by, std::unique_ptr<OrderByDescription> order_by,
-                  std::unique_ptr<LimitDescription> limit)
+                  std::unique_ptr<LimitDescription> limit, std::vector<std::unique_ptr<TableRef>> &&with)
       : SQLStatement(StatementType::SELECT),
         select_(std::move(select)),
         select_distinct_(select_distinct),
@@ -341,45 +343,69 @@ class SelectStatement : public SQLStatement {
         group_by_(std::move(group_by)),
         order_by_(std::move(order_by)),
         limit_(std::move(limit)),
-        union_select_(nullptr) {}
+        union_select_(nullptr),
+        with_table_(std::move(with)) {}
 
   /** Default constructor for deserialization. */
   SelectStatement() = default;
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
-  /** @return a copy of the select statement */
+  /** @return A copy of the SELECT statement */
   std::unique_ptr<SelectStatement> Copy();
 
-  /** @return select columns */
+  /** @return The columns targeted by SELECT */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() { return select_; }
 
-  /** @return true if "SELECT DISTINCT", false otherwise */
-  bool IsSelectDistinct() { return select_distinct_; }
+  /** @return `true` if "SELECT DISTINCT", `false` otherwise */
+  bool IsSelectDistinct() const { return select_distinct_; }
 
-  /** @return table being selected from */
+  /** @return The table over which SELECT is performed */
   common::ManagedPointer<TableRef> GetSelectTable() { return common::ManagedPointer(from_); }
 
-  /** @return select condition */
+  /** @return `true` if the SELECT statement has a target table, `false` otherwise */
+  bool HasSelectTable() const { return static_cast<bool>(from_); }
+
+  /** @return The predicate associated with SELECT */
   common::ManagedPointer<AbstractExpression> GetSelectCondition() { return where_; }
 
-  /** @return select group by */
+  /** @return The GROUP BY associated with SELECT */
   common::ManagedPointer<GroupByDescription> GetSelectGroupBy() { return common::ManagedPointer(group_by_); }
 
-  /** @return select order by */
+  /** @return The ORDER BY associated with SELECT */
   common::ManagedPointer<OrderByDescription> GetSelectOrderBy() { return common::ManagedPointer(order_by_); }
 
-  /** @return select limit */
+  /** @return The LIMIT associated with SELECT */
   common::ManagedPointer<LimitDescription> GetSelectLimit() { return common::ManagedPointer(limit_); }
 
-  /** @return depth of the select statement */
-  int GetDepth() { return depth_; }
+  /** @return The WITH clause(s) associated with SELECT */
+  std::vector<common::ManagedPointer<TableRef>> GetSelectWith() {
+    std::vector<common::ManagedPointer<TableRef>> table_refs{};
+    table_refs.reserve(with_table_.size());
+    std::transform(with_table_.cbegin(), with_table_.cend(), std::back_inserter(table_refs),
+                   [](const auto &ref) { return common::ManagedPointer<TableRef>(ref); });
+    return table_refs;
+  }
+
+  /** @return The depth of the SELECT statement */
+  int GetDepth() const { return depth_; }
 
   /**
-   * Adds a select statement child as a union target.
+   * Adds a select statement child as a UNION target.
    * @param select_stmt select statement to union with
    */
   void SetUnionSelect(std::unique_ptr<SelectStatement> select_stmt) { union_select_ = std::move(select_stmt); }
+
+  /**
+   * Gets the select statement this statement is unioned with if at all
+   * @return The select statement this is unioned with if that exists else nullptr
+   */
+  common::ManagedPointer<SelectStatement> GetUnionSelect() {
+    return common::ManagedPointer<SelectStatement>(union_select_);
+  }
+
+  /** @return `true` if this SELECT statement has an associated SELECT with which it is UNIONed, `false` otherwise */
+  bool HasUnionSelect() const { return static_cast<bool>(union_select_); }
 
   /**
    * @return the hashed value of this select statement
@@ -408,20 +434,41 @@ class SelectStatement : public SQLStatement {
 
  private:
   friend class binder::BindNodeVisitor;
-  std::vector<common::ManagedPointer<AbstractExpression>> select_;
-  bool select_distinct_;
-  std::unique_ptr<TableRef> from_;
-  common::ManagedPointer<AbstractExpression> where_;
-  std::unique_ptr<GroupByDescription> group_by_;
-  std::unique_ptr<OrderByDescription> order_by_;
-  std::unique_ptr<LimitDescription> limit_;
-  std::unique_ptr<SelectStatement> union_select_;
-  int depth_ = -1;
 
-  /** @param select List of select columns */
+  // The columns targeted by the SELECT
+  std::vector<common::ManagedPointer<AbstractExpression>> select_;
+
+  // `true` if SELECT DISTINCT used, `false` otherwise
+  bool select_distinct_;
+
+  // The table over which the SELECT is performed
+  std::unique_ptr<TableRef> from_;
+
+  // The SELECT predicate, if present
+  common::ManagedPointer<AbstractExpression> where_;
+
+  // The associated GROUP BY, if present
+  std::unique_ptr<GroupByDescription> group_by_;
+
+  // The associated ORDER BY, if present
+  std::unique_ptr<OrderByDescription> order_by_;
+
+  // The associated LIMIT, if present
+  std::unique_ptr<LimitDescription> limit_;
+
+  // The SELECT statement with which this statement is UNIONed, if present
+  std::unique_ptr<SelectStatement> union_select_;
+
+  // The depth of the SELECT statement
+  int depth_{-1};
+
+  // A colletion of the temporary tables (CTEs) available to this SELECT
+  std::vector<std::unique_ptr<TableRef>> with_table_;
+
+  /** @param select List of SELECT columns */
   void SetSelectColumns(std::vector<common::ManagedPointer<AbstractExpression>> select) { select_ = std::move(select); }
 
-  /** @param depth Depth of the select statement */
+  /** @param depth Depth of the SELECT statement */
   void SetDepth(int depth) { depth_ = depth; }
 };
 

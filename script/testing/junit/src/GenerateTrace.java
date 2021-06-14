@@ -51,9 +51,22 @@ public class GenerateTrace {
                 label = Constants.STATEMENT_ERROR;
             }
 
-            if(line.startsWith("SELECT")){
-                // SELECT statement, query from database to construct trace format
+            if(line.startsWith("SELECT") || line.toLowerCase().startsWith("with")) {
                 ResultSet rs = statement.getResultSet();
+                if (line.toLowerCase().startsWith("with") && null == rs) {
+                    // We might have a query that begins with `WITH` that has a null result set
+                    int updateCount = statement.getUpdateCount();
+                    // check if expected number is equal to update count
+                    if(expected_result_num>=0 && expected_result_num!=updateCount){
+                        label = Constants.STATEMENT_ERROR;
+                    }
+                    writeToFile(writer, label);
+                    writeToFile(writer, line);
+                    writer.write('\n');
+                    expected_result_num = -1;
+                    continue;
+                }
+
                 ResultSetMetaData rsmd = rs.getMetaData();
                 String typeString = "";
                 for (int i = 1; i <= rsmd.getColumnCount(); ++i) {
@@ -74,6 +87,7 @@ public class GenerateTrace {
                 if (line.contains("ORDER BY")) {
                     // These rows are already sorted by the SQL and need to match exactly
                     sortOption = "nosort";
+                    mog.sortMode = "nosort";
                 } else {
                     // Need to create a canonical ordering...
                     sortOption = "rowsort";

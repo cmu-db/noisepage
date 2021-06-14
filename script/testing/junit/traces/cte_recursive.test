@@ -1,0 +1,218 @@
+statement ok
+-- Input queries for recursive CTE integration tests.
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- Hand-Rolled Test Cases
+
+statement ok
+
+
+statement ok
+-- Baseline recursive CTE
+
+statement ok
+CREATE TABLE tree (node INTEGER, parent INTEGER);
+
+statement ok
+INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 11), (111, 11);
+
+query I rowsort
+WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
+----
+1
+10
+100
+101
+11
+110
+111
+
+statement ok
+
+
+statement ok
+-- A vanilla CTE (related to CTE below)
+
+query I rowsort
+WITH cte(x) AS (SELECT 1) SELECT * FROM cte;
+----
+1
+
+statement ok
+
+
+statement ok
+-- A CTE declared as recursive but without recursive structure
+
+query I rowsort
+WITH RECURSIVE cte(x) AS (SELECT 1) SELECT * FROM cte;
+----
+1
+
+statement ok
+
+
+statement ok
+-----------------------------------------------------------
+
+statement ok
+-- Adapted from Postgres Regression Test (`with.sql`)
+
+statement ok
+-- https://github.com/postgres/postgres/blob/master/src/test/regress/sql/with.sql
+
+statement ok
+
+
+statement ok
+-- sum of 1..100
+
+statement ok
+-- variant of above without VALUES()
+
+query I rowsort
+WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t WHERE n < 100) SELECT sum(n) FROM t;
+----
+5050
+
+statement ok
+
+
+statement ok
+-- TODO: Fails in binder ("CTE column type not resolved")
+
+statement ok
+-- WITH RECURSIVE t(n) AS (SELECT (SELECT 1) UNION ALL SELECT n+1 FROM t WHERE n < 5) SELECT * FROM t;
+
+statement ok
+
+
+statement ok
+-- This is an infinite loop with UNION ALL, but not with UNION
+
+statement ok
+-- TODO: We loop on this
+
+statement ok
+-- WITH RECURSIVE t(n) AS (SELECT 1 UNION SELECT 10-n FROM t) SELECT * FROM t;
+
+statement ok
+
+
+statement ok
+-- This'd be an infinite loop, but outside query reads only as much as needed
+
+statement ok
+-- TODO: We loop on this
+
+statement ok
+-- WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t) SELECT * FROM t LIMIT 10;
+
+statement ok
+
+
+statement ok
+-- TODO: Fails in parser (relation 'y' does not exist)
+
+statement ok
+-- WITH RECURSIVE x(id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5), y(id) AS (SELECT 1) SELECT * FROM x;
+
+statement ok
+
+
+statement ok
+-- variant of the above with order of CTEs swapped
+
+statement ok
+-- TODO: Fails in binder (x has 0 columns available but 1 specified)
+
+statement ok
+-- WITH RECURSIVE y(id) AS (SELECT 1), x(id) AS (SELECT * FROM y UNION ALL SELECT id+1 FROM x WHERE id < 5) SELECT * FROM x;
+
+statement ok
+
+
+statement ok
+CREATE TABLE department (id INTEGER PRIMARY KEY, parent_department INTEGER, name TEXT);
+
+statement ok
+
+
+statement ok
+INSERT INTO department VALUES (0, NULL, 'ROOT');
+
+statement ok
+INSERT INTO department VALUES (1, 0, 'A');
+
+statement ok
+INSERT INTO department VALUES (2, 1, 'B');
+
+statement ok
+INSERT INTO department VALUES (3, 2, 'C');
+
+statement ok
+INSERT INTO department VALUES (4, 2, 'D');
+
+statement ok
+INSERT INTO department VALUES (5, 0, 'E');
+
+statement ok
+INSERT INTO department VALUES (6, 4, 'F');
+
+statement ok
+INSERT INTO department VALUES (7, 5, 'G');
+
+statement ok
+
+
+statement ok
+-- extract all departments under 'A'. Result should be A, B, C, D and F
+
+statement ok
+-- TODO: Crashes the DBMS
+
+statement ok
+-- WITH RECURSIVE subdepartment AS (SELECT name as root_name, * FROM department WHERE name = 'A' UNION ALL SELECT sd.root_name, d.* FROM department AS d, subdepartment AS sd WHERE d.parent_department = sd.id) SELECT * FROM subdepartment ORDER BY name;
+
+statement ok
+
+
+statement ok
+-- handle the case were recursive structure is ignored
+
+query IIT rowsort
+WITH RECURSIVE subdepartment AS (SELECT * FROM department WHERE name = 'A') SELECT * FROM subdepartment;
+----
+1
+0
+A
+
+statement ok
+
+
+statement ok
+-- add an outer ORDER BY
+
+statement ok
+-- TODO: Crashes the DBMS
+
+statement ok
+-- WITH RECURSIVE subdepartment AS (SELECT * FROM department WHERE name = 'A') SELECT * FROM subdepartment ORDER BY name;
+
+statement ok
+
+
+statement ok
+-- Terminator; TracefileTest chokes on trailing comments
+
+query I rowsort
+SELECT 1;
+----
+1
+

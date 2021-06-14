@@ -197,7 +197,8 @@ using RangeVar = struct RangeVar {
 using WithClause = struct WithClause {
   NodeTag type_;
   List *ctes_;     /* list of CommonTableExprs */
-  bool recursive_; /* true = WITH RECURSIVE */
+  bool recursive_; /* true = WITH RECURSIVE OR WITH ITERATIVE*/
+  bool iterative_; /* true = WITH ITERATIVE */
   int location_;   /* token location, or -1 if unknown */
 };
 
@@ -309,6 +310,29 @@ using SelectStmt = struct SelectStmt {
   struct SelectStmt *larg_; /* left child */
   struct SelectStmt *rarg_; /* right child */
   /* Eventually add fields for CORRESPONDING spec here */
+};
+
+/*
+ * CommonTableExpr -
+ *	   representation of WITH list element
+ *
+ * We don't currently support the SEARCH or CYCLE clause.
+ */
+using CommonTableExpr = struct CommonTableExpr {
+  NodeTag type_;
+  char *ctename_;       /* query name (never qualified) */
+  List *aliascolnames_; /* optional list of column names */
+  /* SelectStmt/InsertStmt/etc before parse analysis, Query afterwards: */
+  Node *ctequery_; /* the CTE's subquery */
+  int location_;   /* token location, or -1 if unknown */
+  /* These fields are set during parse analysis: */
+  bool cterecursive_;      /* is this CTE actually recursive? */
+  int cterefcount_;        // number of RTEs referencing this CTE
+                           // (excluding internal self-references)
+  List *ctecolnames_;      /* list of output column names */
+  List *ctecoltypes_;      /* OID list of output column type OIDs */
+  List *ctecoltypmods_;    /* integer list of output column typmods */
+  List *ctecolcollations_; /* OID list of column collation OIDs */
 };
 
 /*

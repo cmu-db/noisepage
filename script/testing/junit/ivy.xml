@@ -1,0 +1,6 @@
+<ivy-module version="2.0">
+  <info organisation="CMUDB" module="test" />
+  <dependencies>
+    <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.42" />
+  </dependencies>
+</ivy-module>

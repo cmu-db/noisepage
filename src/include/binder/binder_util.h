@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "common/error/exception.h"
@@ -10,7 +11,13 @@
 namespace noisepage::parser {
 class ConstantValueExpression;
 class AbstractExpression;
+class SelectStatement;
+class TableRef;
 }  // namespace noisepage::parser
+
+namespace noisepage::catalog {
+class CatalogAccessor;
+}  // namespace noisepage::catalog
 
 namespace noisepage::binder {
 

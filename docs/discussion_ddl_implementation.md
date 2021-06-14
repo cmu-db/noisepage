@@ -1,4 +1,4 @@
-# Discussion: DDL Implementation
+# Discussion Doc: DDL Implementation
 
 ## Current State
 
