@@ -11,6 +11,7 @@ from ..oltpbench.test_oltpbench import TestOLTPBench
 from ..util.common import run_command
 from ..util.constants import LOG, ErrorCode
 from . import constants
+import psycopg2
 import time
 
 
@@ -102,7 +103,32 @@ def fn_query_trace_metrics(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBenc
 def fn_enable_pilot(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
     """Enable pilot planning. Analyze must have been run!"""
     db_server = oltpbench.db_instance
-    db_server.execute("SET pilot_planning='true'", expect_result=False, quiet=False)
+    db_server.execute("SET pilot_planning=true", expect_result=False, quiet=False)
+
+
+def fn_enable_pilot_and_wait_for_index(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
+    """
+    TODO(WAN): This is a hack around the buggy interaction between the Pilot and the network layer requiring
+     everything to happen on the same connection. Specifically, you cannot form new psql connections while the
+     pilot is running. Therefore, once you run SET pilot_planning=true, you cannot use db_server.execute()
+     any more -- you need to keep the same connection around and use that instead.
+    """
+
+    db_server = oltpbench.db_instance
+    conn = psycopg2.connect(port=db_server.db_port, host=db_server.db_host, user=constants.DEFAULT_DB_USER)
+    index_created = False
+    with conn.cursor() as cursor:
+        cursor.execute("SET pilot_planning=true")
+        while not index_created:
+            cursor.execute(f"SELECT * from noisepage_applied_actions where action_text like 'create index automated_%'")
+            rows = cursor.fetchall()
+            if len(rows) == 0:
+                LOG.info(f"Waiting for {sleep_s} seconds.")
+                sleep_s = 30
+                time.sleep(sleep_s)
+            else:
+                LOG.info(f"Found result: {rows}")
+                index_created = True
 
 
 def fn_test_results_file(result_file_path: str) -> bool:

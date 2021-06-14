@@ -32,6 +32,7 @@ def _pilot_planning():
             'use_pilot_thread': True,
             'model_server_enable': True,
             'messenger_enable': True,
+            'startup_ddl_path': 'startup.sql',
             'ou_model_save_path': './trained_model_ou/model_ou.pickle',
             'interference_model_save_path': './trained_model_interference/model_interference.pickle',
         },
@@ -41,8 +42,7 @@ def _pilot_planning():
                      forecast.fn_tpcc_drop_indexes_secondary],
         should_execute=False,
         fns_post_run=[forecast.fn_tpcc_analyze,
-                      forecast.fn_enable_pilot,
-                      forecast.make_fn_wait_until_exists_index_like('automated_index_%')],
+                      forecast.fn_enable_pilot_and_wait_for_index],
         fn_final=forecast.fn_final_true
     )
     return exit_code, result_ok
