@@ -264,7 +264,7 @@ void stagePilot() {
     ])
     buildNoisePageTarget("execution_runners")
 
-    trainSelfDrivingModels()
+    selfDrivingTrainModels()
 
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
         '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON'
