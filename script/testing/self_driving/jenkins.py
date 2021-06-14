@@ -40,7 +40,8 @@ def _pilot_planning():
         fns_pre_run=[forecast.make_fn_test_case_run_pre_test(create=True, load=True),
                      forecast.fn_tpcc_drop_indexes_secondary],
         should_execute=False,
-        fns_post_run=[forecast.fn_enable_pilot,
+        fns_post_run=[forecast.fn_tpcc_analyze,
+                      forecast.fn_enable_pilot,
                       forecast.make_fn_wait_until_exists_index_like('automated_index_%')],
         fn_final=forecast.fn_final_true
     )

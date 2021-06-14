@@ -100,7 +100,7 @@ def fn_query_trace_metrics(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBenc
 
 
 def fn_enable_pilot(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
-    """Enable pilot planning."""
+    """Enable pilot planning. Analyze must have been run!"""
     db_server = oltpbench.db_instance
     db_server.execute("SET pilot_planning='true'", expect_result=False, quiet=False)
 
@@ -198,6 +198,21 @@ def make_fn_wait_until_exists_index_like(idx_name: str) -> Callable[[TestOLTPBen
                 index_found = True
 
     return fn_index
+
+
+def fn_tpcc_analyze(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
+    """Run ANALYZE on all the TPC-C tables."""
+    db_server = oltpbench.db_instance
+    db_server.execute("SET pilot_planning='true'", expect_result=False, quiet=False)
+    db_server.execute("analyze order_line", expect_result=False, quiet=False)
+    db_server.execute("analyze new_order", expect_result=False, quiet=False)
+    db_server.execute("analyze stock", expect_result=False, quiet=False)
+    db_server.execute("analyze oorder", expect_result=False, quiet=False)
+    db_server.execute("analyze history", expect_result=False, quiet=False)
+    db_server.execute("analyze customer", expect_result=False, quiet=False)
+    db_server.execute("analyze district", expect_result=False, quiet=False)
+    db_server.execute("analyze item", expect_result=False, quiet=False)
+    db_server.execute("analyze warehouse", expect_result=False, quiet=False)
 
 
 def fn_tpcc_drop_indexes_secondary(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
