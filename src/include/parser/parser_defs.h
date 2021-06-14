@@ -78,4 +78,36 @@ enum class PLType {
 
 enum class AsType { INVALID = INVALID_TYPE_ID, EXECUTABLE = 1, QUERY_STRING = 2 };
 
+/**
+ * The type of the common table expression.
+ *
+ * This is determined during parsing, as a function of the syntactic type
+ * of the expression combined with the actual structure of the expression.
+ * For example, the CTE
+ *
+ *  WITH RECURISVE x(i) AS (SELECT 1) ...
+ *
+ * is syntactically recursive, but does not actually possess
+ * an inductive structure. Therefore, this CTE would have the
+ * type `CteType::RECURSIVE`
+ *
+ * In contrast, the CTE
+ *
+ *  WITH RECURSIVE x(i) AS (SELECT 1 UNION ALL SELECT i FROM x WHERE i < 5) ...
+ *
+ * is both syntactically and structurally recursive, so we
+ * would have that the type of this CTE is CteType::STRUCTURALLY_RECURSIVE.
+ *
+ * The upside is that STRUCTURALLY_RECURSIVE is a strictly stronger
+ * condition than RECURSIVE, and similarly STRUCTURALLY_ITERATIVE is
+ * a strictly stronger condition than ITERATIVE.
+ *
+ * We must distinguish between these two kinds of types because they
+ * are relevant in different contexts. The syntactic type of the CTE
+ * allows us to make decisions during binding regarding references
+ * that are visible to a temporary table definition. The structural
+ * type of the CTE is used during code generation.
+ */
+enum class CteType { INVALID, SIMPLE, RECURSIVE, ITERATIVE, STRUCTURALLY_RECURSIVE, STRUCTURALLY_ITERATIVE };
+
 }  // namespace noisepage::parser

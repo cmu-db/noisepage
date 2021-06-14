@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/cte_scan_iterator.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/vector_projection_iterator.h"
@@ -42,6 +43,86 @@ void OpVPIInitWithList(noisepage::execution::sql::VectorProjectionIterator *vpi,
 }
 
 void OpVPIFree(noisepage::execution::sql::VectorProjectionIterator *vpi) { vpi->~VectorProjectionIterator(); }
+
+// ---------------------------------------------------------
+// CTE Scan
+// ---------------------------------------------------------
+
+void OpCteScanInit(noisepage::execution::sql::CteScanIterator *iter,
+                   noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                   uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols) {
+  new (iter) noisepage::execution::sql::CteScanIterator(exec_ctx, noisepage::catalog::table_oid_t(table_oid),
+                                                        schema_cols_ids, schema_cols_type, num_schema_cols);
+}
+
+void OpCteScanGetTable(noisepage::storage::SqlTable **sql_table, noisepage::execution::sql::CteScanIterator *iter) {
+  *sql_table = iter->GetTable();
+}
+
+void OpCteScanGetTableOid(noisepage::catalog::table_oid_t *table_oid,
+                          noisepage::execution::sql::CteScanIterator *iter) {
+  *table_oid = iter->GetTableOid();
+}
+
+void OpCteScanGetInsertTempTablePR(noisepage::storage::ProjectedRow **projected_row,
+                                   noisepage::execution::sql::CteScanIterator *iter) {
+  *projected_row = iter->GetInsertTempTablePR();
+}
+
+void OpCteScanTableInsert(noisepage::storage::TupleSlot *tuple_slot, noisepage::execution::sql::CteScanIterator *iter) {
+  *tuple_slot = iter->TableInsert();
+}
+
+void OpCteScanFree(noisepage::execution::sql::CteScanIterator *iter) { iter->~CteScanIterator(); }
+
+// ---------------------------------------------------------
+// Iterative CTE Scan
+// ---------------------------------------------------------
+
+void OpIndCteScanInit(noisepage::execution::sql::IndCteScanIterator *iter,
+                      noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                      uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
+                      bool is_recursive) {
+  new (iter)
+      noisepage::execution::sql::IndCteScanIterator(exec_ctx, noisepage::catalog::table_oid_t(table_oid),
+                                                    schema_cols_ids, schema_cols_type, num_schema_cols, is_recursive);
+}
+
+void OpIndCteScanGetReadCte(noisepage::execution::sql::CteScanIterator **sql_table,
+                            noisepage::execution::sql::IndCteScanIterator *iter) {
+  *sql_table = iter->GetReadCte();
+}
+
+void OpIndCteScanGetWriteCte(noisepage::execution::sql::CteScanIterator **sql_table,
+                             noisepage::execution::sql::IndCteScanIterator *iter) {
+  *sql_table = iter->GetWriteCte();
+}
+
+void OpIndCteScanGetReadTableOid(noisepage::catalog::table_oid_t *table_oid,
+                                 noisepage::execution::sql::IndCteScanIterator *iter) {
+  *table_oid = iter->GetReadTableOid();
+}
+
+void OpIndCteScanAccumulate(bool *accumulate_bool, noisepage::execution::sql::IndCteScanIterator *iter) {
+  *accumulate_bool = iter->Accumulate();
+}
+
+void OpIndCteScanGetResult(noisepage::execution::sql::CteScanIterator **result,
+                           noisepage::execution::sql::IndCteScanIterator *iter) {
+  *result = iter->GetResultCTE();
+}
+
+void OpIndCteScanGetInsertTempTablePR(noisepage::storage::ProjectedRow **projected_row,
+                                      noisepage::execution::sql::IndCteScanIterator *iter) {
+  *projected_row = iter->GetInsertTempTablePR();
+}
+
+void OpIndCteScanTableInsert(noisepage::storage::TupleSlot *tuple_slot,
+                             noisepage::execution::sql::IndCteScanIterator *iter) {
+  *tuple_slot = iter->TableInsert();
+}
+
+void OpIndCteScanFree(noisepage::execution::sql::IndCteScanIterator *iter) { iter->~IndCteScanIterator(); }
 
 // ---------------------------------------------------------
 // Filter Manager

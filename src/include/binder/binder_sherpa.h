@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
@@ -91,10 +92,30 @@ class BinderSherpa {
    */
   void CheckDesiredType(common::ManagedPointer<parser::AbstractExpression> expr) const;
 
+  /**
+   * Adds a CTE table name to the list of table names.
+   * @param cte_table_name The name of the CTE table to add
+   */
+  void AddCTETableName(const std::string &cte_table_name) { cte_table_names_.insert(cte_table_name); }
+
+  /**
+   * Gets the set of available CTE table names.
+   * @return Set of available CTE table names
+   */
+  const std::unordered_set<std::string> &GetCTETableNames() const { return cte_table_names_; }
+
+  /**
+   * Determine if the given CTE table name is known to the binder sherpa.
+   * @param cte_table_name The name of the CTE tabke
+   * @return `true` if the CTE identified by `cte_name` is present, `false` otherwise
+   */
+  bool HasCTETableName(const std::string &cte_table_name) const { return cte_table_names_.count(cte_table_name) > 0; }
+
  private:
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
   const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters_ = nullptr;
   const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
+  std::unordered_set<std::string> cte_table_names_;
 };
 }  // namespace noisepage::binder

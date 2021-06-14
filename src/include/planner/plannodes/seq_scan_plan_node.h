@@ -69,7 +69,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     catalog::table_oid_t table_oid_;
   };
 
- private:
+ protected:
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
@@ -78,6 +78,10 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param is_for_update flag for if scan is for an update
    * @param database_oid database oid for scan
    * @param table_oid OID for table to scan
+   * @param scan_limit The limit on number of tuples for this scan if any
+   * @param scan_has_limit Whether or not a limit exists for this scan
+   * @param scan_offset The offset into a table for this scan
+   * @param scan_has_offset Whether or not this scan has an offset
    * @param plan_node_id Plan node id
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
