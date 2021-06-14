@@ -193,7 +193,7 @@ void TreeNode::ChildrenRollout(PlanningContext *planning_context,
 
       new_action_state.SetIntervals(action_start_segment_index_, action_plan_end_index_);
       if (action_ptr->GetActionType() != ActionType::CREATE_INDEX) {
-        // Action immediately takes effect. Can use the cost cache
+        // Action immediately takes effect. Can use the cost cache just with the action state as key
         if (action_state_cost_map->find(new_action_state) != action_state_cost_map->end()) {
           child_segment_cost = action_state_cost_map->at(new_action_state);
           SELFDRIVING_LOG_TRACE("Get child cost from map with action {} start interval {} end interval {}: {}",
@@ -206,6 +206,7 @@ void TreeNode::ChildrenRollout(PlanningContext *planning_context,
           action_state_cost_map->emplace(std::make_pair(new_action_state, child_segment_cost));
         }
       } else {
+        // Action needs time to finish. Need to use the cost cache with both the action state and the action as key
         auto key_pair = std::make_pair(new_action_state, action_ptr->GetActionID());
         if (action_apply_cost_map->find(key_pair) != action_apply_cost_map->end()) {
           auto cached_result = action_apply_cost_map->at(key_pair);
