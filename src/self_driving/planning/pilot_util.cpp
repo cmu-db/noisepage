@@ -288,7 +288,8 @@ void PilotUtil::OUModelInference(pilot::PlanningContext *planning_context,
       pipeline_to_ou_position;
 
   PilotUtil::GroupFeaturesByOU(&pipeline_to_ou_position, pipeline_qids, pipeline_data, &ou_to_features);
-  NOISEPAGE_ASSERT(model_server_manager->ModelServerStarted(), "Model Server should have been started");
+  NOISEPAGE_ASSERT(planning_context->GetModelServerManager()->ModelServerStarted(),
+                   "Model Server should have been started");
   std::unordered_map<ExecutionOperatingUnitType, std::vector<std::vector<double>>> inference_result;
   for (auto &ou_map_it : ou_to_features) {
     auto ou_type = ou_map_it.first;
