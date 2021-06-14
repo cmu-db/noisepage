@@ -302,17 +302,17 @@ void PilotUtil::OUModelInference(pilot::PlanningContext *planning_context,
     // Index of the inference_features in the original interference_features
     std::vector<int> infer_index;
     int idx = 0;
+    int_features.reserve(ou_map_it.second.size());
     for (auto &feature : ou_map_it.second) {
       // Convert features to int with two-digit precision used for cache
       std::vector<int> int_feature;
-      int_features.reserve(feature.size() + 1);
-      for (auto &value : feature) int_feature.emplace_back(static_cast<int>(value * 100));
+      int_feature.reserve(feature.size());
+      for (int i = 0; i < feature.size(); ++i) int_feature[i] = feature[i] * 100;
       if (!planning_context->HasOUInference(ou_type, int_feature)) {
         inference_features.emplace_back(feature);
         infer_index.emplace_back(idx);
       }
-      int_features.emplace_back(std::move(int_feature));
-      idx++;
+      int_features[idx++] = std::move(int_feature);
     }
 
     if (!inference_features.empty()) {
@@ -458,17 +458,17 @@ void PilotUtil::InterferenceModelInference(PlanningContext *planning_context,
   // Index of the inference_features in the original interference_features
   std::vector<int> infer_index;
   int idx = 0;
+  int_features.reserve(interference_features.size());
   for (auto &feature : interference_features) {
     // Convert features to int with two-digit precision used for cache
     std::vector<int> int_feature;
-    int_features.reserve(feature.size() + 1);
-    for (auto &value : feature) int_feature.emplace_back(static_cast<int>(value * 100));
+    int_feature.reserve(feature.size());
+    for (int i = 0; i < feature.size(); ++i) int_feature[i] = feature[i] * 100;
     if (!planning_context->HasInterferenceInference(int_feature)) {
       inference_features.emplace_back(feature);
       infer_index.emplace_back(idx);
     }
-    int_features.emplace_back(std::move(int_feature));
-    idx++;
+    int_features[idx++] = std::move(int_feature);
   }
 
   if (!inference_features.empty()) {
