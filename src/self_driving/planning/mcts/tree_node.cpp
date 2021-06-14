@@ -149,6 +149,8 @@ void TreeNode::ChildrenRollout(PlanningContext *planning_context,
                                const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                                const std::unordered_set<action_id_t> &candidate_actions,
                                std::unordered_map<ActionState, double, ActionStateHasher> *action_state_cost_map,
+                               std::unordered_map<std::pair<ActionState, action_id_t>, std::pair<double, uint64_t>,
+                                                  ActionStateActionPairHasher> *action_apply_cost_map,
                                uint64_t memory_constraint) {
   action_plan_end_index_ = std::min(action_start_segment_index_ + action_horizon - 1, tree_end_segment_index);
 
@@ -204,21 +206,37 @@ void TreeNode::ChildrenRollout(PlanningContext *planning_context,
           action_state_cost_map->emplace(std::make_pair(new_action_state, child_segment_cost));
         }
       } else {
-        // To pass calculate to get the action duration considering the interference model. Cannot use the cost cache
+        auto key_pair = std::make_pair(new_action_state, action_ptr->GetActionID());
+        if (action_apply_cost_map->find(key_pair) != action_apply_cost_map->end()) {
+          auto cached_result = action_apply_cost_map->at(key_pair);
+          child_segment_cost = cached_result.first;
+          action_plan_end_index_ = cached_result.second;
+          SELFDRIVING_LOG_TRACE("Get child cost from map with action {} start interval {} end interval {}: {}",
+                                action_ptr->GetActionID().UnderlyingValue(), action_start_segment_index_,
+                                action_plan_end_index_, child_segment_cost);
+        } else {
+          // Two-pass calculation to get the action duration considering the interference model.
 
-        // First reverse the action before computing the cost
-        PilotUtil::ApplyAction(*planning_context, action_map.at(reverse_action)->GetSQLCommand(),
-                               action_map.at(reverse_action)->GetDatabaseOid(), Pilot::WHAT_IF);
-        child_segment_cost =
-            ComputeCostWithAction(planning_context, forecast, tree_end_segment_index, action_ptr.get());
+          // First reverse the action before computing the cost
+          PilotUtil::ApplyAction(*planning_context, action_map.at(reverse_action)->GetSQLCommand(),
+                                 action_map.at(reverse_action)->GetDatabaseOid(), Pilot::WHAT_IF);
+          // This may change action_plan_end_index_ is the action duration is long
+          double computed_cost =
+              ComputeCostWithAction(planning_context, forecast, tree_end_segment_index, action_ptr.get());
 
-        // Apply the action back again
-        PilotUtil::ApplyAction(*planning_context, action_ptr->GetSQLCommand(), action_ptr->GetDatabaseOid(),
-                               Pilot::WHAT_IF);
-        // Re-calculate the memory consumption in case action_plan_end_index_ is modified
-        action_plan_end_memory_consumption = PilotUtil::CalculateMemoryConsumption(
-            planning_context->GetMemoryInfo(), new_action_state, action_plan_end_index_, action_map);
-        if (action_plan_end_memory_consumption > memory_constraint) satisfy_memory_constraint = false;
+          // Apply the action back again
+          PilotUtil::ApplyAction(*planning_context, action_ptr->GetSQLCommand(), action_ptr->GetDatabaseOid(),
+                                 Pilot::WHAT_IF);
+          // Re-calculate the memory consumption in case action_plan_end_index_ is modified
+          action_plan_end_memory_consumption = PilotUtil::CalculateMemoryConsumption(
+              planning_context->GetMemoryInfo(), new_action_state, action_plan_end_index_, action_map);
+          if (action_plan_end_memory_consumption > memory_constraint)
+            satisfy_memory_constraint = false;
+          else
+            child_segment_cost = computed_cost;
+          action_apply_cost_map->emplace(
+              std::make_pair(key_pair, std::make_pair(child_segment_cost, action_plan_end_index_)));
+        }
       }
 
       if (satisfy_memory_constraint) {
@@ -261,11 +279,9 @@ void TreeNode::ChildrenRollout(PlanningContext *planning_context,
 double TreeNode::ComputeCostWithAction(PlanningContext *planning_context,
                                        common::ManagedPointer<WorkloadForecast> forecast,
                                        uint64_t tree_end_segment_index, AbstractAction *action) {
-  printf("********************\n");
   // How many segments does it take for this action to finish
   uint64_t action_segments = 0;
   double estimated_elapsed = action->GetEstimatedElapsedUs();
-  printf("Original estimated action elapsed time: %f\n", estimated_elapsed);
   if (estimated_elapsed > 1e-6)
     action_segments = static_cast<uint64_t>(estimated_elapsed) / forecast->GetForecastInterval() + 1;
   // Cannot exceed tree_end_segment_index
@@ -276,9 +292,7 @@ double TreeNode::ComputeCostWithAction(PlanningContext *planning_context,
   uint64_t initial_action_segments = action_segments;
   double cost = PilotUtil::ComputeCost(planning_context, forecast, action_start_segment_index_, action_plan_end_index_,
                                        action, &action_segments);
-  printf("Action takes %lu segments with cost: %f\n", action_segments, cost);
   action_segments = std::min(action_segments, tree_end_segment_index - action_start_segment_index_ + 1);
-  action_segments = 5;
   // Recalculate cost if the action takes longer than initial_action_segments due to the interference
   if (action_segments > initial_action_segments) {
     // Update the action_plan_end_index_ again
@@ -286,9 +300,7 @@ double TreeNode::ComputeCostWithAction(PlanningContext *planning_context,
     if (action_end_segment > action_plan_end_index_) action_plan_end_index_ = action_end_segment;
     cost = PilotUtil::ComputeCost(planning_context, forecast, action_start_segment_index_, action_plan_end_index_,
                                   action, &action_segments);
-    printf("Action takes %lu final segments with new cost: %f\n", action_segments, cost);
   }
-  printf("********************\n");
   return cost;
 }
 

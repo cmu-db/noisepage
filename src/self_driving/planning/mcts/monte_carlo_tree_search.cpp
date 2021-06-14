@@ -62,7 +62,7 @@ void MonteCarloTreeSearch::RunSimulation(uint64_t simulation_number, uint64_t me
 
     vertex->ChildrenRollout(planning_context_.Get(), forecast_, levels_to_plan_.at(vertex->GetDepth()),
                             end_segment_index_, action_map_, candidate_actions, &action_state_cost_map_,
-                            memory_constraint);
+                            &action_apply_cost_map_, memory_constraint);
     vertex->BackPropogate(*planning_context_, action_map_, use_min_cost_);
   }
 }

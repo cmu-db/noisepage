@@ -117,4 +117,13 @@ class ActionStateHasher {
   size_t operator()(const ActionState &a) const { return a.Hash(); }
 };
 
+/** Hasher for std::pair<ActionState, action_id_t> used in STL containers */
+class ActionStateActionPairHasher {
+ public:
+  /** @brief Hash operator */
+  size_t operator()(const std::pair<ActionState, action_id_t> &a) const {
+    return common::HashUtil::CombineHashes(a.first.Hash(), common::HashUtil::Hash(a.second));
+  }
+};
+
 }  // namespace noisepage::selfdriving::pilot

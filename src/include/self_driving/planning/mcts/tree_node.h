@@ -83,6 +83,7 @@ class TreeNode {
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions of the search tree
    * @param action_state_cost_map caches the previous rollout cost calculation based on the action state
+   * @param action_apply_cost_map caches the previous rollout cost calculation based on the <action state, action> pair
    * @param memory_constraint maximum allowed memory in bytes
    */
   void ChildrenRollout(PlanningContext *planning_context, common::ManagedPointer<WorkloadForecast> forecast,
@@ -90,6 +91,8 @@ class TreeNode {
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
                        const std::unordered_set<action_id_t> &candidate_actions,
                        std::unordered_map<ActionState, double, ActionStateHasher> *action_state_cost_map,
+                       std::unordered_map<std::pair<ActionState, action_id_t>, std::pair<double, uint64_t>,
+                                          ActionStateActionPairHasher> *action_apply_cost_map,
                        uint64_t memory_constraint);
 
   /**
