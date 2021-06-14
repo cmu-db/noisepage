@@ -191,8 +191,9 @@ class PlanningContext {
    */
   const std::vector<double> *GetOUInference(ExecutionOperatingUnitType ou_type, const std::vector<int> &feature) const {
     NOISEPAGE_ASSERT(ou_inference_cache_.find(ou_type) != ou_inference_cache_.end(), "Cannot find OU type");
-    NOISEPAGE_ASSERT(ou_inference_cache_.find(ou_type).find(feature) != ou_inference_cache_.find(ou_type).end(),
-                     "Cannot find feature");
+    NOISEPAGE_ASSERT(
+        ou_inference_cache_.find(ou_type)->second.find(feature) != ou_inference_cache_.find(ou_type)->second.end(),
+        "Cannot find feature");
     return ou_inference_cache_.at(ou_type).at(feature).get();
   }
 
