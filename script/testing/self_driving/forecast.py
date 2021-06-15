@@ -124,8 +124,8 @@ def fn_enable_pilot_and_wait_for_index(oltpbench: TestOLTPBench, test_case: Test
             cursor.execute(f"SELECT * from noisepage_applied_actions where action_text like 'create index automated_%'")
             rows = cursor.fetchall()
             if len(rows) == 0:
-                LOG.info(f"Waiting for {sleep_s} seconds.")
                 sleep_s = 30
+                LOG.info(f"Waiting for {sleep_s} seconds.")
                 time.sleep(sleep_s)
             else:
                 LOG.info(f"Found result: {rows}")
