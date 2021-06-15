@@ -230,9 +230,9 @@ void stageModeling() {
     selfDrivingGenerateTrainingDataForecast()
     selfDrivingTrainModels()
 
-    // Recompile the noisepage DBMS in Debug mode with code coverage.
+    // Recompile the noisepage DBMS in Debug mode with code coverage. Note that previously set vars must be unset.
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
-        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON'
+        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_USE_JEMALLOC=OFF'
     ])
 
     // Run the self_driving_e2e_test.
@@ -266,11 +266,16 @@ void stagePilot() {
 
     selfDrivingTrainModels()
 
+    // Recompile the noisepage DBMS in Debug mode with code coverage. Note that previously set vars must be unset.
+    buildNoisePage([buildCommand:'ninja noisepage', cmake:
+        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_USE_JEMALLOC=OFF'
+    ])
+
     sh script :'''
     cd build
     export BUILD_ABS_PATH=`pwd`
     cd bin
-    PYTHONPATH=../.. timeout 20m python3 -m script.testing.self_driving.jenkins
+    PYTHONPATH=../.. timeout 60m python3 -m script.testing.self_driving.jenkins
     ''', label: 'Test the pilot planning.'
 
     sh script :'''
