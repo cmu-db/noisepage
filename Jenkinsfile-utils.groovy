@@ -266,10 +266,6 @@ void stagePilot() {
 
     selfDrivingTrainModels()
 
-    buildNoisePage([buildCommand:'ninja noisepage', cmake:
-        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON'
-    ])
-
     sh script :'''
     cd build
     export BUILD_ABS_PATH=`pwd`
