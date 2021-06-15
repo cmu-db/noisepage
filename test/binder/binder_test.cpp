@@ -1149,7 +1149,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   col_expr = cte_stmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -1170,7 +1170,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   col_expr = cte_stmt->GetSelectTable()
@@ -1190,7 +1190,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   // Check Group By and Having
@@ -1199,7 +1199,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   col_expr = cte_stmt->GetSelectGroupBy()->GetColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -1215,7 +1215,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   // Check Order By
@@ -1225,7 +1225,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 }
 

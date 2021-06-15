@@ -223,7 +223,7 @@ class TableRef {
   TableReferenceType GetTableReferenceType() { return type_; }
 
   /** @return The table alias */
-  const AliasType &GetAlias() {
+  AliasType &GetAlias() {
     if (alias_.Empty()) {
       alias_ = AliasType(GetTableName());
     }
