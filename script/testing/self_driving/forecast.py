@@ -116,6 +116,7 @@ def fn_enable_pilot_and_wait_for_index(oltpbench: TestOLTPBench, test_case: Test
 
     db_server = oltpbench.db_instance
     conn = psycopg2.connect(port=db_server.db_port, host=db_server.db_host, user=constants.DEFAULT_DB_USER)
+    conn.set_session(autocommit=True)
     index_created = False
     with conn.cursor() as cursor:
         cursor.execute("SET pilot_planning=true")
