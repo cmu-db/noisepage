@@ -123,6 +123,7 @@ class PostgresParser {
                                                               Node *having_node);
   static std::unique_ptr<OrderByDescription> OrderByTransform(ParseResult *parse_result, List *order);
   static common::ManagedPointer<AbstractExpression> WhereTransform(ParseResult *parse_result, Node *root);
+  static std::vector<std::unique_ptr<TableRef>> WithTransform(ParseResult *parse_result, WithClause *root);
 
   // FromTransform helpers
   static std::unique_ptr<JoinDefinition> JoinTransform(ParseResult *parse_result, JoinExpr *root);

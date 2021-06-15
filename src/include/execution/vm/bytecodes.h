@@ -139,6 +139,25 @@ namespace noisepage::execution::vm {
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::FunctionId)                                                                      \
                                                                                                                       \
+  F(CteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,  \
+    OperandType::UImm4)                                                                                               \
+  F(CteScanGetTable, OperandType::Local, OperandType::Local)                                                          \
+  F(CteScanGetTableOid, OperandType::Local, OperandType::Local)                                                       \
+  F(CteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                              \
+  F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
+  F(CteScanFree, OperandType::Local)                                                                                  \
+                                                                                                                      \
+  F(IndCteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                   \
+    OperandType::Local, OperandType::UImm4, OperandType::Imm1)                                                        \
+  F(IndCteScanGetResult, OperandType::Local, OperandType::Local)                                                      \
+  F(IndCteScanGetReadCte, OperandType::Local, OperandType::Local)                                                     \
+  F(IndCteScanGetWriteCte, OperandType::Local, OperandType::Local)                                                    \
+  F(IndCteScanGetReadTableOid, OperandType::Local, OperandType::Local)                                                \
+  F(IndCteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                           \
+  F(IndCteScanAccumulate, OperandType::Local, OperandType::Local)                                                     \
+  F(IndCteScanTableInsert, OperandType::Local, OperandType::Local)                                                    \
+  F(IndCteScanFree, OperandType::Local)                                                                               \
+                                                                                                                      \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \
   F(VPIInitWithList, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
@@ -201,7 +220,6 @@ namespace noisepage::execution::vm {
   F(VPISetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
   F(VPISetTimestampNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                  \
   F(VPISetStringNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
-                                                                                                                      \
   /* Filter Manager */                                                                                                \
   F(FilterManagerInit, OperandType::Local, OperandType::Local)                                                        \
   F(FilterManagerStartNewClause, OperandType::Local)                                                                  \

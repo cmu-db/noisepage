@@ -119,8 +119,9 @@ void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::
 }
 
 void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
-  tbb::parallel_for_each(impl_->states_.begin(), impl_->states_.end(),
-                         [&](auto &entry) { iterate_fn(ctx, entry.second->State()); });
+  // TODO(WAN): The below no-lints are because clang-tidy seems to think there is a null pointer deference. Unclear.
+  tbb::parallel_for_each(impl_->states_.begin(), impl_->states_.end(),                   // NOLINT
+                         [&](auto &entry) { iterate_fn(ctx, entry.second->State()); });  // NOLINT
 }
 
 uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }

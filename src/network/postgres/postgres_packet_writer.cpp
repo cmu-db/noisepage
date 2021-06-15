@@ -4,6 +4,7 @@
 #include "execution/sql/value.h"
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_protocol_util.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace noisepage::network {
 
@@ -86,8 +87,8 @@ void PostgresPacketWriter::WriteRowDescription(const std::vector<planner::Output
     const auto field_format = field_formats[i < field_formats.size() ? i : 0];
 
     // TODO(Matt): Figure out how to get table oid and column oids in the OutputSchema (Optimizer's job?)
-    const auto &name =
-        columns[i].GetExpr()->GetAlias().empty() ? columns[i].GetName() : columns[i].GetExpr()->GetAlias();
+    const auto &name = columns[i].GetExpr()->GetAlias().GetName().empty() ? columns[i].GetName()
+                                                                          : columns[i].GetExpr()->GetAlias().GetName();
     // If a column has no name, then Postgres will return "?column?" as a column name.
 
     if (name.empty())
@@ -378,7 +379,7 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
       }
       case type::TypeId::REAL: {
         auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
-        string_value = std::to_string(real_val->val_);
+        string_value = fmt::to_string(real_val->val_);
         break;
       }
       case type::TypeId::DATE: {

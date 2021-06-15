@@ -846,6 +846,7 @@ add_custom_target(jumbotests
         USES_TERMINAL)
 add_custom_target(self_driving_e2e_test         # For now, this target is specifically used for self-driving pipeline
         ctest
+        --extra-verbose                     # Print out the test output as it runs.
         --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
         ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails.
         -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
@@ -938,7 +939,10 @@ function(add_noisepage_test
     # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
     add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
     # Label each test with TEST_LABEL so that ctest can run all the tests under the TEST_LABEL label later.
-    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "${TEST_LABEL};${TEST_NAME}")
+    set_tests_properties(${TEST_NAME} PROPERTIES
+            LABELS "${TEST_LABEL};${TEST_NAME}"                 # Label the test.
+            ENVIRONMENT "PYTHONPATH=${PROJECT_SOURCE_DIR}"      # Set the PYTHONPATH to project root for self-driving.
+            )
     # Add TEST_NAME as a dependency to TEST_LABEL. Note that TEST_LABEL must be a valid target!
     add_dependencies(${TEST_LABEL} ${TEST_NAME})
 endfunction()
@@ -1431,6 +1435,29 @@ else ()
             )
     add_custom_command(TARGET check-clang-tidy DEPENDS benchmark gflags gtest)
     message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
+endif ()
+unset(CLANG_TIDY_BIN)
+
+#######################################################################################################################
+# check-clang-tidy-full  :   Run clang-tidy static analysis on the codebase in "full", i.e.,
+#                            normally clang-tidy is only run on files that differ from origin/master.
+#######################################################################################################################
+
+find_program(CLANG_TIDY_BIN NAMES clang-tidy-8 clang-tidy HINTS ${CLANG_TOOLS_SEARCH_PATH})
+if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+    message(STATUS "[MISSING] clang-tidy not found, no check-clang-tidy.")
+else ()
+    # Run clang-tidy and exit with a non-zero exit code if any errors are found.
+    # clang-tidy automatically searches for a .clang-tidy file in parent directories.
+    add_custom_target(check-clang-tidy-full
+            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # Run LLVM's clang-tidy script.
+            -clang-tidy-binary ${CLANG_TIDY_BIN}                              # Using the specified clang-tidy binary.
+            -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
+            -full                                                             # Do not apply the git filter.
+            USES_TERMINAL
+            )
+    add_custom_command(TARGET check-clang-tidy-full DEPENDS benchmark gflags gtest)
+    message(STATUS "[ADDED] check-clang-tidy-full (${CLANG_TIDY_BIN})")
 endif ()
 unset(CLANG_TIDY_BIN)
 

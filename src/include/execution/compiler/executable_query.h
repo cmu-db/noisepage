@@ -14,7 +14,9 @@
 namespace noisepage {
 namespace selfdriving {
 class PipelineOperatingUnits;
+namespace pilot {
 class PilotUtil;
+}  // namespace pilot
 }  // namespace selfdriving
 
 namespace execution {
@@ -33,6 +35,7 @@ class Region;
 
 namespace vm {
 class Module;
+class ModuleMetadata;
 }  // namespace vm
 }  // namespace execution
 
@@ -111,6 +114,9 @@ class ExecutableQuery {
      * @return The file.
      */
     ast::File *GetFile() { return file_; };
+
+    /** @return The metadata of this module. */
+    const vm::ModuleMetadata &GetModuleMetadata() const;
 
    private:
     // The functions that must be run (in the provided order)
@@ -199,15 +205,14 @@ class ExecutableQuery {
   /** @return The SQL query string */
   common::ManagedPointer<const std::string> GetQueryText() { return query_text_; }
 
-  /**
-   * @return All of the function names in the executable query.
-   */
+  /** @return All of the function names in the executable query. */
   std::vector<std::string> GetFunctionNames() const;
 
-  /**
-   * @return All of the declarations in the executable query.
-   */
+  /** @return All of the declarations in the executable query. */
   std::vector<ast::Decl *> GetDecls() const;
+
+  /** @return The query fragments in this module. */
+  const std::vector<std::unique_ptr<Fragment>> &GetFragments() const { return fragments_; }
 
  private:
   // The plan.
@@ -268,7 +273,7 @@ class ExecutableQuery {
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;
   friend class noisepage::runner::ExecutionRunners_SEQ0_OutputRunners_Benchmark;
-  friend class noisepage::selfdriving::PilotUtil;
+  friend class noisepage::selfdriving::pilot::PilotUtil;
   friend class noisepage::execution::compiler::CompilationContext;  // SetQueryId
   friend class noisepage::runner::ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
 };

@@ -111,6 +111,7 @@ class BindNodeVisitor final : public SqlNodeVisitor {
  private:
   /** BinderSherpa which stores metadata (e.g. type information) across Visit calls. **/
   std::unique_ptr<BinderSherpa> sherpa_;
+
   /** Current context of the query or subquery */
   common::ManagedPointer<BinderContext> context_ = nullptr;
 
@@ -121,8 +122,14 @@ class BindNodeVisitor final : public SqlNodeVisitor {
 
   /** Catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
+
+  /** Database OID */
   const catalog::db_oid_t db_oid_;
 
+  /**
+   * Initialize a table reference.
+   * @param node The table reference
+   */
   static void InitTableRef(common::ManagedPointer<parser::TableRef> node);
 
   /**
@@ -133,6 +140,10 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   void UnifyOrderByExpression(common::ManagedPointer<parser::OrderByDescription> order_by_description,
                               const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
 
+  /**
+   * Validate the database name.
+   * @param db_name The database name
+   */
   void ValidateDatabaseName(const std::string &db_name);
 
   /**

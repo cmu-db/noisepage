@@ -41,6 +41,27 @@ std::unique_ptr<AbstractOptimizerNode> QueryToOperatorTransformer::ConvertToOpEx
   return std::move(output_expr_);
 }
 
+bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<AbstractOptimizerNode> child_expr,
+                                                      const std::string &cte_table_name) {
+  bool is_added = false;
+
+  // TODO(preetang): Replace explicit string usage for operator name with reference to constant string
+  if (child_expr->Contents()->GetOpType() == OpType::LOGICALCTESCAN &&
+      (child_expr->Contents()->GetContentsAs<LogicalCteScan>()->GetTableName() == cte_table_name)) {
+    // Leftmost LogicalCteScan found in tree
+    child_expr->PushChild(std::move(output_expr_));
+    is_added = true;
+  } else {
+    auto children = child_expr->GetChildren();
+    for (auto &i : children) {
+      is_added = FindFirstCTEScanNode(i, cte_table_name);
+      if (is_added) break;
+    }
+  }
+
+  return is_added;
+}
+
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStatement> op) {
   OPTIMIZER_LOG_DEBUG("Transforming SelectStatement to operators ...");
   // We do not visit the select list of a base table because the column
@@ -49,6 +70,79 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
   auto pre_predicates = std::move(predicates_);
   predicates_ = {};
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
+
+  if (!op->GetSelectWith().empty()) {
+    for (auto with : op->GetSelectWith()) {
+      with->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+      // SELECT statement has CTE, register CTE table name
+      cte_table_name_.push_back(with->GetAlias());
+      cte_type_.push_back(with->GetCteType());
+
+      auto oid = catalog::MakeTempOid<catalog::table_oid_t>(accessor_->GetNewTempOid());
+      cte_oids_.push_back(oid);
+
+      std::vector<type::TypeId> col_types{};
+      col_types.reserve(with->GetCteColumnAliases().size());
+      for (auto i = 0UL; i < with->GetCteColumnAliases().size(); ++i) {
+        col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
+      }
+      std::vector<catalog::Schema::Column> columns1;
+      std::size_t i = 0;
+      for (auto &alias : with->GetCteColumnAliases()) {
+        columns1.emplace_back(alias.GetName(), col_types[i], false, parser::ConstantValueExpression(col_types[i]),
+                              catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo()));
+        i++;
+      }
+
+      cte_schemas_.emplace_back(catalog::Schema(std::move(columns1)));
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> master_expressions;
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
+
+      std::size_t index = 0;
+      for (auto &elem : with->GetCteColumnAliases()) {
+        NOISEPAGE_ASSERT(elem.IsSerialNoValid(), "CTE Alias does not have a valid serial no.");
+        auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
+        parser::AbstractExpression *cve =
+            new parser::ColumnValueExpression(with->GetTableName(), elem.GetName(), ret_type, elem,
+                                              catalog::MakeTempOid<catalog::col_oid_t>(elem.GetSerialNo()));
+        txn_context->RegisterAbortAction([=] { delete cve; });
+        txn_context->RegisterCommitAction([=] { delete cve; });
+        expressions.emplace_back(common::ManagedPointer(cve));
+
+        col_types.push_back(ret_type);
+        cve->SetReturnValueType(ret_type);
+        index++;
+      }
+
+      master_expressions.push_back(std::move(expressions));
+      std::vector<catalog::Schema::Column> columns;
+      size_t ind = 0;
+      for (auto &alias : with->GetCteColumnAliases()) {
+        columns.emplace_back(alias.GetName(), col_types[ind], false, parser::ConstantValueExpression(col_types[ind]),
+                             catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo()));
+        ind++;
+      }
+
+      auto cte_scan_expr = std::make_unique<OperatorNode>(
+          LogicalCteScan::Make(with->GetAlias(), with->GetTableName(), oid, catalog::Schema(std::move(columns)), {},
+                               with->GetCteType(), {})
+              .RegisterWithTxnContext(txn_context),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+      cte_scan_expr->PushChild(std::move(output_expr_));
+      output_expr_ = std::move(cte_scan_expr);
+
+      if (with->GetSelect()->GetUnionSelect() != nullptr) {
+        std::vector<common::ManagedPointer<parser::AbstractExpression>> second_expressions;
+        auto &second_columns = with->GetSelect()->GetUnionSelect()->GetSelectColumns();
+        second_expressions.reserve(second_columns.size());
+        for (auto &elems : second_columns) {
+          second_expressions.push_back(elems);
+        }
+        master_expressions.push_back(std::move(second_expressions));
+      }
+      cte_expressions_.push_back(master_expressions);
+    }
+  }
 
   if (op->GetSelectTable() != nullptr) {
     // SELECT with FROM
@@ -147,6 +241,36 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     limit_expr->PushChild(std::move(output_expr_));
     output_expr_ = std::move(limit_expr);
+  }
+
+  if (!op->GetSelectWith().empty()) {
+    // Store the current logical tree in another expression
+    auto child_expr = std::move(output_expr_);
+
+    for (auto with : op->GetSelectWith()) {
+      // Get the logical tree for the query which is used to compute the CTE table
+      with->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+      // Add CTE table query to first LogicalCteScan found in tree
+      // TODO(tanujnay112) think about this more, there might be a better way
+      FindFirstCTEScanNode(common::ManagedPointer(child_expr).CastManagedPointerTo<AbstractOptimizerNode>(),
+                           with->GetAlias());
+    }
+
+    // Replace the complete logical tree back
+    output_expr_ = std::move(child_expr);
+  }
+
+  if (op->GetUnionSelect() != nullptr) {
+    auto left_expr = std::move(output_expr_);
+    op->GetUnionSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    auto right_expr = std::move(output_expr_);
+    // TODO(Kyle): below we just hard-code the is_all flag, we need to fix this
+    // by getting the parser to represent whether it is UNION or UNION ALL
+    output_expr_ = std::make_unique<OperatorNode>(
+        LogicalUnion::Make(true, op, op->GetUnionSelect()).RegisterWithTxnContext(txn_context),
+        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    output_expr_->PushChild(std::move(left_expr));
+    output_expr_->PushChild(std::move(right_expr));
   }
 
   predicates_ = std::move(pre_predicates);
@@ -264,11 +388,24 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     // Single table
     if (node->GetList().size() == 1) node = node->GetList().at(0).Get();
 
-    // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
-    output_expr_ = std::make_unique<OperatorNode>(
-        LogicalGet::Make(db_oid_, accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), false)
-            .RegisterWithTxnContext(txn_context),
-        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    auto it = std::find(cte_table_name_.begin(), cte_table_name_.end(), node->GetTableName());
+    if (it != cte_table_name_.end()) {
+      // CTE table referred
+      const auto index = std::distance(cte_table_name_.begin(), it);
+      std::vector<type::TypeId> col_types{};
+      auto cte_scan_expr = std::make_unique<OperatorNode>(
+          LogicalCteScan::Make(node->GetAlias(), node->GetTableName(), cte_oids_[index], cte_schemas_[index],
+                               cte_expressions_[index], cte_type_[index], {})
+              .RegisterWithTxnContext(txn_context),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+      output_expr_ = std::move(cte_scan_expr);
+    } else {
+      // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
+      output_expr_ = std::make_unique<OperatorNode>(
+          LogicalGet::Make(db_oid_, accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), false)
+              .RegisterWithTxnContext(txn_context),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    }
   }
 }
 
@@ -345,8 +482,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CreateStat
         }
       }
       create_expr = std::make_unique<OperatorNode>(
-          LogicalCreateIndex::Make(accessor_->GetDefaultNamespace(), accessor_->GetTableOid(op->GetTableName()),
-                                   op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries))
+          LogicalCreateIndex::Make(db_oid_, accessor_->GetDefaultNamespace(),
+                                   accessor_->GetTableOid(op->GetTableName()), op->GetIndexType(), op->IsUniqueIndex(),
+                                   op->GetIndexName(), std::move(entries))
               .RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       break;
@@ -855,21 +993,20 @@ void QueryToOperatorTransformer::SplitPredicates(
   }
 }
 
-std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>
+std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>
 QueryToOperatorTransformer::ConstructSelectElementMap(
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> res;
-  for (auto &expr : select_list) {
-    std::string alias;
-    if (!expr->GetAlias().empty()) {
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> res{};
+  for (const auto &expr : select_list) {
+    parser::AliasType alias;
+    if (!expr->GetAlias().Empty()) {
       alias = expr->GetAlias();
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto tv_expr = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
-      alias = tv_expr->GetColumnName();
+      alias = parser::AliasType(tv_expr->GetColumnName());
     } else {
       continue;
     }
-    std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
     res[alias] = common::ManagedPointer<parser::AbstractExpression>(expr);
   }
   return res;

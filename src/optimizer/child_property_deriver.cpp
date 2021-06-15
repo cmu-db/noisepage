@@ -102,6 +102,17 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   output_.emplace_back(provided_prop, std::move(child_input_properties));
 }
 
+void ChildPropertyDeriver::Visit(const CteScan *op) {
+  // This doesn't create any new properties so just send down the requested properties
+  std::vector<PropertySet *> child_input_properties{};
+  auto provided_prop = requirements_->Copy();
+  for (size_t i = 0; i < gexpr_->GetChildrenGroupsSize(); i++) {
+    child_input_properties.push_back(requirements_->Copy());
+  }
+
+  output_.emplace_back(provided_prop, std::move(child_input_properties));
+}
+
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {}
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerIndexJoin *op) {

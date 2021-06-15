@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <limits>
 
+#include "catalog/catalog_accessor.h"
 #include "common/error/error_code.h"
 #include "network/postgres/postgres_defs.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/table_ref.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace noisepage::binder {
@@ -19,7 +21,7 @@ void BinderUtil::ValidateWhereClause(const common::ManagedPointer<parser::Abstra
 }
 
 void BinderUtil::PromoteParameters(
-    const common::ManagedPointer<std::vector<parser::ConstantValueExpression> > parameters,
+    const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
     const std::vector<type::TypeId> &desired_parameter_types) {
   NOISEPAGE_ASSERT(parameters->size() == desired_parameter_types.size(), "They have to be equal in size.");
   for (uint32_t parameter_index = 0; parameter_index < desired_parameter_types.size(); parameter_index++) {

@@ -355,16 +355,16 @@ class LogicalInnerJoinToPhysicalInnerIndexJoin : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
   bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
   void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
@@ -935,16 +935,103 @@ class LogicalAnalyzeToPhysicalAnalyze : public Rule {
 
   /**
    * Checks whether the given rule can be applied
-   * @param plan OperatorNode to check
+   * @param plan AbstractOptimizerNode to check
    * @param context Current OptimizationContext executing under
-   * @returns Whether the input OperatorNode passes the check
+   * @returns Whether the input AbstractOptimizerNode passes the check
    */
   bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
-   * @param input Input OperatorNode to transform
-   * @param transformed Vector of transformed OperatorNodes
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
+ * Rule transforms LogicalCteScan -> CteScan for LogicalCteScan with two children
+ */
+class LogicalCteScanToPhysicalCteScanIterative : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalCteScanToPhysicalCteScanIterative();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan AbstractOptimizerNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input AbstractOptimizerNode passes the check
+   */
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
+ * Rule transforms LogicalCteScan -> CteScan for LogicalCteScan with children
+ */
+class LogicalCteScanToPhysicalCteScan : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalCteScanToPhysicalCteScan();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan AbstractOptimizerNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input AbstractOptimizerNode passes the check
+   */
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
+ * Rule transforms LogicalCteScan -> CteScan for LogicalCteScan without children
+ */
+class LogicalCteScanToPhysicalEmptyCteScan : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalCteScanToPhysicalEmptyCteScan();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan AbstractOptimizerNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input AbstractOptimizerNode passes the check
+   */
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input AbstractOptimizerNode to transform
+   * @param transformed Vector of transformed AbstractOptimizerNodes
    * @param context Current OptimizationContext executing under
    */
   void Transform(common::ManagedPointer<AbstractOptimizerNode> input,

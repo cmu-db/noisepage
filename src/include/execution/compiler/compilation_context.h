@@ -10,6 +10,10 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/pipeline.h"
 
+namespace noisepage::execution::compiler {
+class CompilerSettings;
+}  // namespace noisepage::execution::compiler
+
 namespace noisepage::parser {
 class AbstractExpression;
 }  // namespace noisepage::parser
@@ -55,15 +59,13 @@ class CompilationContext {
    * @param output_callback The lambda utilized as the output callback for the query
    * @param context The AST context for the query
    */
-  static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
-                                                  const exec::ExecutionSettings &exec_settings,
-                                                  catalog::CatalogAccessor *accessor,
-                                                  CompilationMode mode = CompilationMode::Interleaved,
-                                                  std::optional<execution::query_id_t> override_qid = std::nullopt,
-                                                  common::ManagedPointer<planner::PlanMetaData> plan_meta_data = nullptr,
-                                                  common::ManagedPointer<const std::string> query_text = nullptr,
-                                                  ast::LambdaExpr *output_callback = nullptr,
-                                                  common::ManagedPointer<ast::Context> context = nullptr);
+  static std::unique_ptr<ExecutableQuery> Compile(
+      const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
+      catalog::CatalogAccessor *accessor, CompilationMode mode = CompilationMode::Interleaved,
+      std::optional<execution::query_id_t> override_qid = std::nullopt,
+      common::ManagedPointer<planner::PlanMetaData> plan_meta_data = nullptr,
+      common::ManagedPointer<const std::string> query_text = nullptr, ast::LambdaExpr *output_callback = nullptr,
+      common::ManagedPointer<ast::Context> context = nullptr);
 
   /**
    * Register a pipeline in this context.
@@ -153,8 +155,9 @@ class CompilationContext {
 
  private:
   // Private to force use of static Compile() function.
-  explicit CompilationContext(ExecutableQuery *query,  query_id_t query_id_, catalog::CatalogAccessor *accessor, CompilationMode mode,
-                              const exec::ExecutionSettings &exec_settings, ast::LambdaExpr *output_callback = nullptr);
+  explicit CompilationContext(ExecutableQuery *query, query_id_t query_id_, catalog::CatalogAccessor *accessor,
+                              CompilationMode mode, const exec::ExecutionSettings &exec_settings,
+                              ast::LambdaExpr *output_callback = nullptr);
 
   // Given a plan node, compile it into a compiled query object.
   void GeneratePlan(const planner::AbstractPlanNode &plan,

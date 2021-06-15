@@ -53,18 +53,24 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropTriggerToPhysicalDropTrigger());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropViewToPhysicalDropView());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalAnalyzeToPhysicalAnalyze());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCteScanToPhysicalCteScan());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCteScanToPhysicalEmptyCteScan());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCteScanToPhysicalCteScanIterative());
 
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushImplicitFilterThroughJoin());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushExplicitFilterThroughJoin());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewritePushFilterThroughAggregation());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteCombineConsecutiveFilter());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoGet());
+  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoCteScan());
+  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoChildlessCteScan());
 
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestSingleJoinToInnerJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new DependentSingleJoinToInnerJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughAggregation());
+  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteUnionWithRecursiveCTE());
 }
 
 }  // namespace noisepage::optimizer

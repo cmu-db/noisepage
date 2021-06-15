@@ -79,6 +79,11 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
 }
 
 common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) const {
+  if (UNLIKELY(catalog::IsTempOid(table))) {
+    auto result = temp_tables_.find(table);
+    NOISEPAGE_ASSERT(result != temp_tables_.end(), "temp_tables_ does not contain desired table");
+    return result->second;
+  }
   if (cache_ != DISABLED) {
     auto table_ptr = cache_->GetTable(table);
     if (table_ptr == nullptr) {
@@ -163,6 +168,8 @@ common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oi
   return dbc_->GetIndex(txn_, index);
 }
 
+std::string_view CatalogAccessor::GetIndexName(index_oid_t index) const { return dbc_->GetIndexName(txn_, index); }
+
 language_oid_t CatalogAccessor::CreateLanguage(const std::string &lanname) {
   return dbc_->CreateLanguage(txn_, lanname);
 }
@@ -226,6 +233,10 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   // pg_tablespace table, or we may eliminate the concept entirely. This works for now to allow CREATE nodes to bind a
   // BlockStore
   return catalog_->GetBlockStore();
+}
+
+void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table) {
+  temp_tables_[table_oid] = table;
 }
 
 }  // namespace noisepage::catalog

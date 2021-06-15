@@ -233,6 +233,12 @@ class StrongTypeAlias {
  private:
   IntType val_;
 };
+
+/**
+ * gets the type of the underlying value of a given strongtype at compile time
+ */
+template <typename T>
+using get_strongtype_underlying_t = std::decay_t<decltype(std::declval<T>().UnderlyingValue())>;
 }  // namespace noisepage::common
 
 /* Define all typedefs here */

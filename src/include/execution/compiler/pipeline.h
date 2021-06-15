@@ -119,6 +119,7 @@ class Pipeline {
   /**
    * Registers a nested pipeline. These pipelines are invoked from other pipelines and are not added to the main steps
    * @param pipeline The pipeline to nest
+   * @param op The operator translator that is nesting this pipeline
    */
   void LinkNestedPipeline(Pipeline *pipeline, const OperatorTranslator *op);
 
@@ -199,6 +200,12 @@ class Pipeline {
    */
   std::vector<ast::Expr *> CallSingleRunPipelineFunction() const;
 
+  /**
+   * Calls a nested pipeline's execution functions
+   * @param ctx Workcontext that we are using to run on
+   * @param op Operator translator that is calling this nested pipeline
+   * @param function Function builder that we are building on
+   */
   void CallNestedRunPipelineFunction(WorkContext *ctx, const OperatorTranslator *op, FunctionBuilder *function) const;
 
   /**
@@ -238,7 +245,13 @@ class Pipeline {
    */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
 
-  /** @return The nested input argument at `index` */
+  /**
+   * Gets an argument from the set of "extra" pipeline arguments given to the current pipeline's function
+   * Only applicable if this is a nested pipeline. Extra refers to arguments other than the query state and the
+   * pipeline state
+   * @param index The extra argument index
+   * @return An expression representing the requested argument
+   */
   ast::Expr *GetNestedInputArg(std::size_t index) const;
 
   /** @return `true` if this pipeline is prepared, `false` otherwise */
@@ -296,8 +309,12 @@ class Pipeline {
   /** @return An immutable reference to the pipeline state descriptor */
   const StateDescriptor &GetPipelineStateDescriptor() const { return state_; }
 
-  /** @return A mutable reference to the pipeline state descriptor */
   StateDescriptor &GetPipelineStateDescriptor() { return state_; }
+
+  /** @return A mutable reference to the pipeline state descriptor */
+  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
+
+  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 
  private:
   // A unique pipeline ID.
@@ -324,6 +341,8 @@ class Pipeline {
   std::vector<Pipeline *> dependencies_;
   // Vector of pipelines that are nested under this pipeline
   std::vector<Pipeline *> nested_pipelines_;
+  // Extra parameters to pass into pipeline;
+  // currently used for nested consumer pipeline work functions
   std::vector<ast::FieldDecl *> extra_pipeline_params_;
   // Configured parallelism.
   Parallelism parallelism_;

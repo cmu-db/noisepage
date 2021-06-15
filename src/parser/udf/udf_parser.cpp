@@ -252,7 +252,7 @@ std::unique_ptr<StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &sql_stmt)
         parse_result->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>()->GetSelectColumns();
     elems.reserve(select_columns.size());
     for (const auto &col : select_columns) {
-      elems.emplace_back(col->GetAlias(), col->GetReturnValueType());
+      elems.emplace_back(col->GetAlias().GetName(), col->GetReturnValueType());
     }
     udf_ast_context_->SetRecordType(var_name, std::move(elems));
   }

@@ -42,7 +42,8 @@ class Callbacks : public compiler::Compiler::Callbacks {
 
 }  // namespace
 
-std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compile() {
+std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compile(
+    const execution::compiler::CompilerSettings &settings) {
   // Build up the declaration list for the file.
   util::RegionVector<ast::Decl *> decls(ctx_->GetRegion());
   decls.reserve(structs_.size() + functions_.size());
@@ -53,7 +54,7 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
   ast::File *generated_file = ctx_->GetNodeFactory()->NewFile({0, 0}, std::move(decls));
 
   // Compile it!
-  compiler::Compiler::Input input("", ctx_, generated_file);
+  compiler::Compiler::Input input("", ctx_, generated_file, settings);
   Callbacks callbacks;
   compiler::TimePasses timer(&callbacks);
   compiler::Compiler::RunCompilation(input, &timer);

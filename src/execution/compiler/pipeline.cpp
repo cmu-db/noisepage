@@ -171,8 +171,10 @@ void Pipeline::LinkNestedPipeline(Pipeline *pipeline, const OperatorTranslator *
   if (!pipeline->nested_) {
     pipeline->nested_ = true;
     // add to pipeline params
-    size_t i = 0;
+    std::size_t i = 0;
     for (auto &col : op->GetPlan().GetOutputSchema()->GetColumns()) {
+      NOISEPAGE_ASSERT(pipeline->extra_pipeline_params_.empty(),
+                       "We do not support two pipelines nesting the same pipeline yet");
       pipeline->extra_pipeline_params_.push_back(
           codegen_->MakeField(codegen_->MakeIdentifier("row" + std::to_string(i++)),
                               codegen_->PointerType(codegen_->TplType(sql::GetTypeId(col.GetType())))));
@@ -184,10 +186,13 @@ void Pipeline::CollectDependencies(std::vector<Pipeline *> *deps) {
   for (auto *pipeline : dependencies_) {
     pipeline->CollectDependencies(deps);
   }
+
   deps->push_back(this);
+
   for (auto *pipeline : nested_pipelines_) {
     pipeline->CollectDependencies(deps);
   }
+  deps->push_back(this);
 }
 
 void Pipeline::CollectDependencies(std::vector<const Pipeline *> *deps) const {
@@ -207,7 +212,7 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
     ast::Expr *type = codegen_->BuiltinType(ast::BuiltinType::ExecOUFeatureVector);
     oufeatures_ = DeclarePipelineStateEntry("execFeatures", type);
   }
-  // if this pipeline is nested, it doesn't own its pipeline state
+  // If this pipeline is nested, it doesn't own its pipeline state
   state_.ConstructFinalType(codegen_);
 
   // Finalize the execution mode. We choose serial execution if ANY of the below
@@ -226,10 +231,12 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
 
   // Pretty print.
   {
-    std::string result;
+    std::string result{};
     bool first = true;
     for (auto iter = Begin(), end = End(); iter != end; ++iter) {
-      if (!first) result += " --> ";
+      if (!first) {
+        result += " --> ";
+      }
       first = false;
       std::string plan_type = planner::PlanNodeTypeToString((*iter)->GetPlan().GetPlanNodeType());
       std::transform(plan_type.begin(), plan_type.end(), plan_type.begin(), ::tolower);
@@ -326,6 +333,7 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction(ast::LambdaExpr *outpu
                                         GetSetupPipelineStateFunctionName(), GetTearDownPipelineStateFunctionName(),
                                         state_ptr));
     } else {
+      // no TLS reset if pipeline is nested
       auto pipeline_state = builder.GetParameterByPosition(p_state_ind);
       builder.Append(codegen_->Call(GetSetupPipelineStateFunctionName(), {state_ptr, pipeline_state}));
     }
@@ -404,7 +412,6 @@ void Pipeline::CallNestedRunPipelineFunction(WorkContext *ctx, const OperatorTra
   function->Append(codegen_->Call(GetRunPipelineFunctionName(), params_vec));
   function->Append(codegen_->Call(GetTeardownPipelineFunctionName(),
                                   {compilation_context_->GetQueryState()->GetStatePointer(codegen_), p_state_ptr}));
-  return;
 }
 
 std::vector<ast::Expr *> Pipeline::CallRunPipelineFunction() const {
@@ -477,10 +484,11 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id, as
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
       // SerialWork(queryState, pipelineState)
+      //      if(!nested_) {
       InjectStartResourceTracker(&builder, false);
       started_tracker = true;
 
-      std::vector<ast::Expr *> args = {builder.GetParameterByPosition(0), codegen_->MakeExpr(state_var_)};
+      std::vector<ast::Expr *> args{builder.GetParameterByPosition(0), codegen_->MakeExpr(state_var_)};
       if (nested_) {
         size_t i = args.size();
         ast::Expr *arg = builder.GetParameterByPosition(i++);

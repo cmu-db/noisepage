@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/schema.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node_contents.h"
@@ -233,7 +234,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
    */
   static Operator Make(
       std::string table_alias,
-      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
+      std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
   /**
    * Copy
@@ -253,7 +254,8 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
   /**
    * @return map from table aliases to expressions
    */
-  const std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &GetAliasToExprMap() const {
+  const std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &GetAliasToExprMap()
+      const {
     return alias_to_expr_map_;
   }
 
@@ -266,7 +268,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
   /**
    * Map from table aliases to expressions
    */
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> alias_to_expr_map_;
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> alias_to_expr_map_;
 };
 
 /**
@@ -1271,6 +1273,7 @@ class LogicalCreateFunction : public OperatorNodeContents<LogicalCreateFunction>
 class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
  public:
   /**
+   * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
    * @param index_type Type of the index
@@ -1279,8 +1282,9 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @param index_attrs Attributes of the index
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                       parser::IndexType index_type, bool unique, std::string index_name,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
+                       std::string index_name,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
 
   /**
@@ -1296,6 +1300,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the table
@@ -1323,6 +1332,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
 
  private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
   /**
    * OID of the namespace
    */
@@ -1930,6 +1944,130 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
    * Vector of column to Analyze
    */
   std::vector<catalog::col_oid_t> columns_;
+};
+
+/**
+ * Logical operator for union
+ */
+class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
+ public:
+  /**
+   * Makes a logical union operator
+   * @param is_all Whether this is a UNION ALL
+   * @param left_expr Left child of union
+   * @param right_expr Right child of union
+   * @return A new logical union operator
+   */
+  static Operator Make(bool is_all, common::ManagedPointer<parser::SelectStatement> left_expr,
+                       common::ManagedPointer<parser::SelectStatement> right_expr);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  /**
+   * @param r Equality operator for logical unions
+   * @return Whether or not this is equal to r, a given
+   */
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+ private:
+  bool is_all_;
+  common::ManagedPointer<parser::SelectStatement> left_expr_;
+  common::ManagedPointer<parser::SelectStatement> right_expr_;
+};
+
+/**
+ * Logical operator for CTE SCAN
+ */
+class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
+ public:
+  /** @return A CTE scan operator */
+  static Operator Make();
+
+  /**
+   * Construct a logical CTE scan node.
+   * @param table_alias The alias of the table this node is scanning
+   * @param table_name The name of the CTE table
+   * @param table_oid The temp oid of the CTE table
+   * @param table_schema The schema of the CTE table
+   * @param child_expressions The top level expressions that are used to fill the columns of the CTE table
+   * @param cte_type The type of CTE
+   * @param scan_predicate The predicates of this scan
+   * @return The node
+   */
+  static Operator Make(std::string table_alias, std::string table_name, catalog::table_oid_t table_oid,
+                       catalog::Schema table_schema,
+                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
+                       parser::CteType cte_type, std::vector<AnnotatedExpression> &&scan_predicate);
+
+  /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNodeContents *Copy() const override;
+
+  bool operator==(const BaseOperatorNodeContents &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the alias of the table to get from
+   */
+  const std::string &GetTableAlias() const { return table_alias_; }
+
+  /**
+   * @return the name of the table to get from
+   */
+  const std::string &GetTableName() const { return table_name_; }
+
+  /**
+   * GetExpressions
+   * Get the list of child expression for this Cte node
+   * @return vector of child expressions
+   */
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetExpressions() {
+    return child_expressions_;
+  }
+
+  /** @return The type of this CTE */
+  parser::CteType GetCTEType() const { return cte_type_; }
+
+  /** @return `true` if this CTE is recursive, `false` otherwise */
+  bool GetIsRecursive() const { return cte_type_ == parser::CteType::STRUCTURALLY_RECURSIVE; }
+
+  /** @return `true` if this CTE is iterative, `false` otherwise */
+  bool GetIsIterative() const { return cte_type_ == parser::CteType::STRUCTURALLY_ITERATIVE; }
+
+  /** @return `true` if this CTE is inductive, `false` otherwise */
+  bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
+
+  /** @return The temporary table OID for the CTE table being scanned */
+  catalog::table_oid_t GetTableOid() const { return table_oid_; }
+
+  /** @return The predicates for this CTE scan */
+  std::vector<AnnotatedExpression> GetScanPredicate() const { return scan_predicate_; }
+
+  /** @return The schema for this CTE table */
+  const catalog::Schema &GetTableSchema() const { return table_schema_; }
+
+ private:
+  /** The alias for the table defined by this CTE */
+  std::string table_alias_;
+  /** The name of the table defined by this CTE */
+  std::string table_name_;
+  /** The child expressions for this CTE */
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
+  /** The type of this CTE */
+  parser::CteType cte_type_;
+  /** The scan predicate for this CTE (if applicable) */
+  std::vector<AnnotatedExpression> scan_predicate_;
+  /** The schema for the table defined by this CTE */
+  catalog::Schema table_schema_;
+  /** The OID for the table defined by this CTE */
+  catalog::table_oid_t table_oid_;
 };
 
 }  // namespace noisepage::optimizer

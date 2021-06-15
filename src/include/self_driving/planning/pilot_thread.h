@@ -5,7 +5,7 @@
 
 #include "self_driving/planning/pilot.h"
 
-namespace noisepage::selfdriving {
+namespace noisepage::selfdriving::pilot {
 
 /**
  * Class for spinning off a thread that runs the pilot to process query predictions.
@@ -19,7 +19,7 @@ class PilotThread {
    * @param forecaster_train_interval Sleep time between training forecast model
    * @param pilot_planning if the pilot is enabled
    */
-  PilotThread(common::ManagedPointer<selfdriving::Pilot> pilot, std::chrono::microseconds pilot_interval,
+  PilotThread(common::ManagedPointer<Pilot> pilot, std::chrono::microseconds pilot_interval,
               std::chrono::microseconds forecaster_train_interval, bool pilot_planning);
 
   ~PilotThread() { StopPilot(); }
@@ -66,7 +66,7 @@ class PilotThread {
   common::ManagedPointer<Pilot> GetPilot() { return pilot_; }
 
  private:
-  const common::ManagedPointer<selfdriving::Pilot> pilot_;
+  const common::ManagedPointer<Pilot> pilot_;
   volatile bool run_pilot_;
   volatile bool pilot_paused_;
   std::chrono::microseconds pilot_interval_;
@@ -92,4 +92,4 @@ class PilotThread {
   }
 };
 
-}  // namespace noisepage::selfdriving
+}  // namespace noisepage::selfdriving::pilot

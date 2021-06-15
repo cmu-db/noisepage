@@ -52,6 +52,8 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
   for (auto expr : required_cols_) {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
+  NOISEPAGE_ASSERT(output_cols_map.size() == required_cols_.size(),
+                   "Output columns of the QueryDerivedScan and required_cols_ from above mismatch");
 
   auto output_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(output_cols_map.size());
   std::vector<common::ManagedPointer<parser::AbstractExpression>> input_cols(output_cols.size());
@@ -61,7 +63,9 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     output_cols[entry.second] = entry.first;
 
     // Get the actual expression
-    auto input_col = alias_expr_map[tv_expr->GetColumnName()];
+    auto alias =
+        tv_expr->GetAlias().IsSerialNoValid() ? tv_expr->GetAlias() : parser::AliasType(tv_expr->GetColumnName());
+    auto input_col = alias_expr_map.at(alias);
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
     input_cols[entry.second] = input_col;
@@ -94,6 +98,66 @@ void InputColumnDeriver::Visit(const Limit *op) {
   }
 
   PT2 child_cols = PT2{cols};
+  output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
+}
+
+void InputColumnDeriver::Visit(const CteScan *op) {
+  // All aggregate expressions and TVEs in the required columns and internal
+  // sort columns are needed by the child node
+  ExprSet input_cols_set;
+  for (auto expr : required_cols_) {
+    if (parser::ExpressionUtil::IsAggregateExpression(expr)) {
+      input_cols_set.insert(expr);
+    } else {
+      parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, expr);
+    }
+  }
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols;
+  for (const auto &expr : input_cols_set) {
+    cols.push_back(expr);
+  }
+
+  PT2 child_cols;
+
+  // the CTE scan node contains a mapping from CVE's into the CTE table to expressions that
+  // represent the CVE's INSIDE the CTE, so the outputs of this node would be these requested CVE's while
+  // the inputs to this node would be their corresponding expressions for each child of the CTE
+  // recall that in the case of inductive (recursive/iterative) CTE's we have two children here
+
+  child_cols.reserve(gexpr_->GetChildrenGroupsSize());
+  for (size_t i = 0; i < gexpr_->GetChildrenGroupsSize(); i++) {
+    auto child_exprs = op->GetChildExpressions()[i];
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
+    new_child_exprs.reserve(child_exprs.size());
+    for (auto &elem : child_exprs) {
+      new_child_exprs.push_back(elem);
+    }
+    child_exprs.clear();
+    child_exprs = new_child_exprs;
+    child_cols.push_back(std::move(child_exprs));
+  }
+
+  output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
+}
+
+void InputColumnDeriver::Visit(const LogicalUnion *op) {
+  // All aggregate expressions and TVEs in the required columns and internal
+  ExprSet input_cols_set;
+  for (auto expr : required_cols_) {
+    if (parser::ExpressionUtil::IsAggregateExpression(expr)) {
+      input_cols_set.insert(expr);
+    } else {
+      parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, expr);
+    }
+  }
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols;
+  for (const auto &expr : input_cols_set) {
+    cols.push_back(expr);
+  }
+
+  PT2 child_cols = PT2{cols, cols};
   output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
 }
 

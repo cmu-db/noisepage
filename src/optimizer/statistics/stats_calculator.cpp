@@ -53,6 +53,34 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
   root_group->SetNumRows(0);
 }
 
+void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalCteScan *op) {
+  // TODO(preetang): Implement stats calculation for logical cte scan
+  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  auto num_rows = 0;
+  // TODO(tanujnay112): figure out how to get a rows estimate for inductive CTE's using a supplied limit or
+  // where condition within the CTE query
+  if (!op->GetIsInductive()) {
+    // not a reader node
+    if (gexpr_->GetChildrenGroupsSize() > 0) {
+      auto child = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+      num_rows = child->GetNumRows();
+    }
+  }
+
+  root_group->SetNumRows(num_rows);
+}
+
+void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalUnion *op) {
+  // TODO(tanujnay112): Implement stats calculation for logical union
+  auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+  auto left_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
+  auto right_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
+
+  // TODO(tanujnay112): Be less naive than adding left and right rows
+  root_group->SetNumRows(left_group->GetNumRows() + right_group->GetNumRows());
+}
+
 void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   // Check if there's join condition
   NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
@@ -159,6 +187,20 @@ void StatsCalculator::Visit(const LogicalDelete *op) {
   // Pass in num rows from the child
   if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
     root_group->SetNumRows(child_group->GetNumRows());
+  }
+}
+
+void StatsCalculator::Visit(const LogicalCreateIndex *op) {
+  auto *root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
+
+  // Compute selectivity at the first time
+  if (root_group->GetNumRows() == Group::UNINITIALIZED_NUM_ROWS) {
+    const auto latched_table_stats_reference = context_->GetStatsStorage()->GetTableStats(
+        op->GetDatabaseOid(), op->GetTableOid(), context_->GetCatalogAccessor());
+
+    size_t table_num_rows = latched_table_stats_reference.table_stats_.GetNumRows();
+    root_group->SetTableNumRows(table_num_rows);
+    root_group->SetNumRows(table_num_rows);
   }
 }
 

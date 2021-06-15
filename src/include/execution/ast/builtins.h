@@ -53,12 +53,32 @@ namespace noisepage::execution::ast {
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
+  F(TempTableIterInitBind, tempTableIterInitBind)                       \
   F(TableIterAdvance, tableIterAdvance)                                 \
   F(TableIterGetVPINumTuples, tableIterGetVPINumTuples)                 \
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
   F(TableIterCreateIndexParallel, iterateTableCreateIndexParallel)      \
+                                                                        \
+  /*Cte Scans*/                                                         \
+  F(CteScanInit, cteScanInit)                                           \
+  F(CteScanGetTable, cteScanGetTable)                                   \
+  F(CteScanGetTableOid, cteScanGetTableOid)                             \
+  F(CteScanGetInsertTempTablePR, cteScanGetInsertTempTablePR)           \
+  F(CteScanTableInsert, cteScanTableInsert)                             \
+  F(CteScanFree, cteScanFree)                                           \
+                                                                        \
+  /*Iterative Cte Scans*/                                               \
+  F(IndCteScanInit, indCteScanInit)                                     \
+  F(IndCteScanGetResult, indCteScanGetResult)                           \
+  F(IndCteScanGetReadCte, indCteScanGetReadCte)                         \
+  F(IndCteScanGetWriteCte, indCteScanGetWriteCte)                       \
+  F(IndCteScanGetReadTableOid, indCteScanGetReadTableOid)               \
+  F(IndCteScanAccumulate, indCteScanAccumulate)                         \
+  F(IndCteScanGetInsertTempTablePR, indCteScanGetInsertTempTablePR)     \
+  F(IndCteScanTableInsert, indCteScanTableInsert)                       \
+  F(IndCteScanFree, indCteScanFree)                                     \
                                                                         \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \

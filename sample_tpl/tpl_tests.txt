@@ -69,6 +69,8 @@ agg.tpl,true,10
 #agg-lambda.tpl,true,10             TODO(Kyle): Requires lambdas
 #agg-vec.tpl,true,10                doesn't work on prashanth's branch
 #agg-vec-filter.tpl,true,10         doesn't work on prashanth's branch
+cte_scan_temp_table_insert.tpl,true,11
+ind_cte_scan_temp_table_insert.tpl,true,20
 delete.tpl,true,0
 #deleter-2                          to port
 distinct-agg.tpl,true,45

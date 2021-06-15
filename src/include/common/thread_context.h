@@ -27,6 +27,11 @@ struct ThreadContext {
    * nullptr if not registered with MetricsManager
    */
   ResourceTracker resource_tracker_;
+
+  /**
+   * To account for nested pipelines
+   */
+  uint32_t nesting_depth_ = 0;
 };
 
 /**

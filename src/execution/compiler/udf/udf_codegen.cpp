@@ -397,7 +397,8 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   const std::string dummy_query = "";
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
-      common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>{&dummy_query}, lambda_expr, codegen_->GetAstContext());
+      common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>{&dummy_query},
+      lambda_expr, codegen_->GetAstContext());
 
   auto decls = exec_query->GetDecls();
   aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
@@ -554,8 +555,8 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   const std::string dummy_query = "";
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
-      common::ManagedPointer<planner::PlanMetaData>{},
-      common::ManagedPointer<const std::string>(&dummy_query), lambda_expr, codegen_->GetAstContext());
+      common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>(&dummy_query),
+      lambda_expr, codegen_->GetAstContext());
 
   auto decls = exec_query->GetDecls();
   aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());

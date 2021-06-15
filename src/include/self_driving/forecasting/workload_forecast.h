@@ -2,15 +2,20 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "parser/expression/constant_value_expression.h"
 #include "self_driving/forecasting/workload_forecast_segment.h"
 
 namespace noisepage::selfdriving {
+namespace pilot {
+class PilotUtil;
+}
 
 /**
  * A workload forecast prediction is described as:
@@ -28,7 +33,7 @@ using WorkloadForecastPrediction = std::unordered_map<uint64_t, std::unordered_m
 class WorkloadMetadata {
  public:
   /** Map from query id to database id */
-  std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
+  std::unordered_map<execution::query_id_t, catalog::db_oid_t> query_id_to_dboid_;
 
   /** Map from query id to query text */
   std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
@@ -74,16 +79,26 @@ class WorkloadForecast {
    * Get number of forecasted segments
    * @return number of forecasted segments
    */
-  uint64_t GetNumberOfSegments() { return num_forecast_segment_; }
+  uint64_t GetNumberOfSegments() const { return num_forecast_segment_; }
+
+  /** @brief Get the set of unique db oids that the forecasted workload has queries with */
+  std::set<catalog::db_oid_t> GetDBOidSet() {
+    std::set<catalog::db_oid_t> db_oid_set;
+    for (auto &[qid, db_oid] : workload_metadata_.query_id_to_dboid_) db_oid_set.insert(db_oid);
+    return db_oid_set;
+  }
 
  private:
-  friend class PilotUtil;
-  const WorkloadForecastSegment &GetSegmentByIndex(uint64_t segment_index) {
+  friend class pilot::PilotUtil;
+
+  uint64_t GetForecastInterval() const { return forecast_interval_; }
+
+  const WorkloadForecastSegment &GetSegmentByIndex(uint64_t segment_index) const {
     NOISEPAGE_ASSERT(segment_index < num_forecast_segment_, "invalid index");
     return forecast_segments_[segment_index];
   }
 
-  std::string GetQuerytextByQid(execution::query_id_t qid) {
+  std::string GetQuerytextByQid(execution::query_id_t qid) const {
     NOISEPAGE_ASSERT(workload_metadata_.query_id_to_text_.find(qid) != workload_metadata_.query_id_to_text_.end(),
                      "invalid qid");
     return workload_metadata_.query_id_to_text_.at(qid);
@@ -102,11 +117,13 @@ class WorkloadForecast {
     return &(workload_metadata_.query_id_to_param_types_.at(qid));
   }
 
-  uint64_t GetDboidByQid(execution::query_id_t qid) {
+  catalog::db_oid_t GetDboidByQid(execution::query_id_t qid) const {
     NOISEPAGE_ASSERT(workload_metadata_.query_id_to_dboid_.find(qid) != workload_metadata_.query_id_to_dboid_.end(),
                      "invalid qid");
     return workload_metadata_.query_id_to_dboid_.at(qid);
   }
+
+  const WorkloadMetadata &GetWorkloadMetadata() const { return workload_metadata_; }
 
   /**
    * Initializes segments from inference results

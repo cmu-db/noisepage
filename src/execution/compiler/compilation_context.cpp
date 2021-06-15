@@ -24,9 +24,12 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/analyze_translator.h"
 #include "execution/compiler/operator/csv_scan_translator.h"
+#include "execution/compiler/operator/cte_scan_leader_translator.h"
+#include "execution/compiler/operator/cte_scan_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/ind_cte_scan_leader_translator.h"
 #include "execution/compiler/operator/index_create_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
@@ -166,7 +169,6 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
     if (pipeline->IsPrepared()) {
       continue;
     }
-
     // Extract and record the translators.
     // Pipelines require obtaining feature IDs, but features don't exist until translators are extracted.
     // Therefore translator extraction must happen before pipelines are generated.
@@ -195,19 +197,16 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
   main_builder.AddTeardownFn(teardown);
 
   // Compile and finish.
-  fragments.emplace_back(main_builder.Compile());
+  fragments.emplace_back(main_builder.Compile(query_->GetExecutionSettings().GetCompilerSettings()));
   query_->Setup(std::move(fragments), query_state_.GetSize(), codegen_.ReleasePipelineOperatingUnits());
 }
 
 // static
-std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::AbstractPlanNode &plan,
-                                                             const exec::ExecutionSettings &exec_settings,
-                                                             catalog::CatalogAccessor *accessor, CompilationMode mode,
-                                                             std::optional<execution::query_id_t> override_qid,
-                                                             common::ManagedPointer<planner::PlanMetaData> plan_meta_data,
-                                                             common::ManagedPointer<const std::string> query_text,
-                                                             ast::LambdaExpr *output_callback,
-                                                             common::ManagedPointer<ast::Context> context) {
+std::unique_ptr<ExecutableQuery> CompilationContext::Compile(
+    const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
+    catalog::CatalogAccessor *accessor, CompilationMode mode, std::optional<execution::query_id_t> override_qid,
+    common::ManagedPointer<planner::PlanMetaData> plan_meta_data, common::ManagedPointer<const std::string> query_text,
+    ast::LambdaExpr *output_callback, common::ManagedPointer<ast::Context> context) {
   // The query for which we're generating code.
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings, context.Get());
   if (override_qid.has_value()) {
@@ -237,7 +236,6 @@ void CompilationContext::PrepareOut(const planner::AbstractPlanNode &plan, Pipel
 
 void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline *pipeline) {
   NOISEPAGE_ASSERT(ops_.find(&plan) == ops_.end(), "plan already prepared");
-
   std::unique_ptr<OperatorTranslator> translator;
   switch (plan.GetPlanNodeType()) {
     case planner::PlanNodeType::AGGREGATE: {
@@ -310,6 +308,20 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::INDEXNLJOIN: {
       const auto &index_join = dynamic_cast<const planner::IndexJoinPlanNode &>(plan);
       translator = std::make_unique<IndexJoinTranslator>(index_join, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::CTESCANLEADER: {
+      const auto &cte_scan_leader = dynamic_cast<const planner::CteScanPlanNode &>(plan);
+      if (cte_scan_leader.GetIsInductive()) {
+        translator = std::make_unique<IndCteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
+      } else {
+        translator = std::make_unique<CteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
+      }
+      break;
+    }
+    case planner::PlanNodeType::CTESCAN: {
+      const auto &cte_scan = dynamic_cast<const planner::CteScanPlanNode &>(plan);
+      translator = std::make_unique<CteScanTranslator>(cte_scan, this, pipeline);
       break;
     }
     case planner::PlanNodeType::CREATE_INDEX: {
