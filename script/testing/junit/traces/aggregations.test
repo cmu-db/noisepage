@@ -485,4 +485,3 @@ John
 
 statement ok
 DROP TABLE studentTable
-

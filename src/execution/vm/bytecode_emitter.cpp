@@ -291,6 +291,11 @@ void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalV
   EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, num_oids);
 }
 
+void BytecodeEmitter::EmitTempTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids,
+                                            uint32_t num_oids) {
+  EmitAll(bytecode, iter, exec_ctx, col_oids, num_oids);
+}
+
 void BytecodeEmitter::EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids,
                                             LocalVar query_state, LocalVar exec_ctx, FunctionId scan_fn) {
   EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn);
@@ -351,6 +356,17 @@ void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, Lo
                                             LocalVar table_oid, LocalVar index_oid, LocalVar col_oids,
                                             uint32_t num_oids) {
   EmitAll(bytecode, iter, exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
+}
+
+void BytecodeEmitter::EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid,
+                                              LocalVar col_oids, LocalVar col_types, uint32_t num_oids) {
+  EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, col_types, num_oids);
+}
+
+void BytecodeEmitter::EmitIndCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx,
+                                                 LocalVar table_oid, LocalVar col_oids, LocalVar col_types,
+                                                 uint32_t num_oids, bool is_recursive) {
+  EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, col_types, num_oids, is_recursive);
 }
 
 void BytecodeEmitter::EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name,

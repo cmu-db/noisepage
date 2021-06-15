@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -69,12 +70,24 @@ class InsertStatement : public SQLStatement {
     return common::ManagedPointer(insert_values_);
   }
 
+  /** @return a collection of the temporary tables available to the INSERT */
+  std::vector<common::ManagedPointer<TableRef>> GetInsertWith() const {
+    // TODO(Kyle): This collection is currently NEVER populated
+    std::vector<common::ManagedPointer<TableRef>> table_refs{};
+    table_refs.reserve(with_tables_.size());
+    std::transform(with_tables_.cbegin(), with_tables_.cend(), std::back_inserter(table_refs),
+                   [](const auto &ref) { return common::ManagedPointer<TableRef>(ref); });
+    return table_refs;
+  }
+
  private:
   const InsertType type_;
   const std::unique_ptr<std::vector<std::string>> columns_;
   const std::unique_ptr<TableRef> table_ref_;
   const std::unique_ptr<SelectStatement> select_;
   const std::unique_ptr<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>> insert_values_;
+
+  std::vector<std::unique_ptr<TableRef>> with_tables_{};
 };
 
 }  // namespace parser

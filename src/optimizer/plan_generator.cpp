@@ -28,6 +28,7 @@
 #include "planner/plannodes/create_trigger_plan_node.h"
 #include "planner/plannodes/create_view_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
@@ -307,8 +308,9 @@ void PlanGenerator::Visit(const QueryDerivedScan *op) {
     // We can assert this based on InputColumnDeriver::Visit(const QueryDerivedScan *op)
     auto colve = output.CastManagedPointerTo<parser::ColumnValueExpression>();
 
-    // Get offset into child_expr_ma
-    auto expr = alias_expr_map.at(colve->GetColumnName());
+    // Get offset into child_expr_map
+    auto expr = alias_expr_map.at(colve->GetAlias().IsSerialNoValid() ? colve->GetAlias()
+                                                                      : parser::AliasType(colve->GetColumnName()));
     auto offset = child_expr_map.at(expr);
 
     auto dve = std::make_unique<parser::DerivedValueExpression>(colve->GetReturnValueType(), 0, offset);
@@ -1143,6 +1145,99 @@ void PlanGenerator::Visit(const Analyze *analyze) {
                      .AddChild(std::move(children_plans_[0]))
                      .SetOutputSchema(std::make_unique<planner::OutputSchema>())
                      .Build();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// CTE
+///////////////////////////////////////////////////////////////////////////////
+
+void PlanGenerator::Visit(const CteScan *cte_scan) {
+  // CteScan has the same output schema as the child plan!
+  // children_plans_ can have up to 2 children, the cases are as follows:
+  // 0 children: this node is a reader, and does not populate the temp table (not a leader)
+  // 1 child: this node is a leader (writer) for a simple CTE; its child is the query plan
+  // to populate it
+  // 2 children: this node is a leader for an inductive CTE; its children are plans for the
+  // base and inductive cases respectively
+  NOISEPAGE_ASSERT(children_plans_.size() <= 2, "CteScan needs at most 2 child plans");
+  auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(cte_scan->GetScanPredicate()).release();
+  RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
+  if (!children_plans_.empty()) {
+    output_plan_ = std::move(children_plans_[0]);
+    // CteScan OutputSchema does not add/drop columns. All output columns of CteScan
+    // are the same as the output columns of the child plan. As such, the OutputSchema
+    // of a CteScan has the same columns vector as the child OutputSchema, with only
+    // DerivedValueExpressions
+    auto idx = 0;
+    auto &child_plan_cols = output_plan_->GetOutputSchema()->GetColumns();
+    std::vector<planner::OutputSchema::Column> child_columns;
+    // A copy of child_columns maintained to create an identical output schema to be
+    // passed on to a child of the current CTE node (the recursive read in recursive/
+    // iterative CTEs)
+    std::vector<planner::OutputSchema::Column> inner_columns;
+    for (auto &col : child_plan_cols) {
+      auto dve = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
+      // Made a second version to avoid ownership issues
+      auto dve_copy = std::make_unique<parser::DerivedValueExpression>(col.GetType(), 0, idx);
+      child_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve));
+      inner_columns.emplace_back(col.GetName(), col.GetType(), std::move(dve_copy));
+      idx++;
+    }
+
+    std::vector<planner::OutputSchema::Column> columns;
+    for (auto &output_expr : output_cols_) {
+      auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+
+      // output schema of a plan node is literally the columns of the table.
+      // there is no such thing as an intermediate column here!
+      columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType(), tve->Copy());
+    }
+
+    if (children_plans_.size() == 2) {
+      output_plan_ = planner::CteScanPlanNode::Builder()
+                         .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                         .SetPlanNodeId(GetNextPlanNodeID())
+                         .SetTableSchema(cte_scan->GetTableSchema())
+                         .SetTableOid(cte_scan->GetTableOid())
+                         .SetCTEType(cte_scan->GetCTEType())
+                         .AddChild(std::move(output_plan_))
+                         .AddChild(std::move(children_plans_[1]))
+                         .SetCTETableName(std::string(cte_scan->GetTableName()))
+                         .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
+                         .Build();
+    } else {
+      output_plan_ = planner::CteScanPlanNode::Builder()
+                         .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                         .SetPlanNodeId(GetNextPlanNodeID())
+                         .SetTableSchema(cte_scan->GetTableSchema())
+                         .SetTableOid(cte_scan->GetTableOid())
+                         .SetCTEType(cte_scan->GetCTEType())
+                         .AddChild(std::move(output_plan_))
+                         .SetCTETableName(std::string(cte_scan->GetTableName()))
+                         .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
+                         .Build();
+    }
+  } else {
+    // make schema from output columns
+    std::vector<planner::OutputSchema::Column> columns;
+    for (auto &output_expr : output_cols_) {
+      auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
+
+      // output schema of a plan node is literally the columns of the table.
+      // there is no such thing as an intermediate column here!
+      columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType(), tve->Copy());
+    }
+
+    output_plan_ = planner::CteScanPlanNode::Builder()
+                       .SetOutputSchema(std::make_unique<planner::OutputSchema>(std::move(columns)))
+                       .SetPlanNodeId(GetNextPlanNodeID())
+                       .SetTableSchema(cte_scan->GetTableSchema())
+                       .SetTableOid(cte_scan->GetTableOid())
+                       .SetCTEType(cte_scan->GetCTEType())
+                       .SetCTETableName(std::string(cte_scan->GetTableName()))
+                       .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
+                       .Build();
+  }
 }
 
 }  // namespace noisepage::optimizer

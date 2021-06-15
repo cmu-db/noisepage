@@ -121,7 +121,7 @@ BaseOperatorNodeContents *LogicalQueryDerivedGet::Copy() const { return new Logi
 
 Operator LogicalQueryDerivedGet::Make(
     std::string table_alias,
-    std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
+    std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new LogicalQueryDerivedGet();
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
@@ -139,7 +139,7 @@ common::hash_t LogicalQueryDerivedGet::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   for (auto &iter : alias_to_expr_map_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.first));
+    hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(iter.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));
   }
   return hash;
@@ -1229,6 +1229,78 @@ bool LogicalAnalyze::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalUnion
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalUnion::Copy() const { return new LogicalUnion(*this); }
+
+Operator LogicalUnion::Make(bool is_all, common::ManagedPointer<parser::SelectStatement> left_expr,
+                            common::ManagedPointer<parser::SelectStatement> right_expr) {
+  auto *op = new LogicalUnion();
+  op->left_expr_ = left_expr;
+  op->right_expr_ = right_expr;
+  op->is_all_ = is_all;
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
+}
+
+bool LogicalUnion::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetOpType() != OpType::LOGICALUNION) return false;
+  const LogicalUnion &node = *dynamic_cast<const LogicalUnion *>(&r);
+  return node.right_expr_ == right_expr_ && node.left_expr_ == left_expr_ && node.is_all_ == is_all_;
+}
+
+common::hash_t LogicalUnion::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, left_expr_->Hash());
+  hash = common::HashUtil::CombineHashes(hash, right_expr_->Hash());
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_all_));
+  return hash;
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalCteScan
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalCteScan::Copy() const { return new LogicalCteScan(*this); }
+
+Operator LogicalCteScan::Make() {
+  auto *op = new LogicalCteScan();
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
+}
+
+Operator LogicalCteScan::Make(
+    std::string table_alias, std::string table_name, catalog::table_oid_t table_oid, catalog::Schema table_schema,
+    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
+    parser::CteType cte_type, std::vector<AnnotatedExpression> &&scan_predicate) {
+  auto *op = new LogicalCteScan();
+  op->table_schema_ = std::move(table_schema);
+  op->table_alias_ = std::move(table_alias);
+  op->table_name_ = std::move(table_name);
+  op->table_oid_ = table_oid;
+  op->child_expressions_ = std::move(child_expressions);
+  op->cte_type_ = cte_type;
+  op->scan_predicate_ = std::move(scan_predicate);
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
+}
+
+bool LogicalCteScan::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetOpType() != OpType::LOGICALCTESCAN) return false;
+  const LogicalCteScan &node = *dynamic_cast<const LogicalCteScan *>(&r);
+  bool ret = (table_alias_ == node.table_alias_ && cte_type_ == node.cte_type_);
+  if (scan_predicate_.size() != node.scan_predicate_.size()) return false;
+  for (size_t i = 0; i < scan_predicate_.size(); i++) {
+    if (scan_predicate_[i].GetExpr() != node.scan_predicate_[i].GetExpr()) return false;
+  }
+  return ret;
+}
+
+common::hash_t LogicalCteScan::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, static_cast<uint32_t>(cte_type_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashInRange(hash, scan_predicate_.begin(), scan_predicate_.end());
+  return hash;
+}
+
+//===--------------------------------------------------------------------===//
 template <>
 const char *OperatorNodeContents<LeafOperator>::name = "LeafOperator";
 template <>
@@ -1299,6 +1371,10 @@ template <>
 const char *OperatorNodeContents<LogicalDropView>::name = "LogicalDropView";
 template <>
 const char *OperatorNodeContents<LogicalAnalyze>::name = "LogicalAnalyze";
+template <>
+const char *OperatorNodeContents<LogicalCteScan>::name = "LogicalCteScan";
+template <>
+const char *OperatorNodeContents<LogicalUnion>::name = "LogicalUnion";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1371,5 +1447,9 @@ template <>
 OpType OperatorNodeContents<LogicalDropView>::type = OpType::LOGICALDROPVIEW;
 template <>
 OpType OperatorNodeContents<LogicalAnalyze>::type = OpType::LOGICALANALYZE;
+template <>
+OpType OperatorNodeContents<LogicalCteScan>::type = OpType::LOGICALCTESCAN;
+template <>
+OpType OperatorNodeContents<LogicalUnion>::type = OpType::LOGICALUNION;
 
 }  // namespace noisepage::optimizer

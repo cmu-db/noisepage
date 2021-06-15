@@ -39,6 +39,31 @@ constexpr trigger_oid_t INVALID_TRIGGER_OID = trigger_oid_t(NULL_OID);
 constexpr type_oid_t INVALID_TYPE_OID = type_oid_t(NULL_OID);
 constexpr view_oid_t INVALID_VIEW_OID = view_oid_t(NULL_OID);
 
+constexpr uint32_t TEMP_OID_MASK = 1 << 31;
+
+/**
+ * Creates a temporary strong typedef'd value with the given underlying value
+ * @tparam strongtype the strongtype we want to create
+ * @param value the underlying value (this gets the temp oid mask applied to it underneath)
+ * @return a strong type'd value representing a temporary id of the given value, IsTempOid on this returned value
+ * should return true
+ */
+template <typename strongtype>
+strongtype MakeTempOid(common::get_strongtype_underlying_t<strongtype> value) {
+  return strongtype(value | catalog::TEMP_OID_MASK);
+}
+
+/**
+ * Checks whether a value represents the a tempoerary id
+ * @tparam strongtype the strongtype whose value we are checking
+ * @param value the id being checked for whether it is temporary
+ * @return true if it is a temporary oid (i.e. was outputted by MakeTempOid)
+ */
+template <typename strongtype>
+bool IsTempOid(strongtype value) {
+  return (value.UnderlyingValue() & catalog::TEMP_OID_MASK) > 0;
+}
+
 constexpr char DEFAULT_DATABASE[] = "noisepage";
 
 }  // namespace noisepage::catalog

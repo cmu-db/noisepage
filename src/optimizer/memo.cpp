@@ -22,6 +22,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
     return nullptr;
   }
 
+  gexpr->SetGroupID(target_group);
   // Lookup in hash table
   auto it = group_expressions_.find(gexpr);
   if (it != group_expressions_.end()) {
@@ -59,6 +60,10 @@ group_id_t Memo::AddNewGroup(GroupExpression *gexpr) {
   } else if (op_type == OpType::LOGICALQUERYDERIVEDGET) {
     const auto query_get = gexpr->Contents()->GetContentsAs<LogicalQueryDerivedGet>();
     table_aliases.insert(query_get->GetTableAlias());
+  } else if (op_type == OpType::LOGICALCTESCAN) {
+    // For CTE group, the table alias can get directly from logical CTE Scan
+    const auto logical_cte_scan = gexpr->Contents()->GetContentsAs<LogicalCteScan>();
+    table_aliases.insert(logical_cte_scan->GetTableAlias());
   } else {
     // For other groups, need to aggregate the table alias from children
     for (auto child_group_id : gexpr->GetChildGroupIDs()) {

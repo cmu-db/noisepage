@@ -601,6 +601,17 @@ class CodeGen {
                                                 ast::Identifier worker_name);
 
   /**
+   * Call \@tempTableIterInitBind(&tvi, execCtx, oids, &cte_scan_iterator)
+   * @param tvi The identifier of table vector iterator
+   * @param cte_scan_iterator_ptr The identifier of cte scan iterator
+   * @param col_oids The identifier of the array of column oids to read.
+   * @param exec_ctx_expr The pointer to the execution context variable
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr, ast::Identifier col_oids,
+                               ast::Expr *exec_ctx_expr);
+
+  /**
    * Call \@abortTxn(exec_ctx).
    * @param exec_ctx The execution context that we are running in.
    * @return The call.
@@ -1405,6 +1416,31 @@ class CodeGen {
    */
   ast::Expr *StorageInterfaceInit(ast::Expr *storage_interface_ptr, ast::Expr *exec_ctx, uint32_t table_oid,
                                   ast::Identifier col_oids, bool need_indexes);
+
+  /**
+   * Call \@CteScanInit(csi, exec_ctx_var, table_oid, col_ids, col_types)
+   * @param csi The cte scan iterator to initialize
+   * @param table_oid temp oid of the cte table
+   * @param col_ids temp column oids of all columns in this cte table
+   * @param col_types The identifier of the array of column types to access.
+   * @param exec_ctx_var the execution context variable pointer
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *CteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t table_oid, ast::Identifier col_ids,
+                                 ast::Identifier col_types, ast::Expr *exec_ctx_var);
+
+  /**
+   * Call \@IndCteScanInit(csi, exec_ctx_var, table_oid, col_ids, col_types, is_recursive)
+   * @param csi The inductive cte scan iterator to initialize
+   * @param table_oid temp oid of the cte table
+   * @param col_ids temp column oids of all columns in this cte table
+   * @param col_types The identifier of the array of column types to access.
+   * @param is_recursive whether or not this represents a recursive cte scan
+   * @param exec_ctx_var the execution context variable pointer
+   * @return The expression corresponding to the builtin call.
+   */
+  ast::Expr *IndCteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t table_oid, ast::Identifier col_ids,
+                                    ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var);
 
   // ---------------------------------------------------------------------------
   //
