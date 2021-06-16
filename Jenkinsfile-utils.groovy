@@ -266,6 +266,13 @@ void stagePilot() {
 
     selfDrivingTrainModels()
 
+    sh script :'''
+    cd build
+    export BUILD_ABS_PATH=`pwd`
+    cd bin
+    PYTHONPATH=../.. timeout 60m python3 -m script.testing.self_driving.pilot_generate_data
+    ''', label: 'Generate data for pilot.'
+
     // Recompile the noisepage DBMS in Debug mode with code coverage. Note that previously set vars must be unset.
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
         '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_USE_JEMALLOC=OFF'
@@ -275,8 +282,8 @@ void stagePilot() {
     cd build
     export BUILD_ABS_PATH=`pwd`
     cd bin
-    PYTHONPATH=../.. timeout 60m python3 -m script.testing.self_driving.jenkins
-    ''', label: 'Test the pilot planning.'
+    PYTHONPATH=../.. timeout 60m python3 -m script.testing.self_driving.pilot_run
+    ''', label: 'Run pilot.'
 
     sh script :'''
     cd build
