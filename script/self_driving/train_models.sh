@@ -140,9 +140,7 @@ fi
   > noisepage.output 2>&1 \
   ; echo $? > ./noisepage.exitcode) &
 
-# Unfortunately, the model server connection happens AFTER the NoisePage startup message.
-# If you don't wait for the ModelServer connection, it appears that training silently fails.
-(tail -f noisepage.output &) | grep -q "ModelServer connected"
+(tail -f noisepage.output &) | grep -q 'NoisePage'
 
 # Parse the NoisePage PID.
 NOISEPAGE_PID=$(grep 'NoisePage' noisepage.output | grep -oP '(?<=PID=).*(?=\])')
