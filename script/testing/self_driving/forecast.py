@@ -119,13 +119,18 @@ def fn_enable_pilot_and_wait_for_index(oltpbench: TestOLTPBench, test_case: Test
     conn.set_session(autocommit=True)
     index_created = False
     with conn.cursor() as cursor:
-        cursor.execute("SET pilot_planning=true")
-        while not index_created:
-            cursor.execute(f"SELECT * from noisepage_applied_actions where action_text like 'create index automated_%'")
+        sql = "SET pilot_planning=true"
+        LOG.info(f'Executing SQL on [host={db_server.db_host},port={db_server.db_port},user={constants.DEFAULT_DB_USER}]: {sql}')
+        cursor.execute(sql)
+    while not index_created:
+        sql = f"SELECT * from noisepage_applied_actions where action_text like 'create index automated_%'"
+        LOG.info(f'Executing SQL on [host={db_server.db_host},port={db_server.db_port},user={constants.DEFAULT_DB_USER}]: {sql}')
+        with conn.cursor() as cursor:
+            cursor.execute(sql)
             rows = cursor.fetchall()
             if len(rows) == 0:
-                LOG.info(f"Waiting for {sleep_s} seconds.")
                 sleep_s = 30
+                LOG.info(f"Waiting for {sleep_s} seconds.")
                 time.sleep(sleep_s)
             else:
                 LOG.info(f"Found result: {rows}")
