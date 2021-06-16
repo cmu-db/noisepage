@@ -227,8 +227,10 @@ void stageModeling() {
     ])
     buildNoisePageTarget("execution_runners")
 
-    selfDrivingGenerateTrainingDataForecast()
-    selfDrivingTrainModels()
+    sh script :'''
+    cd build/bin
+    ../../script/self_driving/train_models.sh --train-ou --train-interference --train-forecast
+    ''', label: 'Train OU, interference, and forecast models.'
 
     // Recompile the noisepage DBMS in Debug mode with code coverage. Note that previously set vars must be unset.
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
@@ -264,7 +266,10 @@ void stagePilot() {
     ])
     buildNoisePageTarget("execution_runners")
 
-    selfDrivingTrainModels()
+    sh script :'''
+    cd build/bin
+    ../../script/self_driving/train_models.sh --train-ou --train-interference
+    ''', label: 'Train OU and interference models.'
 
     sh script :'''
     cd build
@@ -430,14 +435,6 @@ void selfDrivingGenerateTrainingDataForecast() {
     cd build
     PYTHONPATH=.. python3 -m script.self_driving.forecasting.forecaster_standalone --generate_data --pattern_iter=3
     ''', label: 'Generate training data for forecasting model.'
-}
-
-/** Train the OU and interference models. The noisepage and execution_runners targets must have been built! */
-void selfDrivingTrainModels() {
-    sh script :'''
-    cd build/bin
-    ../../script/self_driving/train_models.sh
-    ''', label: 'Train OU and interference models.'
 }
 
 /** Collect and process coverage information from the build directory; upload coverage to Codecov. */
