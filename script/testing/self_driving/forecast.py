@@ -108,10 +108,10 @@ def fn_enable_pilot(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> N
 
 def fn_enable_pilot_and_wait_for_index(oltpbench: TestOLTPBench, test_case: TestCaseOLTPBench) -> None:
     """
-    TODO(WAN): This is a hack around the buggy interaction between the Pilot and the network layer requiring
-     everything to happen on the same connection. Specifically, you cannot form new psql connections while the
-     pilot is running. Therefore, once you run SET pilot_planning=true, you cannot use db_server.execute()
-     any more -- you need to keep the same connection around and use that instead.
+    TODO(WAN): The DDL lock is held by the pilot while creating indexes etc. However, this prevents new connections
+     from being established since new connections will want to create a temporary namespace. Therefore, you cannot
+     form new psql connections while the pilot is running, and the same old connection must be used.
+     This prevents usage of the db_server.execute() abstraction.
     """
 
     db_server = oltpbench.db_instance
