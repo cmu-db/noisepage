@@ -191,8 +191,8 @@ TEST_F(ModelServerTest, ForecastModelTest) {
   uint64_t horizon_length = 30;
   const char *env = ::getenv(BUILD_ABS_PATH);
   std::string project_build_path = (env != nullptr ? env : ".");
-  std::string save_path = "model.pickle";
-  std::string input_path = project_build_path + "/query_trace.csv";
+  std::string save_path = "model_forecast.pickle";
+  std::string input_path = project_build_path + "/bin/query_trace.csv";
 
   ModelServerFuture<std::string> future;
   ms_manager->TrainForecastModel(methods, input_path, save_path, interval, seq_length, horizon_length,
