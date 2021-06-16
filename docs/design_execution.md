@@ -134,7 +134,49 @@ We will now examine the internals of each of the available execution modes.
 
 **Interpretation (`ExecutionMode::Interpret)`**
 
-TODO: Someone with more experience with the VM should address this section. Otherwise, I will when I get the chance to examine the code more closely.
+As in compiled (`ExecutionMode::Compiled`) and adaptive (`ExecutionMode::Adaptive`) execution modes, the unified entry point to query interpretation on the virtual machine is the `Module::GetFunction()` function. In the case of interpreted execution, the function object returned by this call wraps an invocation of `VM::InvokeFunction()` which is the entry point to execution of the query on the virtual machine.
+
+The implementation of the NoisePage virtual machine is nicely self-contained in the `vm.h` and `vm.cpp` files. The VM implementation in `vm.cpp` may appear daunting at first (the file is nearly 3,000 lines long as of this writing, consisting almost entirely of preprocessor macros) but the actual mechanics of how the VM interprets a query are relatively straightforward.
+
+The `VM::Interpret()` function implements the core interpreter loop of the virtual machine. A comment included near the start of this function provides a nice overview of the VM:
+
+```C++
+/**
+ * Below this comment begins the primary section of TPL's register-based
+ * virtual machine (VM) dispatch area. The VM uses indirect threaded
+ * interpretation; each bytecode handler's label is statically generated and
+ * stored in @ref kDispatchTable at server compile time. Bytecode handler
+ * logic is written as a case using the CASE_OP macro. Handlers can read from
+ * and write to registers using the local execution frame's register file
+ * (i.e., through @ref Frame::LocalAt()).
+ *
+ * Upon entry, the instruction pointer (IP) points to the first bytecode of
+ * function that is running. The READ_* macros can be used to directly read
+ * values from the bytecode stream. The READ_* macros read values from the
+ * bytecode stream and advance the IP whereas the PEEK_* macros do only the
+ * former, leaving the IP unmodified.
+ * 
+ * ...
+ */
+```
+
+As this comment explains, the VM is implemented as an indirect-threaded interpreter loop. This is a standard design for interpreters and more information about this design and how it compares to potential alternatives can be found in numerous external sources.
+
+One aspect of the NoisePage virtual machine that may be confusing at first is the decoupling of the code in the virtual machine and the actual bytecode handler implementations themselves. The comment above continues with the following important notice:
+
+```C++
+/**
+ * IMPORTANT:
+ * ---------
+ * Bytecode handler code here should only be simple register/IP manipulation
+ * (i.e., reading from and writing to registers). Actual full-blown bytecode
+ * logic must be implemented externally and invoked from stubs here. This is a
+ * strict requirement necessary because it makes code generation to LLVM much
+ * simpler.
+ */
+```
+
+The `OP()` macros in the VM itself (i.e. `vm.cpp`) are merely stubs that perform very simple operations and dispatch all of the actual logic required to implement a bytecode instruction to a separate bytecode handler function defined elsewhere. These bytecode handlers are defined in the `bytecode_handlers.h` and `bytecode_handlers.cpp` source files.
 
 **Compilation (`ExecutionMode::Compiled`)**
 
