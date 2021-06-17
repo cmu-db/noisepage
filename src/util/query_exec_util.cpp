@@ -288,7 +288,7 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
   std::vector<common::ManagedPointer<const execution::sql::Val>> value_params{};
   value_params.reserve(params->size());
   std::transform(params->cbegin(), params->cend(), std::back_inserter(value_params),
-                 [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.PeekPtr()}; });
+                 [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.SqlValue()}; });
   exec_ctx->SetParams(common::ManagedPointer(&value_params));
 
   NOISEPAGE_ASSERT(!txn->MustAbort(), "Transaction should not be in must-abort state prior to executing");

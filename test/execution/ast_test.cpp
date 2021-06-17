@@ -64,6 +64,11 @@ TEST_F(AstTest, HierarchyTest) {
         factory.NewCallExpr(factory.NewNilLiteral(EmptyPos()), util::RegionVector<Expr *>(Region())),
         factory.NewFunctionLitExpr(
             factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr),
+        factory.NewLambdaExpr(
+            EmptyPos(),
+            factory.NewFunctionLitExpr(
+                factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr),
+            util::RegionVector<Expr *>(Region())),
         factory.NewNilLiteral(EmptyPos()),
         factory.NewUnaryOpExpr(EmptyPos(), parsing::Token::Type::MINUS, nullptr),
         factory.NewIdentifierExpr(EmptyPos(), Identifier()),
@@ -96,6 +101,7 @@ TEST_F(AstTest, HierarchyTest) {
         factory.NewDeclStmt(factory.NewVariableDecl(EmptyPos(), Identifier(), nullptr, nullptr)),
         factory.NewExpressionStmt(factory.NewNilLiteral(EmptyPos())),
         factory.NewForStmt(EmptyPos(), nullptr, nullptr, nullptr, nullptr),
+        factory.NewBreakStmt(EmptyPos()),
         factory.NewIfStmt(EmptyPos(), nullptr, nullptr, nullptr),
         factory.NewReturnStmt(EmptyPos(), nullptr),
     };

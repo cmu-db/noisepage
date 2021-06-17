@@ -714,10 +714,10 @@ class BreakStmt : public Stmt {
   BreakStmt(const SourcePosition &pos) : Stmt(Kind::BreakStmt, pos) {}
 
   /**
-   * Is the given node a return statement?
+   * Is the given node a break statement?
    * Needed as part of the custom AST RTTI infrastructure.
    * @param node The node to check.
-   * @return `true` if the node is a return statement, `false` otherwise.
+   * @return `true` if the node is a break statement, `false` otherwise.
    */
   static bool classof(const AstNode *node) { return node->GetKind() == Kind::BreakStmt; }
 };
@@ -1129,6 +1129,15 @@ class LambdaExpr : public Expr {
    * @return The identifiers for the captures of this lambda expression.
    */
   const util::RegionVector<ast::Expr *> &GetCaptureIdents() const { return capture_idents_; }
+
+  /**
+   * Is the given node a lambda expression? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return `true` if the node is a lambda expression; `false` otherwise.
+   */
+  static bool classof(const AstNode *node) {  // NOLINT
+    return node->GetKind() == Kind::LambdaExpr;
+  }
 
  private:
   friend class sema::Sema;
@@ -1930,6 +1939,11 @@ class LambdaTypeRepr : public Expr {
    */
   Expr *FunctionType() const { return fn_type_; }
 
+  /**
+   * Is the given node a lambda type representation? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return `true` if the node is a lambda type representation; `false` otherwise.
+   */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::LambdaTypeRepr;
   }

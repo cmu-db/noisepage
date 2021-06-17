@@ -70,6 +70,27 @@ class CompilerTest : public SqlBasedTest {
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 };
 
+/**
+ * Transform the parameters vector supplied to an executable query.
+ *
+ * TODO(Kyle): This function is a hack that results from a refactor of
+ * the API for executable queries. Eventually, when we actually get
+ * around to refactoring the compiler tests, we should remove this and
+ * just fix the API itself.
+ *
+ * @param parameters The input parameters collection
+ * @return A non-owning collection of parameters in the format
+ * expected by the ExecutableQuery API
+ */
+static std::unique_ptr<std::vector<common::ManagedPointer<const execution::sql::Val>>> TransformParameters(
+    const std::vector<parser::ConstantValueExpression> &parameters) {
+  auto params = std::make_unique<std::vector<common::ManagedPointer<const execution::sql::Val>>>();
+  params->reserve(parameters.size());
+  std::transform(parameters.cbegin(), parameters.cend(), std::back_inserter(*params),
+                 [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.SqlValue()}; });
+  return params;
+}
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, CompileFromSource) {
   util::Region region{"compiler_test"};
@@ -417,11 +438,13 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
   exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
-  std::vector<parser::ConstantValueExpression> params;
-  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(100));
-  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(500));
-  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(3));
-  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+
+  std::vector<parser::ConstantValueExpression> param_builder{};
+  param_builder.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(100));
+  param_builder.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(500));
+  param_builder.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(3));
+  auto params = TransformParameters(param_builder);
+  exec_ctx->SetParams(common::ManagedPointer(params));
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
@@ -3074,10 +3097,12 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
     auto exec_ctx = MakeExecCtx(&callback_fn, insert->GetOutputSchema().Get());
-    std::vector<parser::ConstantValueExpression> params;
-    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(495));
-    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(505));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+    std::vector<parser::ConstantValueExpression> params_builder{};
+    params_builder.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(495));
+    params_builder.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(505));
+    auto params = TransformParameters(params_builder);
+    exec_ctx->SetParams(common::ManagedPointer(params));
+
     auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3297,28 +3322,33 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
     auto exec_ctx = MakeExecCtx(&callback_fn, insert->GetOutputSchema().Get());
-    std::vector<parser::ConstantValueExpression> params;
+    std::vector<parser::ConstantValueExpression> params_builder{};
+
     // First parameter list
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
-    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
-    params.emplace_back(type::TypeId::DATE, sql::DateVal(date1.val_));
-    params.emplace_back(type::TypeId::REAL, sql::Real(real1));
-    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool1));
-    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint1));
-    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint1));
-    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int1));
-    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint1));
+    params_builder.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params_builder.emplace_back(type::TypeId::DATE, sql::DateVal(date1.val_));
+    params_builder.emplace_back(type::TypeId::REAL, sql::Real(real1));
+    params_builder.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool1));
+    params_builder.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint1));
+    params_builder.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint1));
+    params_builder.emplace_back(type::TypeId::INTEGER, sql::Integer(int1));
+    params_builder.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint1));
+
     // Second parameter list
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
-    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
-    params.emplace_back(type::TypeId::DATE, sql::DateVal(date2.val_));
-    params.emplace_back(type::TypeId::REAL, sql::Real(real2));
-    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool2));
-    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint2));
-    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint2));
-    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int2));
-    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint2));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+    params_builder.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
+    params_builder.emplace_back(type::TypeId::DATE, sql::DateVal(date2.val_));
+    params_builder.emplace_back(type::TypeId::REAL, sql::Real(real2));
+    params_builder.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool2));
+    params_builder.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint2));
+    params_builder.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint2));
+    params_builder.emplace_back(type::TypeId::INTEGER, sql::Integer(int2));
+    params_builder.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint2));
+
+    auto params = TransformParameters(params_builder);
+    exec_ctx->SetParams(common::ManagedPointer(params));
+
     auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3498,12 +3528,13 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
     auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
-    std::vector<parser::ConstantValueExpression> params;
+    std::vector<parser::ConstantValueExpression> params_builder{};
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
-    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
-    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+    params_builder.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params_builder.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
+    auto params = TransformParameters(params_builder);
+    exec_ctx->SetParams(common::ManagedPointer(params));
     auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);

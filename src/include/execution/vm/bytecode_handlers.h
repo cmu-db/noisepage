@@ -2172,12 +2172,19 @@ VM_OP_WARM void OpExtractYearFromDate(noisepage::execution::sql::Integer *result
   }
 }
 
+// ---------------------------------
+// Transaction Calls
+// ---------------------------------
+
 VM_OP_WARM void OpAbortTxn(noisepage::execution::exec::ExecutionContext *exec_ctx) {
   exec_ctx->GetTxn()->SetMustAbort();
   throw noisepage::ABORT_EXCEPTION("transaction aborted");
 }
 
-// Parameter calls
+// ---------------------------------
+// Parameter Calls
+// ---------------------------------
+
 // TODO(Kyle): this used to have a conditional check; was it safe to remove?
 #define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                     \
   VM_OP_HOT void OpGetParam##Name(noisepage::execution::sql::SqlType *ret,                                      \
@@ -2199,7 +2206,6 @@ GEN_SCALAR_PARAM_GET(TimestampVal, TimestampVal)
 GEN_SCALAR_PARAM_GET(String, StringVal)
 #undef GEN_SCALAR_PARAM_GET
 
-// Parameter calls
 #define GEN_SCALAR_PARAM_ADD(Name, SqlType, typeId)                                       \
   VM_OP_HOT void OpAddParam##Name(noisepage::execution::exec::ExecutionContext *exec_ctx, \
                                   noisepage::execution::sql::SqlType *ret) {              \

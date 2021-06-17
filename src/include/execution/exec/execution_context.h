@@ -140,21 +140,17 @@ class EXPORT ExecutionContext {
    */
   static uint32_t ComputeTupleSize(const planner::OutputSchema *schema);
 
-  /**
-   * @return The catalog accessor.
-   */
+  /** @return The catalog accessor. */
   catalog::CatalogAccessor *GetAccessor() { return accessor_.Get(); }
 
   /** @return The execution settings. */
   const exec::ExecutionSettings &GetExecutionSettings() const { return exec_settings_; }
 
-  /**
-   * Start the resource tracker
-   */
+  /** Start the resource tracker. */
   void StartResourceTracker(metrics::MetricsComponent component);
 
   /**
-   * End the resource tracker and record the metrics
+   * End the resource tracker and record the metrics.
    * @param name the string name get printed out with the time
    * @param len the length of the string name
    */
@@ -188,14 +184,10 @@ class EXPORT ExecutionContext {
    */
   void InitializeParallelOUFeatureVector(selfdriving::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
-  /**
-   * Initialize the UDF parameter stack.
-   */
+  /** Initialize the UDF parameter stack. */
   void StartParams() { udf_param_stack_.push_back({}); }
 
-  /**
-   * Remove an element from the UDF parameter stack.
-   */
+  /** Remove an element from the UDF parameter stack. */
   void PopParams() { udf_param_stack_.pop_back(); }
 
   /**
@@ -206,15 +198,13 @@ class EXPORT ExecutionContext {
     udf_param_stack_.back().push_back(val.CastManagedPointerTo<const sql::Val>());
   }
 
-  /**
-   * @return the db oid
-   */
+  /** @return The database OID. */
   catalog::db_oid_t DBOid() { return db_oid_; }
 
   /**
    * Set the mode for this execution.
-   * This only records the mode and serves the metrics collection purpose, which does not have any impact on the
-   * actual execution.
+   * This only records the mode and serves the metrics collection purpose,
+   * which does not have any impact on the actual execution.
    * @param mode the integer value of the execution mode to record
    */
   void SetExecutionMode(uint8_t mode) { execution_mode_ = mode; }
@@ -227,7 +217,7 @@ class EXPORT ExecutionContext {
 
   /**
    * Set the execution parameters.
-   * @param params The execution parameters.
+   * @param params The execution parameters
    */
   void SetParams(common::ManagedPointer<std::vector<common::ManagedPointer<const sql::Val>>> params) {
     params_ = params;
@@ -236,9 +226,11 @@ class EXPORT ExecutionContext {
   /**
    * Get the parameter at the specified index.
    * @param param_idx index of parameter to access
-   * @return immutable parameter at provided index
+   * @return An immutable point to the parameter at specified index
    */
   common::ManagedPointer<const sql::Val> GetParam(std::size_t param_idx) const {
+    // TODO(Kyle): This logic is confusing, why are we transparently
+    // switching between the "regular" parameters and the UDF parameters?
     return udf_param_stack_.empty() ? (*params_)[param_idx] : udf_param_stack_.back()[param_idx];
   }
 

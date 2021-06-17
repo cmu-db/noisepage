@@ -76,13 +76,22 @@ class ConstantValueExpression : public AbstractExpression {
    */
   ConstantValueExpression(const ConstantValueExpression &other);
 
+  /**
+   * Compute a hash for the expression.
+   * @return The hash value
+   */
   common::hash_t Hash() const override;
 
+  /**
+   * Equality comparison.
+   * @param other The other ConstantValueExpression instance
+   * @return `true` if the instances are equivalent, `false` otherwise
+   */
   bool operator==(const AbstractExpression &other) const override;
 
   /**
    * Copies this ConstantValueExpression
-   * @returns copy of this
+   * @returns A copy of `this`
    */
   std::unique_ptr<AbstractExpression> Copy() const override {
     return std::unique_ptr<AbstractExpression>{std::make_unique<ConstantValueExpression>(*this)};
@@ -111,56 +120,44 @@ class ConstantValueExpression : public AbstractExpression {
     return common::ManagedPointer<const execution::sql::Val>(&std::get<execution::sql::Val>(value_));
   }
 
-  /**
-   * @return copy of the underlying Val
-   */
+  /** @return A copy of the underlying Val */
   execution::sql::BoolVal GetBoolVal() const {
     NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::BoolVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::BoolVal>(value_);
   }
 
-  /**
-   * @return copy of the underlying Val
-   */
+  /** @return A copy of the underlying Val */
   execution::sql::Integer GetInteger() const {
     NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::Integer>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::Integer>(value_);
   }
 
-  /**
-   * @return copy of the underlying Val
-   */
+  /** @return A copy of the underlying Val */
   execution::sql::Real GetReal() const {
     NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::Real>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::Real>(value_);
   }
 
-  /**
-   * @return copy of underlying Val
-   */
+  /** @return A copy of underlying Val */
   execution::sql::DecimalVal GetDecimalVal() const {
     NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::DecimalVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::DecimalVal>(value_);
   }
 
-  /**
-   * @return copy of the underlying Val
-   */
+  /** @return A copy of the underlying Val */
   execution::sql::DateVal GetDateVal() const {
     NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::DateVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::DateVal>(value_);
   }
 
-  /**
-   * @return copy of the underlying Val
-   */
+  /** @return A copy of the underlying Val */
   execution::sql::TimestampVal GetTimestampVal() const {
     NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::TimestampVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::TimestampVal>(value_);
   }
 
   /**
-   * @return copy of the underlying Val
+   * @return A copy of the underlying Val
    * @warning StringVal may not have inlined its value, in which case the StringVal returned by this function will hold
    * a pointer to the buffer in this CVE. In that case, do not destroy this CVE before the copied StringVal
    */
@@ -196,9 +193,7 @@ class ConstantValueExpression : public AbstractExpression {
     Validate();
   }
 
-  /**
-   * @return true if CVE value represents a NULL
-   */
+  /** @return `true` if CVE value represents a NULL, `false` otherwise */
   bool IsNull() const {
     if (std::holds_alternative<execution::sql::Val>(value_) && std::get<execution::sql::Val>(value_).is_null_)
       return true;
@@ -231,21 +226,25 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
   /**
-   * Extracts the underlying execution value as a C++ type
+   * Extracts the underlying execution value as a C++ type.
    * @tparam T C++ type to extract
    * @return copy of the underlying value as the requested type
-   * @warning std::string_view returned by this function will hold a pointer to the buffer in this CVE. In that case, do
-   * not destroy this CVE before the std::string_view
+   * @warning std::string_view returned by this function will hold a pointer to the buffer in this CVE.
+   * In that case, do not destroy this CVE before the std::string_view
    */
   template <typename T>
   T Peek() const;
 
   /**
-   * Peek at the underlying value for the constant value expression.
-   * @return The underlying value pointer as a SQL value
+   * Get a pointer to the underlying value as a generic SQL type.
+   * @return An immutable pointer to the underlying value
    */
-  const execution::sql::Val *PeekPtr() const;
+  const execution::sql::Val *SqlValue() const;
 
+  /**
+   * Visitor pattern for binder.
+   * @param v The SqlNodeVisitor
+   */
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return A string representation of this ConstantValueExpression. */
@@ -268,7 +267,7 @@ class ConstantValueExpression : public AbstractExpression {
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   void Validate() const;
 
-  // The undelrying constant value
+  // The underlying constant value
   std::variant<execution::sql::Val, execution::sql::BoolVal, execution::sql::Integer, execution::sql::Real,
                execution::sql::DecimalVal, execution::sql::StringVal, execution::sql::DateVal,
                execution::sql::TimestampVal>

@@ -589,7 +589,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   std::vector<common::ManagedPointer<const execution::sql::Val>> params{};
   params.reserve(portal->Parameters()->size());
   std::transform(portal->Parameters()->cbegin(), portal->Parameters()->cend(), std::back_inserter(params),
-                 [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.PeekPtr()}; });
+                 [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.SqlValue()}; });
   exec_ctx->SetParams(common::ManagedPointer(&params));
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
