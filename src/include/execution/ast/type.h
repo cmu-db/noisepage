@@ -746,7 +746,7 @@ class MapType : public Type {
 
   /**
    * @param type to compare with
-   * @return whether type is of map type.
+   * @return whether type is of Map type.
    */
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::MapType; }  // NOLINT
 
@@ -773,10 +773,14 @@ class LambdaType : public Type {
    */
   static LambdaType *Get(FunctionType *fn_type);
 
+  /**
+   * @param type to compare with
+   * @return whether type is of Lambda type.
+   */
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::LambdaType; }  // NOLINT
 
  private:
-  LambdaType(FunctionType *fn_type);
+  explicit LambdaType(FunctionType *fn_type);
 
  private:
   FunctionType *fn_type_;

@@ -711,7 +711,7 @@ class BreakStmt : public Stmt {
    * Constructor
    * @param pos source position
    */
-  BreakStmt(const SourcePosition &pos) : Stmt(Kind::BreakStmt, pos) {}
+  explicit BreakStmt(const SourcePosition &pos) : Stmt(Kind::BreakStmt, pos) {}
 
   /**
    * Is the given node a break statement?

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+
 #include "execution/ast/udf/udf_ast_context.h"
 #include "execution/ast/udf/udf_ast_node_visitor.h"
 #include "execution/compiler/codegen.h"

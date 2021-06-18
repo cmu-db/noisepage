@@ -27,7 +27,7 @@ class FunctionAST;
 
 class ASTNodeVisitor {
  public:
-  virtual ~ASTNodeVisitor(){};
+  virtual ~ASTNodeVisitor() {}
   virtual void Visit(AbstractAST *ast) = 0;
   virtual void Visit(StmtAST *ast) = 0;
   virtual void Visit(ExprAST *ast) = 0;

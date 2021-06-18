@@ -1,5 +1,8 @@
 #pragma once
 
+#include <utility>
+#include <vector>
+
 #include <llvm/ADT/DenseMap.h>
 
 #include "execution/ast/identifier.h"

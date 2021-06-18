@@ -1,11 +1,11 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/functions/function_context.h"
 #include "execution/util/region_containers.h"
-
-#include <memory>
-#include <vector>
 
 namespace noisepage::parser {
 class FunctionExpression;

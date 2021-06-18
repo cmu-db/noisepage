@@ -113,7 +113,7 @@ class ExecutableQuery {
     /**
      * @return The file.
      */
-    ast::File *GetFile() { return file_; };
+    ast::File *GetFile() { return file_; }
 
     /** @return The metadata of this module. */
     const vm::ModuleMetadata &GetModuleMetadata() const;

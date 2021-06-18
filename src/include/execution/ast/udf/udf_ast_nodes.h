@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
@@ -17,7 +21,7 @@ class AbstractAST {
  public:
   virtual ~AbstractAST() = default;
 
-  virtual void Accept(ASTNodeVisitor *visitor) { visitor->Visit(this); };
+  virtual void Accept(ASTNodeVisitor *visitor) { visitor->Visit(this); }
 };
 
 // StmtAST - Base class for all statement nodes.
@@ -25,7 +29,7 @@ class StmtAST : public AbstractAST {
  public:
   virtual ~StmtAST() = default;
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // ExprAST - Base class for all expression nodes.
@@ -33,7 +37,7 @@ class ExprAST : public StmtAST {
  public:
   virtual ~ExprAST() = default;
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // DoubleExprAST - Expression class for numeric literals like "1.1".
@@ -41,9 +45,9 @@ class ValueExprAST : public ExprAST {
  public:
   std::unique_ptr<parser::AbstractExpression> value_;
 
-  ValueExprAST(std::unique_ptr<parser::AbstractExpression> value) : value_(std::move(value)) {}
+  explicit ValueExprAST(std::unique_ptr<parser::AbstractExpression> value) : value_(std::move(value)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 class IsNullExprAST : public ExprAST {
@@ -54,7 +58,7 @@ class IsNullExprAST : public ExprAST {
   IsNullExprAST(bool is_null_check, std::unique_ptr<ExprAST> child)
       : is_null_check_(is_null_check), child_(std::move(child)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // VariableExprAST - Expression class for referencing a variable, like "a".
@@ -62,9 +66,9 @@ class VariableExprAST : public ExprAST {
  public:
   std::string name;
 
-  VariableExprAST(const std::string &name) : name(name) {}
+  explicit VariableExprAST(const std::string &name) : name(name) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // VariableExprAST - Expression class for referencing a variable, like "a".
@@ -76,7 +80,7 @@ class MemberExprAST : public ExprAST {
   MemberExprAST(std::unique_ptr<VariableExprAST> &&object, std::string field)
       : object(std::move(object)), field(field) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // BinaryExprAST - Expression class for a binary operator.
@@ -88,7 +92,7 @@ class BinaryExprAST : public ExprAST {
   BinaryExprAST(parser::ExpressionType op, std::unique_ptr<ExprAST> lhs, std::unique_ptr<ExprAST> rhs)
       : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // CallExprAST - Expression class for function calls.
@@ -100,7 +104,7 @@ class CallExprAST : public ExprAST {
   CallExprAST(const std::string &callee, std::vector<std::unique_ptr<ExprAST>> args)
       : callee(callee), args(std::move(args)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // SeqStmtAST - Statement class for sequence of statements
@@ -108,9 +112,9 @@ class SeqStmtAST : public StmtAST {
  public:
   std::vector<std::unique_ptr<StmtAST>> stmts;
 
-  SeqStmtAST(std::vector<std::unique_ptr<StmtAST>> stmts) : stmts(std::move(stmts)) {}
+  explicit SeqStmtAST(std::vector<std::unique_ptr<StmtAST>>&& stmts) : stmts(std::move(stmts)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // DeclStmtAST - Statement class for sequence of statements
@@ -157,7 +161,7 @@ class WhileStmtAST : public StmtAST {
   std::unique_ptr<ExprAST> cond_expr;
   std::unique_ptr<StmtAST> body_stmt;
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 
   WhileStmtAST(std::unique_ptr<ExprAST> cond_expr, std::unique_ptr<StmtAST> body_stmt)
       : cond_expr(std::move(cond_expr)), body_stmt(std::move(body_stmt)) {}
@@ -168,9 +172,9 @@ class RetStmtAST : public StmtAST {
  public:
   std::unique_ptr<ExprAST> expr;
 
-  RetStmtAST(std::unique_ptr<ExprAST> expr) : expr(std::move(expr)) {}
+  explicit RetStmtAST(std::unique_ptr<ExprAST> expr) : expr(std::move(expr)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // AssignStmtAST - Expression class for a binary operator.
@@ -182,7 +186,7 @@ class AssignStmtAST : public ExprAST {
   AssignStmtAST(std::unique_ptr<VariableExprAST> lhs, std::unique_ptr<ExprAST> rhs)
       : lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // SQLStmtAST - Expression class for a SQL Statement.
@@ -196,7 +200,7 @@ class SQLStmtAST : public StmtAST {
              std::unordered_map<std::string, std::pair<std::string, size_t>> &&udf_params)
       : query(std::move(query)), var_name(std::move(var_name)), udf_params(std::move(udf_params)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // DynamicSQLStmtAST - Expression class for a SQL Statement.
@@ -208,7 +212,7 @@ class DynamicSQLStmtAST : public StmtAST {
   DynamicSQLStmtAST(std::unique_ptr<ExprAST> query, std::string var_name)
       : query(std::move(query)), var_name(std::move(var_name)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
 // FunctionAST - This class represents a function definition itself.
@@ -222,12 +226,12 @@ class FunctionAST : public AbstractAST {
               std::vector<type::TypeId> &&param_types)
       : body(std::move(body)), param_names_(std::move(param_names)), param_types_(std::move(param_types)) {}
 
-  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
-/*----------------------------------------------------------------
-/// Error* - These are little helper functions for error handling.
------------------------------------------------------------------*/
+// ----------------------------------------------------------------------------
+// Error Handling Helpers
+// ----------------------------------------------------------------------------
 
 std::unique_ptr<ExprAST> LogError(const char *str);
 
