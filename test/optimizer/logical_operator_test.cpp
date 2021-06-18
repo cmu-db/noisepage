@@ -607,7 +607,8 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
           .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_3 =
       LogicalQueryDerivedGet::Make(
-          parser::AliasType("alias"), std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
+          parser::AliasType("alias"),
+          std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
           .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_4 =
       LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_3))

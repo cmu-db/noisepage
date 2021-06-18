@@ -116,10 +116,15 @@ class BinderSherpa {
    */
   bool HasCTETableName(const std::string &cte_table_name) const { return cte_table_names_.count(cte_table_name) > 0; }
 
+  /**
+   * Get a unique table serial number for this query. This will help ensure that all table aliases are unique.
+   * @return unique serial number
+   */
   size_t GetUniqueTableAliasSerialNumber() {
     auto unique_serial_number = unique_table_alias_serial_num_++;
-    if(unique_serial_number == 0) {
-      throw BINDER_EXCEPTION("Too many table references for the binder to handle", common::ErrorCode::ERRCODE_STATEMENT_TOO_COMPLEX);
+    if (unique_serial_number == 0) {
+      throw BINDER_EXCEPTION("Too many table references for the binder to handle",
+                             common::ErrorCode::ERRCODE_STATEMENT_TOO_COMPLEX);
     }
     return unique_serial_number++;
   }

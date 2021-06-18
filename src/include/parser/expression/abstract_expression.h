@@ -106,6 +106,11 @@ class AliasType {
     return names_equal && (serial_no_ == other.serial_no_);
   }
 
+  /**
+   * Not Equals function
+   * @param other The alias we are comparing against
+   * @return Whether or not these two aliases are considered not equal as documented above
+   */
   bool operator!=(const AliasType &other) const { return !(*this == other); }
 
   /**
@@ -127,6 +132,10 @@ class AliasType {
     bool operator()(const AliasType &p, const AliasType &q) const { return p.GetSerialNo() < q.GetSerialNo(); }
   };
 
+  /**
+   * Convert AliasType to JSON
+   * @return JSON version of AliasType
+   */
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["name"] = name_;
@@ -137,6 +146,10 @@ class AliasType {
     return j;
   }
 
+  /**
+   * Create AliasType from a JSON
+   * @param j JSON to convert to AliasType
+   */
   void FromJson(const nlohmann::json &j) {
     name_ = j.at("name").get<std::string>();
     serial_valid_ = j.at("serial_valid").get<bool>();

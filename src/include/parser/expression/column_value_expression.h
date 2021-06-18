@@ -131,7 +131,7 @@ class ColumnValueExpression : public AbstractExpression {
   /** @return table name */
   AliasType GetTableAlias() const { return table_alias_; }
 
-  /** @param table_oid Table OID to be assigned to this expression */
+  /** @param table_alias Table alias to be assigned to this expression */
   void SetTableAlias(const AliasType &table_alias) { table_alias_ = AliasType(table_alias); }
 
   /** @return column name */
