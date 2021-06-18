@@ -126,7 +126,7 @@ class BinderSherpa {
       throw BINDER_EXCEPTION("Too many table references for the binder to handle",
                              common::ErrorCode::ERRCODE_STATEMENT_TOO_COMPLEX);
     }
-    return unique_serial_number++;
+    return unique_serial_number;
   }
 
  private:
