@@ -1,9 +1,8 @@
 #pragma once
 
+#include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include <llvm/ADT/DenseMap.h>
 
 #include "execution/ast/identifier.h"
 #include "execution/util/execution_common.h"
@@ -93,7 +92,7 @@ class Scope {
   // The scope kind.
   Kind scope_kind_;
   // The mapping of identifiers to their types.
-  llvm::DenseMap<ast::Identifier, ast::Type *> decls_;
+  std::unordered_map<ast::Identifier, ast::Type *> decls_;
 };
 
 }  // namespace sema

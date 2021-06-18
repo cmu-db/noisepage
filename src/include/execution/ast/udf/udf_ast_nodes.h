@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -112,7 +114,7 @@ class SeqStmtAST : public StmtAST {
  public:
   std::vector<std::unique_ptr<StmtAST>> stmts;
 
-  explicit SeqStmtAST(std::vector<std::unique_ptr<StmtAST>>&& stmts) : stmts(std::move(stmts)) {}
+  explicit SeqStmtAST(std::vector<std::unique_ptr<StmtAST>> &&stmts) : stmts(std::move(stmts)) {}
 
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
