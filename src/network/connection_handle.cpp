@@ -193,6 +193,10 @@ Transition ConnectionHandle::GetResult() {
 }
 
 Transition ConnectionHandle::TryCloseConnection() {
+  // Flush out any pending writes before closing the connection. In theory this should just be error messages and not
+  // partial query data, but I don't completely understand the network state machine. This is mostly to make sure we
+  // flush error messages on connection startup. @see PostgresProtocolInterpreter::ProcessStartup's error states
+  if (io_wrapper_->ShouldFlush()) TryWrite();
   // Stop the protocol interpreter.
   protocol_interpreter_->Teardown(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
                                   common::ManagedPointer(&context_));

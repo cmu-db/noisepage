@@ -65,6 +65,7 @@ std::unique_ptr<OptimizeResult> Optimizer::BuildPlanTree(
       common::ManagedPointer<planner::CteScanPlanNode> ldr = common::ManagedPointer(leader);
       ElectCTELeader(common::ManagedPointer(best_plan), table, &ldr);
     }
+
     optimize_result->SetPlanNode(std::move(best_plan));
     // Reset memo after finishing the optimization
     Reset();

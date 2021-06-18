@@ -872,21 +872,22 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
   ValidateDatabaseName(node->GetDatabaseName());
 
   if (node->GetSelect() != nullptr) {
-    if (node->GetAlias().Empty())
+    if (node->GetAlias().Empty()) {
       throw BINDER_EXCEPTION("Alias not found for query derived table", common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
-  }
+    }
 
-  SetUniqueTableAlias(node);
-  // Save the previous context
-  auto pre_context = context_;
-  node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+    SetUniqueTableAlias(node);
+    // Save the previous context
+    auto pre_context = context_;
+    node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
-  // Restore the previous level context
-  // TODO(WAN): who exactly should save and restore contexts?
-  context_ = pre_context;
+    // Restore the previous level context
+    // TODO(WAN): who exactly should save and restore contexts?
+    context_ = pre_context;
 
-  if (!node->IsCte()) {
-    context_->AddNestedTable(node->GetAlias().GetName(), node->GetSelect()->GetSelectColumns(), {});
+    if (!node->IsCte()) {
+      context_->AddNestedTable(node->GetAlias().GetName(), node->GetSelect()->GetSelectColumns(), {});
+    }
   } else if (node->GetJoin() != nullptr) {
     // Join
     node->GetJoin()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
