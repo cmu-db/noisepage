@@ -90,7 +90,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       std::size_t i = 0;
       for (auto &alias : with->GetCteColumnAliases()) {
         columns1.emplace_back(alias.GetName(), col_types[i], false, parser::ConstantValueExpression(col_types[i]),
-                              catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo()));
+                              catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo().UnderlyingValue()));
         i++;
       }
 
@@ -102,9 +102,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       for (auto &elem : with->GetCteColumnAliases()) {
         NOISEPAGE_ASSERT(elem.IsSerialNoValid(), "CTE Alias does not have a valid serial no.");
         auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
-        parser::AbstractExpression *cve =
-            new parser::ColumnValueExpression(with->GetAlias(), elem.GetName(), ret_type, elem,
-                                              catalog::MakeTempOid<catalog::col_oid_t>(elem.GetSerialNo()));
+        parser::AbstractExpression *cve = new parser::ColumnValueExpression(
+            with->GetAlias(), elem.GetName(), ret_type, elem,
+            catalog::MakeTempOid<catalog::col_oid_t>(elem.GetSerialNo().UnderlyingValue()));
         txn_context->RegisterAbortAction([=] { delete cve; });
         txn_context->RegisterCommitAction([=] { delete cve; });
         expressions.emplace_back(common::ManagedPointer(cve));
@@ -119,7 +119,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       size_t ind = 0;
       for (auto &alias : with->GetCteColumnAliases()) {
         columns.emplace_back(alias.GetName(), col_types[ind], false, parser::ConstantValueExpression(col_types[ind]),
-                             catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo()));
+                             catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo().UnderlyingValue()));
         ind++;
       }
 

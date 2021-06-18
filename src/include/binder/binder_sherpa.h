@@ -120,9 +120,9 @@ class BinderSherpa {
    * Get a unique table serial number for this query. This will help ensure that all table aliases are unique.
    * @return unique serial number
    */
-  size_t GetUniqueTableAliasSerialNumber() {
+  parser::alias_oid_t GetUniqueTableAliasSerialNumber() {
     auto unique_serial_number = unique_table_alias_serial_num_++;
-    if (unique_serial_number == 0) {
+    if (unique_serial_number.UnderlyingValue() == 0) {
       throw BINDER_EXCEPTION("Too many table references for the binder to handle",
                              common::ErrorCode::ERRCODE_STATEMENT_TOO_COMPLEX);
     }
@@ -135,6 +135,6 @@ class BinderSherpa {
   const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
   std::unordered_set<std::string> cte_table_names_;
-  size_t unique_table_alias_serial_num_;
+  parser::alias_oid_t unique_table_alias_serial_num_;
 };
 }  // namespace noisepage::binder

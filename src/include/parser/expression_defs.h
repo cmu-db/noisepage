@@ -3,8 +3,12 @@
 #include <string>
 
 #include "common/enum_defs.h"
+#include "common/strong_typedef.h"
 
 namespace noisepage::parser {
+
+// It's important that alias_oid_t is the same size as pointers because we often convert a pointer to an alias_oid_t
+STRONG_TYPEDEF_HEADER(alias_oid_t, size_t);
 
 #define EXPRESSION_TYPE_ENUM(T)                       \
   T(ExpressionType, INVALID)                          \

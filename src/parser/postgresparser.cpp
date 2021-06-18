@@ -240,7 +240,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
     }
   }
   if (alias != nullptr) {
-    expr->SetAlias(parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(expr.get()))));
+    expr->SetAlias(
+        parser::AliasType(alias, alias_oid_t(reinterpret_cast<size_t>(reinterpret_cast<void *>(expr.get())))));
   }
   return expr;
 }
@@ -583,7 +584,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
          */
         result = std::make_unique<ColumnValueExpression>(
             AliasType(table_name), col_name,
-            parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(alias))));
+            parser::AliasType(alias, alias_oid_t(reinterpret_cast<size_t>(reinterpret_cast<void *>(alias)))));
       else
         /*
          * We create a table alias using the table name. For SELECT queries, the binder will assign the corresponding
@@ -2146,7 +2147,7 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
           for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
             const auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
             const auto column = target->val_.str_;
-            colnames.emplace_back(parser::AliasType(column, i));
+            colnames.emplace_back(parser::AliasType(column, alias_oid_t(i)));
             ++i;
           }
         }

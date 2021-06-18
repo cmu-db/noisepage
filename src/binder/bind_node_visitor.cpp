@@ -478,14 +478,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       // Eg: `WITH cte AS (SELECT 1 as x, 2)` transforms to `WITH cte AS (SELECT 1 as x, 2 as ?column?)`
       std::vector<parser::AliasType> aliases{};
       for (std::size_t i = 0; i < num_aliases; i++) {
-        const auto serial_no = catalog_accessor_->GetNewTempOid();
+        const auto serial_no = parser::alias_oid_t(catalog_accessor_->GetNewTempOid());
         columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), serial_no));
         aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), serial_no));
         ref->cte_col_aliases_[i] = parser::AliasType(column_aliases[i].GetName(), serial_no);
       }
 
       for (std::size_t i = num_aliases; i < num_columns; ++i) {
-        const auto serial_no = catalog_accessor_->GetNewTempOid();
+        const auto serial_no = parser::alias_oid_t(catalog_accessor_->GetNewTempOid());
         auto new_alias = parser::AliasType(columns[i]->GetExpressionName(), serial_no);
         if (new_alias.Empty()) {
           new_alias = parser::AliasType("?column?", serial_no);

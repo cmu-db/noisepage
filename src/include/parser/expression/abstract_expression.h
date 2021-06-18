@@ -6,8 +6,6 @@
 #include <vector>
 
 #include "common/hash_defs.h"
-#include "common/hash_util.h"
-#include "common/json.h"
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
@@ -47,7 +45,7 @@ class AliasType {
    * @param name Alias name
    * @param serial_no Serial number
    */
-  explicit AliasType(std::string name, size_t serial_no)
+  explicit AliasType(std::string name, alias_oid_t serial_no)
       : name_{std::move(name)}, serial_no_{serial_no}, serial_valid_{true} {}
 
   /**
@@ -82,13 +80,13 @@ class AliasType {
   /**
    * @return The serial number of this alias
    */
-  size_t GetSerialNo() const { return serial_no_; }
+  alias_oid_t GetSerialNo() const { return serial_no_; }
 
   /**
    * Set the serial number of this alias
    * @param serial_no serial number to set alias to
    */
-  void SetSerialNo(size_t serial_no) {
+  void SetSerialNo(alias_oid_t serial_no) {
     serial_no_ = serial_no;
     serial_valid_ = true;
   }
@@ -136,31 +134,17 @@ class AliasType {
    * Convert AliasType to JSON
    * @return JSON version of AliasType
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["name"] = name_;
-    j["serial_valid"] = serial_valid_;
-    if (serial_valid_) {
-      j["serial_no"] = serial_no_;
-    }
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * Create AliasType from a JSON
    * @param j JSON to convert to AliasType
    */
-  void FromJson(const nlohmann::json &j) {
-    name_ = j.at("name").get<std::string>();
-    serial_valid_ = j.at("serial_valid").get<bool>();
-    if (serial_valid_) {
-      serial_no_ = j.at("serial_no").get<size_t>();
-    }
-  }
+  void FromJson(const nlohmann::json &j);
 
  private:
   std::string name_;
-  size_t serial_no_;
+  alias_oid_t serial_no_;
   bool serial_valid_;
 };
 
