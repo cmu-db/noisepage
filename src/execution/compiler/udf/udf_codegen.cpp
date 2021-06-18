@@ -84,12 +84,11 @@ execution::ast::File *UDFCodegen::Finish() {
 }
 
 void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
-  auto &args = ast->args;
-  std::vector<execution::ast::Expr *> args_ast;
-  std::vector<execution::ast::Expr *> args_ast_region_vec;
-  std::vector<catalog::type_oid_t> arg_types;
+  std::vector<execution::ast::Expr *> args_ast{};
+  std::vector<execution::ast::Expr *> args_ast_region_vec{};
+  std::vector<catalog::type_oid_t> arg_types{};
 
-  for (auto &arg : args) {
+  for (auto &arg : ast->Args()) {
     arg->Accept(this);
     args_ast.push_back(dst_);
     args_ast_region_vec.push_back(dst_);
@@ -98,14 +97,14 @@ void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
     NOISEPAGE_ASSERT(builtin->IsSqlValueType(), "Param is not SQL Value Type");
     arg_types.push_back(GetCatalogTypeOidFromSQLType(builtin->GetKind()));
   }
-  auto proc_oid = accessor_->GetProcOid(ast->callee, arg_types);
+  auto proc_oid = accessor_->GetProcOid(ast->Callee(), arg_types);
   NOISEPAGE_ASSERT(proc_oid != catalog::INVALID_PROC_OID, "Invalid call");
 
   auto context = accessor_->GetProcCtxPtr(proc_oid);
   if (context->IsBuiltin()) {
     fb_->Append(codegen_->MakeStmt(codegen_->CallBuiltin(context->GetBuiltin(), std::move(args_ast))));
   } else {
-    auto it = str_to_ident_.find(ast->callee);
+    auto it = str_to_ident_.find(ast->Callee());
     execution::ast::Identifier ident_expr;
     if (it != str_to_ident_.end()) {
       ident_expr = it->second;
@@ -121,8 +120,6 @@ void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
     }
     fb_->Append(codegen_->MakeStmt(codegen_->Call(ident_expr, args_ast_region_vec)));
   }
-
-  // fb_->Append(codegen_->Call)
 }
 
 void UDFCodegen::Visit(ast::udf::StmtAST *ast) { UNREACHABLE("Not implemented"); }
@@ -130,17 +127,17 @@ void UDFCodegen::Visit(ast::udf::StmtAST *ast) { UNREACHABLE("Not implemented");
 void UDFCodegen::Visit(ast::udf::ExprAST *ast) { UNREACHABLE("Not implemented"); }
 
 void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
-  if (ast->name == "*internal*") {
+  if (ast->Name() == "*internal*") {
     return;
   }
-  execution::ast::Identifier ident = codegen_->MakeFreshIdentifier(ast->name);
-  str_to_ident_.emplace(ast->name, ident);
+  execution::ast::Identifier ident = codegen_->MakeFreshIdentifier(ast->Name());
+  str_to_ident_.emplace(ast->Name(), ident);
   auto prev_type = current_type_;
   execution::ast::Expr *tpl_type = nullptr;
-  if (ast->type == type::TypeId::INVALID) {
+  if (ast->Type() == type::TypeId::INVALID) {
     // record type
     execution::util::RegionVector<execution::ast::FieldDecl *> fields(codegen_->GetAstContext()->GetRegion());
-    for (auto p : udf_ast_context_->GetRecordType(ast->name)) {
+    for (auto p : udf_ast_context_->GetRecordType(ast->Name())) {
       fields.push_back(codegen_->MakeField(codegen_->MakeIdentifier(p.first),
                                            codegen_->TplType(execution::sql::GetTypeId(p.second))));
     }
@@ -148,12 +145,11 @@ void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
     aux_decls_.push_back(record_decl);
     tpl_type = record_decl->TypeRepr();
   } else {
-    tpl_type = codegen_->TplType(execution::sql::GetTypeId(ast->type));
+    tpl_type = codegen_->TplType(execution::sql::GetTypeId(ast->Type()));
   }
-  current_type_ = ast->type;
-  if (ast->initial != nullptr) {
-    //      Visit(ast->initial.get());
-    ast->initial->Accept(this);
+  current_type_ = ast->Type();
+  if (ast->Initial() != nullptr) {
+    ast->Initial()->Accept(this);
     fb_->Append(codegen_->DeclareVar(ident, tpl_type, dst_));
   } else {
     fb_->Append(codegen_->DeclareVarNoInit(ident, tpl_type));
@@ -162,21 +158,21 @@ void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
 }
 
 void UDFCodegen::Visit(ast::udf::FunctionAST *ast) {
-  for (size_t i = 0; i < ast->param_types_.size(); i++) {
+  for (size_t i = 0; i < ast->ParameterTypes().size(); i++) {
     //    auto param_type = codegen_->TplType(ast->param_types_[i]);
-    str_to_ident_.emplace(ast->param_names_[i], codegen_->MakeFreshIdentifier("udf"));
+    str_to_ident_.emplace(ast->ParameterNames().at(i), codegen_->MakeFreshIdentifier("udf"));
   }
-  ast->body.get()->Accept(this);
+  ast->Body()->Accept(this);
 }
 
 void UDFCodegen::Visit(ast::udf::VariableExprAST *ast) {
-  auto it = str_to_ident_.find(ast->name);
+  auto it = str_to_ident_.find(ast->Name());
   NOISEPAGE_ASSERT(it != str_to_ident_.end(), "variable not declared");
   dst_ = codegen_->MakeExpr(it->second);
 }
 
 void UDFCodegen::Visit(ast::udf::ValueExprAST *ast) {
-  auto val = common::ManagedPointer(ast->value_).CastManagedPointerTo<parser::ConstantValueExpression>();
+  auto val = common::ManagedPointer(ast->Value()).CastManagedPointerTo<parser::ConstantValueExpression>();
   if (val->IsNull()) {
     dst_ = codegen_->ConstNull(current_type_);
     return;
@@ -211,29 +207,24 @@ void UDFCodegen::Visit(ast::udf::ValueExprAST *ast) {
 
 void UDFCodegen::Visit(ast::udf::AssignStmtAST *ast) {
   type::TypeId left_type = type::TypeId::INVALID;
-  udf_ast_context_->GetVariableType(ast->lhs->name, &left_type);
+  udf_ast_context_->GetVariableType(ast->Destination()->Name(), &left_type);
   current_type_ = left_type;
 
-  reinterpret_cast<ast::udf::AbstractAST *>(ast->rhs.get())->Accept(this);
+  reinterpret_cast<ast::udf::AbstractAST *>(ast->Source())->Accept(this);
   auto rhs_expr = dst_;
 
-  auto it = str_to_ident_.find(ast->lhs->name);
+  auto it = str_to_ident_.find(ast->Destination()->Name());
   NOISEPAGE_ASSERT(it != str_to_ident_.end(), "Variable not found");
   auto left_codegen_ident = it->second;
 
   auto *left_expr = codegen_->MakeExpr(left_codegen_ident);
-
-  //  auto right_type = rhs_expr->GetType()->GetTypeId();
-
-  //  if (left_type == type::TypeId::VARCHAR) {
   fb_->Append(codegen_->Assign(left_expr, rhs_expr));
-  //  }
 }
 
 void UDFCodegen::Visit(ast::udf::BinaryExprAST *ast) {
   execution::parsing::Token::Type op_token;
   bool compare = false;
-  switch (ast->op) {
+  switch (ast->Op()) {
     case noisepage::parser::ExpressionType::OPERATOR_DIVIDE:
       op_token = execution::parsing::Token::Type::SLASH;
       break;
@@ -279,10 +270,10 @@ void UDFCodegen::Visit(ast::udf::BinaryExprAST *ast) {
       // TODO(tanujnay112): figure out concatenation operation from expressions?
       UNREACHABLE("Unsupported expression");
   }
-  ast->lhs->Accept(this);
+  ast->Left()->Accept(this);
   auto lhs_expr = dst_;
 
-  ast->rhs->Accept(this);
+  ast->Right()->Accept(this);
   auto rhs_expr = dst_;
   if (compare) {
     dst_ = codegen_->Compare(op_token, lhs_expr, rhs_expr);
@@ -292,38 +283,38 @@ void UDFCodegen::Visit(ast::udf::BinaryExprAST *ast) {
 }
 
 void UDFCodegen::Visit(ast::udf::IfStmtAST *ast) {
-  ast->cond_expr->Accept(this);
+  ast->Condition()->Accept(this);
   auto cond = dst_;
 
   If branch(fb_, cond);
-  ast->then_stmt->Accept(this);
-  if (ast->else_stmt != nullptr) {
+  ast->Then()->Accept(this);
+  if (ast->Else() != nullptr) {
     branch.Else();
-    ast->else_stmt->Accept(this);
+    ast->Else()->Accept(this);
   }
   branch.EndIf();
 }
 
 void UDFCodegen::Visit(ast::udf::IsNullExprAST *ast) {
-  ast->child_->Accept(this);
+  ast->Child()->Accept(this);
   auto chld = dst_;
   dst_ = codegen_->CallBuiltin(execution::ast::Builtin::IsValNull, {chld});
-  if (!ast->is_null_check_) {
+  if (!ast->IsNullCheck()) {
     dst_ = codegen_->UnaryOp(execution::parsing::Token::Type::BANG, dst_);
   }
 }
 
 void UDFCodegen::Visit(ast::udf::SeqStmtAST *ast) {
-  for (auto &stmt : ast->stmts) {
+  for (auto &stmt : ast->Statements()) {
     stmt->Accept(this);
   }
 }
 
 void UDFCodegen::Visit(ast::udf::WhileStmtAST *ast) {
-  ast->cond_expr->Accept(this);
+  ast->Condition()->Accept(this);
   auto cond = dst_;
   Loop loop(fb_, cond);
-  ast->body_stmt->Accept(this);
+  ast->Body()->Accept(this);
   loop.EndLoop();
 }
 
@@ -331,7 +322,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   // Once we encounter a For-statement we know we need an execution context
   needs_exec_ctx_ = true;
 
-  const auto query = common::ManagedPointer(ast->query_);
+  const auto query = common::ManagedPointer(ast->Query());
   auto exec_ctx = fb_->GetParameterByPosition(0);
 
   binder::BindNodeVisitor visitor{common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_oid_};
@@ -352,7 +343,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
       exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
       codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
   std::size_t i{0};
-  for (const auto &var : ast->vars_) {
+  for (const auto &var : ast->Variables()) {
     var_idents.push_back(str_to_ident_.find(var)->second);
     auto var_ident = var_idents.back();
     NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "Can't support non scalars yet!");
@@ -375,7 +366,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
     }
     auto prev_fb = fb_;
     fb_ = &fn;
-    ast->body_stmt_->Accept(this);
+    ast->Body()->Accept(this);
     fb_ = prev_fb;
   }
 
@@ -473,7 +464,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
 }
 
 void UDFCodegen::Visit(ast::udf::RetStmtAST *ast) {
-  ast->expr->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
+  ast->Return()->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
   auto ret_expr = dst_;
   fb_->Append(codegen_->Return(ret_expr));
 }
@@ -483,11 +474,11 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   // we know we need an execution context
   needs_exec_ctx_ = true;
   auto exec_ctx = fb_->GetParameterByPosition(0);
-  const auto query = common::ManagedPointer(ast->query);
+  const auto query = common::ManagedPointer(ast->Query());
 
   binder::BindNodeVisitor visitor(common::ManagedPointer<catalog::CatalogAccessor>(accessor_), db_oid_);
 
-  auto &query_params = ast->udf_params;
+  const auto &query_params = ast->Parameters();
 
   // NOTE(Kyle): Assumptions:
   //  - This is a valid optimizer timeout
@@ -514,12 +505,12 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   std::vector<execution::ast::Expr *> assignees{};
   execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
   for (auto &col : cols) {
-    execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->var_name)->second);
+    execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->Name())->second);
     type::TypeId udf_type{};
-    udf_ast_context_->GetVariableType(ast->var_name, &udf_type);
+    udf_ast_context_->GetVariableType(ast->Name(), &udf_type);
     if (udf_type == type::TypeId::INVALID) {
       // Record type
-      auto &struct_vars = udf_ast_context_->GetRecordType(ast->var_name);
+      auto &struct_vars = udf_ast_context_->GetRecordType(ast->Name());
       if (captures.empty()) {
         captures.push_back(capture_var);
       }
@@ -570,7 +561,7 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
 
   // Set its execution context to whatever exec context was passed in here
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
-  std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec{};
+  std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::const_iterator> sorted_vec{};
   for (auto it = query_params.begin(); it != query_params.end(); it++) {
     sorted_vec.push_back(it);
   }
@@ -630,7 +621,7 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
       codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
 
   for (auto &col : cols) {
-    execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->var_name)->second);
+    execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->Name())->second);
     auto lhs = capture_var;
     if (cols.size() > 1) {
       // Record struct type
@@ -653,9 +644,9 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
 }
 
 void UDFCodegen::Visit(ast::udf::MemberExprAST *ast) {
-  ast->object->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
+  ast->Object()->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
   auto object = dst_;
-  dst_ = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->field));
+  dst_ = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->FieldName()));
 }
 
 }  // namespace udf

@@ -18,217 +18,662 @@ namespace execution {
 namespace ast {
 namespace udf {
 
-// AbstractAST - Base class for all AST nodes.
+/**
+ * The AbstractAST class serves as a base class for all AST nodes.
+ */
 class AbstractAST {
  public:
+  /**
+   * Destroy the AST node.
+   */
   virtual ~AbstractAST() = default;
 
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   virtual void Accept(ASTNodeVisitor *visitor) { visitor->Visit(this); }
 };
 
-// StmtAST - Base class for all statement nodes.
+/**
+ * The StmtAST class serves as the base class for all statement nodes.
+ */
 class StmtAST : public AbstractAST {
  public:
+  /**
+   * Destroy the AST node.
+   */
   ~StmtAST() override = default;
 
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
-// ExprAST - Base class for all expression nodes.
+/**
+ * The ExprAST class serves as the base class for all expression nodes.
+ */
 class ExprAST : public StmtAST {
  public:
+  /**
+   * Destroy the AST node.
+   */
   ~ExprAST() override = default;
 
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
 
-// DoubleExprAST - Expression class for numeric literals like "1.1".
+/**
+ * The ValueExprAST class represents literal values.
+ */
 class ValueExprAST : public ExprAST {
  public:
-  std::unique_ptr<parser::AbstractExpression> value_;
+  /**
+   * Construct a new ValueExprAST instance.
+   * @param value The AbstractExpression that represents the value
+   */
+  explicit ValueExprAST(std::unique_ptr<parser::AbstractExpression> &&value) : value_(std::move(value)) {}
 
-  explicit ValueExprAST(std::unique_ptr<parser::AbstractExpression> value) : value_(std::move(value)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return A mutable pointer to the value expression */
+  parser::AbstractExpression *Value() { return value_.get(); }
+
+  /** @return An immutable pointer to the value expression */
+  const parser::AbstractExpression *Value() const { return value_.get(); }
+
+ private:
+  /** The expression that represents the value */
+  std::unique_ptr<parser::AbstractExpression> value_;
 };
 
+/**
+ * The IsNullExprAST class represents an expression that performs a NULL check.
+ */
 class IsNullExprAST : public ExprAST {
  public:
-  bool is_null_check_;
-  std::unique_ptr<ExprAST> child_;
+  /**
+   * Construct a new IsNullExprAST instance.
+   * @param is_null_check The NULL check flag
+   * @param child The child expression
+   */
+  IsNullExprAST(bool is_null_check, std::unique_ptr<ExprAST> &&child)
+      : is_null_check_{is_null_check}, child_{std::move(child)} {}
 
-  IsNullExprAST(bool is_null_check, std::unique_ptr<ExprAST> child)
-      : is_null_check_(is_null_check), child_(std::move(child)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return `true` if the NULL check is performed, `false` otherwise */
+  bool IsNullCheck() const { return is_null_check_; }
+
+  /** @return The child expression */
+  ExprAST *Child() { return child_.get(); }
+
+  /** @return The child expression */
+  const ExprAST *Child() const { return child_.get(); }
+
+ private:
+  /** The NULL check flag */
+  bool is_null_check_;
+
+  /** The child expression */
+  std::unique_ptr<ExprAST> child_;
 };
 
-// VariableExprAST - Expression class for referencing a variable, like "a".
+/**
+ * The VariableExprAST class represents an expression that references a variable.
+ */
 class VariableExprAST : public ExprAST {
  public:
-  std::string name;
+  /**
+   * Construct a new VariableExprAST instance.
+   * @param name The name of the variable
+   */
+  explicit VariableExprAST(std::string name) : name_{std::move(name)} {}
 
-  explicit VariableExprAST(const std::string &name) : name(name) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The name of the variable */
+  const std::string &Name() const { return name_; }
+
+ private:
+  /** The name of the variable */
+  const std::string name_;
 };
 
-// VariableExprAST - Expression class for referencing a variable, like "a".
+/**
+ * The MemberExprAST class represents a structure member expression.
+ */
 class MemberExprAST : public ExprAST {
  public:
-  std::unique_ptr<VariableExprAST> object;
-  std::string field;
-
+  /**
+   * Construct a new MemberExprAST instance.
+   * @param object The structure
+   * @param field The name of the field in the structure
+   */
   MemberExprAST(std::unique_ptr<VariableExprAST> &&object, std::string field)
-      : object(std::move(object)), field(field) {}
+      : object_{std::move(object)}, field_(std::move(field)) {}
 
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The object */
+  VariableExprAST *Object() { return object_.get(); }
+
+  /** @return The object */
+  const VariableExprAST *Object() const { return object_.get(); }
+
+  /** @return The name of the field */
+  const std::string &FieldName() const { return field_; }
+
+ private:
+  /** The expression for the object */
+  std::unique_ptr<VariableExprAST> object_;
+
+  /** The identifier for the field in the object */
+  std::string field_;
 };
 
-// BinaryExprAST - Expression class for a binary operator.
+/**
+ * The BinaryExprAST class represents a generic binary expression.
+ */
 class BinaryExprAST : public ExprAST {
  public:
-  parser::ExpressionType op;
-  std::unique_ptr<ExprAST> lhs, rhs;
+  /**
+   * Construct a new BinaryExprAST instance.
+   * @param op The expression type for the operation
+   * @param lhs The expression on the left-hande side of the operation
+   * @param rhs The expression on the right-hand side of the operation
+   */
+  BinaryExprAST(parser::ExpressionType op, std::unique_ptr<ExprAST> &&lhs, std::unique_ptr<ExprAST> &&rhs)
+      : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
-  BinaryExprAST(parser::ExpressionType op, std::unique_ptr<ExprAST> lhs, std::unique_ptr<ExprAST> rhs)
-      : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The expression type for the operation */
+  parser::ExpressionType Op() const { return op_; }
+
+  /** @return A mutable pointer to the left expression */
+  ExprAST *Left() { return lhs_.get(); }
+
+  /** @return An immutable pointer to the left expression */
+  const ExprAST *Left() const { return lhs_.get(); }
+
+  /** @return A mutable pointer to the right expression */
+  ExprAST *Right() { return rhs_.get(); }
+
+  /** @return An immutable pointer to the right expression */
+  const ExprAST *Right() const { return rhs_.get(); }
+
+ private:
+  /** The expression type for the operation */
+  parser::ExpressionType op_;
+
+  /** The expression on the left-hand side of the operation */
+  std::unique_ptr<ExprAST> lhs_;
+
+  /** The expression on the right-hand side of the operation */
+  std::unique_ptr<ExprAST> rhs_;
 };
 
-// CallExprAST - Expression class for function calls.
+/**
+ * The CallExprAST class represents a function call expression.
+ */
 class CallExprAST : public ExprAST {
  public:
-  std::string callee;
-  std::vector<std::unique_ptr<ExprAST>> args;
+  /**
+   * Construct a new CallExprAST instance.
+   * @param callee The name of the called function
+   * @param args The arguments to the function call
+   */
+  CallExprAST(std::string callee, std::vector<std::unique_ptr<ExprAST>> &&args)
+      : callee_{std::move(callee)}, args_{std::move(args)} {}
 
-  CallExprAST(const std::string &callee, std::vector<std::unique_ptr<ExprAST>> args)
-      : callee(callee), args(std::move(args)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The name of the called function */
+  const std::string &Callee() const { return callee_; }
+
+  /** @return A mutable reference to the function call arguments */
+  std::vector<std::unique_ptr<ExprAST>> &Args() { return args_; }
+
+  /** @return An immutable reference to the function call arguments */
+  const std::vector<std::unique_ptr<ExprAST>> &Args() const { return args_; }
+
+ private:
+  /** The name of the called function */
+  std::string callee_;
+
+  /** The arguments to the function call */
+  std::vector<std::unique_ptr<ExprAST>> args_;
 };
 
-// SeqStmtAST - Statement class for sequence of statements
+/**
+ * The SeqStmtAST class represents a sequence of statements.
+ */
 class SeqStmtAST : public StmtAST {
  public:
-  std::vector<std::unique_ptr<StmtAST>> stmts;
+  /**
+   * Construct a new SeqStmtAST instance.
+   * @param statements The collection of statements in the sequence
+   */
+  explicit SeqStmtAST(std::vector<std::unique_ptr<StmtAST>> &&statements) : statements_(std::move(statements)) {}
 
-  explicit SeqStmtAST(std::vector<std::unique_ptr<StmtAST>> &&stmts) : stmts(std::move(stmts)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return A mutable reference to the statements in the sequence */
+  std::vector<std::unique_ptr<StmtAST>> &Statements() { return statements_; }
+
+  /** @return An immutable reference to the statements in the sequence */
+  const std::vector<std::unique_ptr<StmtAST>> &Statements() const { return statements_; }
+
+ private:
+  /** The collection of statements in the sequence */
+  std::vector<std::unique_ptr<StmtAST>> statements_;
 };
 
 // DeclStmtAST - Statement class for sequence of statements
+/**
+ * The DeclStmtAST class represents a declaration statement.
+ */
 class DeclStmtAST : public StmtAST {
  public:
-  std::string name;
-  type::TypeId type;
-  std::unique_ptr<ExprAST> initial;
+  /**
+   * Construct a new DeclStmtAST instance.
+   * @param name The name of the variable that is declared
+   * @param type The type of the declared variable
+   * @param initial The initial value in the declaration
+   */
+  DeclStmtAST(std::string name, type::TypeId type, std::unique_ptr<ExprAST> &&initial)
+      : name_{std::move(name)}, type_(type), initial_{std::move(initial)} {}
 
-  DeclStmtAST(std::string name, type::TypeId type, std::unique_ptr<ExprAST> initial)
-      : name(std::move(name)), type(std::move(type)), initial(std::move(initial)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+
+  /** @return The name of the declared variable */
+  const std::string &Name() const { return name_; }
+
+  /** @return The type of the declared variable */
+  type::TypeId Type() const { return type_; }
+
+  /** @return A mutable pointer to the initial value expression */
+  ExprAST *Initial() { return initial_.get(); }
+
+  /** @return An immutable pointer to the initial value expression */
+  const ExprAST *Initial() const { return initial_.get(); }
+
+ private:
+  /** The name of the variable declared in the statement */
+  std::string name_;
+
+  /** The type of the declared variable */
+  type::TypeId type_;
+
+  /** The initial value of the declaration */
+  std::unique_ptr<ExprAST> initial_;
 };
 
-// IfStmtAST - Statement class for if/then/else.
+/**
+ * The IfStmtAST class represents an IF/THEN/ELSE construct.
+ */
 class IfStmtAST : public StmtAST {
  public:
-  std::unique_ptr<ExprAST> cond_expr;
-  std::unique_ptr<StmtAST> then_stmt, else_stmt;
+  /**
+   * Construct a new IfStmtAST instance.
+   * @param cond_expr The conditional expression
+   * @param then_stmt The `then` statement
+   * @param else_stmt The `else` statement
+   */
+  IfStmtAST(std::unique_ptr<ExprAST> &&cond_expr, std::unique_ptr<StmtAST> &&then_stmt,
+            std::unique_ptr<StmtAST> &&else_stmt)
+      : cond_expr_{std::move(cond_expr)}, then_stmt_{std::move(then_stmt)}, else_stmt_{std::move(else_stmt)} {}
 
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
 
-  IfStmtAST(std::unique_ptr<ExprAST> cond_expr, std::unique_ptr<StmtAST> then_stmt, std::unique_ptr<StmtAST> else_stmt)
-      : cond_expr(std::move(cond_expr)), then_stmt(std::move(then_stmt)), else_stmt(std::move(else_stmt)) {}
+  /** @return The conditional expression */
+  ExprAST *Condition() { return cond_expr_.get(); }
+
+  /** @return The conditional expression */
+  const ExprAST *Condition() const { return cond_expr_.get(); }
+
+  /** @return The `then` statement */
+  StmtAST *Then() { return then_stmt_.get(); }
+
+  /** @return The `then` statement */
+  const StmtAST *Then() const { return then_stmt_.get(); }
+
+  /** @return The `else` statement */
+  StmtAST *Else() { return else_stmt_.get(); }
+
+  /** @return The `else` statement */
+  const StmtAST *Else() const { return else_stmt_.get(); }
+
+ private:
+  /** The conditional expression */
+  std::unique_ptr<ExprAST> cond_expr_;
+
+  /** The `then` statement */
+  std::unique_ptr<StmtAST> then_stmt_;
+
+  /** The `else` statement */
+  std::unique_ptr<StmtAST> else_stmt_;
 };
 
+/**
+ * The ForStmtAST class represents a `for`-loop construct.
+ */
 class ForStmtAST : public StmtAST {
  public:
-  std::vector<std::string> vars_;
-  std::unique_ptr<parser::ParseResult> query_;
-  std::unique_ptr<StmtAST> body_stmt_;
+  /**
+   * Construct a new ForStmtAST instance.
+   * @param variables The collection of variables in the loop
+   * @param query The associated query
+   * @param body The body of the loop
+   */
+  ForStmtAST(std::vector<std::string> &&variables, std::unique_ptr<parser::ParseResult> &&query,
+             std::unique_ptr<StmtAST> body)
+      : variables_{std::move(variables)}, query_{std::move(query)}, body_{std::move(body)} {}
 
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
 
-  ForStmtAST(std::vector<std::string> &&vars_vec, std::unique_ptr<parser::ParseResult> query,
-             std::unique_ptr<StmtAST> body_stmt)
-      : vars_(std::move(vars_vec)), query_(std::move(query)), body_stmt_(std::move(body_stmt)) {}
+  /** @return The collection of loop variables */
+  const std::vector<std::string> &Variables() const { return variables_; }
+
+  /** @return The associated query */
+  parser::ParseResult *Query() { return query_.get(); }
+
+  /** @return The associated query */
+  const parser::ParseResult *Query() const { return query_.get(); }
+
+  /** @return The loop body statement */
+  StmtAST *Body() { return body_.get(); }
+
+  /** @return The loop body statement */
+  const StmtAST *Body() const { return body_.get(); }
+
+ private:
+  /** The collection of loop variables */
+  std::vector<std::string> variables_;
+
+  /** The associated query */
+  std::unique_ptr<parser::ParseResult> query_;
+
+  /** The loop body statement */
+  std::unique_ptr<StmtAST> body_;
 };
 
-// WhileAST - Statement class for while loop
+/**
+ * The WhileStmtAST represents a `while`-loop construct.
+ */
 class WhileStmtAST : public StmtAST {
  public:
-  std::unique_ptr<ExprAST> cond_expr;
-  std::unique_ptr<StmtAST> body_stmt;
+  /**
+   * Construct a new WhileStmtAST instance.
+   * @param condition The loop condition
+   * @param body The loop body statement
+   */
+  WhileStmtAST(std::unique_ptr<ExprAST> &&condition, std::unique_ptr<StmtAST> &&body)
+      : condition_{std::move(condition)}, body_{std::move(body)} {}
 
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 
-  WhileStmtAST(std::unique_ptr<ExprAST> cond_expr, std::unique_ptr<StmtAST> body_stmt)
-      : cond_expr(std::move(cond_expr)), body_stmt(std::move(body_stmt)) {}
+  /** @return The loop condition */
+  ExprAST *Condition() { return condition_.get(); }
+
+  /** @return The loop condition */
+  const ExprAST *Condition() const { return condition_.get(); }
+
+  /** @return The loop body statement */
+  StmtAST *Body() { return body_.get(); }
+
+  /** @return The loop body statement */
+  const StmtAST *Body() const { return body_.get(); }
+
+ private:
+  /** The loop condition */
+  std::unique_ptr<ExprAST> condition_;
+
+  /** The loop body statement */
+  std::unique_ptr<StmtAST> body_;
 };
 
-// RetStmtAST - Statement class for sequence of statements
+/**
+ * The RetStmtAST class represents a `return` statement.
+ */
 class RetStmtAST : public StmtAST {
  public:
-  std::unique_ptr<ExprAST> expr;
+  /**
+   * Construct a new RetStmtAST instance.
+   * @param ret_expr The `return` expression
+   */
+  explicit RetStmtAST(std::unique_ptr<ExprAST> &&ret_expr) : ret_expr_{std::move(ret_expr)} {}
 
-  explicit RetStmtAST(std::unique_ptr<ExprAST> expr) : expr(std::move(expr)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The `return` expression */
+  ExprAST *Return() { return ret_expr_.get(); }
+
+  /** @return The `return` expression */
+  const ExprAST *Return() const { return ret_expr_.get(); }
+
+ private:
+  /** The `return` expression */
+  std::unique_ptr<ExprAST> ret_expr_;
 };
 
-// AssignStmtAST - Expression class for a binary operator.
+/**
+ * The AssignStmtAST class represents an assignment statement.
+ */
 class AssignStmtAST : public ExprAST {
  public:
-  std::unique_ptr<VariableExprAST> lhs;
-  std::unique_ptr<ExprAST> rhs;
+  /**
+   * Construct a new AssignStmtAST instance.
+   * @param dst The variable that represents the destination of the assignment
+   * @param src The expression that represents the source of the assignment
+   */
+  AssignStmtAST(std::unique_ptr<VariableExprAST> &&dst, std::unique_ptr<ExprAST> &&src)
+      : dst_{std::move(dst)}, src_{std::move(src)} {}
 
-  AssignStmtAST(std::unique_ptr<VariableExprAST> lhs, std::unique_ptr<ExprAST> rhs)
-      : lhs(std::move(lhs)), rhs(std::move(rhs)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The destination variable of the assignment */
+  VariableExprAST *Destination() { return dst_.get(); }
+
+  /** @return The destination variable of the assignment */
+  const VariableExprAST *Destination() const { return dst_.get(); }
+
+  /** @return The source expression of the assignment */
+  ExprAST *Source() { return src_.get(); }
+
+  /** @return The source expression of the assignment */
+  const ExprAST *Source() const { return src_.get(); }
+
+ private:
+  /** The destination of the assignment */
+  std::unique_ptr<VariableExprAST> dst_;
+
+  /** The source of the assignment */
+  std::unique_ptr<ExprAST> src_;
 };
 
-// SQLStmtAST - Expression class for a SQL Statement.
+/**
+ * The SQLStmtAST class represents a SQL statement.
+ */
 class SQLStmtAST : public StmtAST {
  public:
-  std::unique_ptr<parser::ParseResult> query;
-  std::string var_name;
-  std::unordered_map<std::string, std::pair<std::string, size_t>> udf_params;
+  /**
+   * Construct a new SQLStmtAST instance.
+   * @param query The result of parsing the SQL query
+   * @param name The name of the variable to which results of the query are bound
+   * @param parameters The parameters to the query
+   */
+  SQLStmtAST(std::unique_ptr<parser::ParseResult> &&query, std::string name,
+             std::unordered_map<std::string, std::pair<std::string, size_t>> &&parameters)
+      : query_{std::move(query)}, name_{std::move(name)}, parameters_(std::move(parameters)) {}
 
-  SQLStmtAST(std::unique_ptr<parser::ParseResult> query, std::string var_name,
-             std::unordered_map<std::string, std::pair<std::string, size_t>> &&udf_params)
-      : query(std::move(query)), var_name(std::move(var_name)), udf_params(std::move(udf_params)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The result of parsing the SQL query */
+  parser::ParseResult *Query() { return query_.get(); }
+
+  /** @return The result of parsing the SQL query */
+  const parser::ParseResult *Query() const { return query_.get(); }
+
+  /** @return The variable name to which results are bound */
+  const std::string &Name() const { return name_; }
+
+  /** @return The parameters to the query */
+  const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &Parameters() const { return parameters_; }
+
+ private:
+  /** The result of parsing the SQL query */
+  std::unique_ptr<parser::ParseResult> query_;
+
+  /** The variable name to which results of the query are bound */
+  std::string name_;
+
+  /** The parameters to the query */
+  std::unordered_map<std::string, std::pair<std::string, std::size_t>> parameters_;
 };
 
-// DynamicSQLStmtAST - Expression class for a SQL Statement.
+/**
+ * The DynamicSQLStmtAST class represents a dynamic SQL statement.
+ */
 class DynamicSQLStmtAST : public StmtAST {
  public:
-  std::unique_ptr<ExprAST> query;
-  std::string var_name;
+  /**
+   * Construct a new DynamicSQLStmtAST instance.
+   * @param query The expression that represents the query
+   * @param name The name of the variable to which results are bound
+   */
+  DynamicSQLStmtAST(std::unique_ptr<ExprAST> &&query, std::string var_name)
+      : query_{std::move(query)}, name_{std::move(name)} {}
 
-  DynamicSQLStmtAST(std::unique_ptr<ExprAST> query, std::string var_name)
-      : query(std::move(query)), var_name(std::move(var_name)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The expression that represents the query */
+  const ExprAST *Query() const { return query_.get(); }
+
+  /** @return The name of the variable to which results are bound */
+  const std::string &Name() const { return name_; }
+
+ private:
+  /** The expression that represents the query */
+  std::unique_ptr<ExprAST> query_;
+
+  /** The name of the variable to which results are bound */
+  std::string name_;
 };
 
-// FunctionAST - This class represents a function definition itself.
+/**
+ * The FunctionAST class represents a function definition.
+ */
 class FunctionAST : public AbstractAST {
  public:
-  std::unique_ptr<StmtAST> body;
-  std::vector<std::string> param_names_;
-  std::vector<type::TypeId> param_types_;
+  /**
+   * Construct a new FunctionAST instance.
+   * @param body The body of the function
+   * @param parameter_names The names of the parameters to the function
+   * @param parameter_type The types of the parameters to the function
+   */
+  FunctionAST(std::unique_ptr<StmtAST> &&body, std::vector<std::string> &&parameter_names,
+              std::vector<type::TypeId> &&parameter_types)
+      : body_{std::move(body)},
+        parameter_names_{std::move(parameter_names)},
+        parameter_types_{std::move(parameter_types)} {
+    NOISEPAGE_ASSERT(parameter_names_.size() == parameter_types_.size(), "Parameter Name and Type Mismatch");
+  }
 
-  FunctionAST(std::unique_ptr<StmtAST> body, std::vector<std::string> &&param_names,
-              std::vector<type::TypeId> &&param_types)
-      : body(std::move(body)), param_names_(std::move(param_names)), param_types_(std::move(param_types)) {}
-
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
+
+  /** @return The function body */
+  StmtAST *Body() { return body_.get(); }
+
+  /** @return The function body */
+  const StmtAST *Body() const { return body_.get(); }
+
+  /** The function parameter names */
+  const std::vector<std::string> &ParameterNames() const { return parameter_names_; }
+
+  /** @return The function parameter types */
+  const std::vector<type::TypeId> &ParameterTypes() const { return parameter_types_; }
+
+ private:
+  /** The body of the function */
+  std::unique_ptr<StmtAST> body_;
+
+  /** The names of the parameters to the function */
+  std::vector<std::string> parameter_names_;
+
+  /** The types of the parameters to the function */
+  std::vector<type::TypeId> parameter_types_;
 };
 
 // ----------------------------------------------------------------------------
