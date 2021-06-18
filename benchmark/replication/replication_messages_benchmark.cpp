@@ -41,10 +41,8 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, NotifyOATMsgSerialization)(benc
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, RecordsBatchMsgSerialization)(benchmark::State &state) {
   unlink(noisepage::BenchmarkConfig::logfile_path.data());
-  storage::BufferedLogWriter buffer(noisepage::BenchmarkConfig::logfile_path.data());
-  FillBuffer(&buffer);
   replication::RecordsBatchMsg msg(replication::ReplicationMessageMetadata(replication::msg_id_t(666)),
-                                   replication::record_batch_id_t(42), &buffer);
+                                   replication::record_batch_id_t(42));
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -99,10 +97,8 @@ BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, NotifyOATMsgDeserialization)(be
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ReplicationMessagesBenchmark, RecordsBatchMsgDeserialization)(benchmark::State &state) {
   unlink(noisepage::BenchmarkConfig::logfile_path.data());
-  storage::BufferedLogWriter buffer(noisepage::BenchmarkConfig::logfile_path.data());
-  FillBuffer(&buffer);
   replication::RecordsBatchMsg msg(replication::ReplicationMessageMetadata(replication::msg_id_t(666)),
-                                   replication::record_batch_id_t(42), &buffer);
+                                   replication::record_batch_id_t(42));
   std::string serialized_msg = msg.Serialize();
 
   // NOLINTNEXTLINE
