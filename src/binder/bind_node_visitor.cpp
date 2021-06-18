@@ -680,14 +680,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
   BINDER_LOG_TRACE("Visiting ColumnValueExpression ...");
   SqlNodeVisitor::Visit(expr);
 
-  // Before checking with the schema, cache the desired type that expr should have.
-  auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
+  // Before checking with the schema, cache the desired type that expr should have
+  const auto cached_desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //  That is, the object would not be initialized using ColumnValueExpression(database_oid, table_oid, column_oid)
   //  at this point
   if (expr->GetTableOid() == catalog::INVALID_TABLE_OID) {
-    std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
+    std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple{};
     std::string table_name = expr->GetTableName();
     std::string col_name = expr->GetColumnName();
     if (table_name.empty() && col_name.empty() && expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
@@ -695,11 +695,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
                                          std::to_string(expr->GetColumnOid().UnderlyingValue())),
                              common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
     }
-    // Convert all the names to lower cases
+    // Convert all the names to lower case
     std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);
     std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
 
-    // Table name not specified in the expression. Loop through all the table in the binder context.
+    // Table name not specified in the expression; loop through all the tables in the binder context
     type::TypeId the_type{};
     if (table_name.empty()) {
       if (udf_ast_context_ != nullptr && udf_ast_context_->GetVariableType(expr->GetColumnName(), &the_type)) {
@@ -715,7 +715,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
     } else {
-      // Table name is present
+      // The table name is present
       if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, common::ManagedPointer(&tuple))) {
         if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
           throw BINDER_EXCEPTION(fmt::format("column \"{}\" does not exist", col_name),
@@ -723,7 +723,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
         }
         BinderContext::SetColumnPosTuple(col_name, tuple, expr);
       } else if (udf_ast_context_ != nullptr && udf_ast_context_->GetVariableType(expr->GetTableName(), &the_type)) {
-        // record type
         NOISEPAGE_ASSERT(the_type == type::TypeId::INVALID, "unknown type");
         auto &fields = udf_ast_context_->GetRecordType(expr->GetTableName());
         auto it = std::find_if(fields.begin(), fields.end(), [=](auto p) { return p.first == expr->GetColumnName(); });
@@ -735,17 +734,18 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
           }
           expr->SetReturnValueType(it->second);
           expr->SetParamIdx(idx);
-        } else if (context_ == nullptr || !context_->CheckNestedTableColumn(table_name, col_name, expr)) {
-          throw BINDER_EXCEPTION(fmt::format("Invalid table reference {}", expr->GetTableName()),
-                                 common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
         }
+      } else if (context_ == nullptr || !context_->CheckNestedTableColumn(table_name, col_name, expr)) {
+        throw BINDER_EXCEPTION(fmt::format("Invalid table reference {}", expr->GetTableName()),
+                               common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
       }
     }
   }
 
   // The schema is authoritative on what the type of this ColumnValueExpression should be, UNLESS
   // some specific type was already requested.
-  desired_type = desired_type == type::TypeId::INVALID ? expr->GetReturnValueType() : desired_type;
+  const auto desired_type =
+      cached_desired_type == type::TypeId::INVALID ? expr->GetReturnValueType() : cached_desired_type;
   sherpa_->SetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>(), desired_type);
   sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 }

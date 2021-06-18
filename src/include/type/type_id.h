@@ -1,5 +1,8 @@
 #pragma once
 
+#include <ostream>
+
+#include "common/macros.h"
 #include "common/strong_typedef.h"
 
 namespace noisepage::type {
@@ -37,5 +40,13 @@ enum class TypeId : uint8_t {
   VARIADIC,
   VAR_ARRAY,  ///< pg_type requires a distinct type for var_array.
 };
+
+/**
+ * Operator overload for printing TypeId values.
+ * @param os The output stream
+ * @param type_id The type ID
+ * @return The output stream
+ */
+std::ostream &operator<<(std::ostream &os, TypeId type_id);
 
 }  // namespace noisepage::type

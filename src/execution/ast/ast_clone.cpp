@@ -26,24 +26,25 @@ class AstCloneImpl : public AstVisitor<AstCloneImpl, AstNode *> {
   AST_NODES(DECLARE_VISIT_METHOD)
 #undef DECLARE_VISIT_METHOD
 
-  Identifier CloneIdentifier(Identifier &ident) { return new_context_->GetIdentifier(ident.GetData()); }
+  Identifier CloneIdentifier(const Identifier &ident) { return new_context_->GetIdentifier(ident.GetData()); }
 
-  Identifier CloneIdentifier(Identifier &&ident) {
+  Identifier CloneIdentifier(const Identifier &&ident) {
     (void)old_context_;
     return new_context_->GetIdentifier(ident.GetData());
   }
 
  private:
-  // The root of the AST to clone.
+  /** The root of the AST to clone. */
   AstNode *root_;
-  // The AST node factory used to allocate new nodes.
-  AstNodeFactory *factory_;
-  // The AST context of the source AST.
-  Context *old_context_;
-  // The AST context of the destination AST.
-  Context *new_context_;
 
-  // llvm::DenseMap<llvm::StringRef, llvm::StringRef> allocated_strings_;
+  /** The AST node factory used to allocate new nodes. */
+  AstNodeFactory *factory_;
+
+  /** The AST context of the source AST. */
+  Context *old_context_;
+
+  /** The AST context of the destination AST. */
+  Context *new_context_;
 };
 
 AstNode *AstCloneImpl::VisitFile(File *node) {
