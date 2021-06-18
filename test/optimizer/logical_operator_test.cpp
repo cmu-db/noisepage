@@ -491,69 +491,6 @@ TEST(OperatorTests, LogicalCteScanTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, LogicalCteScanTest) {
-  //===--------------------------------------------------------------------===//
-  // LogicalCteScan
-  //===--------------------------------------------------------------------===//
-  // Due to the deferred action framework being used to manage memory, we need to
-  // simulate a transaction to prevent leaks
-  auto timestamp_manager = transaction::TimestampManager();
-  auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
-  auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
-  transaction::TransactionManager txn_manager = transaction::TransactionManager(
-      common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
-      common::ManagedPointer(&buffer_pool), false, false, nullptr);
-
-  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
-
-  parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
-  parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
-  parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
-
-  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
-  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
-  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
-
-  Operator logical_cte_1 =
-      LogicalCteScan::Make("cte_1", "cte_1", catalog::MakeTempOid<catalog::table_oid_t>(1000), catalog::Schema(),
-                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_1}},
-                           parser::CteType::SIMPLE, {})
-          .RegisterWithTxnContext(txn_context);
-  Operator logical_cte_2 =
-      LogicalCteScan::Make("cte_1", "cte_1", catalog::MakeTempOid<catalog::table_oid_t>(1001), catalog::Schema(),
-                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_2}},
-                           parser::CteType::SIMPLE, {})
-          .RegisterWithTxnContext(txn_context);
-  Operator logical_cte_3 =
-      LogicalCteScan::Make("cte_2", "cte_1", catalog::MakeTempOid<catalog::table_oid_t>(1002), catalog::Schema(),
-                           std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_3}},
-                           parser::CteType::SIMPLE, {})
-          .RegisterWithTxnContext(txn_context);
-
-  EXPECT_EQ(logical_cte_1.GetOpType(), OpType::LOGICALCTESCAN);
-  EXPECT_EQ(logical_cte_3.GetOpType(), OpType::LOGICALCTESCAN);
-  EXPECT_EQ(logical_cte_1.GetName(), "LogicalCteScan");
-  EXPECT_EQ(logical_cte_1.GetContentsAs<LogicalCteScan>()->GetExpressions(),
-            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_1}});
-  EXPECT_EQ(logical_cte_3.GetContentsAs<LogicalCteScan>()->GetExpressions(),
-            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{{x_3}});
-  EXPECT_TRUE(logical_cte_1 == logical_cte_2);
-  EXPECT_FALSE(logical_cte_1 == logical_cte_3);
-  EXPECT_EQ(logical_cte_1.Hash(), logical_cte_2.Hash());
-  EXPECT_NE(logical_cte_1.Hash(), logical_cte_3.Hash());
-
-  delete expr_b_1;
-  delete expr_b_2;
-  delete expr_b_3;
-
-  txn_manager.Abort(txn_context);
-  delete txn_context;
-}
-
-// NOLINTNEXTLINE
 TEST(OperatorTests, LogicalExternalFileGetTest) {
   //===--------------------------------------------------------------------===//
   // LogicalExternalFileGet

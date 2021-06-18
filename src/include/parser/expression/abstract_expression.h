@@ -127,6 +127,24 @@ class AliasType {
     bool operator()(const AliasType &p, const AliasType &q) const { return p.GetSerialNo() < q.GetSerialNo(); }
   };
 
+  nlohmann::json ToJson() const {
+    nlohmann::json j;
+    j["name"] = name_;
+    j["serial_valid"] = serial_valid_;
+    if (serial_valid_) {
+      j["serial_no"] = serial_no_;
+    }
+    return j;
+  }
+
+  void FromJson(const nlohmann::json &j) {
+    name_ = j.at("name").get<std::string>();
+    serial_valid_ = j.at("serial_valid").get<bool>();
+    if (serial_valid_) {
+      serial_no_ = j.at("serial_no").get<size_t>();
+    }
+  }
+
  private:
   std::string name_;
   size_t serial_no_;
