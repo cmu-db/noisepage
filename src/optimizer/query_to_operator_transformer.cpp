@@ -349,7 +349,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     // Construct query derived table predicates
     // i.e. the mapping from column name to the underlying expression in the sub-query.
     // This is needed to generate input/output information for subqueries
-    auto table_alias = node->GetAlias();
+    auto &table_alias = node->GetAlias();
     auto table_alias_name = table_alias.GetName();
     std::transform(table_alias_name.begin(), table_alias_name.end(), table_alias_name.begin(), ::tolower);
     table_alias.SetName(table_alias_name);
@@ -586,7 +586,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
   auto target_table = op->GetDeletionTable();
   auto target_db_id = db_oid_;
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
-  auto target_table_alias = target_table->GetAlias();
+  const auto &target_table_alias = target_table->GetAlias();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
@@ -666,7 +666,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
   auto target_table = op->GetUpdateTable();
   auto target_db_id = db_oid_;
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
-  auto target_table_alias = target_table->GetAlias();
+  const auto &target_table_alias = target_table->GetAlias();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
   std::unique_ptr<OperatorNode> table_scan;

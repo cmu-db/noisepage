@@ -189,7 +189,7 @@ void BinderContext::SetTableName(common::ManagedPointer<parser::ColumnValueExpre
   if (node->GetSelectTable() != nullptr) {
     auto type = node->GetSelectTable()->GetTableReferenceType();
     if (type == parser::TableReferenceType::NAME || type == parser::TableReferenceType::SELECT) {
-      auto table_alias = node->GetSelectTable()->GetAlias();
+      const auto &table_alias = node->GetSelectTable()->GetAlias();
       auto expr_table_alias = expr->GetAlias();
       if (expr_table_alias.Empty()) {
         expr->SetTableAlias(table_alias);

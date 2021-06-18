@@ -675,7 +675,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
   //  at this point
   if (expr->GetTableOid() == catalog::INVALID_TABLE_OID) {
     std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
-    parser::AliasType table_alias = expr->GetTableAlias();
+    const auto &table_alias = expr->GetTableAlias();
     std::string table_alias_name = table_alias.GetName();
     std::string col_name = expr->GetColumnName();
     if (table_alias.Empty() && col_name.empty() && expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
@@ -944,7 +944,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
     } else if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::COLUMN_VALUE) {
       auto column_value_expression = exprs[idx].CastManagedPointerTo<parser::ColumnValueExpression>();
       std::string column_name = column_value_expression->GetColumnName();
-      std::string table_name = column_value_expression->GetTableAlias().GetName();
+      const std::string &table_name = column_value_expression->GetTableAlias().GetName();
       if (table_name.empty() && !column_name.empty()) {
         for (auto select_expression : select_items) {
           auto abstract_select_expression = select_expression.CastManagedPointerTo<parser::AbstractExpression>();
