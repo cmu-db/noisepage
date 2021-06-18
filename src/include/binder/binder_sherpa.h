@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/error/error_code.h"
+#include "common/error/exception.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 
@@ -31,7 +33,7 @@ class BinderSherpa {
       : parse_result_(parse_result),
         parameters_(parameters),
         desired_parameter_types_(desired_parameter_types),
-        unique_table_alias_serial_num_(0) {
+        unique_table_alias_serial_num_(1) {
     NOISEPAGE_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
     NOISEPAGE_ASSERT((parameters == nullptr && desired_parameter_types == nullptr) ||
                          (parameters != nullptr && desired_parameter_types != nullptr),
@@ -115,9 +117,11 @@ class BinderSherpa {
   bool HasCTETableName(const std::string &cte_table_name) const { return cte_table_names_.count(cte_table_name) > 0; }
 
   size_t GetUniqueTableAliasSerialNumber() {
-    // TODO(Joe) is it worth handling overflow? It will slow down every query for the sake of addressing an issue that
-    //  is likely to never happen.
-    return unique_table_alias_serial_num_++;
+    auto unique_serial_number = unique_table_alias_serial_num_++;
+    if(unique_serial_number == 0) {
+      throw BINDER_EXCEPTION("Too many table references for the binder to handle", common::ErrorCode::ERRCODE_STATEMENT_TOO_COMPLEX);
+    }
+    return unique_serial_number++;
   }
 
  private:

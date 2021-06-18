@@ -194,20 +194,4 @@ std::unique_ptr<TableRef> TableRef::Copy() const {
   return table_ref;
 }
 
-// TODO(Joe) Where is this used? Should we be appending table alias names or table alias types?
-void TableRef::GetConstituentTableAliases(std::vector<std::string> *aliases) {
-  if (!alias_.Empty()) {
-    aliases->push_back(GetAlias().GetName());
-  }
-
-  if (join_ != nullptr) {
-    join_->GetLeftTable()->GetConstituentTableAliases(aliases);
-    join_->GetRightTable()->GetConstituentTableAliases(aliases);
-  }
-
-  for (auto &table : list_) {
-    table->GetConstituentTableAliases(aliases);
-  }
-}
-
 }  // namespace noisepage::parser
