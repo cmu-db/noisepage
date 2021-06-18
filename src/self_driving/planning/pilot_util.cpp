@@ -302,11 +302,11 @@ void PilotUtil::OUModelInference(pilot::PlanningContext *planning_context,
     // Index of the inference_features in the original interference_features
     std::vector<int> infer_index;
     int idx = 0;
-    int_features.reserve(ou_map_it.second.size());
+    int_features.resize(ou_map_it.second.size());
     for (auto &feature : ou_map_it.second) {
       // Convert features to int with two-digit precision used for cache
       std::vector<int> int_feature;
-      int_feature.reserve(feature.size());
+      int_feature.resize(feature.size());
       for (uint64_t i = 0; i < feature.size(); ++i) int_feature[i] = feature[i] * 100;
       if (!planning_context->HasOUInference(ou_type, int_feature)) {
         inference_features.emplace_back(feature);
@@ -458,11 +458,11 @@ void PilotUtil::InterferenceModelInference(PlanningContext *planning_context,
   // Index of the inference_features in the original interference_features
   std::vector<int> infer_index;
   int idx = 0;
-  int_features.reserve(interference_features.size());
+  int_features.resize(interference_features.size());
   for (auto &feature : interference_features) {
     // Convert features to int with two-digit precision used for cache
     std::vector<int> int_feature;
-    int_feature.reserve(feature.size());
+    int_feature.resize(feature.size());
     for (uint64_t i = 0; i < feature.size(); ++i) int_feature[i] = feature[i] * 100;
     if (!planning_context->HasInterferenceInference(int_feature)) {
       inference_features.emplace_back(feature);
@@ -639,9 +639,11 @@ void PilotUtil::ComputeTableSizeRatios(const PlanningContext &planning_context, 
     auto &id_to_num_exec = forecast->GetSegmentByIndex(idx).GetIdToNumexec();
     std::unordered_map<db_table_oid_pair, double, DBTableOidPairHasher> table_size_deltas;
     for (const auto &[query_id, table_id_to_delta] : query_row_changes) {
-      auto table_id = table_id_to_delta.first;
-      if (table_size_deltas.find(table_id) == table_size_deltas.end()) table_size_deltas[table_id] = 0;
-      table_size_deltas[table_id] += table_id_to_delta.second * id_to_num_exec.at(query_id);
+      if (id_to_num_exec.find(query_id) != id_to_num_exec.end()) {
+        auto table_id = table_id_to_delta.first;
+        if (table_size_deltas.find(table_id) == table_size_deltas.end()) table_size_deltas[table_id] = 0;
+        table_size_deltas[table_id] += table_id_to_delta.second * id_to_num_exec.at(query_id);
+      }
     }
 
     // Calculate the table size change ratio for this segment

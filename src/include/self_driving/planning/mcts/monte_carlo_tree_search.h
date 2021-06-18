@@ -125,7 +125,10 @@ class MonteCarloTreeSearch {
   bool use_min_cost_;  // Use the minimum cost of all leaves (instead of the average) as the cost for internal nodes
   // Cache the cost given an ActionState
   std::unordered_map<ActionState, double, ActionStateHasher> action_state_cost_map_;
-  // Cache the cost given an ActionState and another action (CreateIndexAction for now) being applied
+  // Cache the cost given an <ActionState, action> pair
+  // The first element (ActionState) represents the state of the applied actions and the workload intervals to compute
+  // the cost; the second element (action) represents an action that is applied at the start_interval_ of the
+  // ActionState (currently only used for CreateIndexActions)
   std::unordered_map<std::pair<ActionState, action_id_t>, std::pair<double, uint64_t>, ActionStateActionPairHasher>
       action_apply_cost_map_;
 

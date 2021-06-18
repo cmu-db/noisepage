@@ -449,7 +449,7 @@ class InterferenceModel(AbstractModel):
 
         features = np.array(features)
 
-        if OUModel.USE_INFER_CACHE:
+        if InterferenceModel.USE_INFER_CACHE:
             y_pred = _infer_with_cache(model, features, self.infer_cache)
         else:
             y_pred = model.predict(features)
