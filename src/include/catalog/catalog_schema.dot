@@ -1,0 +1,141 @@
+digraph {
+    compound=true;
+    rankdir=LR;
+    concentrate=true;
+
+    pgDatabase [
+        shape = "none"
+        label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+            <TR><TD COLSPAN="2"><B>pg_database</B></TD></TR>
+            <TR><TD>oid</TD><TD>INTEGER</TD></TR>
+            <TR><TD>datname</TD><TD>VARCHAR</TD></TR>
+            <TR><TD><I>catalog_</I></TD><TD PORT="datcatalog">POINTER</TD></TR>
+            </TABLE>>
+    ]
+
+    subgraph clusterDB {
+        color = "gray50";
+        fontcolor = "gray50";
+        label = <DatabaseCatalog (<I>per database</I>)>
+        node [group="default" ];
+
+        pgClass [
+            shape = "none"
+            label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+                <TR><TD COLSPAN="2"><B>pg_class</B></TD></TR>
+                <TR><TD PORT="reloid">oid</TD><TD>INTEGER</TD></TR>
+                <TR><TD>relname</TD><TD>VARCHAR</TD></TR>
+                <TR><TD>relnamespace</TD><TD PORT="relnamespace">INTEGER</TD></TR>
+                <TR><TD>relkind</TD><TD>CHAR</TD></TR>
+                <TR><TD><I>schema_</I></TD><TD PORT="schema">POINTER</TD></TR>
+                <TR><TD><I>ptr_</I></TD><TD PORT="pointer">POINTER</TD></TR>
+                </TABLE>>
+        ]
+
+        pgNamespace [
+            shape = "none"
+            label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+                <TR><TD COLSPAN="2"><B>pg_namespace</B></TD></TR>
+                <TR><TD PORT="nspoid">oid</TD><TD>INTEGER</TD></TR>
+                <TR><TD>nspname</TD><TD>VARCHAR</TD></TR>
+                </TABLE>>
+        ]
+
+        pgIndex [
+            shape = "none"
+            label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+                <TR><TD COLSPAN="2"><B>pg_index</B></TD></TR>
+                <TR><TD>indexrelid (<I>oid</I>)</TD><TD PORT="indoid">INTEGER</TD></TR>
+                <TR><TD>indrelid</TD><TD PORT="indtable">INTEGER</TD></TR>
+                <TR><TD>indisunique</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>indisprimary</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>indisexclusion</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>indimmediate</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>indisvalid</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>indisready</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>indislive</TD><TD>BOOLEAN</TD></TR>
+                </TABLE>>
+        ]
+
+        /*
+         * We overload pg_attribute to also be pg_attrdef.  It appears Postgres
+         * divides this into two table to reduce lock contention when default
+         * values are changes (would block read-only transactions in Postgres)
+         */
+        pgAttribute [
+            shape = "none"
+            label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+                <TR><TD COLSPAN="2"><B>pg_attribute</B></TD></TR>
+                <TR><TD PORT="attoid">attnum (<I>oid</I>)</TD><TD>INTEGER</TD></TR>
+                <TR><TD>attrelid</TD><TD PORT="attparent">INTEGER</TD></TR>
+                <TR><TD>attname</TD><TD>VARCHAR</TD></TR>
+                <TR><TD>atttypid</TD><TD PORT="atttype">INTEGER</TD></TR>
+                <TR><TD>attlen</TD><TD>SMALLINT</TD></TR>
+                <TR><TD>attnotnull</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>adbin</TD><TD PORT="adbin">POINTER</TD></TR>
+                <TR><TD>adsrc</TD><TD>VARCHAR</TD></TR>
+                </TABLE>>
+        ]
+
+        pgType [
+            shape = "none"
+            label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+                <TR><TD COLSPAN="2"><B>pg_type</B></TD></TR>
+                <TR><TD PORT="typoid">oid</TD><TD>INTEGER</TD></TR>
+                <TR><TD>typname</TD><TD>VARCHAR</TD></TR>
+                <TR><TD>typnamespace</TD><TD PORT="typnamespace">INTEGER</TD></TR>
+                <TR><TD>typlen</TD><TD>SMALLINT</TD></TR>
+                <TR><TD>typbyval</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>typtype</TD><TD>CHAR</TD></TR>
+                </TABLE>>
+        ]
+
+        pgConstraint [
+            shape = "none"
+            label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+                <TR><TD COLSPAN="2"><B>pg_constraint</B></TD></TR>
+                <TR PORT="conoid"><TD>oid</TD><TD>INTEGER</TD></TR>
+                <TR><TD>conname</TD><TD>VARCHAR</TD></TR>
+                <TR><TD>connamespace</TD><TD PORT="connamespace">INTEGER</TD></TR>
+                <TR><TD>contype</TD><TD>CHAR</TD></TR>
+                <TR><TD>condeferrable</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>condeferred</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>convalidated</TD><TD>BOOLEAN</TD></TR>
+                <TR><TD>conrelid</TD><TD PORT="contable">INTEGER</TD></TR>
+                <TR><TD>conindid</TD><TD PORT="conindex">INTEGER</TD></TR>
+                <TR><TD>confrelid</TD><TD PORT="confkey">INTEGER</TD></TR>
+                <TR><TD>conbin</TD><TD PORT="conbin">POINTER</TD></TR>
+                <TR><TD>consrc</TD><TD>VARCHAR</TD></TR>
+                </TABLE>>
+        ]
+
+        node[color="gray50", fontcolor="gray50"]
+        AbstractExpression;
+        SqlTable;
+        Index;
+        Schema;
+        IndexKeySchema;
+    }
+
+    pgConstraint:connamespace -> pgNamespace:nspoid;
+    pgConstraint:conindex -> pgClass:reloid;
+    pgConstraint:contable -> pgClass:reloid;
+    pgConstraint:confkey -> pgClass:reloid;
+
+    pgAttribute:attparent -> pgClass:reloid;
+    pgAttribute:atttype -> pgType:typoid;
+
+    pgClass:relnamespace -> pgNamespace:nspoid;
+
+    pgType:typnamespace -> pgNamespace:nspoid;
+
+    pgIndex:indtable -> pgClass:reloid;
+    pgIndex:indoid -> pgClass:reloid;
+
+    edge[color="gray50"];
+    pgDatabase:datcatalog -> pgType [lhead=clusterDB];
+    pgConstraint:conbin, pgAttribute:adbin -> AbstractExpression;
+    pgClass:schema -> Schema, IndexKeySchema;
+    pgClass:pointer -> SqlTable, Index;
+
+}
