@@ -29,7 +29,7 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
 }
 
 void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (GetCompilationContext()->GetOutputCallback()) {
+  if (GetCompilationContext()->GetOutputCallback() != nullptr) {
     return;
   }
 
@@ -41,7 +41,7 @@ void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, Functio
 }
 
 void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (GetCompilationContext()->GetOutputCallback()) {
+  if (GetCompilationContext()->GetOutputCallback() != nullptr) {
     return;
   }
 
@@ -55,7 +55,7 @@ void OutputTranslator::PerformPipelineWork(noisepage::execution::compiler::WorkC
   auto out_buffer = output_buffer_.Get(GetCodeGen());
   ast::Expr *cast_call;
   auto callback = GetCompilationContext()->GetOutputCallback();
-  if (callback) {
+  if (callback != nullptr) {
     auto output = GetCodeGen()->MakeFreshIdentifier("output_row");
     auto *row_alloc = GetCodeGen()->DeclareVarNoInit(output, GetCodeGen()->MakeExpr(output_struct_));
     function->Append(row_alloc);
@@ -76,13 +76,13 @@ void OutputTranslator::PerformPipelineWork(noisepage::execution::compiler::WorkC
     ast::Expr *lhs = GetCodeGen()->AccessStructMember(GetCodeGen()->MakeExpr(output_var_), attr_name);
     ast::Expr *rhs = child_translator->GetOutput(context, attr_idx);
     function->Append(GetCodeGen()->Assign(lhs, rhs));
-    if (callback) {
+    if (callback != nullptr) {
       callback_args.push_back(lhs);
     }
   }
 
-  if (callback) {
-    function->Append(GetCodeGen()->Call(callback->As<ast::LambdaExpr>()->GetName(), std::move(callback_args)));
+  if (callback != nullptr) {
+    function->Append(GetCodeGen()->Call(callback->As<ast::LambdaExpr>()->GetName(), callback_args));
   }
 
   CounterAdd(function, num_output_, 1);
@@ -105,7 +105,7 @@ void OutputTranslator::EndParallelPipelineWork(const Pipeline &pipeline, Functio
 }
 
 void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (GetCompilationContext()->GetOutputCallback()) {
+  if (GetCompilationContext()->GetOutputCallback() != nullptr) {
     return;
   }
 

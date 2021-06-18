@@ -719,7 +719,7 @@ class BreakStmt : public Stmt {
    * @param node The node to check.
    * @return `true` if the node is a break statement, `false` otherwise.
    */
-  static bool classof(const AstNode *node) { return node->GetKind() == Kind::BreakStmt; }
+  static bool classof(const AstNode *node) { return node->GetKind() == Kind::BreakStmt; }  // NOLINT
 };
 
 /**

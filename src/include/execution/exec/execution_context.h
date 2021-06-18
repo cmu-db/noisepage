@@ -185,7 +185,7 @@ class EXPORT ExecutionContext {
   void InitializeParallelOUFeatureVector(selfdriving::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /** Initialize the UDF parameter stack. */
-  void StartParams() { udf_param_stack_.push_back({}); }
+  void StartParams() { udf_param_stack_.emplace_back(); }
 
   /** Remove an element from the UDF parameter stack. */
   void PopParams() { udf_param_stack_.pop_back(); }

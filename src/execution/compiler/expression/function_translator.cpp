@@ -38,11 +38,8 @@ ast::Expr *FunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
 
   if (!func_context->IsBuiltin()) {
     auto ident_expr = main_fn_;
-    std::vector<ast::Expr *> args;
-    for (auto &expr : params) {
-      args.emplace_back(expr);
-    }
-    return GetCodeGen()->Call(ident_expr, std::move(args));
+    std::vector<ast::Expr *> args{params.cbegin(), params.cbegin()};
+    return GetCodeGen()->Call(ident_expr, args);
   }
 
   return codegen->CallBuiltin(func_context->GetBuiltin(), params);

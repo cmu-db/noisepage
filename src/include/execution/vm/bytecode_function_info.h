@@ -297,7 +297,7 @@ class FunctionInfo {
    * the body of the lambda. This action is evaluated when we
    * later visit the declaration for the function itself.
    */
-  void DeferAction(const std::function<void()> action) { actions_.push_back(action); }
+  void DeferAction(std::function<void()> &&action) { actions_.push_back(std::move(action)); }
 
   /**
    * @return `true` if the TBC function represented by this object

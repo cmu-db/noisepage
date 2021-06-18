@@ -173,7 +173,7 @@ void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
   for (auto expr : node->GetCaptureIdents()) {
     auto ident = expr->As<ast::IdentifierExpr>();
     Resolve(ident);
-    if (ident->GetType()->SafeAs<ast::BuiltinType>()) {
+    if (ident->GetType()->SafeAs<ast::BuiltinType>() != nullptr) {
       auto type_repr = factory->NewPointerType(
           SourcePosition(),
           factory->NewIdentifierExpr(

@@ -121,9 +121,8 @@ AstNode *AstCloneImpl::VisitIfStmt(IfStmt *node) {
 AstNode *AstCloneImpl::VisitReturnStmt(ReturnStmt *node) {
   if (node->Ret() == nullptr) {
     return factory_->NewReturnStmt(node->Position(), nullptr);
-  } else {
-    return factory_->NewReturnStmt(node->Position(), reinterpret_cast<Expr *>(Visit(node->Ret())));
   }
+  return factory_->NewReturnStmt(node->Position(), reinterpret_cast<Expr *>(Visit(node->Ret())));
 }
 
 AstNode *AstCloneImpl::VisitCallExpr(CallExpr *node) {

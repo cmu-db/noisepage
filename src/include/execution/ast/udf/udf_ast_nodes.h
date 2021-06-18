@@ -29,7 +29,7 @@ class AbstractAST {
 // StmtAST - Base class for all statement nodes.
 class StmtAST : public AbstractAST {
  public:
-  virtual ~StmtAST() = default;
+  ~StmtAST() override = default;
 
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };
@@ -37,7 +37,7 @@ class StmtAST : public AbstractAST {
 // ExprAST - Base class for all expression nodes.
 class ExprAST : public StmtAST {
  public:
-  virtual ~ExprAST() = default;
+  ~ExprAST() override = default;
 
   void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); }
 };

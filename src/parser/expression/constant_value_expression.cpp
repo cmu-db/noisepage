@@ -68,7 +68,7 @@ T ConstantValueExpression::Peek() const {
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
-                std::is_same_v<T, int64_t>) {
+                std::is_same_v<T, int64_t>) {  // NOLINT
     return static_cast<T>(GetInteger().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr

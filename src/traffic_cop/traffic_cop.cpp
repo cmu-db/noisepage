@@ -220,7 +220,7 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
     return {ResultType::ERROR, error};
   }
 
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 TrafficCopResult TrafficCop::ExecuteShowStatement(
@@ -248,7 +248,7 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
 
   out->WriteRowDescription(cols, {network::FieldFormat::text});
   out->WriteDataRow(reinterpret_cast<const byte *>(&result), cols, {network::FieldFormat::text});
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 TrafficCopResult TrafficCop::ExecuteCreateStatement(
@@ -269,35 +269,35 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       if (execution::sql::DDLExecutors::CreateTableExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_DB: {
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_FUNCTION: {
       if (execution::sql::DDLExecutors::CreateFunctionExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateFunctionPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
@@ -329,7 +329,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
     case network::QueryType::QUERY_DROP_TABLE: {
       if (execution::sql::DDLExecutors::DropTableExecutor(
               physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
@@ -337,21 +337,21 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_INDEX: {
       if (execution::sql::DDLExecutors::DropIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
@@ -411,7 +411,7 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
                     {network::FieldFormat::text});
 
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(
@@ -468,7 +468,7 @@ TrafficCopResult TrafficCop::BindQuery(
     return {ResultType::ERROR, error};
   }
 
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 TrafficCopResult TrafficCop::CodegenPhysicalPlan(
@@ -495,7 +495,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
-    return {ResultType::COMPLETE, 0u};
+    return {ResultType::COMPLETE, 0U};
   }
 
   // TODO(WAN): see #1047
@@ -531,7 +531,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,

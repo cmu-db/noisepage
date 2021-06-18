@@ -3148,46 +3148,45 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
     // Return sql type
     call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
     return;
-  } else {
-    if (builtin > ast::Builtin::FinishNewParams) {
-      ast::BuiltinType::Kind add_sql_type;
-      switch (builtin) {
-        case ast::Builtin::AddParamBool: {
-          add_sql_type = ast::BuiltinType::Boolean;
-          break;
-        }
-        case ast::Builtin::AddParamTinyInt:
-        case ast::Builtin::AddParamSmallInt:
-        case ast::Builtin::AddParamInt:
-        case ast::Builtin::AddParamBigInt: {
-          add_sql_type = ast::BuiltinType::Integer;
-          break;
-        }
-        case ast::Builtin::AddParamReal:
-        case ast::Builtin::AddParamDouble: {
-          add_sql_type = ast::BuiltinType::Real;
-          break;
-        }
-        case ast::Builtin::AddParamDate: {
-          add_sql_type = ast::BuiltinType::Date;
-          break;
-        }
-        case ast::Builtin::AddParamTimestamp: {
-          add_sql_type = ast::BuiltinType::Timestamp;
-          break;
-        }
-        case ast::Builtin::AddParamString: {
-          add_sql_type = ast::BuiltinType::StringVal;
-          break;
-        }
-        default: {
-          UNREACHABLE("Undefined parameter call!!");
-        }
+  }
+  if (builtin > ast::Builtin::FinishNewParams) {
+    ast::BuiltinType::Kind add_sql_type;
+    switch (builtin) {
+      case ast::Builtin::AddParamBool: {
+        add_sql_type = ast::BuiltinType::Boolean;
+        break;
       }
-      if (call->Arguments()[1]->GetType() != GetBuiltinType(add_sql_type)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(add_sql_type));
-        return;
+      case ast::Builtin::AddParamTinyInt:
+      case ast::Builtin::AddParamSmallInt:
+      case ast::Builtin::AddParamInt:
+      case ast::Builtin::AddParamBigInt: {
+        add_sql_type = ast::BuiltinType::Integer;
+        break;
       }
+      case ast::Builtin::AddParamReal:
+      case ast::Builtin::AddParamDouble: {
+        add_sql_type = ast::BuiltinType::Real;
+        break;
+      }
+      case ast::Builtin::AddParamDate: {
+        add_sql_type = ast::BuiltinType::Date;
+        break;
+      }
+      case ast::Builtin::AddParamTimestamp: {
+        add_sql_type = ast::BuiltinType::Timestamp;
+        break;
+      }
+      case ast::Builtin::AddParamString: {
+        add_sql_type = ast::BuiltinType::StringVal;
+        break;
+      }
+      default: {
+        UNREACHABLE("Undefined parameter call!!");
+      }
+    }
+    if (call->Arguments()[1]->GetType() != GetBuiltinType(add_sql_type)) {
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(add_sql_type));
+      return;
     }
   }
   call->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Nil));

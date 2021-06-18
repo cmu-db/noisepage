@@ -91,7 +91,7 @@ void Sema::VisitMapTypeRepr(ast::MapTypeRepr *node) {
 }
 
 void Sema::VisitLambdaTypeRepr(ast::LambdaTypeRepr *node) {
-  ast::FunctionType *fn_type = Resolve(node->FunctionType())->SafeAs<ast::FunctionType>();
+  auto *fn_type = Resolve(node->FunctionType())->SafeAs<ast::FunctionType>();
   if (fn_type == nullptr) {
     return;
   }
