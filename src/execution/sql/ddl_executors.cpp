@@ -48,15 +48,16 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
                                           const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   // Request permission from the Catalog to see if this a valid namespace name
   NOISEPAGE_ASSERT(node->GetUDFLanguage() == parser::PLType::PL_PGSQL, "Unsupported language");
-  NOISEPAGE_ASSERT(node->GetFunctionBody().size() >= 1, "Unsupported function body contents");
+  NOISEPAGE_ASSERT(!node->GetFunctionBody().empty(), "Unsupported function body contents");
 
   // I don't like how we have to separate the two here
   std::vector<type::TypeId> param_type_ids{};
   std::vector<catalog::type_oid_t> param_types{};
-  for (auto t : node->GetFunctionParameterTypes()) {
+  for (const auto t : node->GetFunctionParameterTypes()) {
     param_type_ids.push_back(parser::FuncParameter::DataTypeToTypeId(t));
     param_types.push_back(accessor->GetTypeOidFromTypeId(parser::FuncParameter::DataTypeToTypeId(t)));
   }
+
   auto body = node->GetFunctionBody().front();
   auto proc_id = accessor->CreateProcedure(
       node->GetFunctionName(), catalog::postgres::PgLanguage::PLPGSQL_LANGUAGE_OID, node->GetNamespaceOid(),
@@ -69,6 +70,7 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   // Make the context here using the body
   ast::udf::UDFASTContext udf_ast_context{};
   parser::udf::PLpgSQLParser udf_parser{(common::ManagedPointer(&udf_ast_context)), accessor, node->GetDatabaseOid()};
+
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
     ast = udf_parser.ParsePLpgSQL(node->GetFunctionParameterNames(), std::move(param_type_ids), body,
@@ -77,6 +79,7 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
     return false;
   }
 
+  // TODO(Kyle): Is this leaked?
   auto region = new util::Region(node->GetFunctionName());
   sema::ErrorReporter error_reporter{region};
 
@@ -114,8 +117,19 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
     }
   }
 
+  // TODO(Kyle): We are recomputing the types here because we lost
+  // them to a std::move() above when we generate the AST, can we
+  // avoid duplicating this work? Would need to change the APIS.
+
+  std::vector<type::TypeId> types{};
+  types.reserve(node->GetFunctionParameterTypes().size());
+  std::transform(node->GetFunctionParameterTypes().cbegin(), node->GetFunctionParameterTypes().cend(),
+                 std::back_inserter(types), [](const parser::BaseFunctionParameter::DataType &type) -> type::TypeId {
+                   return parser::FuncParameter::DataTypeToTypeId(type);
+                 });
+
   auto udf_context = std::make_unique<functions::FunctionContext>(
-      node->GetFunctionName(), parser::ReturnType::DataTypeToTypeId(node->GetReturnType()), std::move(param_type_ids),
+      node->GetFunctionName(), parser::ReturnType::DataTypeToTypeId(node->GetReturnType()), std::move(types),
       std::unique_ptr<util::Region>(region), std::move(ast_context), file);
   if (!accessor->SetFunctionContextPointer(proc_id, udf_context.get())) {
     return false;

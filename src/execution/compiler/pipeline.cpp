@@ -155,10 +155,15 @@ util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
 
 void Pipeline::LinkSourcePipeline(Pipeline *dependency) {
   NOISEPAGE_ASSERT(dependency != nullptr, "Source cannot be null");
+  // Add pipeline `dependency` as a nested pipeline
   dependencies_.push_back(dependency);
+  // Remove ourselves from the nested pipeline of dependency, if present
+  // TODO(Kyle): Is this possible? If so, is this a broken invariant?
   if (std::find(dependency->nested_pipelines_.begin(), dependency->nested_pipelines_.end(), this) !=
       dependency->nested_pipelines_.end()) {
-    std::remove(dependency->nested_pipelines_.begin(), dependency->nested_pipelines_.end(), this);
+    dependency->nested_pipelines_.erase(
+        std::remove(dependency->nested_pipelines_.begin(), dependency->nested_pipelines_.end(), this),
+        dependency->nested_pipelines_.end());
   }
 }
 
@@ -313,7 +318,7 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction(ast::LambdaExpr *outpu
   ast::FieldDecl *p_state_ptr = nullptr;
   auto &state = GetPipelineStateDescriptor();
   uint32_t p_state_ind = 0;
-  if (nested_ || output_callback) {
+  if (nested_ || output_callback != nullptr) {
     p_state_ptr = codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
                                       codegen_->PointerType(codegen_->MakeExpr(state.GetTypeName())));
     params.push_back(p_state_ptr);
@@ -326,9 +331,10 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction(ast::LambdaExpr *outpu
     ast::Expr *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
     ast::Identifier tls = codegen_->MakeFreshIdentifier("threadStateContainer");
     builder.Append(codegen_->DeclareVarWithInit(tls, codegen_->ExecCtxGetTLS(exec_ctx)));
+
     // @tlsReset(tls, @sizeOf(ThreadState), init, tearDown, queryState)
     ast::Expr *state_ptr = query_state->GetStatePointer(codegen_);
-    if (!nested_ && !output_callback) {
+    if (!nested_ && output_callback == nullptr) {
       builder.Append(codegen_->TLSReset(codegen_->MakeExpr(tls), state.GetTypeName(),
                                         GetSetupPipelineStateFunctionName(), GetTearDownPipelineStateFunctionName(),
                                         state_ptr));
@@ -450,13 +456,13 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id, as
   bool started_tracker = false;
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
   auto params = compilation_context_->QueryParams();
-  if (nested_ || output_callback) {
+  if (nested_ || output_callback != nullptr) {
     params.push_back(codegen_->MakeField(state_var_, codegen_->PointerType(state_.GetTypeName())));
   }
   for (auto field : extra_pipeline_params_) {
     params.push_back(field);
   }
-  if (output_callback) {
+  if (output_callback != nullptr) {
     params.push_back(codegen_->MakeField(output_callback->GetName(),
                                          codegen_->LambdaType(output_callback->GetFunctionLitExpr()->TypeRepr())));
   }
@@ -497,10 +503,10 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id, as
           arg = builder.GetParameterByPosition(i++);
         }
       }
-      if (output_callback && !nested_) {
+      if (output_callback != nullptr && !nested_) {
         args.push_back(codegen_->MakeExpr(output_callback->GetName()));
       }
-      builder.Append(codegen_->Call(GetWorkFunctionName(), std::move(args)));
+      builder.Append(codegen_->Call(GetWorkFunctionName(), args));
     }
 
     // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
@@ -524,7 +530,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction(ast::LambdaExpr *o
   ast::FieldDecl *p_state_ptr = nullptr;
   auto &state = GetPipelineStateDescriptor();
   uint32_t p_state_index = 0;
-  if (nested_ || output_callback) {
+  if (nested_ || output_callback != nullptr) {
     p_state_ptr = codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
                                       codegen_->PointerType(codegen_->MakeExpr(state.GetTypeName())));
     params.push_back(p_state_ptr);
@@ -535,7 +541,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction(ast::LambdaExpr *o
   {
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope(codegen_);
-    if (!nested_ && !output_callback) {
+    if (!nested_ && output_callback == nullptr) {
       // Tear down thread local state if parallel pipeline.
       ast::Expr *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
       builder.Append(codegen_->TLSClear(codegen_->ExecCtxGetTLS(exec_ctx)));
@@ -570,7 +576,7 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_i
   builder->DeclareFunction(teardown);
 
   // Register the main init, run, tear-down functions as steps, in that order.
-  if (output_callback) {
+  if (output_callback != nullptr) {
     auto fn = GeneratePipelineWrapperFunction(output_callback);
     builder->DeclareFunction(fn);
     builder->RegisterStep(fn);

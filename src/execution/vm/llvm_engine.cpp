@@ -324,8 +324,8 @@ class LLVMEngine::FunctionLocalsMap {
 LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, llvm::Function *func, TypeMap *type_map,
                                                  llvm::IRBuilder<> *ir_builder)
     : ir_builder_(ir_builder) {
-  uint32_t local_idx = 0;
-
+  // The local variable index used throughout function body
+  std::size_t local_idx = 0;
   const auto &func_locals = func_info.GetLocals();
 
   // Make an allocation for the return value, if it's direct.
@@ -350,9 +350,7 @@ LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, 
     params_[capture_local.GetOffset()] = new_capture_param;
   }
 
-  auto calling_context = func_info;
-
-  // Allocate all local variables up front.
+  // Allocate all local variables up front
   for (; local_idx < func_info.GetLocals().size(); local_idx++) {
     const LocalInfo &local_info = func_locals[local_idx];
     llvm::Type *llvm_type = type_map->GetLLVMType(local_info.GetType());

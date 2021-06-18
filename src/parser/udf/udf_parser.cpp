@@ -48,7 +48,7 @@ std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::ParsePLpgSQL(
     std::vector<std::string> &&param_names, std::vector<type::TypeId> &&param_types, const std::string &func_body,
     common::ManagedPointer<execution::ast::udf::UDFASTContext> ast_context) {
   auto result = pg_query_parse_plpgsql(func_body.c_str());
-  if (result.error) {
+  if (result.error != nullptr) {
     pg_query_free_plpgsql_parse_result(result);
     throw PARSER_EXCEPTION("PL/pgSQL parsing error");
   }
@@ -95,16 +95,13 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseFunction(const
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nlohmann::json &block) {
   // TODO(boweic): Support statements size other than 1
   NOISEPAGE_ASSERT(block.is_array(), "Block isn't array");
-  if (block.size() == 0) {
+  if (block.empty()) {
     throw PARSER_EXCEPTION("PL/pgSQL parser : Empty block is not supported");
   }
 
   std::vector<std::unique_ptr<execution::ast::udf::StmtAST>> stmts{};
-
-  for (uint32_t i = 0; i < block.size(); i++) {
-    const auto stmt = block[i];
+  for (const auto &stmt : block) {
     const auto stmt_names = stmt.items().begin();
-
     if (stmt_names.key() == K_PLPGSQL_STMT_RETURN) {
       auto expr = ParseExprSQL(stmt[K_PLPGSQL_STMT_RETURN][K_EXPR][K_PLPGSQL_EXPR][K_QUERY].get<std::string>());
       // TODO(Kyle): Handle return stmt w/o expression
@@ -150,25 +147,27 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
     if (udf_ast_context_->GetVariableType(var_name, &temp_type)) {
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, temp_type, std::move(initial));
     }
-
     if ((type.find("integer") != std::string::npos) || type.find("INTEGER") != std::string::npos) {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::INTEGER);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INTEGER, std::move(initial));
-    } else if (type == "double" || type.rfind("numeric") == 0) {
+    }
+    if (type == "double" || type.rfind("numeric") == 0) {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::DECIMAL);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::DECIMAL, std::move(initial));
-    } else if (type == "varchar") {
+    }
+    if (type == "varchar") {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::VARCHAR);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::VARCHAR, std::move(initial));
-    } else if (type.find("date") != std::string::npos) {
+    }
+    if (type.find("date") != std::string::npos) {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::DATE);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::DATE, std::move(initial));
-    } else if (type == "record") {
+    }
+    if (type == "record") {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::INVALID);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INVALID, std::move(initial));
-    } else {
-      NOISEPAGE_ASSERT(false, "Unsupported Type");
     }
+    NOISEPAGE_ASSERT(false, "Unsupported Type");
   } else if (decl_names.key() == K_PLPGSQL_ROW) {
     auto var_name = decl[K_PLPGSQL_ROW][K_REFNAME].get<std::string>();
     NOISEPAGE_ASSERT(var_name == "*internal*", "Unexpected refname");
@@ -198,8 +197,8 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseWhile(const nl
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseFor(const nlohmann::json &loop) {
-  auto sql_query = loop[K_QUERY][K_PLPGSQL_EXPR][K_QUERY].get<std::string>();
-  auto parse_result = PostgresParser::BuildParseTree(sql_query.c_str());
+  const auto sql_query = loop[K_QUERY][K_PLPGSQL_EXPR][K_QUERY].get<std::string>();
+  auto parse_result = PostgresParser::BuildParseTree(sql_query);
   if (parse_result == nullptr) {
     return nullptr;
   }
@@ -214,10 +213,12 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseFor(const nloh
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &sql_stmt) {
-  auto sql_query = sql_stmt[K_SQLSTMT][K_PLPGSQL_EXPR][K_QUERY].get<std::string>();
+  // The query text
+  const auto sql_query = sql_stmt[K_SQLSTMT][K_PLPGSQL_EXPR][K_QUERY].get<std::string>();
+  // The variable name (non-const for later std::move)
   auto var_name = sql_stmt[K_ROW][K_PLPGSQL_ROW][K_FIELDS][0][K_NAME].get<std::string>();
 
-  auto parse_result = PostgresParser::BuildParseTree(sql_query.c_str());
+  auto parse_result = PostgresParser::BuildParseTree(sql_query);
   if (parse_result == nullptr) {
     return nullptr;
   }
@@ -281,31 +282,39 @@ std::unique_ptr<execution::ast::udf::ExprAST> PLpgSQLParser::ParseExpr(
     auto cve = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
     if (cve->GetTableName().empty()) {
       return std::make_unique<execution::ast::udf::VariableExprAST>(cve->GetColumnName());
-    } else {
-      auto vexpr = std::make_unique<execution::ast::udf::VariableExprAST>(cve->GetTableName());
-      return std::make_unique<execution::ast::udf::MemberExprAST>(std::move(vexpr), cve->GetColumnName());
     }
-  } else if ((parser::ExpressionUtil::IsOperatorExpression(expr->GetExpressionType()) &&
-              expr->GetChildrenSize() == 2) ||
-             (parser::ExpressionUtil::IsComparisonExpression(expr->GetExpressionType()))) {
+    auto vexpr = std::make_unique<execution::ast::udf::VariableExprAST>(cve->GetTableName());
+    return std::make_unique<execution::ast::udf::MemberExprAST>(std::move(vexpr), cve->GetColumnName());
+  }
+
+  if ((parser::ExpressionUtil::IsOperatorExpression(expr->GetExpressionType()) && expr->GetChildrenSize() == 2) ||
+      (parser::ExpressionUtil::IsComparisonExpression(expr->GetExpressionType()))) {
     return std::make_unique<execution::ast::udf::BinaryExprAST>(expr->GetExpressionType(), ParseExpr(expr->GetChild(0)),
                                                                 ParseExpr(expr->GetChild(1)));
-  } else if (expr->GetExpressionType() == parser::ExpressionType::FUNCTION) {
-    auto func_expr = expr.CastManagedPointerTo<parser::FunctionExpression>();
-    std::vector<std::unique_ptr<execution::ast::udf::ExprAST>> args{};
-    auto num_args = func_expr->GetChildrenSize();
-    for (size_t idx = 0; idx < num_args; ++idx) {
-      args.push_back(ParseExpr(func_expr->GetChild(idx)));
-    }
-    return std::make_unique<execution::ast::udf::CallExprAST>(func_expr->GetFuncName(), std::move(args));
-  } else if (expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-    return std::make_unique<execution::ast::udf::ValueExprAST>(expr->Copy());
-  } else if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_IS_NOT_NULL) {
-    return std::make_unique<execution::ast::udf::IsNullExprAST>(false, ParseExpr(expr->GetChild(0)));
-  } else if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_IS_NULL) {
-    return std::make_unique<execution::ast::udf::IsNullExprAST>(true, ParseExpr(expr->GetChild(0)));
   }
-  throw PARSER_EXCEPTION("PL/pgSQL parser : Expression type not supported");
+
+  // TODO(Kyle): I am not a fan of non-exhaustive switch statements;
+  // is there a way that we can refactor this logic to make it better?
+
+  switch (expr->GetExpressionType()) {
+    case parser::ExpressionType::FUNCTION: {
+      auto func_expr = expr.CastManagedPointerTo<parser::FunctionExpression>();
+      std::vector<std::unique_ptr<execution::ast::udf::ExprAST>> args{};
+      auto num_args = func_expr->GetChildrenSize();
+      for (size_t idx = 0; idx < num_args; ++idx) {
+        args.push_back(ParseExpr(func_expr->GetChild(idx)));
+      }
+      return std::make_unique<execution::ast::udf::CallExprAST>(func_expr->GetFuncName(), std::move(args));
+    }
+    case parser::ExpressionType::VALUE_CONSTANT:
+      return std::make_unique<execution::ast::udf::ValueExprAST>(expr->Copy());
+    case parser::ExpressionType::OPERATOR_IS_NOT_NULL:
+      return std::make_unique<execution::ast::udf::IsNullExprAST>(false, ParseExpr(expr->GetChild(0)));
+    case parser::ExpressionType::OPERATOR_IS_NULL:
+      return std::make_unique<execution::ast::udf::IsNullExprAST>(true, ParseExpr(expr->GetChild(0)));
+    default:
+      throw PARSER_EXCEPTION("PL/pgSQL parser : Expression type not supported");
+  }
 }
 
 }  // namespace noisepage::parser::udf

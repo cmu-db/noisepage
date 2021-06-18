@@ -4043,7 +4043,7 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
 
   // Cache
   func_map_[func->GetName()] = func->GetId();
-  for (auto action : deferred_function_create_actions_[func->GetName()]) {
+  for (const auto &action : deferred_function_create_actions_[func->GetName()]) {
     action(func->GetId());
   }
 
@@ -4062,7 +4062,7 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
     func->NewParameterLocal(return_type->PointerTo(), "hiddenRv");
   }
 
-  // lambda captures
+  // Lambda captures
   func->NewParameterLocal(capture_type->PointerTo(), "hiddenCaptures");
 
   // Register parameters
@@ -4072,9 +4072,10 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
 
   // Cache
   func_map_[func->GetName()] = func->GetId();
-  for (auto action : deferred_function_create_actions_[func->GetName()]) {
+  for (const auto &action : deferred_function_create_actions_[func->GetName()]) {
     action(func->GetId());
   }
+
   return func;
 }
 

@@ -1306,7 +1306,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
   std::string func_name = (reinterpret_cast<value *>(root->funcname_->tail->data.ptr_value)->val_.str_);
 
   std::vector<std::string> func_body{};
-  func_body.push_back(std::string(query_string.c_str()));
+  func_body.push_back(query_string);
+
   AsType as_type = AsType::INVALID;
   PLType pl_type = PLType::INVALID;
 
@@ -1337,11 +1338,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
     }
   }
 
-  auto result =
-      std::make_unique<CreateFunctionStatement>(replace, std::move(func_name), std::move(func_body),
-                                                std::move(return_type), std::move(func_parameters), pl_type, as_type);
-
-  return result;
+  return std::make_unique<CreateFunctionStatement>(replace, std::move(func_name), std::move(func_body),
+                                                   std::move(return_type), std::move(func_parameters), pl_type,
+                                                   as_type);
 }
 
 // Postgres.IndexStmt -> noisepage.CreateStatement
