@@ -96,7 +96,7 @@ CompilationContext::CompilationContext(ExecutableQuery *query, query_id_t query_
       query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }),
       output_callback_(output_callback),
       counters_enabled_(settings.GetIsCountersEnabled()),
-      pipeline_metrics_enabled_(output_callback ? false : settings.GetIsPipelineMetricsEnabled()) {}
+      pipeline_metrics_enabled_((output_callback != nullptr) ? false : settings.GetIsPipelineMetricsEnabled()) {}
 
 // TODO(Kyle): Why disable pipeline metrics whenever we have an output callback?
 

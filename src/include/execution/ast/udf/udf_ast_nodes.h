@@ -605,7 +605,7 @@ class DynamicSQLStmtAST : public StmtAST {
    * @param query The expression that represents the query
    * @param name The name of the variable to which results are bound
    */
-  DynamicSQLStmtAST(std::unique_ptr<ExprAST> &&query, std::string var_name)
+  DynamicSQLStmtAST(std::unique_ptr<ExprAST> &&query, std::string name)
       : query_{std::move(query)}, name_{std::move(name)} {}
 
   /**

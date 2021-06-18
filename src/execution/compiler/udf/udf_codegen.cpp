@@ -27,10 +27,7 @@
 
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace noisepage {
-namespace execution {
-namespace compiler {
-namespace udf {
+namespace noisepage::execution::compiler::udf {
 
 UDFCodegen::UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
                        ast::udf::UDFASTContext *udf_ast_context, CodeGen *codegen, catalog::db_oid_t db_oid)
@@ -102,7 +99,7 @@ void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
 
   auto context = accessor_->GetProcCtxPtr(proc_oid);
   if (context->IsBuiltin()) {
-    fb_->Append(codegen_->MakeStmt(codegen_->CallBuiltin(context->GetBuiltin(), std::move(args_ast))));
+    fb_->Append(codegen_->MakeStmt(codegen_->CallBuiltin(context->GetBuiltin(), args_ast)));
   } else {
     auto it = str_to_ident_.find(ast->Callee());
     execution::ast::Identifier ident_expr;
@@ -137,7 +134,7 @@ void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   if (ast->Type() == type::TypeId::INVALID) {
     // record type
     execution::util::RegionVector<execution::ast::FieldDecl *> fields(codegen_->GetAstContext()->GetRegion());
-    for (auto p : udf_ast_context_->GetRecordType(ast->Name())) {
+    for (const auto &p : udf_ast_context_->GetRecordType(ast->Name())) {
       fields.push_back(codegen_->MakeField(codegen_->MakeIdentifier(p.first),
                                            codegen_->TplType(execution::sql::GetTypeId(p.second))));
     }
@@ -371,11 +368,12 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   }
 
   execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
-  for (auto it : str_to_ident_) {
-    if (it.first == "executionCtx") {
+  for (const auto &[name, identifier] : str_to_ident_) {
+    // TODO(Kyle): Why do we skip this particular identifier?
+    if (name == "executionCtx") {
       continue;
     }
-    captures.push_back(codegen_->MakeExpr(it.second));
+    captures.push_back(codegen_->MakeExpr(identifier));
   }
 
   lambda_expr = fn.FinishLambda(std::move(captures));
@@ -385,7 +383,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   // function into lambda_expr and will also feed in a lambda_expr to the compiler
   // TODO(Kyle): Using a NULL plan metatdata here...
   execution::exec::ExecutionSettings exec_settings{};
-  const std::string dummy_query = "";
+  const std::string dummy_query{};
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
       common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>{&dummy_query},
@@ -543,7 +541,7 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   // We want to pass something down that will materialize the lambda function
   // into lambda_expr and will also feed in a lambda_expr to the compiler
   execution::exec::ExecutionSettings exec_settings{};
-  const std::string dummy_query = "";
+  const std::string dummy_query{};
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
       common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>(&dummy_query),
@@ -649,7 +647,4 @@ void UDFCodegen::Visit(ast::udf::MemberExprAST *ast) {
   dst_ = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->FieldName()));
 }
 
-}  // namespace udf
-}  // namespace compiler
-}  // namespace execution
-}  // namespace noisepage
+}  // namespace noisepage::execution::compiler::udf

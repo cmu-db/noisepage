@@ -57,7 +57,10 @@ class UDFCodegen : ast::udf::ASTNodeVisitor {
   UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb, ast::udf::UDFASTContext *udf_ast_context,
              CodeGen *codegen, catalog::db_oid_t db_oid);
 
-  ~UDFCodegen() = default;
+  /**
+   * Destroy the UDF code generation context.
+   */
+  ~UDFCodegen() override = default;
 
   /**
    * Generate a UDF from the given abstract syntax tree.
@@ -67,98 +70,116 @@ class UDFCodegen : ast::udf::ASTNodeVisitor {
 
   /**
    * Visit an AbstractAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::AbstractAST *) override;
+  void Visit(ast::udf::AbstractAST *ast) override;
 
   /**
    * Visit a FunctionAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::FunctionAST *) override;
+  void Visit(ast::udf::FunctionAST *ast) override;
 
   /**
    * Visit a StmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::StmtAST *) override;
+  void Visit(ast::udf::StmtAST *ast) override;
 
   /**
    * Visit an ExprAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::ExprAST *) override;
+  void Visit(ast::udf::ExprAST *ast) override;
 
   /**
    * Visit a ValueExprAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::ValueExprAST *) override;
+  void Visit(ast::udf::ValueExprAST *ast) override;
 
   /**
    * Visit a VariableExprAST node.
    */
-  void Visit(ast::udf::VariableExprAST *) override;
+  void Visit(ast::udf::VariableExprAST *ast) override;
 
   /**
    * Visit a BinaryExprAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::BinaryExprAST *) override;
+  void Visit(ast::udf::BinaryExprAST *ast) override;
 
   /**
    * Visit a CallExprAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::CallExprAST *) override;
+  void Visit(ast::udf::CallExprAST *ast) override;
 
   /**
    * Visit an IsNullExprAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::IsNullExprAST *) override;
+  void Visit(ast::udf::IsNullExprAST *ast) override;
 
   /**
    * Visit a SeqStmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::SeqStmtAST *) override;
+  void Visit(ast::udf::SeqStmtAST *ast) override;
 
   /**
    * Visit a DeclStmtNode node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::DeclStmtAST *) override;
+  void Visit(ast::udf::DeclStmtAST *ast) override;
 
   /**
    * Visit a IfStmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::IfStmtAST *) override;
+  void Visit(ast::udf::IfStmtAST *ast) override;
 
   /**
    * Visit a WhileStmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::WhileStmtAST *) override;
+  void Visit(ast::udf::WhileStmtAST *ast) override;
 
   /**
    * Visit a RetStmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::RetStmtAST *) override;
+  void Visit(ast::udf::RetStmtAST *ast) override;
 
   /**
    * Visit an AssignStmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::AssignStmtAST *) override;
+  void Visit(ast::udf::AssignStmtAST *ast) override;
 
   /**
    * Visit a SQLStmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::SQLStmtAST *) override;
+  void Visit(ast::udf::SQLStmtAST *ast) override;
 
   /**
    * Visit a DynamicSQLStmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::DynamicSQLStmtAST *) override;
+  void Visit(ast::udf::DynamicSQLStmtAST *ast) override;
 
   /**
    * Visit a ForStmtAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::ForStmtAST *) override;
+  void Visit(ast::udf::ForStmtAST *ast) override;
 
   /**
    * Visit a MemberExprAST node.
+   * @param ast The AST node to visit
    */
-  void Visit(ast::udf::MemberExprAST *) override;
+  void Visit(ast::udf::MemberExprAST *ast) override;
 
   /**
    * Complete UDF code generation.
@@ -180,27 +201,34 @@ class UDFCodegen : ast::udf::ASTNodeVisitor {
    */
   catalog::type_oid_t GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type);
 
-  // The catalog access used during code generation
+  /** The catalog access used during code generation */
   catalog::CatalogAccessor *accessor_;
-  // The function builder used during code generation
+
+  /** The function builder used during code generation */
   FunctionBuilder *fb_;
-  // The AST context for the UDF
+
+  /** The AST context for the UDF */
   ast::udf::UDFASTContext *udf_ast_context_;
-  // The code generation instance
+
+  /** The code generation instance */
   CodeGen *codegen_;
-  // The OID of the relevant database
+
+  /** The OID of the relevant database */
   catalog::db_oid_t db_oid_;
-  // Auxiliary declarations
+
+  /** Auxiliary declarations */
   execution::util::RegionVector<execution::ast::Decl *> aux_decls_;
 
-  // Flag indicating whether this UDF requires an execution context
+  /** Flag indicating whether this UDF requires an execution context */
   bool needs_exec_ctx_;
 
-  // The current type during code generation
+  /** The current type during code generation */
   type::TypeId current_type_{type::TypeId::INVALID};
-  // The destination expression
+
+  /** The destination expression */
   execution::ast::Expr *dst_;
-  // Map from human-readable string identifier to internal identifier
+
+  /** Map from human-readable string identifier to internal identifier */
   std::unordered_map<std::string, execution::ast::Identifier> str_to_ident_;
 };
 

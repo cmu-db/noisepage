@@ -101,7 +101,7 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
       codegen.TplType(execution::sql::GetTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType())))};
 
   compiler::udf::UDFCodegen udf_codegen{accessor.Get(), &fb, &udf_ast_context, &codegen, node->GetDatabaseOid()};
-  udf_codegen.GenerateUDF(ast->body.get());
+  udf_codegen.GenerateUDF(ast->Body());
   auto *file = udf_codegen.Finish();
 
   {

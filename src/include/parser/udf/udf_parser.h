@@ -46,10 +46,8 @@ class PLpgSQLParser {
   std::unique_ptr<udfexec::StmtAST> ParseSQL(const nlohmann::json &sql_stmt);
   std::unique_ptr<udfexec::StmtAST> ParseDynamicSQL(const nlohmann::json &sql_stmt);
 
-  // Feed the expression (as a SQL string) to our parser then transform the
-  // noisepage expression into ast node
-  std::unique_ptr<udfexec::ExprAST> ParseExprSQL(const std::string &expr_sql_str);
-  std::unique_ptr<udfexec::ExprAST> ParseExpr(common::ManagedPointer<parser::AbstractExpression>);
+  std::unique_ptr<udfexec::ExprAST> ParseExprSQL(const std::string &sql);
+  std::unique_ptr<udfexec::ExprAST> ParseExpr(common::ManagedPointer<parser::AbstractExpression> expr);
 
   common::ManagedPointer<udfexec::UDFASTContext> udf_ast_context_;
   const common::ManagedPointer<catalog::CatalogAccessor> accessor_;
