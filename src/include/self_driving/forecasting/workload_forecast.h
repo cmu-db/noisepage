@@ -88,10 +88,11 @@ class WorkloadForecast {
     return db_oid_set;
   }
 
+  /** @brief Get workload forecast interval in us */
+  uint64_t GetForecastInterval() const { return forecast_interval_; }
+
  private:
   friend class pilot::PilotUtil;
-
-  uint64_t GetForecastInterval() const { return forecast_interval_; }
 
   const WorkloadForecastSegment &GetSegmentByIndex(uint64_t segment_index) const {
     NOISEPAGE_ASSERT(segment_index < num_forecast_segment_, "invalid index");
