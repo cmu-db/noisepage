@@ -248,7 +248,7 @@ SETTING_int64(
 SETTING_int64(
     forecast_train_interval,
     "Interval of Pilot Forecast Train Invocation when planning enabled. (default : 120000000, unit: micro-second)",
-    120000000,
+    1200000000,
     120000000,
     10000000000,
     true,
@@ -258,7 +258,7 @@ SETTING_int64(
 SETTING_int64(
     pilot_memory_constraint,
     "Maximum amount of memory allowed for the pilot to plan. (default : 1000000000, unit: byte)",
-    1000000000,
+    10000000000,
     0,
     100000000000,
     true,

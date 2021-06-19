@@ -86,7 +86,8 @@ void Pilot::ActionSearch(std::vector<ActionTreeNode> *best_action_seq) {
 
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
-  auto mcst = MonteCarloTreeSearch(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
+  auto mcst = MonteCarloTreeSearch(common::ManagedPointer<PlanningContext>(&planning_context_),
+                                   common::ManagedPointer(forecast_), end_segment_index);
   mcst.RunSimulation(simulation_number_,
                      planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint));
 
@@ -130,7 +131,8 @@ void Pilot::ActionSearchBaseline(
   auto num_segs = forecast_->GetNumberOfSegments();
   auto end_segment_index = std::min(action_planning_horizon_ - 1, num_segs - 1);
 
-  auto seq_tunining = SequenceTuning(planning_context_, common::ManagedPointer(forecast_), end_segment_index);
+  auto seq_tunining = SequenceTuning(common::ManagedPointer<PlanningContext>(&planning_context_),
+                                     common::ManagedPointer(forecast_), end_segment_index);
 
   std::vector<std::set<std::pair<const std::string, catalog::db_oid_t>>> best_action_set_seq;
   seq_tunining.BestAction(planning_context_.GetSettingsManager()->GetInt64(settings::Param::pilot_memory_constraint),

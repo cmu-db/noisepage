@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "common/managed_pointer.h"
@@ -81,12 +83,18 @@ class TreeNode {
    * @param tree_end_segment_index end_segment_index of the search tree
    * @param action_map action map of the search tree
    * @param candidate_actions candidate actions of the search tree
+   * @param action_state_cost_map caches the previous rollout cost calculation based on the action state
+   * @param action_apply_cost_map caches the previous rollout cost calculation based on the <action state, action> pair
    * @param memory_constraint maximum allowed memory in bytes
    */
-  void ChildrenRollout(const PlanningContext &planning_context, common::ManagedPointer<WorkloadForecast> forecast,
+  void ChildrenRollout(PlanningContext *planning_context, common::ManagedPointer<WorkloadForecast> forecast,
                        uint64_t action_horizon, uint64_t tree_end_segment_index,
                        const std::map<action_id_t, std::unique_ptr<AbstractAction>> &action_map,
-                       const std::unordered_set<action_id_t> &candidate_actions, uint64_t memory_constraint);
+                       const std::unordered_set<action_id_t> &candidate_actions,
+                       std::unordered_map<ActionState, double, ActionStateHasher> *action_state_cost_map,
+                       std::unordered_map<std::pair<ActionState, action_id_t>, std::pair<double, uint64_t>,
+                                          ActionStateActionPairHasher> *action_apply_cost_map,
+                       uint64_t memory_constraint);
 
   /**
    * Update the visits number and cost of the node and its ancestors in tree due to expansion of its children,
@@ -173,6 +181,9 @@ class TreeNode {
    * @param expanded_cost new cost of the leaf after expansion
    */
   void UpdateCostAndVisits(uint64_t num_expansion, double leaf_cost, double expanded_cost);
+
+  double ComputeCostWithAction(PlanningContext *planning_context, common::ManagedPointer<WorkloadForecast> forecast,
+                               uint64_t tree_end_segment_index, AbstractAction *action);
 
   static constexpr double MEMORY_CONSUMPTION_VIOLATION_COST = 1e10;
 
