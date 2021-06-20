@@ -419,9 +419,10 @@ class ExecutionRunners : public benchmark::Fixture {
     binder.BindNameToNode(common::ManagedPointer(stmt_list), params, param_types);
 
     auto out_plan =
-        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
-                                             common::ManagedPointer(stmt_list), db_oid, db_main->GetStatsStorage(),
-                                             std::move(cost_model), optimizer_timeout_, params)
+        trafficcop::TrafficCopUtil::Optimize(
+            common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
+            db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_,
+            common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()))
             ->TakePlanNodeOwnership();
 
     out_plan = checker(common::ManagedPointer(txn), std::move(out_plan));
@@ -974,14 +975,14 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
   auto cols = ConstructSQLClause(type, type::TypeId::INVALID, key_num, 0, ", ", "", false, "");
   auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, num_rows);
   for (auto i = 0; i < num_index; i++) {
-    auto settings = GetExecutionSettings(false);
+    auto execution_settings = GetExecutionSettings(false);
     auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
 
     std::stringstream query;
     query << "CREATE INDEX idx" << i << " ON " << tbl_name << " (" << cols << ")";
     auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
-                                       PassthroughPlanChecker, nullptr, nullptr, &settings);
-    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
+                                       PassthroughPlanChecker, nullptr, nullptr, &execution_settings);
+    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &execution_settings);
   }
 
   // Invoke GC to clean some data
@@ -1050,9 +1051,9 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
       OpStorageInterfaceTableInsert(&slot, &si);
     } else {
       bool has_more;
-      uint32_t col_oids[] = {1};
+      uint32_t col_oids2[] = {1};
       bool done = false;
-      execution::sql::TableVectorIterator tvi(exec_ctx.get(), tbl_oid.UnderlyingValue(), col_oids, 1);
+      execution::sql::TableVectorIterator tvi(exec_ctx.get(), tbl_oid.UnderlyingValue(), col_oids2, 1);
       OpTableVectorIteratorPerformInit(&tvi);
       OpTableVectorIteratorNext(&has_more, &tvi);
       while (has_more) {
