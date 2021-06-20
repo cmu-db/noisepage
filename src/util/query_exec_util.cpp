@@ -138,9 +138,9 @@ std::unique_ptr<network::Statement> QueryExecUtil::PlanStatement(
     return nullptr;
   }
 
-  statement->SetOptimizeResult(trafficcop::TrafficCopUtil::Optimize(txn, common::ManagedPointer(accessor),
-                                                                    statement->ParseResult(), db_oid_, stats_,
-                                                                    std::move(cost), optimizer_timeout_, params));
+  statement->SetOptimizeResult(trafficcop::TrafficCopUtil::Optimize(
+      txn, common::ManagedPointer(accessor), statement->ParseResult(), db_oid_, stats_, std::move(cost),
+      optimizer_timeout_, common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get())));
   return statement;
 }
 

@@ -103,7 +103,7 @@ class OptimizerContext {
    * Gets the param list
    * @return list of param values
    */
-  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> GetParams() { return params_; }
+  common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> GetParams() { return params_; }
 
   /**
    * Adds a OptimizationContext to the tracking list
@@ -170,7 +170,9 @@ class OptimizerContext {
    * Set the param list
    * @param params list of param values
    */
-  void SetParams(common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params) { params_ = params; }
+  void SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params) {
+    params_ = params;
+  }
 
   /**
    * Converts an AbstractOptimizerNode into a GroupExpression.
@@ -253,7 +255,7 @@ class OptimizerContext {
   transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
   std::unordered_map<catalog::table_oid_t, catalog::Schema> cte_schemas_;
-  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params_;
+  common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
 };
 
 }  // namespace optimizer

@@ -15,6 +15,9 @@ static constexpr std::string_view TEMP_NAMESPACE_PREFIX = "pg_temp_";
 
 enum class ResultType : uint8_t { COMPLETE, ERROR, NOTICE, NOOP, QUEUING, UNKNOWN };
 
+/** Default timestamp for a cached ExecutableQuery */
+static constexpr uint64_t DEFAULT_QUERY_CACHE_TIMESTAMP = 0;
+
 /**
  * Standardized return value for Traffic Cop operations.
  */

@@ -59,7 +59,7 @@ class TrafficCopUtil {
       common::ManagedPointer<catalog::CatalogAccessor> accessor, common::ManagedPointer<parser::ParseResult> query,
       catalog::db_oid_t db_oid, common::ManagedPointer<optimizer::StatsStorage> stats_storage,
       std::unique_ptr<optimizer::AbstractCostModel> cost_model, uint64_t optimizer_timeout,
-      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters);
+      common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> parameters);
 
   /**
    * Converts parser statement types (which rely on multiple enums) to a single QueryType enum from the network layer

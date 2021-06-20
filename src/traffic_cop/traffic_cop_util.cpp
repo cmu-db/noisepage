@@ -27,7 +27,7 @@ std::unique_ptr<optimizer::OptimizeResult> TrafficCopUtil::Optimize(
     const common::ManagedPointer<parser::ParseResult> query, const catalog::db_oid_t db_oid,
     common::ManagedPointer<optimizer::StatsStorage> stats_storage,
     std::unique_ptr<optimizer::AbstractCostModel> cost_model, const uint64_t optimizer_timeout,
-    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) {
+    common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> parameters) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
   auto query_statement = query->GetStatement(0);

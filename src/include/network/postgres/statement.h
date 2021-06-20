@@ -96,6 +96,11 @@ class Statement {
   }
 
   /**
+   * @return the timestamp of when the executable query is generated
+   */
+  uint64_t GetExecutableQueryTimestamp() const { return executable_query_timestamp_; }
+
+  /**
    * @param optimize_result optimize result to take ownership of
    */
   void SetOptimizeResult(std::unique_ptr<optimizer::OptimizeResult> &&optimize_result) {
@@ -104,9 +109,12 @@ class Statement {
 
   /**
    * @param executable_query executable query to take ownership of
+   * @param timestamp when this executable query is generated
    */
-  void SetExecutableQuery(std::unique_ptr<execution::compiler::ExecutableQuery> &&executable_query) {
+  void SetExecutableQuery(std::unique_ptr<execution::compiler::ExecutableQuery> &&executable_query,
+                          uint64_t timestamp) {
     executable_query_ = std::move(executable_query);
+    executable_query_timestamp_ = timestamp;
   }
 
   /**
@@ -148,6 +156,7 @@ class Statement {
   // same query text. The exception to this that DDL changes can break these cached objects.
   std::unique_ptr<optimizer::OptimizeResult> optimize_result_ = nullptr;              // generated in the Bind phase
   std::unique_ptr<execution::compiler::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
+  uint64_t executable_query_timestamp_;                                               // generated with executable_query
   std::vector<type::TypeId> desired_param_types_;                                     // generated in the Bind phase
 };
 

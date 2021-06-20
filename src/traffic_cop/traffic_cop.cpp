@@ -185,7 +185,7 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
 std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<parser::ParseResult> query,
-    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const {
+    common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> parameters) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
 
@@ -509,17 +509,20 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
       execution::compiler::CompilationMode::Interleaved, std::nullopt, portal->OptimizeResult()->GetPlanMetaData());
 
   // TODO(Matt): handle code generation failing
-
-  const bool query_trace_metrics_enabled =
-      common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
-  if (query_trace_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordQueryText(connection_ctx->GetDatabaseOid(), exec_query->GetQueryId(),
-                                                           portal->GetStatement()->GetQueryText(), portal->Parameters(),
-                                                           metrics::MetricsUtil::Now());
+  // Only record query text when generating the ExecutableQuery for the first time
+  if (portal->GetStatement()->GetExecutableQueryTimestamp() != DEFAULT_QUERY_CACHE_TIMESTAMP) {
+    const bool query_trace_metrics_enabled =
+        common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
+    if (query_trace_metrics_enabled) {
+      common::thread_context.metrics_store_->RecordQueryText(connection_ctx->GetDatabaseOid(), exec_query->GetQueryId(),
+                                                             portal->GetStatement()->GetQueryText(),
+                                                             portal->Parameters(), metrics::MetricsUtil::Now());
+    }
   }
 
-  portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
+  printf("Set new executable query\n");
+  portal->GetStatement()->SetExecutableQuery(std::move(exec_query), metrics::MetricsUtil::Now());
 
   return {ResultType::COMPLETE, 0u};
 }
@@ -530,12 +533,24 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
   const auto query_type = portal->GetStatement()->GetQueryType();
-  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
   NOISEPAGE_ASSERT(
       query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_UPDATE ||
           query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
       "CodegenAndRunPhysicalPlan called with invalid QueryType.");
+
+  if (query_cache_timestamp_ > portal->GetStatement()->GetExecutableQueryTimestamp()) {
+    // ExecutableQuery is outdated. Re-generate it
+    auto statement = portal->GetStatement();
+    statement->SetExecutableQuery(nullptr, metrics::MetricsUtil::Now());
+    // Re-optimize the query (e.g., there can be new indexes that the query can use)
+    auto optimize_result = OptimizeBoundQuery(connection_ctx, statement->ParseResult(), portal->Parameters());
+    statement->SetOptimizeResult(std::move(optimize_result));
+
+    CodegenPhysicalPlan(connection_ctx, out, portal);
+  }
+
+  const auto physical_plan = portal->OptimizeResult()->GetPlanNode();
 
   /*
    * ANALYZE will update the statistics held in the pg_statistic catalog table. These statistics are also cached in
@@ -667,5 +682,7 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   }
   return result;
 }
+
+void TrafficCop::UpdateQueryCacheTimestamp() { query_cache_timestamp_ = metrics::MetricsUtil::Now(); }
 
 }  // namespace noisepage::trafficcop
