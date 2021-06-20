@@ -233,7 +233,7 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
   parser::ConstantValueExpression one(type::TypeId::INTEGER, execution::sql::Integer(1));
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(one);
-  context_.SetParams(&params);
+  context_.SetParams(common::ManagedPointer(&params));
 
   ExprSet required_cols;
   required_cols.emplace(&col_a);
@@ -308,7 +308,7 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
   parser::ConstantValueExpression three(type::TypeId::INTEGER, execution::sql::Integer(3));
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(three);
-  context_.SetParams(&params);
+  context_.SetParams(common::ManagedPointer(&params));
 
   ExprSet required_cols;
   required_cols.emplace(&col_a);
@@ -362,7 +362,7 @@ TEST_F(StatsCalculatorTests, TestMultipleParamPredicate) {
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(one);
   params.emplace_back(true_val);
-  context_.SetParams(&params);
+  context_.SetParams(common::ManagedPointer(&params));
 
   ExprSet required_cols;
   required_cols.emplace(&col_a);
