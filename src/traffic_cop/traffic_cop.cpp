@@ -543,9 +543,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     auto statement = portal->GetStatement();
     statement->SetExecutableQuery(nullptr, metrics::MetricsUtil::Now());
     // Re-optimize the query (e.g., there can be new indexes that the query can use)
-    auto optimize_result = OptimizeBoundQuery(
-        connection_ctx, statement->ParseResult(),
-        common::ManagedPointer(const_cast<std::vector<parser::ConstantValueExpression> *>(portal->Parameters().Get())));
+    auto optimize_result = OptimizeBoundQuery(connection_ctx, statement->ParseResult(), portal->ModifiableParameters());
     statement->SetOptimizeResult(std::move(optimize_result));
 
     CodegenPhysicalPlan(connection_ctx, out, portal);

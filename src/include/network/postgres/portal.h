@@ -62,6 +62,15 @@ class Portal {
     return common::ManagedPointer(&params_);
   }
 
+  /**
+   * @return modifiable params for this query (Some existing API requires this version. This removes the const
+   * qualifier of params_. Use with caution.)
+   * TODO(lin): If we have time, we probably should refactor other APIs to always use the const version
+   */
+  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> ModifiableParameters() {
+    return common::ManagedPointer(const_cast<std::vector<parser::ConstantValueExpression> *>(&params_));
+  }
+
  private:
   const common::ManagedPointer<network::Statement> statement_;
   const std::vector<parser::ConstantValueExpression> params_;
