@@ -521,7 +521,6 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     }
   }
 
-  printf("Set new executable query\n");
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query), metrics::MetricsUtil::Now());
 
   return {ResultType::COMPLETE, 0u};
