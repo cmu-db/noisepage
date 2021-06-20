@@ -185,7 +185,7 @@ void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<networ
 std::unique_ptr<optimizer::OptimizeResult> TrafficCop::OptimizeBoundQuery(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<parser::ParseResult> query,
-    common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> parameters) const {
+    common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                    "Not in a valid txn. This should have been caught before calling this function.");
 
@@ -543,7 +543,9 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     auto statement = portal->GetStatement();
     statement->SetExecutableQuery(nullptr, metrics::MetricsUtil::Now());
     // Re-optimize the query (e.g., there can be new indexes that the query can use)
-    auto optimize_result = OptimizeBoundQuery(connection_ctx, statement->ParseResult(), portal->Parameters());
+    auto optimize_result = OptimizeBoundQuery(
+        connection_ctx, statement->ParseResult(),
+        common::ManagedPointer(const_cast<std::vector<parser::ConstantValueExpression> *>(portal->Parameters().Get())));
     statement->SetOptimizeResult(std::move(optimize_result));
 
     CodegenPhysicalPlan(connection_ctx, out, portal);

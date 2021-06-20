@@ -104,7 +104,7 @@ class AbstractOptimizer {
   virtual std::unique_ptr<OptimizeResult> BuildPlanTree(
       transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, StatsStorage *storage,
       QueryInfo query_info, std::unique_ptr<AbstractOptimizerNode> op_tree,
-      common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> parameters) = 0;
+      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) = 0;
 
   /**
    * Reset the optimizer's internal state

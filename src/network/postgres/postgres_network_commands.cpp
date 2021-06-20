@@ -405,9 +405,8 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     // Binding succeeded, optimize to generate a physical plan
     if (statement->OptimizeResult() == nullptr || !t_cop->UseQueryCache()) {
       // it's not cached, optimize it
-      auto optimize_result = t_cop->OptimizeBoundQuery(
-          connection, statement->ParseResult(),
-          common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+      auto optimize_result =
+          t_cop->OptimizeBoundQuery(connection, statement->ParseResult(), common::ManagedPointer(&params));
 
       statement->SetOptimizeResult(std::move(optimize_result));
     }

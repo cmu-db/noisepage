@@ -419,10 +419,9 @@ class ExecutionRunners : public benchmark::Fixture {
     binder.BindNameToNode(common::ManagedPointer(stmt_list), params, param_types);
 
     auto out_plan =
-        trafficcop::TrafficCopUtil::Optimize(
-            common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
-            db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_,
-            common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()))
+        trafficcop::TrafficCopUtil::Optimize(common::ManagedPointer(txn), common::ManagedPointer(accessor),
+                                             common::ManagedPointer(stmt_list), db_oid, db_main->GetStatsStorage(),
+                                             std::move(cost_model), optimizer_timeout_, params)
             ->TakePlanNodeOwnership();
 
     out_plan = checker(common::ManagedPointer(txn), std::move(out_plan));

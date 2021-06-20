@@ -140,7 +140,7 @@ class TrafficCop {
   std::unique_ptr<optimizer::OptimizeResult> OptimizeBoundQuery(
       common::ManagedPointer<network::ConnectionContext> connection_ctx,
       common::ManagedPointer<parser::ParseResult> query,
-      common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> parameters) const;
+      common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const;
 
   /**
    * Calls to txn manager to begin txn, and updates ConnectionContext state
