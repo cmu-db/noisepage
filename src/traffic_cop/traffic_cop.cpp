@@ -510,7 +510,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   // TODO(Matt): handle code generation failing
   // Only record query text when generating the ExecutableQuery for the first time
-  if (portal->GetStatement()->GetExecutableQueryTimestamp() != DEFAULT_QUERY_CACHE_TIMESTAMP) {
+  if (portal->GetStatement()->GetExecutableQueryTimestamp() == DEFAULT_QUERY_CACHE_TIMESTAMP) {
     const bool query_trace_metrics_enabled =
         common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
