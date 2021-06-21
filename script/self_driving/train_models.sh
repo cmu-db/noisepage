@@ -82,7 +82,7 @@ if [ "$TRAIN_OU" = true ] ; then
   mkdir -p ./training_data_ou
   mkdir -p ./trained_model_ou
 fi
-if [ "$TRAIN_INTERFERENCE" = true ] ; then
+if false && [ "$TRAIN_INTERFERENCE" = true ] ; then
   rm -rf ./training_data_interference
   rm -rf ./trained_model_interference
   mkdir -p ./training_data_interference
@@ -109,7 +109,7 @@ if [ "$TRAIN_OU" = true ] ; then
   mv *SEQ*.csv training_data_ou
 fi
 
-if [ "$TRAIN_INTERFERENCE" = true ] ; then
+if false && [ "$TRAIN_INTERFERENCE" = true ] ; then
   # Generate training data for interference model.
   # This script runs TPC-C with pipeline metrics enabled, generating pipeline.csv.
   PYTHONPATH=../.. \
