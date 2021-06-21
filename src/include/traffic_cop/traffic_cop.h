@@ -10,6 +10,7 @@
 #include "execution/vm/vm_defs.h"
 #include "network/network_defs.h"
 #include "traffic_cop/traffic_cop_defs.h"
+#include "transaction/transaction_defs.h"
 
 namespace noisepage::catalog {
 class Catalog;
