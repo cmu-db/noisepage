@@ -620,7 +620,7 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
 
   for (auto &col : cols) {
     execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->Name())->second);
-    auto lhs = capture_var;
+    auto* lhs = capture_var;
     if (cols.size() > 1) {
       // Record struct type
       lhs = codegen_->AccessStructMember(capture_var, codegen_->MakeIdentifier(col.GetName()));
