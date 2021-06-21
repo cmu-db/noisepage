@@ -94,7 +94,7 @@ class MonteCarloTreeSearch {
    * @param end_segment_index the last segment index to be considered among the forecasted workloads
    * @param use_min_cost whether to use the minimum cost of all leaves as the cost for internal nodes
    */
-  MonteCarloTreeSearch(const PlanningContext &planning_context,
+  MonteCarloTreeSearch(common::ManagedPointer<PlanningContext> planning_context,
                        common::ManagedPointer<selfdriving::WorkloadForecast> forecast, uint64_t end_segment_index,
                        bool use_min_cost = true);
 
@@ -116,14 +116,21 @@ class MonteCarloTreeSearch {
   void BestAction(std::vector<std::vector<ActionTreeNode>> *best_action_seq, size_t topk);
 
  private:
-  const PlanningContext &planning_context_;
+  common::ManagedPointer<PlanningContext> planning_context_;
   const common::ManagedPointer<selfdriving::WorkloadForecast> forecast_;
   const uint64_t end_segment_index_;
   std::unique_ptr<TreeNode> root_;
   std::map<action_id_t, std::unique_ptr<AbstractAction>> action_map_;
   std::vector<action_id_t> candidate_actions_;
   bool use_min_cost_;  // Use the minimum cost of all leaves (instead of the average) as the cost for internal nodes
+  // Cache the cost given an ActionState
   std::unordered_map<ActionState, double, ActionStateHasher> action_state_cost_map_;
+  // Cache the cost given an <ActionState, action> pair
+  // The first element (ActionState) represents the state of the applied actions and the workload intervals to compute
+  // the cost; the second element (action) represents an action that is applied at the start_interval_ of the
+  // ActionState (currently only used for CreateIndexActions)
+  std::unordered_map<std::pair<ActionState, action_id_t>, std::pair<double, uint64_t>, ActionStateActionPairHasher>
+      action_apply_cost_map_;
 
   std::vector<uint64_t> levels_to_plan_ = {1, 2, 2, 3, 3, 3, 4, 4, 4};
 };

@@ -199,6 +199,32 @@ class AbstractModel(ABC):
         raise NotImplementedError("Should be implemented by child classes")
 
 
+def _infer_with_cache(model, features, cache):
+    """
+    Perform model inference with caching
+    :param model: the model to invoke
+    :param features: input features
+    :param cache: cache the inference result based on the input feature
+    :return: inference results with the features
+    """
+    # Convert features to integers to use for cache key
+    int_features = (features * 100).astype(int)
+    n = features.shape[0]
+    results = []
+    for i in range(n):
+        # convert to tuple as hash key
+        feature = tuple(int_features[i])
+        if feature not in cache:
+            # TODO(lin): we may want to infer all the uncached features at once to make it a bit faster? This seems
+            #  fine for now
+            pred = model.predict(features[i:i+1])[0]
+            cache[feature] = pred
+
+        results.append(cache[feature])
+
+    return np.array(results)
+
+
 class OUModel(AbstractModel):
     """
     OUModel that handles training and inference for OU models
@@ -210,7 +236,13 @@ class OUModel(AbstractModel):
     EXPOSE_ALL = True
     TXN_SAMPLE_RATE = 2
 
+    # Whether to cache the inference results (This is deprecated. We normally cache the inference results on c++ side)
+    USE_INFER_CACHE = False
+
     def __init__(self) -> None:
+        # Initialize the infer cache
+        # TODO(lin): add mechanism to invalidate the infer cache for outdated models
+        self.infer_cache = dict()
         AbstractModel.__init__(self)
 
     def train(self, data: Dict) -> Tuple[bool, str]:
@@ -296,7 +328,12 @@ class OUModel(AbstractModel):
             logging.error(f"Model for {opunit} doesn't exist")
             return [], False, "MODEL_NOT_FOUND"
 
-        y_pred = model.predict(features)
+        if OUModel.USE_INFER_CACHE:
+            if opunit not in self.infer_cache:
+                self.infer_cache[opunit] = dict()
+            y_pred = _infer_with_cache(model, features, self.infer_cache[opunit])
+        else:
+            y_pred = model.predict(features)
         return y_pred.tolist(), True, ""
 
     def _load_model_from_disk(self, save_path: Path) -> Dict:
@@ -325,7 +362,13 @@ class InterferenceModel(AbstractModel):
     TXN_SAMPLE_RATE = 2
     NETWORK_SAMPLE_RATE = 2
 
+    # Whether to cache the inference results (This is deprecated. We normally cache the inference results on c++ side)
+    USE_INFER_CACHE = False
+
     def __init__(self) -> None:
+        # Initialize the infer cache
+        # TODO(lin): add mechanism to invalidate the infer cache for outdated models
+        self.infer_cache = dict()
         AbstractModel.__init__(self)
 
     def train(self, data: Dict) -> Tuple[bool, str]:
@@ -406,7 +449,10 @@ class InterferenceModel(AbstractModel):
 
         features = np.array(features)
 
-        y_pred = model.predict(features)
+        if InterferenceModel.USE_INFER_CACHE:
+            y_pred = _infer_with_cache(model, features, self.infer_cache)
+        else:
+            y_pred = model.predict(features)
         return y_pred.tolist(), True, ""
 
     def _load_model_from_disk(self, save_path: Path):
@@ -676,7 +722,8 @@ class ModelServer:
         :return: {List of predictions, if inference succeeds, error message}
         """
         model_type = data["type"]
-        return self.model_managers[ModelType[model_type]].infer(data)
+        result = self.model_managers[ModelType[model_type]].infer(data)
+        return result
 
     def _recv(self) -> str:
         """
