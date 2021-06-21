@@ -79,9 +79,11 @@ void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<selfdriving::Pip
   pipeline_operating_units_ = std::move(units);
 }
 
-ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings)
+ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
+                                 transaction::timestamp_t timestamp)
     : plan_(plan),
       exec_settings_(exec_settings),
+      timestamp_(timestamp),
       errors_region_(std::make_unique<util::Region>("errors_region")),
       context_region_(std::make_unique<util::Region>("context_region")),
       errors_(std::make_unique<sema::ErrorReporter>(errors_region_.get())),
@@ -92,9 +94,12 @@ ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const ex
 
 ExecutableQuery::ExecutableQuery(const std::string &contents,
                                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file,
-                                 size_t query_state_size, const exec::ExecutionSettings &exec_settings)
+                                 size_t query_state_size, const exec::ExecutionSettings &exec_settings,
+                                 transaction::timestamp_t timestamp)
     // TODO(WAN): Giant hack for the plan. The whole point is that you have no plan.
-    : plan_(reinterpret_cast<const planner::AbstractPlanNode &>(exec_settings)), exec_settings_(exec_settings) {
+    : plan_(reinterpret_cast<const planner::AbstractPlanNode &>(exec_settings)),
+      exec_settings_(exec_settings),
+      timestamp_(timestamp) {
   context_region_ = std::make_unique<util::Region>("context_region");
   errors_region_ = std::make_unique<util::Region>("error_region");
   errors_ = std::make_unique<sema::ErrorReporter>(errors_region_.get());

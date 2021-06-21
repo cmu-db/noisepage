@@ -510,7 +510,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   // TODO(Matt): handle code generation failing
   // Only record query text when generating the ExecutableQuery for the first time
-  if (portal->GetStatement()->GetExecutableQueryTimestamp() == DEFAULT_QUERY_CACHE_TIMESTAMP) {
+  if (portal->GetStatement()->GetExecutableQuery() == nullptr) {
     const bool query_trace_metrics_enabled =
         common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
@@ -521,7 +521,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
     }
   }
 
-  portal->GetStatement()->SetExecutableQuery(std::move(exec_query), metrics::MetricsUtil::Now());
+  portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
   return {ResultType::COMPLETE, 0u};
 }
@@ -538,10 +538,10 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
           query_type == network::QueryType::QUERY_DELETE || query_type == network::QueryType::QUERY_ANALYZE,
       "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
-  if (query_cache_timestamp_ > portal->GetStatement()->GetExecutableQueryTimestamp()) {
+  if (query_cache_timestamp_ > portal->GetStatement()->GetExecutableQuery()->GetTimestamp()) {
     // ExecutableQuery is outdated. Re-generate it
     auto statement = portal->GetStatement();
-    statement->SetExecutableQuery(nullptr, metrics::MetricsUtil::Now());
+    statement->SetExecutableQuery(nullptr);
     // Re-optimize the query (e.g., there can be new indexes that the query can use)
     auto optimize_result = OptimizeBoundQuery(connection_ctx, statement->ParseResult(), portal->ModifiableParameters());
     statement->SetOptimizeResult(std::move(optimize_result));
@@ -682,6 +682,6 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   return result;
 }
 
-void TrafficCop::UpdateQueryCacheTimestamp() { query_cache_timestamp_ = metrics::MetricsUtil::Now(); }
+void TrafficCop::UpdateQueryCacheTimestamp() { query_cache_timestamp_ = txn_manager_->GetCurrentTimestamp(); }
 
 }  // namespace noisepage::trafficcop

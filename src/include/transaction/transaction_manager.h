@@ -104,6 +104,9 @@ class TransactionManager {
   /** @return The default transaction policy. */
   const TransactionPolicy &GetDefaultTransactionPolicy() const { return default_txn_policy_; }
 
+  /** @return current transaction timestamp without advancing the tick */
+  timestamp_t GetCurrentTimestamp() const { return timestamp_manager_->CurrentTime(); }
+
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   const common::ManagedPointer<DeferredActionManager> deferred_action_manager_;

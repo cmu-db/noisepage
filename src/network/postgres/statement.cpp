@@ -21,6 +21,5 @@ Statement::Statement(std::string &&query_text, std::unique_ptr<parser::ParseResu
     root_statement_ = parse_result_->GetStatement(0);
     type_ = trafficcop::TrafficCopUtil::QueryTypeForStatement(root_statement_);
   }
-  executable_query_timestamp_ = trafficcop::DEFAULT_QUERY_CACHE_TIMESTAMP;
 }
 }  // namespace noisepage::network

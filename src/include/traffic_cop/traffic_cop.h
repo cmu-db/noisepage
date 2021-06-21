@@ -95,7 +95,7 @@ class TrafficCop {
         stats_storage_(stats_storage),
         optimizer_timeout_(optimizer_timeout),
         use_query_cache_(use_query_cache),
-        query_cache_timestamp_(DEFAULT_QUERY_CACHE_TIMESTAMP),
+        query_cache_timestamp_(transaction::INITIAL_TXN_TIMESTAMP),
         execution_mode_(execution_mode) {}
 
   virtual ~TrafficCop() = default;
@@ -275,7 +275,7 @@ class TrafficCop {
   bool UseQueryCache() const { return use_query_cache_; }
 
   /**
-   * Update the minimum timestamp required for the cached ExecutableQuery (resulting re-compilation for the
+   * Update the minimum generation timestamp required for the cached ExecutableQuery (resulting re-compilation for the
    * unsatisfied ExecutableQuery )
    */
   void UpdateQueryCacheTimestamp();
@@ -289,7 +289,7 @@ class TrafficCop {
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
   const bool use_query_cache_;
-  uint64_t query_cache_timestamp_;
+  transaction::timestamp_t query_cache_timestamp_;
   execution::vm::ExecutionMode execution_mode_;
 };
 
