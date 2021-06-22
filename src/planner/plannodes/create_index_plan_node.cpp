@@ -13,19 +13,20 @@ namespace noisepage::planner {
 std::unique_ptr<CreateIndexPlanNode> CreateIndexPlanNode::Builder::Build() {
   return std::unique_ptr<CreateIndexPlanNode>(
       new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, table_oid_,
-                              std::move(index_name_), std::move(schema_), plan_node_id_));
+                              std::move(index_name_), std::move(schema_), std::move(index_options_), plan_node_id_));
 }
 
 CreateIndexPlanNode::CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                          std::unique_ptr<OutputSchema> output_schema,
                                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                                          std::string index_name, std::unique_ptr<catalog::IndexSchema> schema,
-                                         plan_node_id_t plan_node_id)
+                                         storage::index::IndexOptions index_options, plan_node_id_t plan_node_id)
     : AbstractPlanNode(std::move(children), std::move(output_schema), plan_node_id),
       namespace_oid_(namespace_oid),
       table_oid_(table_oid),
       index_name_(std::move(index_name)),
-      schema_(std::move(schema)) {}
+      schema_(std::move(schema)),
+      index_options_(std::move(index_options)) {}
 
 common::hash_t CreateIndexPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -41,6 +42,7 @@ common::hash_t CreateIndexPlanNode::Hash() const {
 
   // Hash index_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
+  hash = common::HashUtil::CombineHashes(hash, index_options_.Hash());
 
   return hash;
 }
@@ -65,6 +67,7 @@ bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // Index name
   if (index_name_ != other.index_name_) return false;
+  if (index_options_ != other.index_options_) return false;
 
   return true;
 }
@@ -74,6 +77,13 @@ nlohmann::json CreateIndexPlanNode::ToJson() const {
   j["namespace_oid"] = namespace_oid_;
   j["table_oid"] = table_oid_;
   j["index_name"] = index_name_;
+
+  std::vector<std::pair<storage::index::IndexOptions::Value, nlohmann::json>> options;
+  options.reserve(index_options_.GetOptions().size());
+  for (const auto &pair : index_options_.GetOptions()) {
+    options.emplace_back(pair.first, pair.second->ToJson());
+  }
+  j["options"] = options;
   return j;
 }
 
@@ -84,6 +94,12 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateIndexPlanNode::Fr
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   index_name_ = j.at("index_name").get<std::string>();
+
+  auto options = j.at("options").get<std::vector<std::pair<storage::index::IndexOptions::Value, nlohmann::json>>>();
+  for (const auto &key_json : options) {
+    auto deserialized = parser::DeserializeExpression(key_json.second);
+    index_options_.AddOption(key_json.first, std::move(deserialized.result_));
+  }
   return exprs;
 }
 DEFINE_JSON_BODY_DECLARATIONS(CreateIndexPlanNode);

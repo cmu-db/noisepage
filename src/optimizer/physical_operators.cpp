@@ -981,16 +981,19 @@ BaseOperatorNodeContents *CreateIndex::Copy() const {
   op->table_oid_ = table_oid_;
   op->index_name_ = index_name_;
   op->schema_ = std::move(schema);
+  op->index_options_ = storage::index::IndexOptions(index_options_);
   return op;
 }
 
 Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                           std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema) {
+                           std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema,
+                           storage::index::IndexOptions index_options) {
   auto *op = new CreateIndex();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->index_name_ = std::move(index_name);
   op->schema_ = std::move(schema);
+  op->index_options_ = std::move(index_options);
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
@@ -1000,6 +1003,7 @@ common::hash_t CreateIndex::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
   if (schema_ != nullptr) hash = common::HashUtil::CombineHashes(hash, schema_->Hash());
+  hash = common::HashUtil::CombineHashes(hash, index_options_.Hash());
   return hash;
 }
 
@@ -1011,6 +1015,7 @@ bool CreateIndex::operator==(const BaseOperatorNodeContents &r) {
   if (index_name_ != node.index_name_) return false;
   if (schema_ != nullptr && *schema_ != *node.schema_) return false;
   if (schema_ == nullptr && node.schema_ != nullptr) return false;
+  if (index_options_ != node.index_options_) return false;
   return (true);
 }
 

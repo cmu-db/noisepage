@@ -1453,10 +1453,11 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    * @param table_oid OID of the table
    * @param index_name Name of the index
    * @param schema Index schema of the new index
+   * @param index_options Index options
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, std::string index_name,
-                       std::unique_ptr<catalog::IndexSchema> &&schema);
+                       std::unique_ptr<catalog::IndexSchema> &&schema, storage::index::IndexOptions index_options);
 
   /**
    * Copy
@@ -1487,6 +1488,8 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    */
   common::ManagedPointer<catalog::IndexSchema> GetSchema() const { return common::ManagedPointer(schema_); }
 
+  const storage::index::IndexOptions &GetIndexOptions() const { return index_options_; }
+
  private:
   /**
    * OID of the namespace
@@ -1507,6 +1510,8 @@ class CreateIndex : public OperatorNodeContents<CreateIndex> {
    * Index Schema
    */
   std::unique_ptr<catalog::IndexSchema> schema_;
+
+  storage::index::IndexOptions index_options_;
 };
 
 /**

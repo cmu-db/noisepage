@@ -933,7 +933,8 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
                                                        false);  // is_immediate
 
   auto op = std::make_unique<OperatorNode>(
-      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema))
+      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema),
+                        ci_op->GetIndexOptions())
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));

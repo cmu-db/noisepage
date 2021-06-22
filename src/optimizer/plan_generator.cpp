@@ -1000,6 +1000,7 @@ void PlanGenerator::Visit(const CreateIndex *create_index) {
                      .SetIndexName(create_index->GetIndexName())
                      .SetSchema(std::move(idx_schema))
                      .SetOutputSchema(std::move(out_schema))
+                     .SetIndexOptions(create_index->GetIndexOptions())
                      .Build();
 }
 

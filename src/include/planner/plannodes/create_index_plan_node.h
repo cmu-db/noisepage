@@ -66,6 +66,11 @@ class CreateIndexPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+    Builder &SetIndexOptions(storage::index::IndexOptions options) {
+      index_options_ = std::move(options);
+      return *this;
+    }
+
     /**
      * Build the create index plan node
      * @return plan node
@@ -92,6 +97,8 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * table schema
      */
     std::unique_ptr<catalog::IndexSchema> schema_;
+
+    storage::index::IndexOptions index_options_;
   };
 
  private:
@@ -105,12 +112,14 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @param index_type type of index to create
    * @param unique_index true if index should be unique
    * @param index_name name of index to be created
+   * @param index_options options for creating the index
    * @param plan_node_id Plan node id
    */
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::string index_name,
-                      std::unique_ptr<catalog::IndexSchema> schema, plan_node_id_t plan_node_id);
+                      std::unique_ptr<catalog::IndexSchema> schema, storage::index::IndexOptions index_options,
+                      plan_node_id_t plan_node_id);
 
  public:
   /**
@@ -145,6 +154,8 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    */
   common::ManagedPointer<catalog::IndexSchema> GetSchema() const { return common::ManagedPointer(schema_); }
 
+  const storage::index::IndexOptions &GetIndexOptions() const { return index_options_; }
+
   /**
    * @return the hashed value of this plan node
    */
@@ -162,6 +173,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   catalog::table_oid_t table_oid_;
   std::string index_name_;
   std::unique_ptr<catalog::IndexSchema> schema_;
+  storage::index::IndexOptions index_options_;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(CreateIndexPlanNode);
