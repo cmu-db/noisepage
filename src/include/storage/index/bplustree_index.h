@@ -43,6 +43,9 @@ class BPlusTreeIndex final : public Index {
    */
   IndexType Type() const final { return IndexType::BPLUSTREE; }
 
+  void SetInnerNodeSizeUpperThreshold(int threshold);
+  void SetInnerNodeSizeLowerThreshold(int threshold);
+
   /**
    * @return approximate number of bytes allocated on the heap for this index data structure
    */
