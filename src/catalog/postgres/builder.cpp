@@ -208,6 +208,13 @@ Schema Builder::GetClassTableSchema() {
   columns.emplace_back("relkind", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(PgClass::RELKIND.oid_);
 
+  // TODO(wz2): Technically this should be a text[] from https://www.postgresql.org/docs/8.3/catalog-pg-class.html.
+  // However, we currently do not support array types. For now, the options supplied to CREATE INDEX are dumped
+  // in JSON form and stored in this column.
+  columns.emplace_back("reloptions", type::TypeId::VARCHAR, MAX_NAME_LENGTH, true,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  columns.back().SetOid(PgClass::RELOPTIONS.oid_);
+
   columns.emplace_back("schema", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
   columns.back().SetOid(PgClass::REL_SCHEMA.oid_);
 

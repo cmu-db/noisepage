@@ -54,17 +54,19 @@ class PgClass {
   static constexpr CatalogColumnDef<table_oid_t, uint32_t> RELOID{col_oid_t{1}};  // INTEGER (pkey)
   static constexpr CatalogColumnDef<storage::VarlenEntry> RELNAME{col_oid_t{2}};  // VARCHAR
   static constexpr CatalogColumnDef<namespace_oid_t, uint32_t> RELNAMESPACE{
-      col_oid_t{3}};                                                               // INTEGER (fkey: pg_namespace)
-  static constexpr CatalogColumnDef<char, uint8_t> RELKIND{col_oid_t{4}};          // CHAR
-  static constexpr CatalogColumnDef<Schema *, uint64_t> REL_SCHEMA{col_oid_t{5}};  // BIGINT (assumes 64-bit pointers)
+      col_oid_t{3}};                                                                 // INTEGER (fkey: pg_namespace)
+  static constexpr CatalogColumnDef<char, uint8_t> RELKIND{col_oid_t{4}};            // CHAR
+  static constexpr CatalogColumnDef<storage::VarlenEntry> RELOPTIONS{col_oid_t{5}};  // VARCHAR
+  static constexpr CatalogColumnDef<Schema *, uint64_t> REL_SCHEMA{col_oid_t{6}};    // BIGINT (assumes 64-bit pointers)
   static constexpr CatalogColumnDef<storage::SqlTable *, uint64_t> REL_PTR{
-      col_oid_t{6}};  // BIGINT (assumes 64-bit pointers)
-  static constexpr CatalogColumnDef<col_oid_t, uint32_t> REL_NEXTCOLOID{col_oid_t{7}};  // INTEGER
+      col_oid_t{7}};  // BIGINT (assumes 64-bit pointers)
+  static constexpr CatalogColumnDef<col_oid_t, uint32_t> REL_NEXTCOLOID{col_oid_t{8}};  // INTEGER
 
-  static constexpr uint8_t NUM_PG_CLASS_COLS = 7;
+  static constexpr uint8_t NUM_PG_CLASS_COLS = 8;
 
   static constexpr std::array<col_oid_t, NUM_PG_CLASS_COLS> PG_CLASS_ALL_COL_OIDS = {
-      RELOID.oid_, RELNAME.oid_, RELNAMESPACE.oid_, RELKIND.oid_, REL_SCHEMA.oid_, REL_PTR.oid_, REL_NEXTCOLOID.oid_};
+      RELOID.oid_,     RELNAME.oid_,    RELNAMESPACE.oid_, RELKIND.oid_,
+      RELOPTIONS.oid_, REL_SCHEMA.oid_, REL_PTR.oid_,      REL_NEXTCOLOID.oid_};
 };
 
 }  // namespace noisepage::catalog::postgres

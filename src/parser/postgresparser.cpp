@@ -1401,27 +1401,29 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
   }
 
   catalog::IndexOptions options;
-  for (auto cell = root->options_->head; cell != nullptr; cell = cell->next) {
-    auto *arg = reinterpret_cast<DefElem *>(cell->data.ptr_value);
-    char *name = arg->defname_;
-    NOISEPAGE_ASSERT(name && arg->arg_, "Invalid DefElem for CREATE INDEX option");
-    auto option = catalog::IndexOptions::ConvertToOptionValue(name);
-    if (option == catalog::IndexOptions::Value::UNKNOWN) {
-      // We found an unsupported option, so skip.
-      PARSER_LOG_DEBUG("CreateIndexTransform: received unknown option {}", option);
-      continue;
-    }
+  if (root->options_) {
+    for (auto cell = root->options_->head; cell != nullptr; cell = cell->next) {
+      auto *arg = reinterpret_cast<DefElem *>(cell->data.ptr_value);
+      char *name = arg->defname_;
+      NOISEPAGE_ASSERT(name && arg->arg_, "Invalid DefElem for CREATE INDEX option");
+      auto option = catalog::IndexOptions::ConvertToOptionValue(name);
+      if (option == catalog::IndexOptions::Value::UNKNOWN) {
+        // We found an unsupported option, so skip.
+        PARSER_LOG_DEBUG("CreateIndexTransform: received unknown option {}", option);
+        continue;
+      }
 
-    std::unique_ptr<AbstractExpression> val = ExprTransform(parse_result, arg->arg_, name);
-    if (!val || val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT) {
-      throw PARSER_EXCEPTION("CreateIndexTransform: non-scalar value for option");
-    }
+      std::unique_ptr<AbstractExpression> val = ExprTransform(parse_result, arg->arg_, name);
+      if (!val || val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT) {
+        throw PARSER_EXCEPTION("CreateIndexTransform: non-scalar value for option");
+      }
 
-    if (val->GetReturnValueType() != catalog::IndexOptions::ExpectedTypeForOption(option)) {
-      throw PARSER_EXCEPTION("CreateIndexTransform: incorrect type for option");
-    }
+      if (val->GetReturnValueType() != catalog::IndexOptions::ExpectedTypeForOption(option)) {
+        throw PARSER_EXCEPTION("CreateIndexTransform: incorrect type for option");
+      }
 
-    options.AddOption(option, std::move(val));
+      options.AddOption(option, std::move(val));
+    }
   }
 
   return std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name,

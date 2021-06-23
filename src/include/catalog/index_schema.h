@@ -3,6 +3,7 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -14,6 +15,7 @@
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "storage/index/index_defs.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
@@ -55,6 +57,20 @@ class IndexOptions {
       return BPLUSTREE_INNER_NODE_LOWER_THRESHOLD;
     } else {
       return UNKNOWN;
+    }
+  }
+
+  static std::string ConvertOptionValueToString(IndexOptions::Value val) {
+    switch (val) {
+      case BUILD_THREADS:
+        return "BUILD_THREADS";
+      case BPLUSTREE_INNER_NODE_UPPER_THRESHOLD:
+        return "BPLUSTREE_INNER_NODE_UPPER_THRESHOLD";
+      case BPLUSTREE_INNER_NODE_LOWER_THRESHOLD:
+        return "BPLUSTREE_INNER_NODE_LOWER_THRESHOLD";
+      case UNKNOWN:
+      default:
+        return "UNKNOWN";
     }
   }
 
@@ -128,6 +144,16 @@ class IndexOptions {
 
   nlohmann::json ToJson() const;
   void FromJson(const nlohmann::json &j);
+
+  std::string ToCatalogString() const {
+    std::stringstream sstream;
+    for (auto &option : options_) {
+      auto cve = reinterpret_cast<const parser::ConstantValueExpression *>(option.second.get());
+      sstream << ConvertOptionValueToString(option.first) << "=" << cve->ToString() << " ";
+    }
+
+    return sstream.str();
+  }
 
  private:
   std::map<Value, std::unique_ptr<parser::AbstractExpression>> options_;

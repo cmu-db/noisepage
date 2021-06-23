@@ -121,6 +121,8 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   template <typename IndexPlanNode>
   void RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids, catalog::table_oid_t table_oid);
 
+  std::pair<size_t, size_t> DeriveIndexSpecificFeatures(const catalog::IndexSchema &schema);
+
   template <typename Translator>
   void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
 

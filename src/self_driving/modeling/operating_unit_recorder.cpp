@@ -51,11 +51,40 @@
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
 #include "storage/block_layout.h"
+#include "storage/index/bplustree.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "type/type_id.h"
 
 namespace noisepage::selfdriving {
+
+std::pair<size_t, size_t> OperatingUnitRecorder::DeriveIndexSpecificFeatures(const catalog::IndexSchema &schema) {
+  if (schema.Type() != storage::index::IndexType::BPLUSTREE) {
+    return std::make_pair(0, 0);
+  }
+
+  // For BPLUSTREE, feature0 is the upper threshold and feature1 is the lower threshold
+  size_t feature0 = 0;
+  size_t feature1 = 0;
+  auto &options = schema.GetIndexOptions().GetOptions();
+  if (options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD) != options.end()) {
+    auto expr = options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD)->second.get();
+    auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
+    feature0 = cve->Peek<int32_t>();
+  } else {
+    feature0 = storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD;
+  }
+
+  if (options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD) != options.end()) {
+    auto expr = options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD)->second.get();
+    auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
+    feature1 = cve->Peek<int32_t>();
+  } else {
+    feature1 = storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD;
+  }
+
+  return std::make_pair(feature0, feature1);
+}
 
 template <typename IndexPlanNode>
 void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids,
@@ -76,6 +105,7 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
 
   for (auto &oid : index_oids) {
     auto &index_schema = accessor_->GetIndexSchema(oid);
+    auto features = DeriveIndexSpecificFeatures(index_schema);
 
     // TODO(lin): Use the table size instead of the index size as the estiamte (since there may be "what-if" indexes
     //  that we don't populate). We probably need to use the stats if the pilot is not running on the primary.
@@ -88,8 +118,9 @@ void OperatingUnitRecorder::RecordIndexOperations(const std::vector<catalog::ind
 
     // TODO(wz2): Eventually need to scale cardinality to consider num_rows being inserted/updated/deleted
     size_t car = 1;
-    pipeline_features_.emplace(type, ExecutionOperatingUnitFeature(current_translator_->GetTranslatorId(), type,
-                                                                   num_rows, key_size, num_keys, car, 1, 0, 0));
+    pipeline_features_.emplace(
+        type, ExecutionOperatingUnitFeature(current_translator_->GetTranslatorId(), type, num_rows, key_size, num_keys,
+                                            car, 1, 0, 0, features.first, features.second));
   }
 }
 
@@ -213,6 +244,9 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
   size_t num_loops = 0;
   size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
 
+  size_t specific_feature0 = 0;
+  size_t specific_feature1 = 0;
+
   // Dummy default values in case we don't have stats
   size_t current_plan_cardinality = 1;
   size_t table_num_rows = 1;
@@ -280,11 +314,14 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
         else
           num_rows = table_num_rows;
 
+        const auto &idx_schema = accessor_->GetIndexSchema(index_oid);
+        std::tie(specific_feature0, specific_feature1) = DeriveIndexSpecificFeatures(idx_schema);
+
         std::vector<catalog::col_oid_t> mapped_cols;
         std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> lookup;
 
         UNUSED_ATTRIBUTE bool status = optimizer::IndexUtil::ConvertIndexKeyOidToColOid(
-            accessor_.Get(), table_oid, accessor_->GetIndexSchema(index_oid), &lookup, &mapped_cols);
+            accessor_.Get(), table_oid, idx_schema, &lookup, &mapped_cols);
         NOISEPAGE_ASSERT(status, "Failed to get index key oids in operating unit recorder");
 
         if (plan_meta_data_ != nullptr) {
@@ -307,6 +344,9 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
           // extract from c_plan num_row
           num_loops = plan_meta_data_->GetPlanNodeMetaData(c_plan->GetPlanNodeId()).GetCardinality();
         }
+
+        const auto &idx_schema = accessor_->GetIndexSchema(index_join_plan->GetIndexOid());
+        std::tie(specific_feature0, specific_feature1) = DeriveIndexSpecificFeatures(idx_schema);
 
         // FIXME(lin): Right now we do not populate the cardinality or selectivity stats for the inner index scan of
         //  INDEXNLJOIN. We directly get the size from the index and assume the inner index scan only returns 1 tuple.
@@ -335,6 +375,9 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
         num_rows = atoi(idx_name.c_str() + mrpos + sizeof("minirunners__") - 1);
         cardinality = num_rows;
       }
+
+      const auto &idx_schema = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetSchema();
+      std::tie(specific_feature0, specific_feature1) = DeriveIndexSpecificFeatures(*idx_schema);
     } break;
     default:
       num_rows = current_plan_cardinality;
@@ -373,8 +416,9 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
     }
   }
 
-  auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
-                                               cardinality, mem_factor, num_loops, num_concurrent);
+  auto feature =
+      ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys, cardinality,
+                                    mem_factor, num_loops, num_concurrent, specific_feature0, specific_feature1);
   pipeline_features_.emplace(type, std::move(feature));
 }
 

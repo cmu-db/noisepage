@@ -68,6 +68,8 @@ class PipelineMetricRawData : public AbstractRawData {
       outfile << data.GetMemFactorsVectorString() << ", ";
       outfile << data.GetNumLoopsVectorString() << ", ";
       outfile << data.GetNumConcurrentVectorString() << ", ";
+      outfile << data.GetSpecificFeature0VectorString() << ", ";
+      outfile << data.GetSpecificFeature1VectorString() << ", ";
 
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
@@ -86,7 +88,7 @@ class PipelineMetricRawData : public AbstractRawData {
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
       "query_id, pipeline_id, num_features, features, cpu_freq, exec_mode, num_rows, key_sizes, num_keys, "
-      "est_cardinalities, mem_factor, num_loops, num_concurrent"};
+      "est_cardinalities, mem_factor, num_loops, num_concurrent, specific_feature0, specific_feature1"};
 
  private:
   friend class PipelineMetric;
@@ -186,6 +188,22 @@ class PipelineMetricRawData : public AbstractRawData {
         num_concurrent.emplace_back(feature.GetNumConcurrent());
       }
       return ConcatVectorToString<size_t>(num_concurrent);
+    }
+
+    std::string GetSpecificFeature0VectorString() {
+      std::vector<size_t> spec;
+      for (auto &feature : features_) {
+        spec.emplace_back(feature.GetSpecificFeature0());
+      }
+      return ConcatVectorToString<size_t>(spec);
+    }
+
+    std::string GetSpecificFeature1VectorString() {
+      std::vector<size_t> spec;
+      for (auto &feature : features_) {
+        spec.emplace_back(feature.GetSpecificFeature1());
+      }
+      return ConcatVectorToString<size_t>(spec);
     }
 
     const execution::query_id_t query_id_;
