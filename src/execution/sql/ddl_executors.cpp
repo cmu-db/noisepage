@@ -68,10 +68,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
 
     // Create the index, and use its return value as overall success result
-    // TODO(wz2): Maybe the primary key should have support to specify options
-    storage::index::IndexOptions options;
-    result = result && CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid,
-                                   index_schema, options);
+    result = result &&
+             CreateIndex(accessor, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema);
   }
 
   for (const auto &unique_constraint : node->GetUniqueConstraints()) {
@@ -92,9 +90,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BPLUSTREE, true, false, false, true);
 
     // Create the index, and use its return value as overall success result
-    storage::index::IndexOptions options;
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,
-                                   index_schema, options);
+                                   index_schema);
   }
 
   // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
@@ -105,8 +102,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
 
 bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::CreateIndexPlanNode> node,
                                        const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
-  return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(), *(node->GetSchema()),
-                     node->GetIndexOptions());
+  return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
+                     *(node->GetSchema()));
 }
 
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
@@ -142,8 +139,7 @@ bool DDLExecutors::DropIndexExecutor(const common::ManagedPointer<planner::DropI
 
 bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                const catalog::namespace_oid_t ns, const std::string &name,
-                               const catalog::table_oid_t table, const catalog::IndexSchema &input_schema,
-                               const storage::index::IndexOptions &index_options) {
+                               const catalog::table_oid_t table, const catalog::IndexSchema &input_schema) {
   // Request permission from the Catalog to see if this a valid namespace and table name
   const auto index_oid = accessor->CreateIndex(ns, table, name, input_schema);
   if (index_oid == catalog::INVALID_INDEX_OID) {
@@ -155,7 +151,6 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   // Instantiate an Index and update the pointer in the Catalog
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(schema);
-  index_builder.SetIndexOptions(index_options);
   auto *const index = index_builder.Build();
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   NOISEPAGE_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");

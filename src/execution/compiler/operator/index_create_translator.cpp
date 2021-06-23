@@ -129,9 +129,9 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
   }
 
   uint32_t num_threads_override = 0;
-  auto &index_options = GetPlanAs<planner::CreateIndexPlanNode>().GetIndexOptions().GetOptions();
-  if (index_options.find(storage::index::IndexOptions::Value::BUILD_THREADS) != index_options.end()) {
-    auto expr = index_options.find(storage::index::IndexOptions::Value::BUILD_THREADS)->second.get();
+  auto &index_options = GetPlanAs<planner::CreateIndexPlanNode>().GetSchema()->GetIndexOptions().GetOptions();
+  if (index_options.find(catalog::IndexOptions::Value::BUILD_THREADS) != index_options.end()) {
+    auto expr = index_options.find(catalog::IndexOptions::Value::BUILD_THREADS)->second.get();
     auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
     num_threads_override = cve->Peek<int32_t>();
   }

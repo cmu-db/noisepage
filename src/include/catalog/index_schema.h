@@ -1,9 +1,11 @@
 #pragma once
 
 #include <deque>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -32,6 +34,104 @@ namespace postgres {
 class Builder;
 class PgCoreImpl;
 }  // namespace postgres
+
+class IndexOptions {
+ public:
+  enum Value {
+    BUILD_THREADS,
+    BPLUSTREE_INNER_NODE_UPPER_THRESHOLD,
+    BPLUSTREE_INNER_NODE_LOWER_THRESHOLD,
+
+    UNKNOWN
+  };
+
+  static IndexOptions::Value ConvertToOptionValue(std::string option) {
+    std::transform(option.begin(), option.end(), option.begin(), ::toupper);
+    if (option == "BUILD_THREADS") {
+      return BUILD_THREADS;
+    } else if (option == "BPLUSTREE_INNER_NODE_UPPER_THRESHOLD") {
+      return BPLUSTREE_INNER_NODE_UPPER_THRESHOLD;
+    } else if (option == "BPLUSTREE_INNER_NODE_LOWER_THRESHOLD") {
+      return BPLUSTREE_INNER_NODE_LOWER_THRESHOLD;
+    } else {
+      return UNKNOWN;
+    }
+  }
+
+  static type::TypeId ExpectedTypeForOption(Value val) {
+    switch (val) {
+      case BUILD_THREADS:
+        return type::TypeId::INTEGER;
+      case BPLUSTREE_INNER_NODE_UPPER_THRESHOLD:
+        return type::TypeId::INTEGER;
+      case BPLUSTREE_INNER_NODE_LOWER_THRESHOLD:
+        return type::TypeId::INTEGER;
+      case UNKNOWN:
+      default:
+        return type::TypeId::INVALID;
+    }
+  }
+
+  void AddOption(Value option, std::unique_ptr<parser::AbstractExpression> value) {
+    NOISEPAGE_ASSERT(options_.find(option) == options_.end(), "Adding duplicate option to INDEX options");
+    options_[option] = std::move(value);
+  }
+
+  IndexOptions() = default;
+
+  IndexOptions(const IndexOptions &other) {
+    for (const auto &pair : other.options_) {
+      AddOption(pair.first, pair.second->Copy());
+    }
+  }
+
+  IndexOptions &operator=(const IndexOptions &other) {
+    for (auto &option : other.GetOptions()) {
+      AddOption(option.first, option.second->Copy());
+    }
+
+    return *this;
+  }
+
+  IndexOptions &operator=(IndexOptions &&other) {
+    options_ = std::move(other.options_);
+    return *this;
+  }
+
+  bool operator==(const IndexOptions &other) const {
+    std::unordered_set<Value> currentOptions;
+    std::unordered_set<Value> otherOptions;
+    for (const auto &pair : options_) currentOptions.insert(pair.first);
+    for (const auto &pair : other.options_) otherOptions.insert(pair.first);
+    if (currentOptions != otherOptions) return false;
+
+    for (const auto &pair : options_) {
+      auto it = other.options_.find(pair.first);
+      if ((*pair.second) != (*it->second)) return false;
+    }
+
+    return true;
+  }
+
+  bool operator!=(const IndexOptions &other) const { return !(*this == other); }
+
+  common::hash_t Hash() const {
+    common::hash_t hash = 0;
+    for (const auto &pair : options_) {
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.first));
+      hash = common::HashUtil::CombineHashes(hash, pair.second->Hash());
+    }
+    return hash;
+  }
+
+  const std::map<Value, std::unique_ptr<parser::AbstractExpression>> &GetOptions() const { return options_; }
+
+  nlohmann::json ToJson() const;
+  void FromJson(const nlohmann::json &j);
+
+ private:
+  std::map<Value, std::unique_ptr<parser::AbstractExpression>> options_;
+};
 
 /**
  * A schema for an index.  It contains the definitions for the columns in the
@@ -280,6 +380,29 @@ class IndexSchema {
     ExtractIndexedColOids();
   }
 
+  /**
+   * Instantiates a new catalog description of an index
+   * @param columns describing the individual parts of the key
+   * @param type backing data structure of the index
+   * @param is_unique indicating whether the same key can be (logically) visible repeats are allowed in the index
+   * @param is_primary indicating whether this will be the index for a primary key
+   * @param is_exclusion indicating whether this index is for exclusion constraints
+   * @param is_immediate indicating that the uniqueness check fails at insertion time
+   * @param index_options that are options for building the index
+   */
+  IndexSchema(std::vector<Column> columns, const storage::index::IndexType type, const bool is_unique,
+              const bool is_primary, const bool is_exclusion, const bool is_immediate, IndexOptions index_options)
+      : columns_(std::move(columns)),
+        type_(type),
+        is_unique_(is_unique),
+        is_primary_(is_primary),
+        is_exclusion_(is_exclusion),
+        is_immediate_(is_immediate),
+        index_options_(std::move(index_options)) {
+    NOISEPAGE_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+    ExtractIndexedColOids();
+  }
+
   IndexSchema() = default;
 
   /**
@@ -365,6 +488,8 @@ class IndexSchema {
     return indexed_oids_;
   }
 
+  const IndexOptions &GetIndexOptions() const { return index_options_; }
+
   /**
    * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive for
    * large expressions. Thus, it should only be called once during object construction.
@@ -411,6 +536,7 @@ class IndexSchema {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_primary_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_exclusion_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_immediate_));
+    hash = common::HashUtil::CombineHashes(hash, index_options_.Hash());
     return hash;
   }
 
@@ -427,7 +553,8 @@ class IndexSchema {
     if (is_immediate_ != rhs.is_immediate_) return false;
     // TODO(Ling): Does column order matter for compare equal?
     if (indexed_oids_ != rhs.indexed_oids_) return false;
-    return columns_ == rhs.columns_;
+    if (columns_ != rhs.columns_) return false;
+    return index_options_ == rhs.index_options_;
   }
 
   /**
@@ -451,8 +578,10 @@ class IndexSchema {
   bool is_primary_;
   bool is_exclusion_;
   bool is_immediate_;
+  IndexOptions index_options_;
 };
 
+DEFINE_JSON_HEADER_DECLARATIONS(IndexOptions);
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema::Column);
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema);
 

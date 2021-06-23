@@ -1287,7 +1287,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
                        catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
                        std::string index_name,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
-                       storage::index::IndexOptions index_options);
+                       catalog::IndexOptions index_options);
 
   /**
    * Copy
@@ -1333,7 +1333,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
 
-  const storage::index::IndexOptions &GetIndexOptions() const { return index_options_; }
+  const catalog::IndexOptions &GetIndexOptions() const { return index_options_; }
 
  private:
   /**
@@ -1371,7 +1371,7 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs_;
 
-  storage::index::IndexOptions index_options_;
+  catalog::IndexOptions index_options_;
 };
 
 /**

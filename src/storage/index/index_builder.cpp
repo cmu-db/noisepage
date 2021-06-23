@@ -57,11 +57,6 @@ IndexBuilder &IndexBuilder::SetKeySchema(const catalog::IndexSchema &key_schema)
   return *this;
 }
 
-IndexBuilder &IndexBuilder::SetIndexOptions(const IndexOptions &index_options) {
-  index_options_ = IndexOptions(index_options);
-  return *this;
-}
-
 Index *IndexBuilder::BuildBwTreeIntsKey(IndexMetadata metadata) const {
   metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
   const auto key_size = metadata.KeySize();
@@ -213,16 +208,16 @@ Index *IndexBuilder::BuildHashGenericKey(IndexMetadata metadata) const {
 
 template <storage::index::IndexType type, class Key>
 void IndexBuilder::ApplyIndexOptions(Index *index) const {
-  auto &options = index_options_.GetOptions();
+  auto &options = key_schema_.GetIndexOptions().GetOptions();
   if constexpr (type == storage::index::IndexType::BPLUSTREE) {
-    if (options.find(IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD) != options.end()) {
-      auto expr = options.find(IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD)->second.get();
+    if (options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD) != options.end()) {
+      auto expr = options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD)->second.get();
       auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
       reinterpret_cast<BPlusTreeIndex<Key> *>(index)->SetInnerNodeSizeUpperThreshold(cve->Peek<int32_t>());
     }
 
-    if (options.find(IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD) != options.end()) {
-      auto expr = options.find(IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD)->second.get();
+    if (options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD) != options.end()) {
+      auto expr = options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD)->second.get();
       auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
       reinterpret_cast<BPlusTreeIndex<Key> *>(index)->SetInnerNodeSizeLowerThreshold(cve->Peek<int32_t>());
     }

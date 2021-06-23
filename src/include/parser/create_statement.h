@@ -415,7 +415,7 @@ class CreateStatement : public TableRefStatement {
    * @param index_options index options
    */
   CreateStatement(std::unique_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<IndexAttr> index_attrs, storage::index::IndexOptions index_options)
+                  std::vector<IndexAttr> index_attrs, catalog::IndexOptions index_options)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
@@ -508,7 +508,7 @@ class CreateStatement : public TableRefStatement {
   const std::vector<IndexAttr> &GetIndexAttributes() const { return index_attrs_; }
 
   /** @return move index options for [CREATE INDEX] */
-  storage::index::IndexOptions MoveIndexOptions() { return std::move(index_options_); }
+  catalog::IndexOptions MoveIndexOptions() { return std::move(index_options_); }
 
   /** @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise */
   bool IsIfNotExists() { return if_not_exists_; }
@@ -550,7 +550,7 @@ class CreateStatement : public TableRefStatement {
   const bool unique_index_ = false;
   const std::string index_name_;
   const std::vector<IndexAttr> index_attrs_;
-  storage::index::IndexOptions index_options_;
+  catalog::IndexOptions index_options_;
 
   // CREATE SCHEMA
   const bool if_not_exists_ = false;

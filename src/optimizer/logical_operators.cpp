@@ -856,7 +856,7 @@ BaseOperatorNodeContents *LogicalCreateIndex::Copy() const {
   op->unique_index_ = unique_index_;
   op->index_name_ = index_name_;
   op->index_attrs_ = index_attrs_;
-  op->index_options_ = storage::index::IndexOptions(index_options_);
+  op->index_options_ = catalog::IndexOptions(index_options_);
   return op;
 }
 
@@ -864,7 +864,7 @@ Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::names
                                   catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
                                   std::string index_name,
                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
-                                  storage::index::IndexOptions index_options) {
+                                  catalog::IndexOptions index_options) {
   auto *op = new LogicalCreateIndex();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;

@@ -928,13 +928,13 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
   }
 
   auto schema = std::make_unique<catalog::IndexSchema>(std::move(cols), idx_type, ci_op->IsUnique(),
-                                                       false,   // is_primary
-                                                       false,   // is_exclusion
-                                                       false);  // is_immediate
+                                                       false,  // is_primary
+                                                       false,  // is_exclusion
+                                                       false,  // is_immediate
+                                                       ci_op->GetIndexOptions());
 
   auto op = std::make_unique<OperatorNode>(
-      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema),
-                        ci_op->GetIndexOptions())
+      CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
