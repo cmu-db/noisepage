@@ -128,9 +128,18 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
     function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
   }
 
+  uint32_t num_threads_override = 0;
+  auto &index_options = GetPlanAs<planner::CreateIndexPlanNode>().GetIndexOptions().GetOptions();
+  if (index_options.find(storage::index::IndexOptions::Value::BUILD_THREADS) != index_options.end()) {
+    auto expr = index_options.find(storage::index::IndexOptions::Value::BUILD_THREADS)->second.get();
+    auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
+    num_threads_override = cve->Peek<int32_t>();
+  }
+
   ast::Expr *iter_table_parallel = codegen_->CallBuiltin(
-      ast::Builtin::TableIterParallel, {codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_),
-                                        GetQueryStatePtr(), GetExecutionContext(), codegen_->MakeExpr(work_func)});
+      ast::Builtin::TableIterParallel,
+      {codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_), GetQueryStatePtr(),
+       GetExecutionContext(), codegen_->ConstU32(num_threads_override), codegen_->MakeExpr(work_func)});
   iter_table_parallel->SetType(ast::BuiltinType::Get(codegen_->GetAstContext().Get(), ast::BuiltinType::Nil));
   function->Append(iter_table_parallel);
 

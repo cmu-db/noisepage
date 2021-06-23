@@ -18,6 +18,7 @@ class IndexMetadata;
 class IndexOptions {
  public:
   enum Value {
+    BUILD_THREADS,
     BPLUSTREE_INNER_NODE_UPPER_THRESHOLD,
     BPLUSTREE_INNER_NODE_LOWER_THRESHOLD,
 
@@ -26,7 +27,9 @@ class IndexOptions {
 
   static IndexOptions::Value ConvertToOptionValue(std::string option) {
     std::transform(option.begin(), option.end(), option.begin(), ::toupper);
-    if (option == "BPLUSTREE_INNER_NODE_UPPER_THRESHOLD") {
+    if (option == "BUILD_THREADS") {
+      return BUILD_THREADS;
+    } else if (option == "BPLUSTREE_INNER_NODE_UPPER_THRESHOLD") {
       return BPLUSTREE_INNER_NODE_UPPER_THRESHOLD;
     } else if (option == "BPLUSTREE_INNER_NODE_LOWER_THRESHOLD") {
       return BPLUSTREE_INNER_NODE_LOWER_THRESHOLD;
@@ -37,6 +40,8 @@ class IndexOptions {
 
   static type::TypeId ExpectedTypeForOption(Value val) {
     switch (val) {
+      case BUILD_THREADS:
+        return type::TypeId::INTEGER;
       case BPLUSTREE_INNER_NODE_UPPER_THRESHOLD:
         return type::TypeId::INTEGER;
       case BPLUSTREE_INNER_NODE_LOWER_THRESHOLD:

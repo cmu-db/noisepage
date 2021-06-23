@@ -123,11 +123,12 @@ class EXPORT TableVectorIterator {
    *                 ThreadStateContainer for all thread states, where it is assumed that the
    *                 container has been configured for size, construction, and destruction
    *                 before this invocation.
+   * @param num_threads_override If non-zero, specifies the number of threads to use
    * @param scan_fn The callback function invoked for vectors of table input.
    * @param min_grain_size The minimum number of blocks to give a scan task.
    */
   static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
-                           exec::ExecutionContext *exec_ctx, ScanFn scan_fn,
+                           exec::ExecutionContext *exec_ctx, uint32_t num_threads_override, ScanFn scan_fn,
                            uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
  private:
