@@ -155,6 +155,32 @@ class IndexOptions {
     return sstream.str();
   }
 
+  void FromCatalogString(std::string options) {
+    std::stringstream sstream(options);
+    std::vector<std::string> tokens;
+    {
+      while (sstream.good()) {
+        std::string token;
+        std::getline(sstream, token, ' ');
+        tokens.push_back(token);
+      }
+    }
+
+    for (auto &token : tokens) {
+      auto pos = token.find("=");
+      if (pos != std::string::npos) {
+        auto option = token.substr(0, pos);
+        auto set_val = token.substr(pos, token.size());
+        Value val = ConvertToOptionValue(option);
+        NOISEPAGE_ASSERT(val != UNKNOWN, "Invalid IndexOptions::Value serialized");
+
+        auto type = ExpectedTypeForOption(val);
+        options_[val] = std::make_unique<parser::ConstantValueExpression>(
+            parser::ConstantValueExpression::FromString(set_val, type));
+      }
+    }
+  }
+
  private:
   std::map<Value, std::unique_ptr<parser::AbstractExpression>> options_;
 };
@@ -517,8 +543,8 @@ class IndexSchema {
   const IndexOptions &GetIndexOptions() const { return index_options_; }
 
   /**
-   * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive for
-   * large expressions. Thus, it should only be called once during object construction.
+   * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive
+   * for large expressions. Thus, it should only be called once during object construction.
    * @return col oids in index keys, ordered by index key
    */
   void ExtractIndexedColOids() {

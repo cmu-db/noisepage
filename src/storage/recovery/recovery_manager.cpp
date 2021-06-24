@@ -674,7 +674,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
         // catalog tables, and we can now recreate the object
         // Step 1: Get the class oid and kind for the object we're updating
         std::vector<catalog::col_oid_t> col_oids = {catalog::postgres::PgClass::RELOID.oid_,
-                                                    catalog::postgres::PgClass::RELKIND.oid_};
+                                                    catalog::postgres::PgClass::RELKIND.oid_,
+                                                    catalog::postgres::PgClass::RELOPTIONS.oid_};
         auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
         auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
         auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
@@ -684,6 +685,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOID.oid_])));
         auto class_kind = *(reinterpret_cast<catalog::postgres::PgClass::RelKind *>(
             pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELKIND.oid_])));
+        auto options = *(reinterpret_cast<VarlenEntry *>(
+            pr->AccessWithNullCheck(pr_map[catalog::postgres::PgClass::RELOPTIONS.oid_])));
 
         switch (class_kind) {
           case (catalog::postgres::PgClass::RelKind::REGULAR_TABLE): {
@@ -756,9 +759,12 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             storage::index::IndexType index_type = *(reinterpret_cast<storage::index::IndexType *>(
                 pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::PgIndex::IND_TYPE.oid_])));
 
+            catalog::IndexOptions idx_options;
+            idx_options.FromCatalogString(std::string(options.StringView()));
+
             // Step 4: Create and set IndexSchema in catalog
-            auto *index_schema =
-                new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion, is_immediate);
+            auto *index_schema = new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion,
+                                                          is_immediate, std::move(idx_options));
             result = db_catalog->SetIndexSchemaPointer<RecoveryManager>(common::ManagedPointer(txn),
                                                                         catalog::index_oid_t(class_oid), index_schema);
             NOISEPAGE_ASSERT(result,
