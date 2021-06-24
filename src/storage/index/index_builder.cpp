@@ -209,6 +209,9 @@ Index *IndexBuilder::BuildHashGenericKey(IndexMetadata metadata) const {
 template <storage::index::IndexType type, class Key>
 void IndexBuilder::ApplyIndexOptions(Index *index) const {
   auto &options = key_schema_.GetIndexOptions().GetOptions();
+
+  // This seems to be a known bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1605181
+  // NOLINTNEXTLINE
   if constexpr (type == storage::index::IndexType::BPLUSTREE) {
     if (options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD) != options.end()) {
       auto expr = options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD)->second.get();
