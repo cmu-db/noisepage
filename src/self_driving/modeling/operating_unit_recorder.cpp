@@ -67,16 +67,16 @@ std::pair<size_t, size_t> OperatingUnitRecorder::DeriveIndexSpecificFeatures(con
   size_t feature0 = 0;
   size_t feature1 = 0;
   auto &options = schema.GetIndexOptions().GetOptions();
-  if (options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD) != options.end()) {
-    auto expr = options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD)->second.get();
+  if (options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD) != options.end()) {
+    auto expr = options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD)->second.get();
     auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
     feature0 = cve->Peek<int32_t>();
   } else {
     feature0 = storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD;
   }
 
-  if (options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD) != options.end()) {
-    auto expr = options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD)->second.get();
+  if (options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD) != options.end()) {
+    auto expr = options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD)->second.get();
     auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
     feature1 = cve->Peek<int32_t>();
   } else {

@@ -6,17 +6,17 @@ namespace noisepage::catalog {
 
 nlohmann::json IndexOptions::ToJson() const {
   nlohmann::json j;
-  std::vector<std::pair<IndexOptions::Value, nlohmann::json>> options;
+  std::vector<std::pair<IndexOptions::Knob, nlohmann::json>> options;
   options.reserve(GetOptions().size());
   for (const auto &pair : GetOptions()) {
     options.emplace_back(pair.first, pair.second->ToJson());
   }
-  j["options"] = options;
+  j["knobs"] = options;
   return j;
 }
 
 void IndexOptions::FromJson(const nlohmann::json &j) {
-  auto options = j.at("options").get<std::vector<std::pair<IndexOptions::Value, nlohmann::json>>>();
+  auto options = j.at("knobs").get<std::vector<std::pair<IndexOptions::Knob, nlohmann::json>>>();
   for (const auto &key_json : options) {
     auto deserialized = parser::DeserializeExpression(key_json.second);
     AddOption(key_json.first, std::move(deserialized.result_));

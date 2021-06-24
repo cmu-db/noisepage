@@ -210,14 +210,14 @@ template <storage::index::IndexType type, class Key>
 void IndexBuilder::ApplyIndexOptions(Index *index) const {
   auto &options = key_schema_.GetIndexOptions().GetOptions();
   if constexpr (type == storage::index::IndexType::BPLUSTREE) {
-    if (options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD) != options.end()) {
-      auto expr = options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD)->second.get();
+    if (options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD) != options.end()) {
+      auto expr = options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_UPPER_THRESHOLD)->second.get();
       auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
       reinterpret_cast<BPlusTreeIndex<Key> *>(index)->SetInnerNodeSizeUpperThreshold(cve->Peek<int32_t>());
     }
 
-    if (options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD) != options.end()) {
-      auto expr = options.find(catalog::IndexOptions::Value::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD)->second.get();
+    if (options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD) != options.end()) {
+      auto expr = options.find(catalog::IndexOptions::Knob::BPLUSTREE_INNER_NODE_LOWER_THRESHOLD)->second.get();
       auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
       reinterpret_cast<BPlusTreeIndex<Key> *>(index)->SetInnerNodeSizeLowerThreshold(cve->Peek<int32_t>());
     }

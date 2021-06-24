@@ -1406,8 +1406,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
       auto *arg = reinterpret_cast<DefElem *>(cell->data.ptr_value);
       char *name = arg->defname_;
       NOISEPAGE_ASSERT(name && arg->arg_, "Invalid DefElem for CREATE INDEX option");
-      auto option = catalog::IndexOptions::ConvertToOptionValue(name);
-      if (option == catalog::IndexOptions::Value::UNKNOWN) {
+      auto option = catalog::IndexOptions::ConvertToOptionKnob(name);
+      if (option == catalog::IndexOptions::Knob::UNKNOWN) {
         // We found an unsupported option, so skip.
         PARSER_LOG_DEBUG("CreateIndexTransform: received unknown option {}", option);
         continue;
@@ -1418,7 +1418,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
         throw PARSER_EXCEPTION("CreateIndexTransform: non-scalar value for option");
       }
 
-      if (val->GetReturnValueType() != catalog::IndexOptions::ExpectedTypeForOption(option)) {
+      if (val->GetReturnValueType() != catalog::IndexOptions::ExpectedTypeForKnob(option)) {
         throw PARSER_EXCEPTION("CreateIndexTransform: incorrect type for option");
       }
 

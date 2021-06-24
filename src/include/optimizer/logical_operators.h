@@ -1333,6 +1333,9 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
 
+  /**
+   * @return index options
+   */
   const catalog::IndexOptions &GetIndexOptions() const { return index_options_; }
 
  private:
@@ -1371,6 +1374,9 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs_;
 
+  /**
+   * Index options
+   */
   catalog::IndexOptions index_options_;
 };
 

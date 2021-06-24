@@ -37,17 +37,34 @@ class Builder;
 class PgCoreImpl;
 }  // namespace postgres
 
+/**
+ * A class used to represent valid knobs and options that have
+ * been passed to the CREATE INDEX SQL statement.
+ */
 class IndexOptions {
  public:
-  enum Value {
+  /**
+   * Specific knobs that can be specified
+   */
+  enum Knob {
+    /** Number of threads to use for building the index */
     BUILD_THREADS,
+
+    /** B+Tree inner node split threshold */
     BPLUSTREE_INNER_NODE_UPPER_THRESHOLD,
+    /** B+Tree Inner node merge threshold */
     BPLUSTREE_INNER_NODE_LOWER_THRESHOLD,
 
     UNKNOWN
   };
 
-  static IndexOptions::Value ConvertToOptionValue(std::string option) {
+  /**
+   * Converts a string input into a specific Knob enum.
+   * If no valid conversion can be found, Knob::UNKNOWN is returned.
+   * @param option string to convert
+   * @return converted enum or UNKNOWN
+   */
+  static IndexOptions::Knob ConvertToOptionKnob(std::string option) {
     std::transform(option.begin(), option.end(), option.begin(), ::toupper);
     if (option == "BUILD_THREADS") {
       return BUILD_THREADS;
@@ -60,7 +77,12 @@ class IndexOptions {
     }
   }
 
-  static std::string ConvertOptionValueToString(IndexOptions::Value val) {
+  /**
+   * Converts a knob into its string representation.
+   * @param val knob to convert to string
+   * @return string representation of the enum
+   */
+  static std::string ConvertOptionKnobToString(IndexOptions::Knob val) {
     switch (val) {
       case BUILD_THREADS:
         return "BUILD_THREADS";
@@ -74,7 +96,12 @@ class IndexOptions {
     }
   }
 
-  static type::TypeId ExpectedTypeForOption(Value val) {
+  /**
+   * Returns the expected type of the knob's value
+   * @param val knob to heck
+   * @return type of the knob's value
+   */
+  static type::TypeId ExpectedTypeForKnob(Knob val) {
     switch (val) {
       case BUILD_THREADS:
         return type::TypeId::INTEGER;
@@ -88,19 +115,33 @@ class IndexOptions {
     }
   }
 
-  void AddOption(Value option, std::unique_ptr<parser::AbstractExpression> value) {
+  /**
+   * Adds an option to be tracked in the IndexOptions data structure
+   * @param option Knob to insert (much be unique in tracking)
+   * @param value Value of the knob
+   */
+  void AddOption(Knob option, std::unique_ptr<parser::AbstractExpression> value) {
     NOISEPAGE_ASSERT(options_.find(option) == options_.end(), "Adding duplicate option to INDEX options");
     options_[option] = std::move(value);
   }
 
+  /** Default constructor */
   IndexOptions() = default;
 
+  /**
+   * Constructor by reference
+   * @param other IndexOptions to copy from
+   */
   IndexOptions(const IndexOptions &other) {
     for (const auto &pair : other.options_) {
       AddOption(pair.first, pair.second->Copy());
     }
   }
 
+  /**
+   * Constructor by copy assignment
+   * @param other IndexOptions to copy from
+   */
   IndexOptions &operator=(const IndexOptions &other) {
     for (auto &option : other.GetOptions()) {
       AddOption(option.first, option.second->Copy());
@@ -109,14 +150,23 @@ class IndexOptions {
     return *this;
   }
 
+  /**
+   * Constructor by move assignment
+   * @param other IndexOptions to move from
+   */
   IndexOptions &operator=(IndexOptions &&other) {
     options_ = std::move(other.options_);
     return *this;
   }
 
+  /**
+   * Checks for equality with another IndexOptions
+   * @param other IndexOptions to check equality
+   * @return equal to other or not
+   */
   bool operator==(const IndexOptions &other) const {
-    std::unordered_set<Value> currentOptions;
-    std::unordered_set<Value> otherOptions;
+    std::unordered_set<Knob> currentOptions;
+    std::unordered_set<Knob> otherOptions;
     for (const auto &pair : options_) currentOptions.insert(pair.first);
     for (const auto &pair : other.options_) otherOptions.insert(pair.first);
     if (currentOptions != otherOptions) return false;
@@ -129,8 +179,14 @@ class IndexOptions {
     return true;
   }
 
+  /**
+   * Checks for inequality with another IndexOptions
+   * @param other IndexOptions to check inequality against
+   * @return not equal or equal
+   */
   bool operator!=(const IndexOptions &other) const { return !(*this == other); }
 
+  /** @return hash */
   common::hash_t Hash() const {
     common::hash_t hash = 0;
     for (const auto &pair : options_) {
@@ -140,21 +196,34 @@ class IndexOptions {
     return hash;
   }
 
-  const std::map<Value, std::unique_ptr<parser::AbstractExpression>> &GetOptions() const { return options_; }
+  /** @return the options stored */
+  const std::map<Knob, std::unique_ptr<parser::AbstractExpression>> &GetOptions() const { return options_; }
 
+  /** Converts the IndexOptions to a nlohmann::json object */
   nlohmann::json ToJson() const;
+  /** Loads the IndexOptions with the data of a nlohmann::json object */
   void FromJson(const nlohmann::json &j);
 
+  /**
+   * Serializes the IndexOptions into a string to be stored in the catalog
+   * Function serializes options in format of "knob1=value1 knob2=value2".
+   * @return string for storing in catalog
+   */
   std::string ToCatalogString() const {
     std::stringstream sstream;
     for (auto &option : options_) {
       auto cve = reinterpret_cast<const parser::ConstantValueExpression *>(option.second.get());
-      sstream << ConvertOptionValueToString(option.first) << "=" << cve->ToString() << " ";
+      sstream << ConvertOptionKnobToString(option.first) << "=" << cve->ToString() << " ";
     }
 
     return sstream.str();
   }
 
+  /**
+   * Instantiates the IndexOptions from a string stashed in the catalog.
+   * Function expects options to be of form "knob1=value1 knob2=value2..."
+   * @return options string from the catalog
+   */
   void FromCatalogString(std::string options) {
     std::stringstream sstream(options);
     std::vector<std::string> tokens;
@@ -171,10 +240,10 @@ class IndexOptions {
       if (pos != std::string::npos) {
         auto option = token.substr(0, pos);
         auto set_val = token.substr(pos, token.size());
-        Value val = ConvertToOptionValue(option);
-        NOISEPAGE_ASSERT(val != UNKNOWN, "Invalid IndexOptions::Value serialized");
+        Knob val = ConvertToOptionKnob(option);
+        NOISEPAGE_ASSERT(val != UNKNOWN, "Invalid IndexOptions::Knob serialized");
 
-        auto type = ExpectedTypeForOption(val);
+        auto type = ExpectedTypeForKnob(val);
         options_[val] = std::make_unique<parser::ConstantValueExpression>(
             parser::ConstantValueExpression::FromString(set_val, type));
       }
@@ -182,7 +251,8 @@ class IndexOptions {
   }
 
  private:
-  std::map<Value, std::unique_ptr<parser::AbstractExpression>> options_;
+  /** Map that stores knobs and the knob values */
+  std::map<Knob, std::unique_ptr<parser::AbstractExpression>> options_;
 };
 
 /**
@@ -540,6 +610,9 @@ class IndexSchema {
     return indexed_oids_;
   }
 
+  /**
+   * @return index options
+   */
   const IndexOptions &GetIndexOptions() const { return index_options_; }
 
   /**

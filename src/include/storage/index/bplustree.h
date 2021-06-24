@@ -70,7 +70,9 @@ class BPlusTreeBase {
   }
 
  protected:
+  /** upper size threshold for inner node split [FAN_OUT] */
   int inner_node_size_upper_threshold_ = DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD;
+  /** lower size threshold for inner node removal [Ceil(FAN_OUT / 2) - 1] */
   int inner_node_size_lower_threshold_ = DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD;
 
   /** upper size threshold for leaf node split [FAN_OUT] */
