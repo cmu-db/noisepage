@@ -92,7 +92,7 @@ If you run into issues, you may need your default `python` to point to a `python
 ### Other Targets to Know
 
 In addition to the CMake targets above, some additional commands that are run during the continuous integration process include:
-- `cd apidoc && doxygen Doxyfile.in 2> warnings.txt`: This runs Doxygen to write the API documentation for NoisePage and directs all warnings to the local file `warnings.txt`. Continuous integration rejects PRs for which Doxygen produces any warnings, so it is useful to run this command locally first to verify that you have added / updated all of the necessary documentation.
+- `cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2> warnings.txt`: This runs Doxygen to write the API documentation for NoisePage and directs all warnings to the local file `warnings.txt`. Continuous integration rejects PRs for which Doxygen produces any warnings, so it is useful to run this command locally first to verify that you have added / updated all of the necessary documentation.
 
 ## Development
 
