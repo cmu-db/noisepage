@@ -12,8 +12,15 @@ namespace execution {
 namespace ast {
 namespace udf {
 
+/**
+ * The UDFASTContext class maintains state that is utilized
+ * throughout construction of the UDF abstract syntax tree.
+ */
 class UDFASTContext {
  public:
+  /**
+   * Construct a new UDFASTContext.
+   */
   UDFASTContext() = default;
 
   /**

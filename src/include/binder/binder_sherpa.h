@@ -41,21 +41,13 @@ class BinderSherpa {
   common::ManagedPointer<parser::ParseResult> GetParseResult() const { return parse_result_; }
 
   /**
-   * @return parameters for the query being bound
-   * @warning can be nullptr if there are no parameters
+   * @return The parameters for the query being bound
+   * @warning May be `nullptr` if there are no parameters
    */
   common::ManagedPointer<std::vector<parser::ConstantValueExpression>> GetParameters() const { return parameters_; }
 
   /**
-   * Add a parameter to the binder sherpa state.
-   * @param param The parameter expression.
-   */
-  // void AddParameter(const parser::ConstantValueExpression& param) {
-  //   parameters_->push_back(param);
-  //   desired_parameter_types_->push_back(param.GetReturnValueType());
-  // }
-
-  /**
+   * Get the desired type for the expression.
    * @param expr The expression whose type constraints we want to look up.
    * @return The previously recorded type constraints, or the expression's current return value type if none exist.
    */

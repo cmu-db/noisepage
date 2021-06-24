@@ -109,12 +109,14 @@ class ConstantValueExpression : public AbstractExpression {
     return Copy();
   }
 
+  /** Derive the name of the expression if it is not present */
   void DeriveExpressionName() override {
     if (!this->GetAliasName().empty()) {
       this->SetExpressionName(this->GetAliasName());
     }
   }
 
+  /** @return The expression value as a generic SQL value */
   common::ManagedPointer<const execution::sql::Val> GetVal() const {
     NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::Val>(value_), "GetVal() bad variant access");
     return common::ManagedPointer<const execution::sql::Val>(&std::get<execution::sql::Val>(value_));

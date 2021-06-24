@@ -44,6 +44,11 @@ class ForStmtAST;
 namespace compiler {
 namespace udf {
 
+/**
+ * The UDFCodegen class implements a visitor for UDF AST nodes
+ * and encapsulates all of the logic required to generate code
+ * from the UDF abstract syntax tree.
+ */
 class UDFCodegen : ast::udf::ASTNodeVisitor {
  public:
   /**

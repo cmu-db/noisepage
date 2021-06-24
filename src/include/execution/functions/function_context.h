@@ -24,12 +24,12 @@ class FunctionContext {
    * Creates a FunctionContext object
    * @param func_name Name of function
    * @param func_ret_type Return type of function
-   * @param args_type Vector of argument types
+   * @param arg_types Vector of argument types
    */
-  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
+  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
-        args_type_(std::move(args_type)),
+        arg_types_(std::move(arg_types)),
         is_builtin_{false},
         is_exec_ctx_required_{false} {}
 
@@ -37,15 +37,15 @@ class FunctionContext {
    * Creates a FunctionContext object for a builtin function
    * @param func_name Name of function
    * @param func_ret_type Return type of function
-   * @param args_type Vector of argument types
+   * @param arg_types Vector of argument types
    * @param builtin Which builtin this context refers to
    * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
    */
-  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
                   ast::Builtin builtin, bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
-        args_type_(std::move(args_type)),
+        arg_types_(std::move(arg_types)),
         is_builtin_{true},
         builtin_{builtin},
         is_exec_ctx_required_{is_exec_ctx_required} {}
@@ -61,12 +61,12 @@ class FunctionContext {
    * @param is_exec_ctx_required Flag indicating whether an
    * execution context is required for this function
    */
-  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
                   std::unique_ptr<util::Region> ast_region, std::unique_ptr<ast::Context> ast_context, ast::File *file,
                   bool is_exec_ctx_required = true)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
-        args_type_(std::move(args_type)),
+        arg_types_(std::move(arg_types)),
         is_builtin_{false},
         is_exec_ctx_required_{is_exec_ctx_required},
         ast_region_{std::move(ast_region)},
@@ -81,7 +81,7 @@ class FunctionContext {
   /**
    * @return The vector of type arguments of the function represented by this context object.
    */
-  const std::vector<type::TypeId> &GetFunctionArgsType() const { return args_type_; }
+  const std::vector<type::TypeId> &GetFunctionArgTypes() const { return arg_types_; }
 
   /**
    * Gets the return type of the function represented by this object.
@@ -136,15 +136,26 @@ class FunctionContext {
   }
 
  private:
+  /** The function name */
   std::string func_name_;
+  /** The function return type */
   type::TypeId func_ret_type_;
-  std::vector<type::TypeId> args_type_;
+  /** The types of the arguments to the function */
+  std::vector<type::TypeId> arg_types_;
+
+  /** `true` if this function is a builtin, `false` otherwise */
   bool is_builtin_;
+  /** The builtin function, if applicable */
   ast::Builtin builtin_;
+  /** `true` if an execution context is required for this function, `false` otherwise */
   bool is_exec_ctx_required_;
 
+  /** The associated AST region */
   std::unique_ptr<util::Region> ast_region_;
+  /** The associated AST context */
   std::unique_ptr<ast::Context> ast_context_;
+
+  /** The associated file */
   ast::File *file_;
 };
 

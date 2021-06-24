@@ -637,7 +637,7 @@ class FunctionAST : public AbstractAST {
    * Construct a new FunctionAST instance.
    * @param body The body of the function
    * @param parameter_names The names of the parameters to the function
-   * @param parameter_type The types of the parameters to the function
+   * @param parameter_types The types of the parameters to the function
    */
   FunctionAST(std::unique_ptr<StmtAST> &&body, std::vector<std::string> &&parameter_names,
               std::vector<type::TypeId> &&parameter_types)

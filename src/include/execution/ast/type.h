@@ -658,14 +658,12 @@ class FunctionType : public Type {
    */
   bool IsEqual(const FunctionType *other);
 
-  /**
-   * @return `true` if this function is a lambda, `false` otherwise.
-   */
+  /** @return `true` if this function is a lambda, `false` otherwise. */
   bool IsLambda() const { return is_lambda_; }
 
   /**
    * Set the lambda disposition for this function.
-   * @param `true` if this function is a lambda, `false` otherwise.
+   * @param is_lambda `true` if this function is a lambda, `false` otherwise.
    */
   void SetIsLambda(bool is_lambda) { is_lambda_ = is_lambda; }
 

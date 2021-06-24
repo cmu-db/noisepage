@@ -166,7 +166,7 @@ TEST_F(CatalogTests, ProcTest) {
   EXPECT_TRUE(sin_context->IsBuiltin());
   EXPECT_EQ(sin_context->GetBuiltin(), execution::ast::Builtin::Sin);
   EXPECT_EQ(sin_context->GetFunctionReturnType(), type::TypeId::REAL);
-  auto sin_args = sin_context->GetFunctionArgsType();
+  auto sin_args = sin_context->GetFunctionArgTypes();
   EXPECT_EQ(sin_args.size(), 1);
   EXPECT_EQ(sin_args.back(), type::TypeId::REAL);
   EXPECT_EQ(sin_context->GetFunctionName(), "sin");

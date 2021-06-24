@@ -49,7 +49,7 @@ class DDLExecutors {
 
   /**
    * @param node node to execute
-   * @param exec_ctx accessor to use for execution
+   * @param accessor accessor to use for execution
    * @return `true` if the operation succeeds, `false` otherwise
    */
   static bool CreateFunctionExecutor(common::ManagedPointer<planner::CreateFunctionPlanNode> node,

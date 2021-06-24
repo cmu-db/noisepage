@@ -44,7 +44,7 @@ static constexpr const char K_NAME[] = "name";
 static constexpr const char K_PLPGSQL_ROW[] = "PLpgSQL_row";
 static constexpr const char K_PLPGSQL_STMT_DYNEXECUTE[] = "PLpgSQL_stmt_dynexecute";
 
-std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::ParsePLpgSQL(
+std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
     std::vector<std::string> &&param_names, std::vector<type::TypeId> &&param_types, const std::string &func_body,
     common::ManagedPointer<execution::ast::udf::UDFASTContext> ast_context) {
   auto result = pg_query_parse_plpgsql(func_body.c_str());
@@ -77,9 +77,9 @@ std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::ParsePLpgSQL(
   return function_ast;
 }
 
-std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseFunction(const nlohmann::json &block) {
-  const auto decl_list = block[K_DATUMS];
-  const auto function_body = block[K_ACTION][K_PLPGSQL_STMT_BLOCK][K_BODY];
+std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseFunction(const nlohmann::json &function) {
+  const auto decl_list = function[K_DATUMS];
+  const auto function_body = function[K_ACTION][K_PLPGSQL_STMT_BLOCK][K_BODY];
 
   std::vector<std::unique_ptr<execution::ast::udf::StmtAST>> stmts{};
 

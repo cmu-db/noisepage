@@ -73,8 +73,8 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
 
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
-    ast = udf_parser.ParsePLpgSQL(node->GetFunctionParameterNames(), std::move(param_type_ids), body,
-                                  (common::ManagedPointer(&udf_ast_context)));
+    ast = udf_parser.Parse(node->GetFunctionParameterNames(), std::move(param_type_ids), body,
+                           (common::ManagedPointer(&udf_ast_context)));
   } catch (Exception &e) {
     return false;
   }
