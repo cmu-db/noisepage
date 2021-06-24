@@ -657,7 +657,8 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_
 void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_info, llvm::IRBuilder<> *ir_builder) {
   llvm::LLVMContext &ctx = ir_builder->getContext();
   llvm::Function *func = llvm_module_->getFunction(func_info.GetName());
-  if (func->getName().str().find("inline") != std::string::npos) {
+  // The line below is flagged by `check-censored` target because of 'inline'
+  if (func->getName().str().find("inline") != std::string::npos) {  // NOLINT
     func->setLinkage(llvm::Function::LinkOnceAnyLinkage);
     func->addFnAttr(llvm::Attribute::AlwaysInline);
   }

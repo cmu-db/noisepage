@@ -112,7 +112,6 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
     type_check.GetErrorReporter()->Reset();
     if (type_check.Run(file)) {
       EXECUTION_LOG_ERROR("Errors: \n {}", type_check.GetErrorReporter()->SerializeErrors());
-      execution::ast::AstPrettyPrint::Dump(std::cout, file);
       return false;
     }
   }
