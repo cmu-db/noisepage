@@ -415,14 +415,14 @@ class CreateStatement : public TableRefStatement {
    * @param index_options index options
    */
   CreateStatement(std::unique_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<IndexAttr> index_attrs, catalog::IndexOptions index_options)
+                  std::vector<IndexAttr> index_attrs, const catalog::IndexOptions &index_options)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
         unique_index_(unique),
         index_name_(std::move(index_name)),
         index_attrs_(std::move(index_attrs)),
-        index_options_(std::move(index_options)) {}
+        index_options_(index_options) {}
 
   /**
    * CREATE SCHEMA
@@ -508,7 +508,7 @@ class CreateStatement : public TableRefStatement {
   const std::vector<IndexAttr> &GetIndexAttributes() const { return index_attrs_; }
 
   /** @return move index options for [CREATE INDEX] */
-  catalog::IndexOptions MoveIndexOptions() { return std::move(index_options_); }
+  catalog::IndexOptions &&MoveIndexOptions() { return std::move(index_options_); }
 
   /** @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise */
   bool IsIfNotExists() { return if_not_exists_; }

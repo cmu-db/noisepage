@@ -905,8 +905,7 @@ bool LogicalCreateIndex::operator==(const BaseOperatorNodeContents &r) {
   for (size_t i = 0; i < index_attrs_.size(); i++) {
     if (*(index_attrs_[i]) != *(node.index_attrs_[i])) return false;
   }
-  if (index_options_ != node.index_options_) return false;
-  return (true);
+  return index_options_ == node.index_options_;
 }
 
 //===--------------------------------------------------------------------===//

@@ -764,7 +764,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
             // Step 4: Create and set IndexSchema in catalog
             auto *index_schema = new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion,
-                                                          is_immediate, std::move(idx_options));
+                                                          is_immediate, idx_options);
             result = db_catalog->SetIndexSchemaPointer<RecoveryManager>(common::ManagedPointer(txn),
                                                                         catalog::index_oid_t(class_oid), index_schema);
             NOISEPAGE_ASSERT(result,

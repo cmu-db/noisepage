@@ -1401,7 +1401,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
   }
 
   catalog::IndexOptions options;
-  if (root->options_) {
+  if (root->options_ != nullptr) {
     for (auto cell = root->options_->head; cell != nullptr; cell = cell->next) {
       auto *arg = reinterpret_cast<DefElem *>(cell->data.ptr_value);
       char *name = arg->defname_;

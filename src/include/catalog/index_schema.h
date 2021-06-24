@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <deque>
 #include <map>
 #include <memory>
@@ -65,16 +66,16 @@ class IndexOptions {
    * @return converted enum or UNKNOWN
    */
   static IndexOptions::Knob ConvertToOptionKnob(std::string option) {
+    Knob knob = UNKNOWN;
     std::transform(option.begin(), option.end(), option.begin(), ::toupper);
     if (option == "BUILD_THREADS") {
-      return BUILD_THREADS;
+      knob = BUILD_THREADS;
     } else if (option == "BPLUSTREE_INNER_NODE_UPPER_THRESHOLD") {
-      return BPLUSTREE_INNER_NODE_UPPER_THRESHOLD;
+      knob = BPLUSTREE_INNER_NODE_UPPER_THRESHOLD;
     } else if (option == "BPLUSTREE_INNER_NODE_LOWER_THRESHOLD") {
-      return BPLUSTREE_INNER_NODE_LOWER_THRESHOLD;
-    } else {
-      return UNKNOWN;
+      knob = BPLUSTREE_INNER_NODE_LOWER_THRESHOLD;
     }
+    return knob;
   }
 
   /**
@@ -154,7 +155,7 @@ class IndexOptions {
    * Constructor by move assignment
    * @param other IndexOptions to move from
    */
-  IndexOptions &operator=(IndexOptions &&other) {
+  IndexOptions &operator=(IndexOptions &&other) noexcept {
     options_ = std::move(other.options_);
     return *this;
   }
@@ -165,11 +166,11 @@ class IndexOptions {
    * @return equal to other or not
    */
   bool operator==(const IndexOptions &other) const {
-    std::unordered_set<Knob> currentOptions;
-    std::unordered_set<Knob> otherOptions;
-    for (const auto &pair : options_) currentOptions.insert(pair.first);
-    for (const auto &pair : other.options_) otherOptions.insert(pair.first);
-    if (currentOptions != otherOptions) return false;
+    std::unordered_set<Knob> current_options;
+    std::unordered_set<Knob> other_options;
+    for (const auto &pair : options_) current_options.insert(pair.first);
+    for (const auto &pair : other.options_) other_options.insert(pair.first);
+    if (current_options != other_options) return false;
 
     for (const auto &pair : options_) {
       auto it = other.options_.find(pair.first);
@@ -224,7 +225,7 @@ class IndexOptions {
    * Function expects options to be of form "knob1=value1 knob2=value2..."
    * @return options string from the catalog
    */
-  void FromCatalogString(std::string options) {
+  void FromCatalogString(const std::string &options) {
     std::stringstream sstream(options);
     std::vector<std::string> tokens;
     {
@@ -236,7 +237,7 @@ class IndexOptions {
     }
 
     for (auto &token : tokens) {
-      auto pos = token.find("=");
+      auto pos = token.find('=');
       if (pos != std::string::npos) {
         auto option = token.substr(0, pos);
         auto set_val = token.substr(pos, token.size());
@@ -513,14 +514,15 @@ class IndexSchema {
    * @param index_options that are options for building the index
    */
   IndexSchema(std::vector<Column> columns, const storage::index::IndexType type, const bool is_unique,
-              const bool is_primary, const bool is_exclusion, const bool is_immediate, IndexOptions index_options)
+              const bool is_primary, const bool is_exclusion, const bool is_immediate,
+              const IndexOptions &index_options)
       : columns_(std::move(columns)),
         type_(type),
         is_unique_(is_unique),
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
         is_immediate_(is_immediate),
-        index_options_(std::move(index_options)) {
+        index_options_(index_options) {
     NOISEPAGE_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
     ExtractIndexedColOids();
   }
