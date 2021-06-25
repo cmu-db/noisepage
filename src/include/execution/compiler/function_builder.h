@@ -94,27 +94,28 @@ class FunctionBuilder {
    */
   ast::LambdaExpr *GetConstructedLambda() const { return std::get<ast::LambdaExpr *>(decl_); }
 
-  /**
-   * @return The code generator instance.
-   */
+  /** @return The code generator instance. */
   CodeGen *GetCodeGen() const { return codegen_; }
 
+  /** @return `true` if the function represents a lambda, `false` otherwise. */
+  bool IsLambda() const { return is_lambda_; }
+
  private:
-  // The code generation instance.
+  /** The code generation instance */
   CodeGen *codegen_;
-  // The function's name.
+  /** The function's name */
   ast::Identifier name_;
-  // The function's arguments.
+  /** The function's arguments */
   util::RegionVector<ast::FieldDecl *> params_;
-  // The return type of the function.
+  /** The return type of the function */
   ast::Expr *ret_type_;
-  // The start and stop position of statements in the function.
+  /** The start and stop position of statements in the function */
   SourcePosition start_;
-  // The list of generated statements making up the function.
+  /** The list of generated statements making up the function */
   ast::BlockStmt *statements_;
-  // `true` if this function is a lambda, `false` otherwise.
+  /** `true` if this function is a lambda, `false` otherwise */
   bool is_lambda_;
-  // The cached function declaration. Constructed once in Finish().
+  /** The cached function declaration. Constructed once in Finish() */
   std::variant<ast::FunctionDecl *, ast::LambdaExpr *> decl_;
 };
 
