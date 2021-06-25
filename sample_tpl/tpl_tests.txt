@@ -10,7 +10,8 @@ array.tpl,false,44
 array-iterate.tpl,false,110
 array-iterate-2.tpl,false,110
 call.tpl,false,70
-#call-lambda.tpl,false,70                   TODO(Kyle): Requires lambdas
+#lambda0.tpl,false,2
+#lambda1.tpl,false,3
 comments.tpl,false,46
 compare.tpl,false,200
 date-functions.tpl,false,0
