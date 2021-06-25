@@ -528,7 +528,7 @@ class ExecutionRunners : public benchmark::Fixture {
                           execution::exec::ExecutionSettings *exec_settings_arg = nullptr) {
     transaction::TransactionContext *txn = nullptr;
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
-    std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
+    const auto &params_ref = *params;
 
     execution::exec::NoOpResultConsumer consumer;
     execution::exec::OutputCallback callback = consumer;
@@ -552,8 +552,12 @@ class ExecutionRunners : public benchmark::Fixture {
           metrics_manager, DISABLED, DISABLED);
 
       // Attach params to ExecutionContext
-      if (static_cast<size_t>(i) < param_ref.size()) {
-        exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&param_ref[i]));
+      if (static_cast<size_t>(i) < params_ref.size()) {
+        std::vector<common::ManagedPointer<const execution::sql::Val>> p{};
+        std::transform(
+            params_ref[i].cbegin(), params_ref[i].cend(), std::back_inserter(p),
+            [](const parser::ConstantValueExpression &expr) { return common::ManagedPointer{expr.SqlValue()}; });
+        exec_ctx->SetParams(common::ManagedPointer{&p});
       }
 
       exec_query->Run(common::ManagedPointer(exec_ctx), mode);
