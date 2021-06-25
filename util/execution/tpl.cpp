@@ -98,13 +98,17 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       db_oid,        common::ManagedPointer(txn),  callback, output_schema, common::ManagedPointer(accessor),
       exec_settings, db_main->GetMetricsManager(), DISABLED, DISABLED};
   // Add dummy parameters for tests
-  std::vector<parser::ConstantValueExpression> params;
-  params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
-  params.emplace_back(type::TypeId::REAL, sql::Real(37.73));
-  params.emplace_back(type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
+  std::vector<parser::ConstantValueExpression> params_builder{};
+  params_builder.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
+  params_builder.emplace_back(type::TypeId::REAL, sql::Real(37.73));
+  params_builder.emplace_back(type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
   auto string_val = sql::ValueUtil::CreateStringVal(std::string_view("37 Strings"));
-  params.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
-  exec_ctx.SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+  params_builder.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+
+  std::vector<common::ManagedPointer<const execution::sql::Val>> params{};
+  std::transform(params_builder.cbegin(), params_builder.cend(), std::back_inserter(params),
+                 [](const parser::ConstantValueExpression &expr) { return common::ManagedPointer{expr.SqlValue()}; });
+  exec_ctx.SetParams(common::ManagedPointer{&params});
 
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
