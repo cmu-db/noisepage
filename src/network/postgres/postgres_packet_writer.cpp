@@ -162,6 +162,9 @@ void PostgresPacketWriter::WriteCommandComplete(const QueryType query_type, cons
     case QueryType::QUERY_CREATE_SCHEMA:
       WriteCommandComplete("CREATE SCHEMA");
       break;
+    case QueryType::QUERY_CREATE_FUNCTION:
+      WriteCommandComplete("CREATE FUNCTION");
+      break;
     case QueryType::QUERY_DROP_DB:
       WriteCommandComplete("DROP DATABASE");
       break;
