@@ -41,13 +41,19 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
   exec_settings_.is_counters_enabled_ = true;
 
   // Make the execution context
-  auto exec_ctx =
-      execution::exec::ExecutionContext(db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), nullptr,
-                                        nullptr, common::ManagedPointer<catalog::CatalogAccessor>(accessor),
-                                        exec_settings_, db_main->GetMetricsManager(), DISABLED, DISABLED);
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithExecutionMode(execution::vm::ExecutionMode::Interpret)
+                      .WithExecutionSettings(exec_settings_)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   // create the TPCH database and compile the queries
-  GenerateTables(&exec_ctx, table_root, type);
+  GenerateTables(exec_ctx.get(), table_root, type);
   LoadQueries(accessor, type);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -147,13 +153,22 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
     // Uncomment this line and change output.cpp:90 to EXECUTION_LOG_INFO to print output
     // execution::exec::OutputPrinter printer(output_schema);
     execution::exec::NoOpResultConsumer printer;
-    auto exec_ctx = execution::exec::ExecutionContext(
-        db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), printer, output_schema,
-        common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_, db_main_->GetMetricsManager(),
-        DISABLED, DISABLED);
+
+    auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                        .WithDatabaseOID(db_oid_)
+                        .WithExecutionMode(mode)
+                        .WithExecutionSettings(exec_settings_)
+                        .WithTxnContext(common::ManagedPointer{txn})
+                        .WithOutputSchema(common::ManagedPointer{output_schema})
+                        .WithOutputCallback(std::move(printer))
+                        .WithCatalogAccessor(common::ManagedPointer{accessor})
+                        .WithMetricsManager(db_main_->GetMetricsManager())
+                        .WithReplicationManager(DISABLED)
+                        .WithRecoveryManager(DISABLED)
+                        .Build();
 
     std::get<0>(query_and_plan_[index[counter]])
-        ->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
+        ->Run(common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx), mode);
 
     // Only execute up to query_num number of queries for this thread in round-robin
     counter = counter == query_num - 1 ? 0 : counter + 1;

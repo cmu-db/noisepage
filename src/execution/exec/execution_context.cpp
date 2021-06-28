@@ -14,6 +14,18 @@
 
 namespace noisepage::execution::exec {
 
+std::unique_ptr<ExecutionContext> ExecutionContextBuilder::Build() {
+  NOISEPAGE_ASSERT(db_oid_ != INVALID_DATABASE_OID, "Must specify database OID.");
+  NOISEPAGE_ASSERT(exec_mode_.has_value(), "Must specify execution mode.");
+  NOISEPAGE_ASSERT(exec_settings_.has_value(), "Must specify execution setting.");
+  NOISEPAGE_ASSERT(static_cast<bool>(catalog_accessor_), "Must specify catalog accessor.");
+  // MetricsManager, ReplicationManager, and RecoveryManaged may be DISABLED
+  return std::make_unique<ExecutionContext>(db_oid_, std::move(parameters_), exec_mode_.value(),
+                                            std::move(exec_settings_.value()), txn_, output_schema_,
+                                            std::move(output_callback_.value()), catalog_accessor_, metrics_manager_,
+                                            replication_manager_, recovery_manager_);
+}
+
 OutputBuffer *ExecutionContext::OutputBufferNew() {
   if (schema_ == nullptr) {
     return nullptr;
@@ -26,7 +38,7 @@ OutputBuffer *ExecutionContext::OutputBufferNew() {
   return buffer;
 }
 
-uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
+uint32_t ExecutionContext::ComputeTupleSize(common::ManagedPointer<planner::OutputSchema> schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {
     auto alignment = sql::ValUtil::GetSqlAlignment(col.GetType());
@@ -106,7 +118,8 @@ void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
     common::thread_context.resource_tracker_.Stop();
     common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
     const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-    common::thread_context.metrics_store_->RecordExecutionData(name, len, execution_mode_, resource_metrics);
+    common::thread_context.metrics_store_->RecordExecutionData(name, len, static_cast<uint8_t>(execution_mode_),
+                                                               resource_metrics);
   }
 }
 
@@ -147,8 +160,8 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     NOISEPAGE_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
     selfdriving::ExecutionOperatingUnitFeatureVector features(ouvec->pipeline_features_->begin(),
                                                               ouvec->pipeline_features_->end());
-    common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,
-                                                              std::move(features), resource_metrics);
+    common::thread_context.metrics_store_->RecordPipelineData(
+        query_id, pipeline_id, static_cast<uint8_t>(execution_mode_), std::move(features), resource_metrics);
   }
 }
 

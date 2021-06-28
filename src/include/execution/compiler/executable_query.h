@@ -9,7 +9,7 @@
 #include "common/managed_pointer.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/exec_defs.h"
-#include "execution/vm/vm_defs.h"
+#include "execution/vm/execution_mode.h"
 
 namespace noisepage {
 namespace selfdriving {

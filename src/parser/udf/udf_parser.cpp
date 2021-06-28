@@ -204,11 +204,11 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseFor(const nloh
   }
   auto body_stmt = ParseBlock(loop[K_BODY]);
   auto var_array = loop[K_ROW][K_PLPGSQL_ROW][K_FIELDS];
-  std::vector<std::string> var_vec;
-  for (auto var : var_array) {
-    var_vec.push_back(var[K_NAME].get<std::string>());
-  }
-  return std::make_unique<execution::ast::udf::ForStmtAST>(std::move(var_vec), std::move(parse_result),
+  std::vector<std::string> variables{};
+  variables.reserve(var_array.size());
+  std::transform(var_array.cbegin(), var_array.cend(), std::back_inserter(variables),
+                 [](const nlohmann::json &var) { return var[K_NAME].get<std::string>(); });
+  return std::make_unique<execution::ast::udf::ForStmtAST>(std::move(variables), std::move(parse_result),
                                                            std::move(body_stmt));
 }
 

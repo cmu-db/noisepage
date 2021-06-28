@@ -444,9 +444,18 @@ class ExecutionRunners : public benchmark::Fixture {
       exec_settings = *exec_settings_arg;
     }
 
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
-        common::ManagedPointer(accessor), exec_settings, metrics_manager_, DISABLED, DISABLED);
+    auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                        .WithDatabaseOID(db_oid)
+                        .WithExecutionMode(ExecutionRunners::mode)
+                        .WithExecutionSettings(exec_settings)
+                        .WithTxnContext(common::ManagedPointer{txn})
+                        .WithOutputCallback(execution::exec::NoOpResultConsumer{})
+                        .WithOutputSchema(out_plan->GetOutputSchema())
+                        .WithCatalogAccessor(common::ManagedPointer{accessor})
+                        .WithMetricsManager(metrics_manager_)
+                        .WithReplicationManager(DISABLED)
+                        .WithRecoveryManager(DISABLED)
+                        .Build();
 
     execution::compiler::ExecutableQuery::query_identifier.store(ExecutionRunners::query_id++);
     auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
@@ -489,9 +498,17 @@ class ExecutionRunners : public benchmark::Fixture {
     auto txn = txn_manager->BeginTransaction();
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto exec_settings = ExecutionRunners::GetExecutionSettings();
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings,
-        metrics_manager_, DISABLED, DISABLED);
+
+    auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                        .WithDatabaseOID(db_oid)
+                        .WithExecutionMode(ExecutionRunners::mode)
+                        .WithExecutionSettings(exec_settings)
+                        .WithTxnContext(common::ManagedPointer{txn})
+                        .WithCatalogAccessor(common::ManagedPointer{accessor})
+                        .WithMetricsManager(metrics_manager_)
+                        .WithReplicationManager(DISABLED)
+                        .WithRecoveryManager(DISABLED)
+                        .Build();
 
     execution::sql::TableGenerator table_generator(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
     if (is_build) {
@@ -547,18 +564,28 @@ class ExecutionRunners : public benchmark::Fixture {
         exec_settings = *exec_settings_arg;
       }
 
-      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid, common::ManagedPointer(txn), callback, out_schema, common::ManagedPointer(accessor), exec_settings,
-          metrics_manager, DISABLED, DISABLED);
+      // auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+      //     db_oid, common::ManagedPointer(txn), callback, out_schema, common::ManagedPointer(accessor), exec_settings,
+      //     metrics_manager, DISABLED, DISABLED);
 
-      // Attach params to ExecutionContext
-      if (static_cast<size_t>(i) < params_ref.size()) {
-        std::vector<common::ManagedPointer<const execution::sql::Val>> p{};
-        std::transform(
-            params_ref[i].cbegin(), params_ref[i].cend(), std::back_inserter(p),
-            [](const parser::ConstantValueExpression &expr) { return common::ManagedPointer{expr.SqlValue()}; });
-        exec_ctx->SetParams(common::ManagedPointer{&p});
+      // TODO(Kyle): This makes an unnecessary copy of the query parameters
+      std::vector<parser::ConstantValueExpression> parameters{};
+      if (static_cast<std::size_t>(i) < params_ref.size()) {
+        std::copy(params_ref[i].cbegin(), params_ref[i].cend(), std::back_inserter(parameters));
       }
+      auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                          .WithDatabaseOID(db_oid)
+                          .WithQueryParametersFrom(parameters)
+                          .WithExecutionMode(ExecutionRunners::mode)
+                          .WithExecutionSettings(exec_settings)
+                          .WithTxnContext(common::ManagedPointer{txn})
+                          .WithOutputSchema(common::ManagedPointer{out_schema})
+                          .WithOutputCallback(std::move(callback))
+                          .WithCatalogAccessor(common::ManagedPointer{accessor})
+                          .WithMetricsManager(metrics_manager_)
+                          .WithReplicationManager(DISABLED)
+                          .WithRecoveryManager(DISABLED)
+                          .Build();
 
       exec_query->Run(common::ManagedPointer(exec_ctx), mode);
 
@@ -580,10 +607,16 @@ class ExecutionRunners : public benchmark::Fixture {
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto exec_settings = GetExecutionSettings();
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings,
-        metrics_manager_, DISABLED, DISABLED);
-    exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
+    auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                        .WithDatabaseOID(db_oid)
+                        .WithExecutionMode(ExecutionRunners::mode)
+                        .WithExecutionSettings(exec_settings)
+                        .WithTxnContext(common::ManagedPointer{txn})
+                        .WithCatalogAccessor(common::ManagedPointer{accessor})
+                        .WithMetricsManager(metrics_manager_)
+                        .WithReplicationManager(DISABLED)
+                        .WithRecoveryManager(DISABLED)
+                        .Build();
 
     selfdriving::PipelineOperatingUnits units;
     selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -942,9 +975,19 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_OutputRunners)(benchmark::State &state
   execution::compiler::ExecutableQuery::query_identifier.store(ExecutionRunners::query_id++);
   execution::exec::NoOpResultConsumer consumer;
   execution::exec::OutputCallback callback = consumer;
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid, common::ManagedPointer(txn), callback, schema.get(), common::ManagedPointer(accessor), exec_settings,
-      metrics_manager_, DISABLED, DISABLED);
+
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid)
+                      .WithExecutionMode(ExecutionRunners::mode)
+                      .WithExecutionSettings(exec_settings)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithOutputSchema(common::ManagedPointer{schema})
+                      .WithOutputCallback(std::move(callback))
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(metrics_manager_)
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   auto exec_query =
       execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16, exec_settings);
@@ -1008,9 +1051,18 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
     auto exec_settings = GetExecutionSettings();
     execution::exec::NoOpResultConsumer consumer;
     execution::exec::OutputCallback callback = consumer;
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), callback, nullptr, common::ManagedPointer(accessor), exec_settings,
-        metrics_manager, DISABLED, DISABLED);
+
+    auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                        .WithDatabaseOID(db_oid)
+                        .WithExecutionMode(ExecutionRunners::mode)
+                        .WithExecutionSettings(exec_settings)
+                        .WithTxnContext(common::ManagedPointer{txn})
+                        .WithOutputCallback(std::move(callback))
+                        .WithCatalogAccessor(common::ManagedPointer{accessor})
+                        .WithMetricsManager(metrics_manager_)
+                        .WithReplicationManager(DISABLED)
+                        .WithRecoveryManager(DISABLED)
+                        .Build();
 
     // A brief discussion of the features:
     // NUM_ROWS: size of the index
@@ -2032,9 +2084,16 @@ void InitializeRunnersState() {
   // Load the database
   auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   auto exec_settings = ExecutionRunners::GetExecutionSettings();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings,
-      db_main->GetMetricsManager(), DISABLED, DISABLED);
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid)
+                      .WithExecutionMode(ExecutionRunners::mode)
+                      .WithExecutionSettings(exec_settings)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
   table_gen.GenerateExecutionRunnersData(settings, config);

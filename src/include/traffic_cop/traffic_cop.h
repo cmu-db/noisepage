@@ -7,7 +7,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "execution/vm/vm_defs.h"
+#include "execution/vm/execution_mode.h"
 #include "network/network_defs.h"
 #include "traffic_cop/traffic_cop_defs.h"
 
