@@ -284,9 +284,7 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
 
   auto exec_ctx = execution::exec::ExecutionContextBuilder()
                       .WithDatabaseOID(db_oid_)
-                      .WithExecutionMode(execution_mode_)
                       .WithExecutionSettings(exec_settings)
-                      .WithQueryParametersFrom(*params)
                       .WithTxnContext(txn)
                       .WithOutputSchema(common::ManagedPointer{schema})
                       .WithOutputCallback(std::move(callback))
@@ -294,6 +292,7 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
                       .WithMetricsManager(metrics)
                       .WithReplicationManager(DISABLED)
                       .WithRecoveryManager(DISABLED)
+                      .WithQueryParametersFrom(*params)
                       .Build();
 
   NOISEPAGE_ASSERT(!txn->MustAbort(), "Transaction should not be in must-abort state prior to executing");

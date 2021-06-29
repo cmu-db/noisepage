@@ -15,15 +15,41 @@
 namespace noisepage::execution::exec {
 
 std::unique_ptr<ExecutionContext> ExecutionContextBuilder::Build() {
-  NOISEPAGE_ASSERT(db_oid_ != catalog::INVALID_DATABASE_OID, "Must specify database OID.");
-  NOISEPAGE_ASSERT(exec_mode_.has_value(), "Must specify execution mode.");
-  NOISEPAGE_ASSERT(exec_settings_.has_value(), "Must specify execution settings.");
-  NOISEPAGE_ASSERT(static_cast<bool>(catalog_accessor_), "Must specify catalog accessor.");
-  // MetricsManager, ReplicationManager, and RecoveryManaged may be DISABLED
+  if (db_oid_ == catalog::INVALID_DATABASE_OID) {
+    throw EXECUTION_EXCEPTION("Must specify database OID.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  if (!exec_settings_.has_value()) {
+    throw EXECUTION_EXCEPTION("Must specify exection settings.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  if (!txn_.has_value()) {
+    throw EXECUTION_EXCEPTION("Must specify a transaction context.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  if (!output_schema_.has_value()) {
+    throw EXECUTION_EXCEPTION("Must specify output schema.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  if (!output_callback_.has_value()) {
+    throw EXECUTION_EXCEPTION("Must specify output callback.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  if (!catalog_accessor_.has_value()) {
+    throw EXECUTION_EXCEPTION("Must specify catalog accessor.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  if (!metrics_manager_.has_value()) {
+    throw EXECUTION_EXCEPTION("Must specify metrics manager.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  if (!replication_manager_.has_value()) {
+    throw EXECUTION_EXCEPTION("Must specify replication manager.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+  if (!recovery_manager_.has_value()) {
+    throw EXECUTION_EXCEPTION("Must specify recovery manager.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
+
+  // Query parameters (parameters_) is not validated because
+  // this defaults to an empty collection
+
   return std::unique_ptr<ExecutionContext>{
-      new ExecutionContext{db_oid_, std::move(parameters_), exec_mode_.value(), std::move(exec_settings_.value()), txn_,
-                           output_schema_, std::move(output_callback_.value_or(nullptr)), catalog_accessor_,
-                           metrics_manager_, replication_manager_, recovery_manager_}};
+      new ExecutionContext{db_oid_, std::move(parameters_), std::move(exec_settings_.value()), txn_.value(),
+                           output_schema_.value(), std::move(output_callback_.value()), catalog_accessor_.value(),
+                           metrics_manager_.value(), replication_manager_.value(), recovery_manager_.value()}};
 }
 
 ExecutionContextBuilder &ExecutionContextBuilder::WithQueryParametersFrom(

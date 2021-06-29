@@ -100,6 +100,15 @@ class EXPORT ExecutionContext {
   /** @return The transaction associated with this execution context */
   common::ManagedPointer<transaction::TransactionContext> GetTxn() { return txn_; }
 
+  /** @return The execution mode for the execution context */
+  vm::ExecutionMode GetExecutionMode() const { return execution_mode_; }
+
+  /**
+   * Set the execution mode for the execution context.
+   * @param execution_mode The desired execution mode
+   */
+  void SetExecutionMode(const vm::ExecutionMode execution_mode) { execution_mode_ = execution_mode; }
+
   /** @return The execution settings. */
   const exec::ExecutionSettings &GetExecutionSettings() const { return execution_settings_; }
 
@@ -249,13 +258,12 @@ class EXPORT ExecutionContext {
     // to the "base" set of parameters for the query, otherwise, grab
     // the parameter at the specified index from the top of the runtime
     // parameters stack.
-    if (runtime_parameters_.empty()) {
-      NOISEPAGE_ASSERT(index < parameters_.size(), "ExecutionContext::GetParam() index out of range");
-      return parameters_[index];
-    } else {
+    if (!runtime_parameters_.empty()) {
       NOISEPAGE_ASSERT(index < runtime_parameters_.top().size(), "ExecutionContext::GetParam() index out of range.");
       return runtime_parameters_.top()[index];
     }
+    NOISEPAGE_ASSERT(index < parameters_.size(), "ExecutionContext::GetParam() index out of range");
+    return parameters_[index];
   }
 
   /* --------------------------------------------------------------------------
@@ -333,6 +341,12 @@ class EXPORT ExecutionContext {
    */
   void ClearHooks() { hooks_.clear(); }
 
+ public:
+  /** An empty output schema */
+  constexpr static const std::nullptr_t NULL_OUTPUT_SCHEMA{nullptr};
+  /** An empty output callback */
+  constexpr static const std::nullptr_t NULL_OUTPUT_CALLBACK{nullptr};
+
  private:
   friend class ExecutionContextBuilder;
 
@@ -343,7 +357,6 @@ class EXPORT ExecutionContext {
    *
    * @param db_oid The OID of the database
    * @param parameters The query parameters
-   * @param execution_mode The query execution mode
    * @param execution_settings The execution settings to run with
    * @param txn The transaction used by this query
    * @param output_schema The output schema
@@ -354,7 +367,7 @@ class EXPORT ExecutionContext {
    * @param recovery_manager The recovery manager that handles both recovery and application of replication records.
    */
   ExecutionContext(const catalog::db_oid_t db_oid, std::vector<common::ManagedPointer<const sql::Val>> &&parameters,
-                   vm::ExecutionMode execution_mode, exec::ExecutionSettings &&execution_settings,
+                   exec::ExecutionSettings &&execution_settings,
                    const common::ManagedPointer<transaction::TransactionContext> txn,
                    const common::ManagedPointer<planner::OutputSchema> output_schema, OutputCallback &&output_callback,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
@@ -363,7 +376,6 @@ class EXPORT ExecutionContext {
                    const common::ManagedPointer<storage::RecoveryManager> recovery_manager)
       : db_oid_{db_oid},
         parameters_{std::move(parameters)},
-        execution_mode_{execution_mode},
         execution_settings_{execution_settings},
         txn_{txn},
         schema_{output_schema},
@@ -463,16 +475,6 @@ class ExecutionContextBuilder {
   std::unique_ptr<ExecutionContext> Build();
 
   /**
-   * Set the execution mode for the execution context.
-   * @param mode The execution mode
-   * @return Builder reference for chaining
-   */
-  ExecutionContextBuilder &WithExecutionMode(const vm::ExecutionMode mode) {
-    exec_mode_.emplace(mode);
-    return *this;
-  }
-
-  /**
    * Set the query parameters for the execution context.
    * @param parameters The query parameters
    * @return Builder reference for chaining
@@ -544,18 +546,8 @@ class ExecutionContextBuilder {
    * @param exec_settings The execution settings
    * @return Builder reference for chaining
    */
-  ExecutionContextBuilder &WithExecutionSettings(exec::ExecutionSettings &&exec_settings) {
-    exec_settings_.emplace(std::move(exec_settings));
-    return *this;
-  }
-
-  /**
-   * Set the execution settings for the execution context.
-   * @param exec_settings The execution settings
-   * @return Builder reference for chaining
-   */
   ExecutionContextBuilder &WithExecutionSettings(exec::ExecutionSettings exec_settings) {
-    exec_settings_.emplace(std::move(exec_settings));
+    exec_settings_.emplace(exec_settings);
     return *this;
   }
 
@@ -591,8 +583,6 @@ class ExecutionContextBuilder {
   }
 
  private:
-  /** The query execution mode */
-  std::optional<vm::ExecutionMode> exec_mode_;
   /** The query execution settings */
   std::optional<exec::ExecutionSettings> exec_settings_;
   /** The query parmeters */
@@ -600,19 +590,19 @@ class ExecutionContextBuilder {
   /** The database OID */
   catalog::db_oid_t db_oid_{catalog::INVALID_DATABASE_OID};
   /** The associated transaction */
-  common::ManagedPointer<transaction::TransactionContext> txn_;
+  std::optional<common::ManagedPointer<transaction::TransactionContext>> txn_;
   /** The output callback */
   std::optional<OutputCallback> output_callback_;
   /** The output schema */
-  common::ManagedPointer<planner::OutputSchema> output_schema_{nullptr};
+  std::optional<common::ManagedPointer<planner::OutputSchema>> output_schema_{nullptr};
   /** The catalog accessor */
-  common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
+  std::optional<common::ManagedPointer<catalog::CatalogAccessor>> catalog_accessor_;
   /** The metrics manager */
-  common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
+  std::optional<common::ManagedPointer<metrics::MetricsManager>> metrics_manager_;
   /** The replication manager */
-  common::ManagedPointer<replication::ReplicationManager> replication_manager_;
+  std::optional<common::ManagedPointer<replication::ReplicationManager>> replication_manager_;
   /** The recovery manager */
-  common::ManagedPointer<storage::RecoveryManager> recovery_manager_;
+  std::optional<common::ManagedPointer<storage::RecoveryManager>> recovery_manager_;
 };
 
 }  // namespace noisepage::execution::exec

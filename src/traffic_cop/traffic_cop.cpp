@@ -584,7 +584,6 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   auto exec_ctx = execution::exec::ExecutionContextBuilder()
                       .WithDatabaseOID(connection_ctx->GetDatabaseOid())
-                      .WithExecutionMode(execution_mode_)
                       .WithExecutionSettings(exec_settings)
                       .WithTxnContext(connection_ctx->Transaction())
                       .WithOutputSchema(physical_plan->GetOutputSchema())

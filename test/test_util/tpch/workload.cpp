@@ -43,9 +43,10 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
   // Make the execution context
   auto exec_ctx = execution::exec::ExecutionContextBuilder()
                       .WithDatabaseOID(db_oid_)
-                      .WithExecutionMode(execution::vm::ExecutionMode::Interpret)
                       .WithExecutionSettings(exec_settings_)
                       .WithTxnContext(common::ManagedPointer{txn})
+                      .WithOutputSchema(execution::exec::ExecutionContext::NULL_OUTPUT_SCHEMA)
+                      .WithOutputCallback(execution::exec::ExecutionContext::NULL_OUTPUT_CALLBACK)
                       .WithCatalogAccessor(common::ManagedPointer{accessor})
                       .WithMetricsManager(db_main->GetMetricsManager())
                       .WithReplicationManager(DISABLED)
@@ -156,7 +157,6 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
 
     auto exec_ctx = execution::exec::ExecutionContextBuilder()
                         .WithDatabaseOID(db_oid_)
-                        .WithExecutionMode(mode)
                         .WithExecutionSettings(exec_settings_)
                         .WithTxnContext(common::ManagedPointer{txn})
                         .WithOutputSchema(common::ManagedPointer{output_schema})
