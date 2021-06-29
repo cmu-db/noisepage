@@ -180,6 +180,7 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   auto query_state = std::make_unique<byte[]>(query_state_size_);
   *reinterpret_cast<exec::ExecutionContext **>(query_state.get()) = exec_ctx.Get();
 
+  exec_ctx->SetExecutionMode(mode);
   exec_ctx->SetQueryState(query_state.get());
   exec_ctx->SetPipelineOperatingUnits(GetPipelineOperatingUnits());
   exec_ctx->SetQueryId(query_id_);

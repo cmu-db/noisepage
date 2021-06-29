@@ -189,7 +189,7 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query, bool what_if) {
           // has run. We can't compile the query before the CreateIndexExecutor because codegen would have
           // no idea which index to insert into.
           execution::exec::ExecutionSettings settings{};
-          common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
+          const auto schema = out_plan->GetOutputSchema();
           auto exec_query = execution::compiler::CompilationContext::Compile(
               *out_plan, settings, accessor.get(), execution::compiler::CompilationMode::OneShot, std::nullopt,
               statement->OptimizeResult()->GetPlanMetaData());
@@ -235,8 +235,7 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
 
   const common::ManagedPointer<planner::AbstractPlanNode> out_plan = result->OptimizeResult()->GetPlanNode();
   NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(result->GetQueryType()), "ExecuteDML expects DML");
-  common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
-
+  const auto schema = out_plan->GetOutputSchema();
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *out_plan, exec_settings, accessor.get(), execution::compiler::CompilationMode::OneShot, override_qid,
       result->OptimizeResult()->GetPlanMetaData());
@@ -253,7 +252,7 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   ResetError();
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  planner::OutputSchema *schema = schemas_[statement].get();
+  const planner::OutputSchema *schema = schemas_[statement].get();
 
   std::mutex sync_mutex;
   auto consumer = [&tuple_fn, &sync_mutex, schema](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {

@@ -43,11 +43,10 @@ std::unique_ptr<ExecutionContext> ExecutionContextBuilder::Build() {
     throw EXECUTION_EXCEPTION("Must specify recovery manager.", common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 
-  // Query parameters (parameters_) is not validated because
-  // this defaults to an empty collection
-
+  // Query parameters (parameters_) is not validated because default is empty collection
+  // ExecutionSettings exec_settings = exec_settings_.value();
   return std::unique_ptr<ExecutionContext>{
-      new ExecutionContext{db_oid_, std::move(parameters_), std::move(exec_settings_.value()), txn_.value(),
+      new ExecutionContext{db_oid_, std::move(parameters_), exec_settings_.value(), txn_.value(),
                            output_schema_.value(), std::move(output_callback_.value()), catalog_accessor_.value(),
                            metrics_manager_.value(), replication_manager_.value(), recovery_manager_.value()}};
 }
@@ -64,18 +63,19 @@ ExecutionContextBuilder &ExecutionContextBuilder::WithQueryParametersFrom(
 }
 
 OutputBuffer *ExecutionContext::OutputBufferNew() {
-  if (schema_ == nullptr) {
+  if (output_schema_ == nullptr) {
     return nullptr;
   }
 
   // Use C++ placement new
   auto size = sizeof(OutputBuffer);
   auto *buffer = reinterpret_cast<OutputBuffer *>(mem_pool_->Allocate(size));
-  new (buffer) OutputBuffer(mem_pool_.get(), schema_->GetColumns().size(), ComputeTupleSize(schema_), callback_);
+  new (buffer) OutputBuffer(mem_pool_.get(), output_schema_->GetColumns().size(), ComputeTupleSize(output_schema_),
+                            output_callback_);
   return buffer;
 }
 
-uint32_t ExecutionContext::ComputeTupleSize(common::ManagedPointer<planner::OutputSchema> schema) {
+uint32_t ExecutionContext::ComputeTupleSize(common::ManagedPointer<const planner::OutputSchema> schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {
     auto alignment = sql::ValUtil::GetSqlAlignment(col.GetType());

@@ -540,7 +540,7 @@ class ExecutionRunners : public benchmark::Fixture {
   }
 
   void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
-                          planner::OutputSchema *out_schema, bool commit,
+                          const planner::OutputSchema *out_schema, bool commit,
                           std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params,
                           execution::exec::ExecutionSettings *exec_settings_arg = nullptr) {
     transaction::TransactionContext *txn = nullptr;
@@ -564,10 +564,6 @@ class ExecutionRunners : public benchmark::Fixture {
         exec_settings = *exec_settings_arg;
       }
 
-      // auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      //     db_oid, common::ManagedPointer(txn), callback, out_schema, common::ManagedPointer(accessor), exec_settings,
-      //     metrics_manager, DISABLED, DISABLED);
-
       // TODO(Kyle): This makes an unnecessary copy of the query parameters
       std::vector<parser::ConstantValueExpression> parameters{};
       if (static_cast<std::size_t>(i) < params_ref.size()) {
@@ -579,7 +575,7 @@ class ExecutionRunners : public benchmark::Fixture {
                           .WithExecutionSettings(exec_settings)
                           .WithTxnContext(common::ManagedPointer{txn})
                           .WithOutputSchema(common::ManagedPointer{out_schema})
-                          .WithOutputCallback(std::move(callback))
+                          .WithOutputCallback(callback)
                           .WithCatalogAccessor(common::ManagedPointer{accessor})
                           .WithMetricsManager(metrics_manager_)
                           .WithReplicationManager(DISABLED)
@@ -969,7 +965,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_OutputRunners)(benchmark::State &state
 
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-  auto schema = std::make_unique<planner::OutputSchema>(std::move(cols));
+  auto schema = std::make_unique<const planner::OutputSchema>(std::move(cols));
 
   auto exec_settings = GetExecutionSettings();
   execution::compiler::ExecutableQuery::query_identifier.store(ExecutionRunners::query_id++);
@@ -981,7 +977,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_OutputRunners)(benchmark::State &state
                       .WithExecutionSettings(exec_settings)
                       .WithTxnContext(common::ManagedPointer{txn})
                       .WithOutputSchema(common::ManagedPointer{schema})
-                      .WithOutputCallback(std::move(callback))
+                      .WithOutputCallback(callback)
                       .WithCatalogAccessor(common::ManagedPointer{accessor})
                       .WithMetricsManager(metrics_manager_)
                       .WithReplicationManager(DISABLED)
@@ -1056,7 +1052,7 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
                         .WithExecutionSettings(exec_settings)
                         .WithTxnContext(common::ManagedPointer{txn})
                         .WithOutputSchema(execution::exec::ExecutionContext::NULL_OUTPUT_SCHEMA)
-                        .WithOutputCallback(std::move(callback))
+                        .WithOutputCallback(callback)
                         .WithCatalogAccessor(common::ManagedPointer{accessor})
                         .WithMetricsManager(metrics_manager_)
                         .WithReplicationManager(DISABLED)

@@ -166,7 +166,9 @@ class AbstractPlanNode {
    * @return output schema for the node. The output schema contains information on columns of the output of the plan
    * node operator
    */
-  common::ManagedPointer<OutputSchema> GetOutputSchema() const { return common::ManagedPointer(output_schema_); }
+  common::ManagedPointer<const OutputSchema> GetOutputSchema() const {
+    return common::ManagedPointer<const OutputSchema>(output_schema_.get());
+  }
 
   //===--------------------------------------------------------------------===//
   // Add child

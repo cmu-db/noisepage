@@ -160,7 +160,7 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
                         .WithExecutionSettings(exec_settings_)
                         .WithTxnContext(common::ManagedPointer{txn})
                         .WithOutputSchema(common::ManagedPointer{output_schema})
-                        .WithOutputCallback(std::move(printer))
+                        .WithOutputCallback(printer)
                         .WithCatalogAccessor(common::ManagedPointer{accessor})
                         .WithMetricsManager(db_main_->GetMetricsManager())
                         .WithReplicationManager(DISABLED)

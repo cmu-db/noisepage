@@ -106,6 +106,11 @@ class EXPORT ExecutionContext {
   /**
    * Set the execution mode for the execution context.
    * @param execution_mode The desired execution mode
+   *
+   * NOTE: Most of the time one should avoid calling this
+   * function directly; the execution mode for the ExecutionContext
+   * instance is automatically set in ExecutableQuery::Run() to
+   * the execution mode in which the query is executed.
    */
   void SetExecutionMode(const vm::ExecutionMode execution_mode) { execution_mode_ = execution_mode; }
 
@@ -309,7 +314,7 @@ class EXPORT ExecutionContext {
    * @param schema The output schema
    * @return The size of tuple in this schema
    */
-  static uint32_t ComputeTupleSize(common::ManagedPointer<planner::OutputSchema> schema);
+  static uint32_t ComputeTupleSize(common::ManagedPointer<const planner::OutputSchema> schema);
 
   /* --------------------------------------------------------------------------
     Hook Function Management
@@ -367,10 +372,10 @@ class EXPORT ExecutionContext {
    * @param recovery_manager The recovery manager that handles both recovery and application of replication records.
    */
   ExecutionContext(const catalog::db_oid_t db_oid, std::vector<common::ManagedPointer<const sql::Val>> &&parameters,
-                   exec::ExecutionSettings &&execution_settings,
+                   exec::ExecutionSettings execution_settings,
                    const common::ManagedPointer<transaction::TransactionContext> txn,
-                   const common::ManagedPointer<planner::OutputSchema> output_schema, OutputCallback &&output_callback,
-                   const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                   const common::ManagedPointer<const planner::OutputSchema> output_schema,
+                   OutputCallback &&output_callback, const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                    const common::ManagedPointer<metrics::MetricsManager> metrics_manager,
                    const common::ManagedPointer<replication::ReplicationManager> replication_manager,
                    const common::ManagedPointer<storage::RecoveryManager> recovery_manager)
@@ -378,8 +383,8 @@ class EXPORT ExecutionContext {
         parameters_{std::move(parameters)},
         execution_settings_{execution_settings},
         txn_{txn},
-        schema_{output_schema},
-        callback_{std::move(output_callback)},
+        output_schema_{output_schema},
+        output_callback_{std::move(output_callback)},
         accessor_{accessor},
         metrics_manager_{metrics_manager},
         replication_manager_{replication_manager},
@@ -412,11 +417,11 @@ class EXPORT ExecutionContext {
   const common::ManagedPointer<transaction::TransactionContext> txn_;
 
   /** The query output schema */
-  common::ManagedPointer<planner::OutputSchema> schema_{nullptr};
+  common::ManagedPointer<const planner::OutputSchema> output_schema_{nullptr};
   /** The query output buffer */
   std::unique_ptr<OutputBuffer> buffer_{nullptr};
   /** The query output callback */
-  const OutputCallback &callback_;
+  OutputCallback output_callback_;
 
   /** The query catalog accessor */
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
@@ -516,7 +521,7 @@ class ExecutionContextBuilder {
    * @param output_schema The output schema
    * @return Builder reference for chaining
    */
-  ExecutionContextBuilder &WithOutputSchema(common::ManagedPointer<planner::OutputSchema> output_schema) {
+  ExecutionContextBuilder &WithOutputSchema(common::ManagedPointer<const planner::OutputSchema> output_schema) {
     output_schema_ = output_schema;
     return *this;
   }
@@ -526,7 +531,7 @@ class ExecutionContextBuilder {
    * @param output_callback The output callback
    * @return Builder reference for chaining
    */
-  ExecutionContextBuilder &WithOutputCallback(OutputCallback &&output_callback) {
+  ExecutionContextBuilder &WithOutputCallback(OutputCallback output_callback) {
     output_callback_.emplace(std::move(output_callback));
     return *this;
   }
@@ -594,7 +599,7 @@ class ExecutionContextBuilder {
   /** The output callback */
   std::optional<OutputCallback> output_callback_;
   /** The output schema */
-  std::optional<common::ManagedPointer<planner::OutputSchema>> output_schema_{nullptr};
+  std::optional<common::ManagedPointer<const planner::OutputSchema>> output_schema_{nullptr};
   /** The catalog accessor */
   std::optional<common::ManagedPointer<catalog::CatalogAccessor>> catalog_accessor_;
   /** The metrics manager */

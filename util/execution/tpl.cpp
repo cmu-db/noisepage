@@ -94,24 +94,30 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::ExecutionSettings exec_settings{};
   exec::OutputPrinter printer(output_schema);
   exec::OutputCallback callback = printer;
-  exec::ExecutionContext exec_ctx{
-      db_oid,        common::ManagedPointer(txn),  callback, output_schema, common::ManagedPointer(accessor),
-      exec_settings, db_main->GetMetricsManager(), DISABLED, DISABLED};
-  // Add dummy parameters for tests
-  std::vector<parser::ConstantValueExpression> params_builder{};
-  params_builder.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
-  params_builder.emplace_back(type::TypeId::REAL, sql::Real(37.73));
-  params_builder.emplace_back(type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
-  auto string_val = sql::ValueUtil::CreateStringVal(std::string_view("37 Strings"));
-  params_builder.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
 
-  std::vector<common::ManagedPointer<const execution::sql::Val>> params{};
-  std::transform(params_builder.cbegin(), params_builder.cend(), std::back_inserter(params),
-                 [](const parser::ConstantValueExpression &expr) { return common::ManagedPointer{expr.SqlValue()}; });
-  exec_ctx.SetParams(common::ManagedPointer{&params});
+  // Add dummy parameters for tests
+  std::vector<parser::ConstantValueExpression> params{};
+  params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
+  params.emplace_back(type::TypeId::REAL, sql::Real(37.73));
+  params.emplace_back(type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
+  auto string_val = sql::ValueUtil::CreateStringVal(std::string_view("37 Strings"));
+  params.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+
+  auto exec_ctx = exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid)
+                      .WithExecutionSettings(exec_settings)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithOutputSchema(common::ManagedPointer{output_schema})
+                      .WithOutputCallback(callback)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .WithQueryParametersFrom(params)
+                      .Build();
 
   // Generate test tables
-  sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
+  sql::TableGenerator table_generator{exec_ctx.get(), db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
   table_generator.GenerateTestTables();
   // Comment out to make more tables available at runtime
   // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
@@ -197,7 +203,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
 
   {
-    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Interpret));
+    exec_ctx->SetExecutionMode(vm::ExecutionMode::Interpret);
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (IS_SQL) {
@@ -206,7 +212,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
         return;
       }
-      EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
+      EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx.get()));
     } else {
       std::function<int32_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
@@ -221,7 +227,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Adaptive
   //
 
-  exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Adaptive));
+  exec_ctx->SetExecutionMode(vm::ExecutionMode::Adaptive);
   util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
   if (IS_SQL) {
@@ -230,7 +236,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
       return;
     }
-    EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
+    EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(exec_ctx.get()));
   } else {
     std::function<int32_t()> main;
     if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
@@ -244,7 +250,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // JIT
   //
   {
-    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Compiled));
+    exec_ctx->SetExecutionMode(vm::ExecutionMode::Compiled);
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
     if (IS_SQL) {
@@ -255,7 +261,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       util::Timer<std::milli> x;
       x.Start();
-      EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
+      EXECUTION_LOG_INFO("JIT main() returned: {}", main(exec_ctx.get()));
       x.Stop();
       EXECUTION_LOG_INFO("Jit exec: {} ms", x.GetElapsed());
     } else {

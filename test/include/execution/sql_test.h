@@ -53,41 +53,99 @@ class SqlBasedTest : public TplTest {
 
   ~SqlBasedTest() override { txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr); }
 
+  /** @return The namespace OID */
   catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
 
+  /** @return The block store */
   common::ManagedPointer<storage::BlockStore> BlockStore() { return block_store_; }
 
+  /**
+   * Construct and return an execution context.
+   * @param callback[optional] The output callback
+   * @param schema[optional] the output schema
+   * @return The execution context
+   */
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback *callback = nullptr,
                                                       const planner::OutputSchema *schema = nullptr) {
     exec::OutputCallback empty = nullptr;
     const auto &callback_ref = (callback == nullptr) ? empty : *callback;
-    return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback_ref,
-                                                    schema, common::ManagedPointer(accessor_), *exec_settings_,
-                                                    metrics_manager_, DISABLED, DISABLED);
+    return exec::ExecutionContextBuilder()
+        .WithDatabaseOID(test_db_oid_)
+        .WithExecutionSettings(*exec_settings_)
+        .WithTxnContext(common::ManagedPointer{test_txn_})
+        .WithOutputSchema(common::ManagedPointer{schema})
+        .WithOutputCallback(callback_ref)
+        .WithCatalogAccessor(common::ManagedPointer{accessor_})
+        .WithMetricsManager(metrics_manager_)
+        .WithReplicationManager(DISABLED)
+        .WithRecoveryManager(DISABLED)
+        .Build();
   }
 
+  /**
+   * Construct and return an execution context.
+   * @param parameters The query execution parameters
+   * @param callback[optional] The output callback
+   * @param schema[optional] The output schema
+   * @return The execution context
+   */
+  std::unique_ptr<exec::ExecutionContext> MakeExecCtxWithParameters(
+      const std::vector<parser::ConstantValueExpression> &parameters, exec::OutputCallback *callback = nullptr,
+      const planner::OutputSchema *schema = nullptr) {
+    exec::OutputCallback empty = nullptr;
+    const auto &callback_ref = (callback == nullptr) ? empty : *callback;
+    return exec::ExecutionContextBuilder()
+        .WithDatabaseOID(test_db_oid_)
+        .WithExecutionSettings(*exec_settings_)
+        .WithTxnContext(common::ManagedPointer{test_txn_})
+        .WithOutputSchema(common::ManagedPointer{schema})
+        .WithOutputCallback(callback_ref)
+        .WithCatalogAccessor(common::ManagedPointer{accessor_})
+        .WithMetricsManager(metrics_manager_)
+        .WithReplicationManager(DISABLED)
+        .WithRecoveryManager(DISABLED)
+        .WithQueryParametersFrom(parameters)
+        .Build();
+  }
+
+  /**
+   * Generate the test tables for SQL tests.
+   * @param exec_ctx The execution context to use for table generation.
+   */
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
     sql::TableGenerator table_generator{exec_ctx, block_store_, test_ns_oid_};
     table_generator.GenerateTestTables();
   }
 
+  /** @return A new, owned catalog accessor */
   std::unique_ptr<noisepage::catalog::CatalogAccessor> MakeAccessor() {
     return catalog_->GetAccessor(common::ManagedPointer(test_txn_), test_db_oid_, DISABLED);
   }
 
  protected:
+  /** The catalog accessor */
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
+  /** The identifier for the test database */
   catalog::db_oid_t test_db_oid_{0};
+  /** The statistics storage */
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
+  /** The test transaction context */
   transaction::TransactionContext *test_txn_;
+  /** The transaction manager */
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 
  private:
+  /** The database instance */
   std::unique_ptr<DBMain> db_main_;
+  /** The metrics manager instance */
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
+  /** The block store */
   common::ManagedPointer<storage::BlockStore> block_store_;
+  /** The catalog instance */
   common::ManagedPointer<catalog::Catalog> catalog_;
+  /** The identifier for the test namespace */
   catalog::namespace_oid_t test_ns_oid_;
+  /** The execution settings instance */
   std::unique_ptr<exec::ExecutionSettings> exec_settings_;
 };
 
