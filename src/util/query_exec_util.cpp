@@ -281,17 +281,25 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
   // TODO(wz2): May want to thread the replication manager or recovery manager through
   execution::exec::OutputCallback callback = consumer;
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings, metrics, DISABLED, DISABLED);
 
-  // Must translate the ConstantValueExpressions to opaque sql::Val
-  std::vector<common::ManagedPointer<const execution::sql::Val>> value_params{};
-  value_params.reserve(params->size());
-  std::transform(params->cbegin(), params->cend(), std::back_inserter(value_params),
-                 [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.SqlValue()}; });
-  exec_ctx->SetParams(common::ManagedPointer(&value_params));
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithExecutionMode(execution_mode_)
+                      .WithExecutionSettings(exec_settings)
+                      .WithQueryParametersFrom(*params)
+                      .WithTxnContext(txn)
+                      .WithOutputSchema(common::ManagedPointer{schema})
+                      .WithOutputCallback(std::move(callback))
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(metrics)
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   NOISEPAGE_ASSERT(!txn->MustAbort(), "Transaction should not be in must-abort state prior to executing");
+  // TODO(Kyle): Right now it looks like the QueryExecUtil always runs queries in interpreted
+  // execution mode, regardless of how the setting is updated throughout the rest of the system,
+  // is this the intended behavior..? (unlikely)
   exec_queries_[statement]->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   if (txn->MustAbort()) {
     // Return false to indicate that the query encountered a runtime error.

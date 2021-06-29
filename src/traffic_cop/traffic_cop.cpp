@@ -583,28 +583,18 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   }
 
   auto exec_ctx = execution::exec::ExecutionContextBuilder()
-    .WithDatabaseOID(connection_ctx->GetDatabaseOid())
-    .WithExecutionMode(execution_mode_)
-    .WithExecutionSettings(exec_settings)
-    .WithTxnContext(connection_ctx->Transaction())
-    .WithOutputSchema(physical_plan->GetOutputSchema())
-    .WithOutputCallback(std::move(callback))
-    .WithCatalogAccessor(connection_ctx->Accessor())
-    .WithMetricsManager(metrics)
-    .WithReplicationManager(replication_manager_)
-    .WithRecoveryManager(recovery_manager_)
-    .WithQueryParametersFrom(*portal->Parameters())
-    .Build();
-
-  // auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-  //     connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
-  //     connection_ctx->Accessor(), exec_settings, metrics, replication_manager_, recovery_manager_);
-
-  // std::vector<common::ManagedPointer<const execution::sql::Val>> params{};
-  // params.reserve(portal->Parameters()->size());
-  // std::transform(portal->Parameters()->cbegin(), portal->Parameters()->cend(), std::back_inserter(params),
-  //                [](const parser::ConstantValueExpression &cve) { return common::ManagedPointer{cve.SqlValue()}; });
-  // exec_ctx->SetParams(common::ManagedPointer(&params));
+                      .WithDatabaseOID(connection_ctx->GetDatabaseOid())
+                      .WithExecutionMode(execution_mode_)
+                      .WithExecutionSettings(exec_settings)
+                      .WithTxnContext(connection_ctx->Transaction())
+                      .WithOutputSchema(physical_plan->GetOutputSchema())
+                      .WithOutputCallback(std::move(callback))
+                      .WithCatalogAccessor(connection_ctx->Accessor())
+                      .WithMetricsManager(metrics)
+                      .WithReplicationManager(replication_manager_)
+                      .WithRecoveryManager(recovery_manager_)
+                      .WithQueryParametersFrom(*portal->Parameters())
+                      .Build();
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 

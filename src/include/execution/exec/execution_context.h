@@ -333,7 +333,10 @@ class EXPORT ExecutionContext {
    */
   void ClearHooks() { hooks_.clear(); }
 
+  // TODO(Kyle): Why is this friend class declaration not working?
  public:
+  friend class ExecutionContextBuilder;
+
   /**
    * Construct a new ExecutionContext instance.
    *
@@ -374,7 +377,6 @@ class EXPORT ExecutionContext {
         mem_pool_{std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))},
         thread_state_container_{std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())} {}
 
-  friend class ExecutionContextBuilder;
  private:
   /**
    * The query identifier
