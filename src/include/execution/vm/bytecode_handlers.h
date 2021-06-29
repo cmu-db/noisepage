@@ -2185,15 +2185,13 @@ VM_OP_WARM void OpAbortTxn(noisepage::execution::exec::ExecutionContext *exec_ct
 // Parameter Calls
 // ---------------------------------
 
+// TODO(Kyle): Is it ever the case that we pass a NULL CVE to call?
 #define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                     \
   VM_OP_HOT void OpGetParam##Name(noisepage::execution::sql::SqlType *ret,                                      \
                                   noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) { \
-    const auto &cve = exec_ctx->GetParam(param_idx);                                                            \
-    if (cve.IsNull()) {                                                                                         \
-      ret->is_null_ = true;                                                                                     \
-    } else {                                                                                                    \
-      *ret = cve.Get##SqlType();                                                                                \
-    }                                                                                                           \
+    const auto &val =                                                                                           \
+        *reinterpret_cast<const noisepage::execution::sql::SqlType *>(exec_ctx->GetParam(param_idx).Get());     \
+    *ret = val;                                                                                                 \
   }
 
 GEN_SCALAR_PARAM_GET(Bool, BoolVal)
@@ -2229,7 +2227,7 @@ GEN_SCALAR_PARAM_ADD(String, StringVal, VARCHAR)
 
 VM_OP_HOT void OpStartNewParams(noisepage::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->StartParams(); }
 
-VM_OP_HOT void OpFinishParams(noisepage::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->PopParams(); }
+VM_OP_HOT void OpFinishParams(noisepage::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->FinishParams(); }
 
 // ---------------------------------
 // Replication functions

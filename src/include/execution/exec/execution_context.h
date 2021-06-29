@@ -49,7 +49,6 @@ class RecoveryManager;
 namespace noisepage::execution::exec {
 
 class ExecutionSettings;
-class ExecutionContextBuilder;
 
 /**
  * The ExecutionContext class stores information handed in by upper layers.
@@ -239,21 +238,6 @@ class EXPORT ExecutionContext {
     runtime_parameters_.top().push_back(val);
   }
 
-  // /**
-  //  * Set the execution parameters for the query.
-  //  * @param params The execution parameters
-  //  *
-  //  * NOTE: The use of a ManagedPointer for this API denotes that
-  //  * the ExecutionContext instance does not own the underlying
-  //  * collection of query parameters; the caller is responsible for
-  //  * ensuring the query parameters survive until query execution
-  //  * is complete.
-  //  */
-  // void SetParams(common::ManagedPointer<std::vector<common::ManagedPointer<const execution::sql::Val>>> params) {
-  //   NOISEPAGE_ASSERT(!static_cast<bool>(params_), "Attempt to set query execution parameters multiple times.");
-  //   params_ = params;
-  // }
-
   /**
    * Get the parameter at the specified index.
    * @param index index of parameter to access
@@ -349,9 +333,7 @@ class EXPORT ExecutionContext {
    */
   void ClearHooks() { hooks_.clear(); }
 
- private:
-  friend class ExecutionContextBuilder;
-
+ public:
   /**
    * Construct a new ExecutionContext instance.
    *
@@ -392,6 +374,7 @@ class EXPORT ExecutionContext {
         mem_pool_{std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))},
         thread_state_container_{std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())} {}
 
+  friend class ExecutionContextBuilder;
  private:
   /**
    * The query identifier
@@ -402,13 +385,13 @@ class EXPORT ExecutionContext {
    */
   query_id_t query_id_{execution::query_id_t(0)};
 
-  /** The query execution mode */
-  vm::ExecutionMode execution_mode_;
-  /** The query parameters */
-  std::vector<common::ManagedPointer<const execution::sql::Val>> parameters_;
-
   /** The OID of the database with which the query is associated */
   const catalog::db_oid_t db_oid_;
+
+  /** The query parameters */
+  std::vector<common::ManagedPointer<const execution::sql::Val>> parameters_;
+  /** The query execution mode */
+  vm::ExecutionMode execution_mode_;
   /** The execution setting for the query */
   const exec::ExecutionSettings execution_settings_;
 
@@ -503,16 +486,7 @@ class ExecutionContextBuilder {
    * @param param_expr The collection of expressions from which the query parameters are derived
    * @return Builder reference for chaining
    */
-  ExecutionContextBuilder &WithQueryParametersFrom(
-      const std::vector<parser::ConstantValueExpression> &parameter_exprs) {
-    NOISEPAGE_ASSERT(parameters_.empty(), "Attempt to initialize query parameters more than once.");
-    parameters_.reserve(parameter_exprs.size());
-    std::transform(parameter_exprs.cbegin(), parameter_exprs.cend(), std::back_inserter(parameters_),
-                   [](const parser::ConstantValueExpression &expr) -> common::ManagedPointer<const sql::Val> {
-                     return common::ManagedPointer{expr.SqlValue()};
-                   });
-    return *this;
-  }
+  ExecutionContextBuilder &WithQueryParametersFrom(const std::vector<parser::ConstantValueExpression> &parameter_exprs);
 
   /**
    * Set the database OID for the execution context.
@@ -623,11 +597,11 @@ class ExecutionContextBuilder {
   /** The query parmeters */
   std::vector<common::ManagedPointer<const sql::Val>> parameters_;
   /** The database OID */
-  catalog::db_oid_t db_oid_{INVALID_DATABASE_OID};
+  catalog::db_oid_t db_oid_{catalog::INVALID_DATABASE_OID};
   /** The associated transaction */
   common::ManagedPointer<transaction::TransactionContext> txn_;
   /** The output callback */
-  std::optional<OutputCallback> output_callback_{NULL_OUTPUT_CALLBACK};
+  std::optional<OutputCallback> output_callback_;
   /** The output schema */
   common::ManagedPointer<planner::OutputSchema> output_schema_{nullptr};
   /** The catalog accessor */

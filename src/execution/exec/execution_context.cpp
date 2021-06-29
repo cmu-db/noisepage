@@ -15,15 +15,26 @@
 namespace noisepage::execution::exec {
 
 std::unique_ptr<ExecutionContext> ExecutionContextBuilder::Build() {
-  NOISEPAGE_ASSERT(db_oid_ != INVALID_DATABASE_OID, "Must specify database OID.");
+  NOISEPAGE_ASSERT(db_oid_ != catalog::INVALID_DATABASE_OID, "Must specify database OID.");
   NOISEPAGE_ASSERT(exec_mode_.has_value(), "Must specify execution mode.");
-  NOISEPAGE_ASSERT(exec_settings_.has_value(), "Must specify execution setting.");
+  NOISEPAGE_ASSERT(exec_settings_.has_value(), "Must specify execution settings.");
   NOISEPAGE_ASSERT(static_cast<bool>(catalog_accessor_), "Must specify catalog accessor.");
   // MetricsManager, ReplicationManager, and RecoveryManaged may be DISABLED
   return std::make_unique<ExecutionContext>(db_oid_, std::move(parameters_), exec_mode_.value(),
                                             std::move(exec_settings_.value()), txn_, output_schema_,
-                                            std::move(output_callback_.value()), catalog_accessor_, metrics_manager_,
-                                            replication_manager_, recovery_manager_);
+                                            std::move(output_callback_.value_or(nullptr)), catalog_accessor_,
+                                            metrics_manager_, replication_manager_, recovery_manager_);
+}
+
+ExecutionContextBuilder &ExecutionContextBuilder::WithQueryParametersFrom(
+    const std::vector<parser::ConstantValueExpression> &parameter_exprs) {
+  NOISEPAGE_ASSERT(parameters_.empty(), "Attempt to initialize query parameters more than once.");
+  parameters_.reserve(parameter_exprs.size());
+  std::transform(parameter_exprs.cbegin(), parameter_exprs.cend(), std::back_inserter(parameters_),
+                 [](const parser::ConstantValueExpression &expr) -> common::ManagedPointer<const sql::Val> {
+                   return common::ManagedPointer{expr.SqlValue()};
+                 });
+  return *this;
 }
 
 OutputBuffer *ExecutionContext::OutputBufferNew() {

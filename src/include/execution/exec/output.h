@@ -28,9 +28,6 @@ namespace noisepage::execution::exec {
 // Params(): tuples, num_tuples, tuple_size;
 using OutputCallback = std::function<void(byte *, uint32_t, uint32_t)>;
 
-/** An empty output callback */
-constexpr const OutputCallback NULL_OUTPUT_CALLBACK{nullptr};
-
 /**
  * A class that buffers the output and makes a callback for every batch.
  */
