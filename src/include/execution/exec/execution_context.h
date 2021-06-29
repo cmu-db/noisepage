@@ -333,8 +333,7 @@ class EXPORT ExecutionContext {
    */
   void ClearHooks() { hooks_.clear(); }
 
-  // TODO(Kyle): Why is this friend class declaration not working?
- public:
+ private:
   friend class ExecutionContextBuilder;
 
   /**
@@ -516,7 +515,7 @@ class ExecutionContextBuilder {
    * @return Builder reference for chaining
    */
   ExecutionContextBuilder &WithOutputSchema(common::ManagedPointer<planner::OutputSchema> output_schema) {
-    output_schema_ = output_schema_;
+    output_schema_ = output_schema;
     return *this;
   }
 

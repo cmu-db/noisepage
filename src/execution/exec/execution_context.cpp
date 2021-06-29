@@ -20,10 +20,10 @@ std::unique_ptr<ExecutionContext> ExecutionContextBuilder::Build() {
   NOISEPAGE_ASSERT(exec_settings_.has_value(), "Must specify execution settings.");
   NOISEPAGE_ASSERT(static_cast<bool>(catalog_accessor_), "Must specify catalog accessor.");
   // MetricsManager, ReplicationManager, and RecoveryManaged may be DISABLED
-  return std::make_unique<ExecutionContext>(db_oid_, std::move(parameters_), exec_mode_.value(),
-                                            std::move(exec_settings_.value()), txn_, output_schema_,
-                                            std::move(output_callback_.value_or(nullptr)), catalog_accessor_,
-                                            metrics_manager_, replication_manager_, recovery_manager_);
+  return std::unique_ptr<ExecutionContext>{
+      new ExecutionContext{db_oid_, std::move(parameters_), exec_mode_.value(), std::move(exec_settings_.value()), txn_,
+                           output_schema_, std::move(output_callback_.value_or(nullptr)), catalog_accessor_,
+                           metrics_manager_, replication_manager_, recovery_manager_}};
 }
 
 ExecutionContextBuilder &ExecutionContextBuilder::WithQueryParametersFrom(
