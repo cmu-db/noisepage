@@ -33,9 +33,9 @@ TEST_F(CreateIndexOptionsTest, BPlusTreeOptions) {
   ASSERT_TRUE(test_2_idx_lower);
   ASSERT_TRUE(test_2_idx_both);
 
-  ASSERT_TRUE(test_2_idx_upper->Type() == storage::index::IndexType::BPLUSTREE);
-  ASSERT_TRUE(test_2_idx_lower->Type() == storage::index::IndexType::BPLUSTREE);
-  ASSERT_TRUE(test_2_idx_both->Type() == storage::index::IndexType::BPLUSTREE);
+  ASSERT_EQ(test_2_idx_upper->Type(), storage::index::IndexType::BPLUSTREE);
+  ASSERT_EQ(test_2_idx_lower->Type(), storage::index::IndexType::BPLUSTREE);
+  ASSERT_EQ(test_2_idx_both->Type(), storage::index::IndexType::BPLUSTREE);
 
   auto test_2_idx_upper_bpt_index =
       test_2_idx_upper.CastManagedPointerTo<storage::index::BPlusTreeIndex<storage::index::CompactIntsKey<8>>>();
@@ -44,10 +44,10 @@ TEST_F(CreateIndexOptionsTest, BPlusTreeOptions) {
   auto test_2_idx_both_bpt_index =
       test_2_idx_both.CastManagedPointerTo<storage::index::BPlusTreeIndex<storage::index::CompactIntsKey<8>>>();
 
-  ASSERT_TRUE(test_2_idx_upper_bpt_index->GetInnerNodeSizeUpperThreshold() == 256);
-  ASSERT_TRUE(test_2_idx_lower_bpt_index->GetInnerNodeSizeLowerThreshold() == 4);
-  ASSERT_TRUE(test_2_idx_both_bpt_index->GetInnerNodeSizeUpperThreshold() == 256);
-  ASSERT_TRUE(test_2_idx_both_bpt_index->GetInnerNodeSizeLowerThreshold() == 4);
+  ASSERT_EQ(test_2_idx_upper_bpt_index->GetInnerNodeSizeUpperThreshold(), 256);
+  ASSERT_EQ(test_2_idx_lower_bpt_index->GetInnerNodeSizeLowerThreshold(), 4);
+  ASSERT_EQ(test_2_idx_both_bpt_index->GetInnerNodeSizeUpperThreshold(), 256);
+  ASSERT_EQ(test_2_idx_both_bpt_index->GetInnerNodeSizeLowerThreshold(), 4);
 }
 
 }  // namespace noisepage::test
