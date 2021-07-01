@@ -1693,7 +1693,6 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_EQ(op1.GetContentsAs<CreateIndex>()->GetIndexName(), "index_1");
   EXPECT_EQ(op1.GetContentsAs<CreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
   EXPECT_EQ(op1.GetContentsAs<CreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
-  catalog::IndexOptions options;
   auto idx_schema_dup = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
@@ -1701,7 +1700,6 @@ TEST(OperatorTests, CreateIndexTest) {
       storage::index::IndexType::BPLUSTREE, true, true, true, true, options);
   EXPECT_EQ(*op1.GetContentsAs<CreateIndex>()->GetSchema(), *idx_schema_dup);
 
-  catalog::IndexOptions options;
   auto idx_schema_2 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
@@ -1713,7 +1711,6 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  catalog::IndexOptions options;
   auto idx_schema_3 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
@@ -1725,7 +1722,6 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  catalog::IndexOptions options;
   auto idx_schema_4 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
@@ -1737,7 +1733,6 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
-  catalog::IndexOptions options;
   auto idx_schema_5 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::INTEGER, true,
@@ -1749,7 +1744,6 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  catalog::IndexOptions options;
   auto idx_schema_6 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{
           catalog::IndexSchema::Column(
