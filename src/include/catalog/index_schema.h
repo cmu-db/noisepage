@@ -490,27 +490,6 @@ class IndexSchema {
    * @param is_primary indicating whether this will be the index for a primary key
    * @param is_exclusion indicating whether this index is for exclusion constraints
    * @param is_immediate indicating that the uniqueness check fails at insertion time
-   */
-  IndexSchema(std::vector<Column> columns, const storage::index::IndexType type, const bool is_unique,
-              const bool is_primary, const bool is_exclusion, const bool is_immediate)
-      : columns_(std::move(columns)),
-        type_(type),
-        is_unique_(is_unique),
-        is_primary_(is_primary),
-        is_exclusion_(is_exclusion),
-        is_immediate_(is_immediate) {
-    NOISEPAGE_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
-    ExtractIndexedColOids();
-  }
-
-  /**
-   * Instantiates a new catalog description of an index
-   * @param columns describing the individual parts of the key
-   * @param type backing data structure of the index
-   * @param is_unique indicating whether the same key can be (logically) visible repeats are allowed in the index
-   * @param is_primary indicating whether this will be the index for a primary key
-   * @param is_exclusion indicating whether this index is for exclusion constraints
-   * @param is_immediate indicating that the uniqueness check fails at insertion time
    * @param index_options that are options for building the index
    */
   IndexSchema(std::vector<Column> columns, const storage::index::IndexType type, const bool is_unique,

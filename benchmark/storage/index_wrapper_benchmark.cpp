@@ -105,7 +105,8 @@ class IndexBenchmark : public benchmark::Fixture {
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
 
     // Define fields of index schema and declare index
-    index_schema_ = catalog::IndexSchema(keycols, type, false, false, false, true);
+    catalog::IndexOptions options;
+    index_schema_ = catalog::IndexSchema(keycols, type, false, false, false, true, options);
     index_ = (storage::index::IndexBuilder().SetKeySchema(index_schema_)).Build();
 
     // Register index to garbage collector

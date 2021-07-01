@@ -7,11 +7,13 @@
 #include "execution/ast/context.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/index_create_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
+#include "execution/sql/table_vector_iterator.h"
 #include "optimizer/index_util.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/function_expression.h"
@@ -57,6 +59,22 @@
 #include "type/type_id.h"
 
 namespace noisepage::selfdriving {
+
+size_t OperatingUnitRecorder::DeriveIndexBuildThreads(const catalog::IndexSchema &schema,
+                                                      catalog::table_oid_t tbl_oid) {
+  size_t num_threads = 1;
+  auto &options = schema.GetIndexOptions().GetOptions();
+  if (options.find(catalog::IndexOptions::Knob::BUILD_THREADS) != options.end()) {
+    auto expr = options.find(catalog::IndexOptions::Knob::BUILD_THREADS)->second.get();
+    auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
+    num_threads = cve->Peek<int32_t>();
+  }
+
+  auto sql_table = accessor_->GetTable(tbl_oid);
+  size_t num_tasks =
+      std::ceil(sql_table->GetNumBlocks() * 1.0 / execution::sql::TableVectorIterator::K_MIN_BLOCK_RANGE_SIZE);
+  return std::min(num_tasks, num_threads);
+}
 
 std::pair<size_t, size_t> OperatingUnitRecorder::DeriveIndexSpecificFeatures(const catalog::IndexSchema &schema) {
   if (schema.Type() != storage::index::IndexType::BPLUSTREE) {
@@ -364,6 +382,13 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
       //  the SORT_TOPK_BUILD OU. We need to refactor the interface to pass in this information correctly.
       cardinality = 1;
     } break;
+    case ExecutionOperatingUnitType::CREATE_INDEX_MAIN: {
+      // This OU does not record a num_concurrent. For this part, we only ensure that the
+      // num_rows and cardinality are set accordingly. This should be sufficient to allow
+      // downstream consumer to use this feature for prediction.
+      num_rows = table_num_rows;
+      cardinality = table_num_rows;
+    } break;
     case ExecutionOperatingUnitType::CREATE_INDEX: {
       num_rows = table_num_rows;
       cardinality = table_num_rows;
@@ -378,6 +403,17 @@ void OperatingUnitRecorder::AggregateFeatures(selfdriving::ExecutionOperatingUni
 
       const auto &idx_schema = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetSchema();
       std::tie(specific_feature0, specific_feature1) = DeriveIndexSpecificFeatures(*idx_schema);
+
+      size_t num_threads = DeriveIndexBuildThreads(
+          *idx_schema, reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetTableOid());
+
+      // Adjust the CREATE_INDEX OU by the concurrent estimate. DeriveIndexBuildThreads takes
+      // into consideration the number of threads available and the number of blocks the
+      // table has. The num_rows/cardinality is scaled accordingly for now and num_concurrent
+      // is set to the estimate.
+      num_rows /= num_threads;
+      cardinality /= num_threads;
+      num_concurrent = num_threads;
     } break;
     default:
       num_rows = current_plan_cardinality;
@@ -475,6 +511,12 @@ void OperatingUnitRecorder::Visit(const planner::CreateIndexPlanNode *plan) {
   }
 
   AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+
+  auto translator = current_translator_.CastManagedPointerTo<execution::compiler::IndexCreateTranslator>();
+  if (translator->GetPipeline()->IsParallel()) {
+    // Only want to record CREATE_INDEX_MAIN if the operator executes in parallel
+    AggregateFeatures(ExecutionOperatingUnitType::CREATE_INDEX_MAIN, key_size, num_keys, plan, 1, 1);
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {

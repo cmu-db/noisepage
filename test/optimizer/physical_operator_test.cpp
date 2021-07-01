@@ -1677,11 +1677,12 @@ TEST(OperatorTests, CreateIndexTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
+  catalog::IndexOptions options;
   auto idx_schema = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
           parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)))},
-      storage::index::IndexType::BPLUSTREE, true, true, true, true);
+      storage::index::IndexType::BPLUSTREE, true, true, true, true, options);
 
   Operator op1 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema))
@@ -1692,57 +1693,63 @@ TEST(OperatorTests, CreateIndexTest) {
   EXPECT_EQ(op1.GetContentsAs<CreateIndex>()->GetIndexName(), "index_1");
   EXPECT_EQ(op1.GetContentsAs<CreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
   EXPECT_EQ(op1.GetContentsAs<CreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
+  catalog::IndexOptions options;
   auto idx_schema_dup = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
           parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)))},
-      storage::index::IndexType::BPLUSTREE, true, true, true, true);
+      storage::index::IndexType::BPLUSTREE, true, true, true, true, options);
   EXPECT_EQ(*op1.GetContentsAs<CreateIndex>()->GetSchema(), *idx_schema_dup);
 
+  catalog::IndexOptions options;
   auto idx_schema_2 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
           parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)))},
-      storage::index::IndexType::BPLUSTREE, true, true, true, true);
+      storage::index::IndexType::BPLUSTREE, true, true, true, true, options);
   Operator op2 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_2))
           .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
+  catalog::IndexOptions options;
   auto idx_schema_3 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
           parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)))},
-      storage::index::IndexType::BPLUSTREE, true, true, true, true);
+      storage::index::IndexType::BPLUSTREE, true, true, true, true, options);
   Operator op3 =
       CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1", std::move(idx_schema_3))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
+  catalog::IndexOptions options;
   auto idx_schema_4 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::TINYINT, true,
           parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)))},
-      storage::index::IndexType::BPLUSTREE, true, true, true, true);
+      storage::index::IndexType::BPLUSTREE, true, true, true, true, options);
   Operator op4 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2", std::move(idx_schema_4))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
+  catalog::IndexOptions options;
   auto idx_schema_5 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{catalog::IndexSchema::Column(
           "col_1", type::TypeId::INTEGER, true,
           parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1)))},
-      storage::index::IndexType::BPLUSTREE, true, true, true, true);
+      storage::index::IndexType::BPLUSTREE, true, true, true, true, options);
   Operator op5 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
+  catalog::IndexOptions options;
   auto idx_schema_6 = std::make_unique<catalog::IndexSchema>(
       std::vector<catalog::IndexSchema::Column>{
           catalog::IndexSchema::Column(
@@ -1751,7 +1758,7 @@ TEST(OperatorTests, CreateIndexTest) {
           catalog::IndexSchema::Column(
               "col_2", type::TypeId::TINYINT, true,
               parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1)))},
-      storage::index::IndexType::BPLUSTREE, true, true, true, true);
+      storage::index::IndexType::BPLUSTREE, true, true, true, true, options);
   Operator op6 =
       CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_6))
           .RegisterWithTxnContext(txn_context);
