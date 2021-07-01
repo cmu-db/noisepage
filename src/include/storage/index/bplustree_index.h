@@ -55,6 +55,12 @@ class BPlusTreeIndex final : public Index {
    */
   void SetInnerNodeSizeLowerThreshold(int threshold);
 
+  /** @return inner node upper threshold (split) */
+  int GetInnerNodeSizeUpperThreshold() const;
+
+  /** @return inner node lower threshold (merge) */
+  int GetInnerNodeSizeLowerThreshold() const;
+
   /**
    * @return approximate number of bytes allocated on the heap for this index data structure
    */

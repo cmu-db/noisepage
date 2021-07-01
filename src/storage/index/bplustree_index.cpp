@@ -23,6 +23,16 @@ void BPlusTreeIndex<KeyType>::SetInnerNodeSizeLowerThreshold(int threshold) {
 }
 
 template <typename KeyType>
+int BPlusTreeIndex<KeyType>::GetInnerNodeSizeUpperThreshold() const {
+  return bplustree_->GetInnerNodeSizeUpperThreshold();
+}
+
+template <typename KeyType>
+int BPlusTreeIndex<KeyType>::GetInnerNodeSizeLowerThreshold() const {
+  return bplustree_->GetInnerNodeSizeLowerThreshold();
+}
+
+template <typename KeyType>
 size_t BPlusTreeIndex<KeyType>::EstimateHeapUsage() const {
   return bplustree_->EstimateHeapUsage();
 }
