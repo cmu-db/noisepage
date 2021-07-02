@@ -491,7 +491,7 @@ class ExecutionContextBuilder {
 
   /**
    * Set the query parameters for the execution context.
-   * @param param_expr The collection of expressions from which the query parameters are derived
+   * @param parameter_exprs The collection of expressions from which the query parameters are derived
    * @return Builder reference for chaining
    */
   ExecutionContextBuilder &WithQueryParametersFrom(const std::vector<parser::ConstantValueExpression> &parameter_exprs);
