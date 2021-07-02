@@ -8,7 +8,7 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/execution_mode.h"
 #include "loggers/common_logger.h"

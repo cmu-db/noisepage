@@ -15,7 +15,7 @@
 #include "execution/compiler/expression_maker.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/compiler/output_schema_util.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/exec/output.h"
 #include "execution/execution_util.h"
 #include "execution/sema/sema.h"

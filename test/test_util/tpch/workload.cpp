@@ -5,7 +5,7 @@
 
 #include "common/managed_pointer.h"
 #include "execution/compiler/output_schema_util.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/sql/value_util.h"
 #include "execution/table_generator/table_generator.h"
 #include "main/db_main.h"

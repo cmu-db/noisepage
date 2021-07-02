@@ -16,7 +16,7 @@
 
 #include "execution/ast/ast_dump.h"
 #include "execution/ast/ast_pretty_print.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"

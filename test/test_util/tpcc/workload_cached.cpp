@@ -5,7 +5,7 @@
 
 #include "binder/bind_node_visitor.h"
 #include "execution/compiler/executable_query.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/derived_value_expression.h"

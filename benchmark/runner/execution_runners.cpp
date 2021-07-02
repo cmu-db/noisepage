@@ -11,6 +11,7 @@
 #include "common/scoped_timer.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/execution_util.h"
 #include "execution/sql/ddl_executors.h"

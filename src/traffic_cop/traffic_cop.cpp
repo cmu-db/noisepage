@@ -14,7 +14,7 @@
 #include "common/error/exception.h"
 #include "common/thread_context.h"
 #include "execution/compiler/compilation_context.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
 #include "execution/sql/ddl_executors.h"
