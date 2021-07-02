@@ -150,10 +150,12 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-  function->Append(codegen->CallBuiltin(
-      ast::Builtin::ExecOUFeatureVectorFilter,
-      {GetPipeline()->OUFeatureVecPtr(),
-       codegen->Const32(static_cast<uint32_t>(selfdriving::ExecutionOperatingUnitType::CREATE_INDEX))}));
+  if (IsPipelineMetricsEnabled()) {
+    function->Append(codegen->CallBuiltin(
+        ast::Builtin::ExecOUFeatureVectorFilter,
+        {GetPipeline()->OUFeatureVecPtr(),
+         codegen->Const32(static_cast<uint32_t>(selfdriving::ExecutionOperatingUnitType::CREATE_INDEX))}));
+  }
 
   const bool declare_local_tvi = !GetPipeline()->IsParallel();
   if (declare_local_tvi) {
