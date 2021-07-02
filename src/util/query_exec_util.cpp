@@ -281,6 +281,9 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
   execution::exec::OutputCallback callback = consumer;
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
 
+  // TODO(Kyle): Making this copy is far from ideal...
+  const std::vector<parser::ConstantValueExpression> query_parameters =
+      static_cast<bool>(params) ? *params : std::vector<parser::ConstantValueExpression>{};
   auto exec_ctx = execution::exec::ExecutionContextBuilder()
                       .WithDatabaseOID(db_oid_)
                       .WithExecutionSettings(exec_settings)
@@ -291,7 +294,7 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
                       .WithMetricsManager(metrics)
                       .WithReplicationManager(DISABLED)
                       .WithRecoveryManager(DISABLED)
-                      .WithQueryParametersFrom(*params)
+                      .WithQueryParametersFrom(query_parameters)
                       .Build();
 
   NOISEPAGE_ASSERT(!txn->MustAbort(), "Transaction should not be in must-abort state prior to executing");
