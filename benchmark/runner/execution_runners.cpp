@@ -1959,6 +1959,12 @@ void ExecutionRunners::ExecuteCreateIndex(benchmark::State *state) {
                          tuple_size, num_col, car, 1, 0, num_threads,
                          storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
                          storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
+  if (num_threads != 0) {
+    pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
+                           row, tuple_size, num_col, car, 1, 0, num_threads,
+                           storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                           storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
+  }
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::stringstream query;
