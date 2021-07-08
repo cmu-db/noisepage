@@ -201,7 +201,8 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
       break;
     }
     case ast::Type::TypeId::MapType: {
-      // TODO(pmenon): me
+      // TODO(Kyle): Implement this
+      throw NOT_IMPLEMENTED_EXCEPTION("MapType Not Implemented");
       break;
     }
     case ast::Type::TypeId::StructType: {
@@ -213,6 +214,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
       break;
     }
     case ast::Type::TypeId::LambdaType: {
+      // TODO(Kyle): Implement this
       throw NOT_IMPLEMENTED_EXCEPTION("LambdaType Not Implemented");
       break;
     }
@@ -227,9 +229,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
   //
 
   NOISEPAGE_ASSERT(llvm_type != nullptr, "No LLVM type found!");
-
   iter->second = llvm_type;
-
   return llvm_type;
 }
 
@@ -569,9 +569,9 @@ void LLVMEngine::CompiledModuleBuilder::DeclareStaticLocals() {
 }
 
 void LLVMEngine::CompiledModuleBuilder::DeclareFunctions() {
-  for (const auto &func_info : tpl_module_.GetFunctionsInfo()) {
-    auto *func_type = llvm::cast<llvm::FunctionType>(type_map_->GetLLVMType(func_info.GetFuncType()));
-    llvm_module_->getOrInsertFunction(func_info.GetName(), func_type);
+  for (const auto *func_info : tpl_module_.GetFunctionsInfo()) {
+    auto *func_type = llvm::cast<llvm::FunctionType>(type_map_->GetLLVMType(func_info->GetFuncType()));
+    llvm_module_->getOrInsertFunction(func_info->GetName(), func_type);
   }
 }
 
@@ -962,8 +962,8 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 
 void LLVMEngine::CompiledModuleBuilder::DefineFunctions() {
   llvm::IRBuilder<> ir_builder(*context_);
-  for (const auto &func_info : tpl_module_.GetFunctionsInfo()) {
-    DefineFunction(func_info, &ir_builder);
+  for (const auto *func_info : tpl_module_.GetFunctionsInfo()) {
+    DefineFunction(*func_info, &ir_builder);
   }
 }
 
@@ -1166,13 +1166,13 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   // all module functions into a handy cache.
   //
 
-  for (const auto &func : module.GetFunctionsInfo()) {
-    auto symbol = loader.getSymbol(func.GetName());
+  for (const auto *func : module.GetFunctionsInfo()) {
+    auto symbol = loader.getSymbol(func->GetName());
     if (symbol.getAddress() == 0) {
       // for Mac portability
-      symbol = loader.getSymbol("_" + func.GetName());
+      symbol = loader.getSymbol("_" + func->GetName());
     }
-    functions_[func.GetName()] = reinterpret_cast<void *>(symbol.getAddress());
+    functions_[func->GetName()] = reinterpret_cast<void *>(symbol.getAddress());
     NOISEPAGE_ASSERT(symbol.getAddress() != 0, "symbol came out to be badly defined or missing");
   }
 

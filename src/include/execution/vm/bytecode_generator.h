@@ -67,12 +67,24 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   class RValueResultScope;
   class BytecodePositionScope;
 
-  // Allocate a new function ID
-  FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type);
+  /**
+   * Allocate a new function.
+   * @param function_name The function name
+   * @param function_type The function type
+   * @return A non-owning pointer to the allocated function
+   */
+  FunctionInfo *AllocateFunction(const std::string &function_name, ast::FunctionType *function_type);
 
-  // Allocate a new function ID with captures.
-  FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type, LocalVar captures,
-                             ast::Type *capture_type);
+  /**
+   * Allocate a new function with captures (for lambda expressions).
+   * @param function_name The function name
+   * @param function_type The function type
+   * @param captures The local variable for the captures structure
+   * @param capture_type The type of the captures structure
+   * @return A non-owning pointer to the allocated function
+   */
+  FunctionInfo *AllocateFunction(const std::string &function_name, ast::FunctionType *function_type, LocalVar captures,
+                                 ast::Type *capture_type);
 
   void VisitAbortTxn(ast::CallExpr *call);
 
@@ -194,7 +206,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void SetExecutionResult(ExpressionResultScope *exec_result) { execution_result_ = exec_result; }
 
   // Access the current function that's being generated. May be NULL.
-  FunctionInfo *GetCurrentFunction() { return &functions_[current_fn_]; }
+  FunctionInfo *GetCurrentFunction() { return functions_[current_fn_].get(); }
 
   void EnterFunction(FunctionId id) { current_fn_ = id; }
 
@@ -211,7 +223,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   std::unordered_map<ast::Identifier, LocalVar> static_string_cache_;
 
   // Information about all generated functions
-  std::vector<FunctionInfo> functions_;
+  std::vector<std::unique_ptr<FunctionInfo>> functions_;
 
   // The ID of the current function.
   FunctionId current_fn_{0};

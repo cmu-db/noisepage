@@ -13,7 +13,8 @@
 namespace noisepage::execution::vm {
 
 BytecodeModule::BytecodeModule(std::string name, std::vector<uint8_t> &&code, std::vector<uint8_t> &&data,
-                               std::vector<FunctionInfo> &&functions, std::vector<LocalInfo> &&static_locals)
+                               std::vector<std::unique_ptr<FunctionInfo>> &&functions,
+                               std::vector<LocalInfo> &&static_locals)
     : name_(std::move(name)),
       code_(std::move(code)),
       data_(std::move(data)),
@@ -209,7 +210,7 @@ void BytecodeModule::Dump(std::ostream &os) const {
 
   // Functions
   for (const auto &func : functions_) {
-    PrettyPrintFunc(os, *this, func);
+    PrettyPrintFunc(os, *this, *func);
   }
 }
 

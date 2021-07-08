@@ -206,7 +206,7 @@ void BytecodeGenerator::VisitFunctionDecl(ast::FunctionDecl *node) {
   auto *func_type = node->TypeRepr()->GetType()->As<ast::FunctionType>();
 
   // Allocate the function
-  auto *func_info = AllocateFunc(node->Name().GetData(), func_type);
+  auto *func_info = AllocateFunction(node->Name().GetData(), func_type);
   EnterFunction(func_info->GetId());
 
   {
@@ -218,7 +218,10 @@ void BytecodeGenerator::VisitFunctionDecl(ast::FunctionDecl *node) {
     Visit(node->Function());
   }
 
-  // Execute the deferred actions for the function
+  // Execute the deferred actions for the function;
+  // in the current implementation, the only functionality
+  // that relies on deferred actions during code generation
+  // are TPL lambda expressions that generate closures
   for (auto &f : func_info->actions_) {
     f();
   }
@@ -232,10 +235,11 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
   if (!GetExecutionResult()->HasDestination()) {
     return;
   }
+
   auto captures =
       GetCurrentFunction()->NewLocal(node->GetCaptureStructType(), node->GetName().GetString() + "captures");
   auto fields = node->GetCaptureStructType()->As<ast::StructType>()->GetFieldsWithoutPadding();
-  for (size_t i = 0; i < fields.size() - 1; i++) {
+  for (std::size_t i = 0; i < fields.size() - 1; i++) {
     auto field = fields[i];
     ast::IdentifierExpr ident(node->Position(), field.name_);
     ident.SetType(field.type_->GetPointeeType());
@@ -248,10 +252,12 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
   }
 
   GetEmitter()->EmitAssign(Bytecode::Assign8, GetExecutionResult()->GetDestination(), captures.AddressOf());
-  FunctionInfo *func_info = AllocateFunc(node->GetName().GetString(), func_type);
+  FunctionInfo *func_info =
+      AllocateFunction(node->GetName().GetString(), func_type, captures, node->GetCaptureStructType());
+  (void)func_info;
 
   // Create a new deferred action for the current function
-  // that visits the body of the lambda; this actions is subsequently
+  // that visits the body of the lambda; this action is subsequently
   // executed when the function declaration itself is visited
   GetCurrentFunction()->DeferAction([=]() {
     func_info->captures_ = captures;
@@ -4021,19 +4027,20 @@ void BytecodeGenerator::VisitMapTypeRepr(ast::MapTypeRepr *node) {
   NOISEPAGE_ASSERT(false, "Should not visit type-representation nodes!");
 }
 
-FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast::FunctionType *const func_type) {
+FunctionInfo *BytecodeGenerator::AllocateFunction(const std::string &function_name,
+                                                  ast::FunctionType *const function_type) {
   // Allocate function
   const auto func_id = static_cast<FunctionId>(functions_.size());
-  functions_.emplace_back(func_id, std::string(func_name), func_type);
-  FunctionInfo *func = &functions_.back();
+  functions_.push_back(std::make_unique<FunctionInfo>(func_id, function_name, function_type));
+  FunctionInfo *func = functions_.back().get();
 
   // Register return type
-  if (auto *return_type = func_type->GetReturnType(); !return_type->IsNilType()) {
+  if (auto *return_type = function_type->GetReturnType(); !return_type->IsNilType()) {
     func->NewParameterLocal(return_type->PointerTo(), "hiddenRv");
   }
 
   // Register parameters
-  for (const auto &param : func_type->GetParams()) {
+  for (const auto &param : function_type->GetParams()) {
     if (param.type_->IsSqlValueType()) {
       func->NewParameterLocal(param.type_->PointerTo(), param.name_.GetData());
     } else {
@@ -4050,15 +4057,16 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
   return func;
 }
 
-FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast::FunctionType *func_type,
-                                              LocalVar captures, ast::Type *capture_type) {
+FunctionInfo *BytecodeGenerator::AllocateFunction(const std::string &function_name,
+                                                  ast::FunctionType *const function_type, LocalVar captures,
+                                                  ast::Type *capture_type) {
   // Allocate function
   const auto func_id = static_cast<FunctionId>(functions_.size());
-  functions_.emplace_back(func_id, func_name, func_type);
-  FunctionInfo *func = &functions_.back();
+  functions_.push_back(std::make_unique<FunctionInfo>(func_id, function_name, function_type));
+  FunctionInfo *func = functions_.back().get();
 
   // Register return type
-  if (auto *return_type = func_type->GetReturnType(); !return_type->IsNilType()) {
+  if (auto *return_type = function_type->GetReturnType(); !return_type->IsNilType()) {
     func->NewParameterLocal(return_type->PointerTo(), "hiddenRv");
   }
 
@@ -4066,7 +4074,8 @@ FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast:
   func->NewParameterLocal(capture_type->PointerTo(), "hiddenCaptures");
 
   // Register parameters
-  for (const auto &param : func_type->GetParams()) {
+  for (const auto &param : function_type->GetParams()) {
+    // TODO(Kyle): Why do we never check for SQL value types here?
     func->NewParameterLocal(param.type_, param.name_.GetData());
   }
 
@@ -4184,6 +4193,7 @@ std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, c
   return std::make_unique<BytecodeModule>(name, std::move(generator.code_), std::move(generator.data_),
                                           std::move(generator.functions_), std::move(generator.static_locals_));
 }
+
 void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
   LocalVar iterator = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
