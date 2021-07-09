@@ -169,6 +169,16 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
 
 void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
   auto factory = GetContext()->GetNodeFactory();
+
+  // Resolve the types necessary to get the type representation
+  // used to implement captures for closures produced by lambdas
+
+  // TODO(Kyle): We perform quite a bit of mutation here during
+  // semantic analysis because this is where we resolve the type
+  // of the captures for the closure produced by the lambda expression;
+  // in the future we might want to revisit this to determine if
+  // we can perform this resolution during AST construction instead.
+
   util::RegionVector<ast::FieldDecl *> fields(GetContext()->GetRegion());
   for (auto expr : node->GetCaptureIdents()) {
     auto ident = expr->As<ast::IdentifierExpr>();
@@ -183,9 +193,9 @@ void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
                       ->GetTplName())));
       fields.push_back(factory->NewFieldDecl(SourcePosition(), ident->Name(), type_repr));
     } else {
-      util::RegionVector<ast::FieldDecl *> fields2(GetContext()->GetRegion());
-      for (auto field : ident->GetType()->SafeAs<ast::StructType>()->GetFieldsWithoutPadding()) {
-        fields2.push_back(factory->NewFieldDecl(
+      util::RegionVector<ast::FieldDecl *> nested_fields{GetContext()->GetRegion()};
+      for (const auto &field : ident->GetType()->SafeAs<ast::StructType>()->GetFieldsWithoutPadding()) {
+        nested_fields.push_back(factory->NewFieldDecl(
             SourcePosition(), field.name_,
             factory->NewIdentifierExpr(
                 SourcePosition(),
@@ -193,34 +203,32 @@ void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
                     ast::BuiltinType::Get(GetContext(), field.type_->As<ast::BuiltinType>()->GetKind())
                         ->GetTplName()))));
       }
-
-      auto type_repr =
-          factory->NewPointerType(SourcePosition(), factory->NewStructType(SourcePosition(), std::move(fields2)));
+      auto *type_repr =
+          factory->NewPointerType(SourcePosition(), factory->NewStructType(SourcePosition(), std::move(nested_fields)));
       fields.push_back(factory->NewFieldDecl(SourcePosition(), ident->Name(), type_repr));
     }
   }
+
   fields.push_back(
       factory->NewFieldDecl(SourcePosition(), GetContext()->GetIdentifier("function"),
-                            factory->NewPointerType(SourcePosition(), node->GetFunctionLitExpr()->TypeRepr())));
+                            factory->NewPointerType(SourcePosition(), node->GetFunctionLiteralExpr()->TypeRepr())));
 
   ast::StructTypeRepr *struct_type_repr = factory->NewStructType(SourcePosition(), std::move(fields));
-  // TODO(Kyle): Find a better name for this identifier
   ast::StructDecl *struct_decl = factory->NewStructDecl(
       SourcePosition(), GetContext()->GetIdentifier("lambda" + std::to_string(node->Position().line_)),
       struct_type_repr);
   VisitStructDecl(struct_decl);
   node->SetCaptureStructType(Resolve(struct_type_repr));
-  node->SetType(ast::LambdaType::Get(Resolve(node->GetFunctionLitExpr()->TypeRepr())->As<ast::FunctionType>()));
+  node->SetType(ast::LambdaType::Get(Resolve(node->GetFunctionLiteralExpr()->TypeRepr())->As<ast::FunctionType>()));
 
-  // TODO(Kyle): Why are we performing so much mutation in semantic analysis?
-  auto type = Resolve(node->GetFunctionLitExpr()->TypeRepr());
+  auto type = Resolve(node->GetFunctionLiteralExpr()->TypeRepr());
   auto fn_type = type->As<ast::FunctionType>();
   fn_type->GetParams().emplace_back(GetContext()->GetIdentifier("captures"),
                                     GetBuiltinType(ast::BuiltinType::Kind::Int32)->PointerTo());
   fn_type->SetIsLambda(true);
   fn_type->SetCapturesType(node->GetCaptureStructType()->As<ast::StructType>());
 
-  VisitFunctionLitExpr(node->GetFunctionLitExpr());
+  VisitFunctionLitExpr(node->GetFunctionLiteralExpr());
 }
 
 void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {

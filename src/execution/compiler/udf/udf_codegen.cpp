@@ -392,8 +392,8 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   auto decls = exec_query->GetDecls();
   aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
 
-  fb_->Append(
-      codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLitExpr()->TypeRepr()), lambda_expr));
+  fb_->Append(codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLiteralExpr()->TypeRepr()),
+                                   lambda_expr));
 
   auto query_state = codegen_->MakeFreshIdentifier("query_state");
   fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
@@ -550,8 +550,8 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   auto decls = exec_query->GetDecls();
   aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
 
-  fb_->Append(
-      codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLitExpr()->TypeRepr()), lambda_expr));
+  fb_->Append(codegen_->DeclareVar(lam_var, codegen_->LambdaType(lambda_expr->GetFunctionLiteralExpr()->TypeRepr()),
+                                   lambda_expr));
 
   // Make query state
   auto query_state = codegen_->MakeFreshIdentifier("query_state");

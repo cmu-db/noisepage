@@ -292,8 +292,8 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWrapperFunction(ast::LambdaExpr *ou
   auto params = compilation_context_->QueryParams();
   auto run_params = params;
   if (output_callback != nullptr) {
-    run_params.push_back(codegen_->MakeField(output_callback->GetName(),
-                                             codegen_->LambdaType(output_callback->GetFunctionLitExpr()->TypeRepr())));
+    run_params.push_back(codegen_->MakeField(
+        output_callback->GetName(), codegen_->LambdaType(output_callback->GetFunctionLiteralExpr()->TypeRepr())));
   }
   FunctionBuilder builder(codegen_, name, std::move(run_params), codegen_->Nil());
   {
@@ -360,7 +360,7 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction(ast::LambdaExpr *outpu
 
   if (output_callback != nullptr) {
     params.push_back(codegen_->MakeField(output_callback->GetName(),
-                                         codegen_->LambdaType(output_callback->GetFunctionLitExpr()->TypeRepr())));
+                                         codegen_->LambdaType(output_callback->GetFunctionLiteralExpr()->TypeRepr())));
   }
 
   FunctionBuilder builder(codegen_, GetWorkFunctionName(), std::move(params), codegen_->Nil());
@@ -464,7 +464,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id, as
   }
   if (output_callback != nullptr) {
     params.push_back(codegen_->MakeField(output_callback->GetName(),
-                                         codegen_->LambdaType(output_callback->GetFunctionLitExpr()->TypeRepr())));
+                                         codegen_->LambdaType(output_callback->GetFunctionLiteralExpr()->TypeRepr())));
   }
   FunctionBuilder builder(codegen_, name, std::move(params), codegen_->Nil());
   {

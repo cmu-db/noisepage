@@ -43,6 +43,9 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 
+/** Suppress warnings from unused variables */
+#define SUPPRESS_UNUSED(x) ((void)x)
+
 // ---------------------------------------------------------
 // CLI options
 // ---------------------------------------------------------
@@ -133,6 +136,7 @@ static double ExecuteInMode(vm::Module *module, vm::ExecutionMode mode, exec::Ex
     }
   }
 
+  SUPPRESS_UNUSED(mode_identifier);
   return exec_ms;
 }
 
@@ -287,7 +291,12 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Interp. Exec.: {} ms, "
       "JIT Exec.: {} ms, Adaptive Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, vm_ms, jit_ms, adaptive_ms);
+
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  SUPPRESS_UNUSED(vm_ms);
+  SUPPRESS_UNUSED(jit_ms);
+  SUPPRESS_UNUSED(adaptive_ms);
 }
 
 /**

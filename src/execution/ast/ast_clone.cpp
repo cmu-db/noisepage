@@ -169,7 +169,7 @@ AstNode *AstCloneImpl::VisitLambdaExpr(LambdaExpr *node) {
     capture_idents.push_back(reinterpret_cast<ast::Expr *>(Visit(ident)));
   }
   return factory_->NewLambdaExpr(node->Position(),
-                                 reinterpret_cast<FunctionLitExpr *>(Visit(node->GetFunctionLitExpr())),
+                                 reinterpret_cast<FunctionLitExpr *>(Visit(node->GetFunctionLiteralExpr())),
                                  std::move(capture_idents));
 }
 

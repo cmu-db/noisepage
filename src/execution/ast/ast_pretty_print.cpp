@@ -293,7 +293,7 @@ void AstPrettyPrintImpl::VisitIndexExpr(IndexExpr *node) {
 
 void AstPrettyPrintImpl::VisitLambdaExpr(LambdaExpr *node) {
   os_ << "lambda ";
-  VisitFunctionLitExpr(node->GetFunctionLitExpr());
+  VisitFunctionLitExpr(node->GetFunctionLiteralExpr());
 }
 
 void AstPrettyPrintImpl::VisitFunctionTypeRepr(FunctionTypeRepr *node) {

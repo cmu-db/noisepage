@@ -229,9 +229,9 @@ void BytecodeGenerator::VisitFunctionDecl(ast::FunctionDecl *node) {
 
 void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
   // The function's TPL type
-  auto *func_type = node->GetFunctionLitExpr()->GetType()->As<ast::FunctionType>();
+  auto *func_type = node->GetFunctionLiteralExpr()->GetType()->As<ast::FunctionType>();
 
-  // Allocate the function
+  // Elide code generation for lambda expressions that are not stored
   if (!GetExecutionResult()->HasDestination()) {
     return;
   }
@@ -239,15 +239,17 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
   auto captures =
       GetCurrentFunction()->NewLocal(node->GetCaptureStructType(), node->GetName().GetString() + "captures");
   auto fields = node->GetCaptureStructType()->As<ast::StructType>()->GetFieldsWithoutPadding();
-  for (std::size_t i = 0; i < fields.size() - 1; i++) {
-    auto field = fields[i];
-    ast::IdentifierExpr ident(node->Position(), field.name_);
-    ident.SetType(field.type_->GetPointeeType());
-    auto local = VisitExpressionForLValue(&ident);
 
-    LocalVar fieldvar = GetCurrentFunction()->NewLocal(fields[i].type_->PointerTo(), "");
+  // Capture each of the values for the closure by storing the
+  // current value of the captured local in the captures struct
+  for (std::size_t i = 0; i < fields.size() - 1; ++i) {
+    auto field = fields[i];
+    ast::IdentifierExpr ident{node->Position(), field.name_};
+    ident.SetType(field.type_->GetPointeeType());
+    LocalVar local = VisitExpressionForLValue(&ident);
+    LocalVar fieldvar = GetCurrentFunction()->NewLocal(field.type_->PointerTo(), "");
     GetEmitter()->EmitLea(fieldvar, captures.AddressOf(),
-                          node->GetCaptureStructType()->As<ast::StructType>()->GetOffsetOfFieldByName(fields[i].name_));
+                          node->GetCaptureStructType()->As<ast::StructType>()->GetOffsetOfFieldByName(field.name_));
     GetEmitter()->EmitAssign(Bytecode::Assign8, fieldvar.ValueOf(), local);
   }
 
@@ -269,7 +271,7 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
       // range in the function.
       EnterFunction(func_info->GetId());
       BytecodePositionScope position_scope(this, func_info);
-      Visit(node->GetFunctionLitExpr()->Body());
+      Visit(node->GetFunctionLiteralExpr()->Body());
     }
     for (auto &f : func_info->actions_) {
       f();

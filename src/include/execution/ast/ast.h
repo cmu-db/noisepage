@@ -1090,17 +1090,15 @@ class BinaryOpExpr : public Expr {
 class LambdaExpr : public Expr {
  public:
   /**
-   * Construct
+   * Construct a new LambdaExpr instance.
    * @param pos source position
-   * @param func the associated function literal expression
+   * @param function the associated function literal expression
    * @param captures a collection of lambda captures
    */
-  LambdaExpr(const SourcePosition &pos, FunctionLitExpr *func, util::RegionVector<ast::Expr *> &&captures)
-      : Expr{Kind::LambdaExpr, pos}, func_lit_{func}, capture_idents_{std::move(captures)} {}
+  LambdaExpr(const SourcePosition &pos, FunctionLitExpr *function, util::RegionVector<ast::Expr *> &&captures)
+      : Expr{Kind::LambdaExpr, pos}, function_literal_{function}, capture_idents_{std::move(captures)} {}
 
-  /**
-   * @return The identifier for this lambda expression.
-   */
+  /** @return The identifier for this lambda expression. */
   const Identifier &GetName() const { return name_; }
 
   /**
@@ -1109,9 +1107,7 @@ class LambdaExpr : public Expr {
    */
   void SetName(Identifier name) { name_ = name; }
 
-  /**
-   * @return Get the capture struct type for this lambda expression.
-   */
+  /** @return Get the capture struct type for this lambda expression. */
   ast::Type *GetCaptureStructType() const { return capture_type_; }
 
   /**
@@ -1120,14 +1116,10 @@ class LambdaExpr : public Expr {
    */
   void SetCaptureStructType(ast::Type *capture_type) { capture_type_ = capture_type; }
 
-  /**
-   * @return The function literal expression associated with this lambda.
-   */
-  FunctionLitExpr *GetFunctionLitExpr() const { return func_lit_; }
+  /** @return The function literal expression associated with this lambda. */
+  FunctionLitExpr *GetFunctionLiteralExpr() const { return function_literal_; }
 
-  /**
-   * @return The identifiers for the captures of this lambda expression.
-   */
+  /** @return The identifiers for the captures of this lambda expression. */
   const util::RegionVector<ast::Expr *> &GetCaptureIdents() const { return capture_idents_; }
 
   /**
@@ -1141,13 +1133,13 @@ class LambdaExpr : public Expr {
 
  private:
   friend class sema::Sema;
-  // The identifier for the lambda expression.
+  /** The identifier for the lambda expression. */
   Identifier name_;
-  // The type of the lambda captures struct.
+  /** The type of the lambda captures struct. */
   ast::Type *capture_type_;
-  // The associated function literal expression.
-  FunctionLitExpr *func_lit_;
-  // The collection of identifers for lambda captures.
+  /** The associated function literal expression. */
+  FunctionLitExpr *function_literal_;
+  /** The collection of identifers for lambda captures. */
   util::RegionVector<ast::Expr *> capture_idents_;
 };
 

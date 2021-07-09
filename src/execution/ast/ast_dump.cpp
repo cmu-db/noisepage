@@ -173,7 +173,7 @@ void AstDumperImpl::VisitFunctionDecl(FunctionDecl *node) {
 
 void AstDumperImpl::VisitLambdaExpr(LambdaExpr *node) {
   DumpNodeCommon(node);
-  DumpExpr(node->GetFunctionLitExpr());
+  DumpExpr(node->GetFunctionLiteralExpr());
 }
 
 void AstDumperImpl::VisitVariableDecl(VariableDecl *node) {

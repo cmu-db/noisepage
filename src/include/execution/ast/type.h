@@ -598,8 +598,8 @@ class ArrayType : public Type {
 };
 
 /**
- * A field is a pair containing a name and a type. It is used to represent both fields within a struct, and parameters
- * to a function.
+ * A Field is a pair containing a name and a type.
+ * It is used to represent both fields within a struct, and parameters to a function.
  */
 struct Field {
   /**
@@ -613,11 +613,17 @@ struct Field {
   Type *type_;
 
   /**
-   * Constructor
+   * Construct a new Field instance.
    * @param name of the field
    * @param type of the field
    */
   Field(const Identifier &name, Type *type) : name_(name), type_(type) {}
+
+  /** @return The name of the field */
+  const Identifier &GetName() const { return name_; }
+
+  /** @return The type of the field */
+  Type *GetType() const { return type_; }
 
   /**
    * @param other rhs of the comparison
