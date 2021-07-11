@@ -847,12 +847,24 @@ bool LogicalCreateFunction::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 // LogicalCreateIndex
 //===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalCreateIndex::Copy() const { return new LogicalCreateIndex(*this); }
+BaseOperatorNodeContents *LogicalCreateIndex::Copy() const {
+  auto *op = new LogicalCreateIndex();
+  op->database_oid_ = database_oid_;
+  op->namespace_oid_ = namespace_oid_;
+  op->table_oid_ = table_oid_;
+  op->index_type_ = index_type_;
+  op->unique_index_ = unique_index_;
+  op->index_name_ = index_name_;
+  op->index_attrs_ = index_attrs_;
+  op->index_options_ = catalog::IndexOptions(index_options_);
+  return op;
+}
 
 Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                                   catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
                                   std::string index_name,
-                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
+                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
+                                  catalog::IndexOptions index_options) {
   auto *op = new LogicalCreateIndex();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -861,6 +873,7 @@ Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::names
   op->unique_index_ = unique;
   op->index_name_ = std::move(index_name);
   op->index_attrs_ = std::move(index_attrs);
+  op->index_options_ = std::move(index_options);
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
@@ -875,6 +888,7 @@ common::hash_t LogicalCreateIndex::Hash() const {
   for (const auto &attr : index_attrs_) {
     hash = common::HashUtil::CombineHashes(hash, attr->Hash());
   }
+  hash = common::HashUtil::CombineHashes(hash, index_options_.Hash());
   return hash;
 }
 
@@ -891,7 +905,7 @@ bool LogicalCreateIndex::operator==(const BaseOperatorNodeContents &r) {
   for (size_t i = 0; i < index_attrs_.size(); i++) {
     if (*(index_attrs_[i]) != *(node.index_attrs_[i])) return false;
   }
-  return (true);
+  return index_options_ == node.index_options_;
 }
 
 //===--------------------------------------------------------------------===//

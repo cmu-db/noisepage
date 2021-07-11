@@ -297,8 +297,10 @@ void BytecodeEmitter::EmitTempTableIterInit(Bytecode bytecode, LocalVar iter, Lo
 }
 
 void BytecodeEmitter::EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids,
-                                            LocalVar query_state, LocalVar exec_ctx, FunctionId scan_fn) {
-  EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn);
+                                            LocalVar query_state, LocalVar exec_ctx, LocalVar num_threads_override,
+                                            FunctionId scan_fn) {
+  EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, query_state, exec_ctx, num_threads_override,
+          scan_fn);
 }
 
 void BytecodeEmitter::EmitRegisterHook(LocalVar exec_ctx, LocalVar hook_idx, FunctionId hook_fn) {

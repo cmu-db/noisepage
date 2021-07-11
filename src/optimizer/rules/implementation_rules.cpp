@@ -928,9 +928,10 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
   }
 
   auto schema = std::make_unique<catalog::IndexSchema>(std::move(cols), idx_type, ci_op->IsUnique(),
-                                                       false,   // is_primary
-                                                       false,   // is_exclusion
-                                                       false);  // is_immediate
+                                                       false,  // is_primary
+                                                       false,  // is_exclusion
+                                                       false,  // is_immediate
+                                                       ci_op->GetIndexOptions());
 
   auto op = std::make_unique<OperatorNode>(
       CreateIndex::Make(ci_op->GetNamespaceOid(), ci_op->GetTableOid(), ci_op->GetIndexName(), std::move(schema))

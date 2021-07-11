@@ -145,7 +145,7 @@ fun main(execCtx: *ExecutionContext) -> int {
     @tlsReset(tls, @sizeOf(ThreadState_1), p1_worker_initThreadState, p1_worker_tearDownThreadState, execCtx)
 
     // Parallel Scan
-    @iterateTableParallel("test_1", &state, tls, p1_worker)
+    @iterateTableParallel("test_1", &state, tls, 0, p1_worker)
 
     // ---- Pipeline 1 End ---- // 
 
