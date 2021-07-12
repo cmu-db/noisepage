@@ -136,7 +136,8 @@ class ScanTask {
 
 bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
                                        void *const query_state, exec::ExecutionContext *exec_ctx,
-                                       const TableVectorIterator::ScanFn scan_fn, const uint32_t min_grain_size) {
+                                       uint32_t num_threads_override, const TableVectorIterator::ScanFn scan_fn,
+                                       const uint32_t min_grain_size) {
   // Lookup table
   const auto table = exec_ctx->GetAccessor()->GetTable(catalog::table_oid_t{table_oid});
   if (table == nullptr) {
@@ -149,6 +150,10 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
   // Execute parallel scan
   size_t num_threads = std::max(exec_ctx->GetExecutionSettings().GetNumberOfParallelExecutionThreads(), 0);
+  if (num_threads_override != 0) {
+    num_threads = num_threads_override;
+  }
+
   size_t num_tasks = std::ceil(table->table_.data_table_->GetNumBlocks() * 1.0 / min_grain_size);
   size_t concurrent = std::min(num_threads, num_tasks);
   exec_ctx->SetNumConcurrentEstimate(concurrent);

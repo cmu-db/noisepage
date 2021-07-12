@@ -318,7 +318,9 @@ void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
       index_cols.emplace_back(col_meta.name_, col_meta.type_, 100, col_meta.nullable_, col_expr);
     }
   }
-  catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BPLUSTREE, false, false, false, false};
+  catalog::IndexOptions options;
+  catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BPLUSTREE, false, false, false, false,
+                                        options};
   // Create Index
   auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_meta->index_name_, tmp_index_schema);
   auto &index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);

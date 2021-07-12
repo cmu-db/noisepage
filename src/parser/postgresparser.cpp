@@ -234,6 +234,11 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
       expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(node));
       break;
     }
+    case T_Integer: {
+      expr = std::make_unique<ConstantValueExpression>(
+          type::TypeId::INTEGER, execution::sql::Integer(reinterpret_cast<Value *>(node)->val_.ival_));
+      break;
+    }
     default: {
       PARSER_LOG_DEBUG("ExprTransform: type {} unsupported", node->type);
       throw PARSER_EXCEPTION("ExprTransform: unsupported type");
@@ -1395,8 +1400,34 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");
   }
 
+  catalog::IndexOptions options;
+  if (root->options_ != nullptr) {
+    for (auto cell = root->options_->head; cell != nullptr; cell = cell->next) {
+      auto *arg = reinterpret_cast<DefElem *>(cell->data.ptr_value);
+      char *name = arg->defname_;
+      NOISEPAGE_ASSERT(name && arg->arg_, "Invalid DefElem for CREATE INDEX option");
+      auto option = catalog::IndexOptions::ConvertToOptionKnob(name);
+      if (option == catalog::IndexOptions::Knob::UNKNOWN) {
+        // We found an unsupported option, so skip.
+        PARSER_LOG_DEBUG("CreateIndexTransform: received unknown option {}", option);
+        continue;
+      }
+
+      std::unique_ptr<AbstractExpression> val = ExprTransform(parse_result, arg->arg_, name);
+      if (!val || val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT) {
+        throw PARSER_EXCEPTION("CreateIndexTransform: non-scalar value for option");
+      }
+
+      if (val->GetReturnValueType() != catalog::IndexOptions::ExpectedTypeForKnob(option)) {
+        throw PARSER_EXCEPTION("CreateIndexTransform: incorrect type for option");
+      }
+
+      options.AddOption(option, std::move(val));
+    }
+  }
+
   return std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name,
-                                           std::move(index_attrs));
+                                           std::move(index_attrs), std::move(options));
 }
 
 // Postgres.CreateSchemaStmt -> noisepage.CreateStatement
