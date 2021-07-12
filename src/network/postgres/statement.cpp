@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "parser/postgresparser.h"
+#include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/type_id.h"
 

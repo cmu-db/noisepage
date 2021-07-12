@@ -126,7 +126,9 @@ class OperatorTransformerTest : public TerrierTest {
     auto col = catalog::IndexSchema::Column(
         "a1", type::TypeId::INTEGER, true,
         parser::ColumnValueExpression(db_oid_, table_a_oid_, accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid()));
-    auto idx_schema = catalog::IndexSchema({col}, storage::index::IndexType::BPLUSTREE, true, true, false, true);
+    catalog::IndexOptions options;
+    auto idx_schema =
+        catalog::IndexSchema({col}, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
     a_index_oid_ = accessor_->CreateIndex(accessor_->GetDefaultNamespace(), table_a_oid_, "a_index", idx_schema);
     storage::index::IndexBuilder index_builder;
     index_builder.SetKeySchema(accessor_->GetIndexSchema(a_index_oid_));

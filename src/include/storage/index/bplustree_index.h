@@ -44,6 +44,24 @@ class BPlusTreeIndex final : public Index {
   IndexType Type() const final { return IndexType::BPLUSTREE; }
 
   /**
+   * Sets the B+Tree's inner node upper threshold (split)
+   * @param threshold Threshold to use for inner split
+   */
+  void SetInnerNodeSizeUpperThreshold(int threshold);
+
+  /**
+   * Sets the B+Tree's inner node lower threshold (merge)
+   * @param threshold Threshold to use for inner merge
+   */
+  void SetInnerNodeSizeLowerThreshold(int threshold);
+
+  /** @return inner node upper threshold (split) */
+  int GetInnerNodeSizeUpperThreshold() const;
+
+  /** @return inner node lower threshold (merge) */
+  int GetInnerNodeSizeLowerThreshold() const;
+
+  /**
    * @return approximate number of bytes allocated on the heap for this index data structure
    */
   size_t EstimateHeapUsage() const final;

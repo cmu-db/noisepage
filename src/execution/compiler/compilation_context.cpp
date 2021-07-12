@@ -4,6 +4,7 @@
 #include <atomic>
 #include <sstream>
 
+#include "catalog/catalog_accessor.h"
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/ast/context.h"
@@ -207,8 +208,8 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(
     catalog::CatalogAccessor *accessor, CompilationMode mode, std::optional<execution::query_id_t> override_qid,
     common::ManagedPointer<planner::PlanMetaData> plan_meta_data, common::ManagedPointer<const std::string> query_text,
     ast::LambdaExpr *output_callback, common::ManagedPointer<ast::Context> context) {
-  // The query for which we're generating code.
-  auto query = std::make_unique<ExecutableQuery>(plan, exec_settings, context.Get());
+  // The query for which we're generating code
+  auto query = std::make_unique<ExecutableQuery>(plan, exec_settings, accessor->GetTxn()->StartTime(), context.Get());
   if (override_qid.has_value()) {
     query->SetQueryId(override_qid.value());
   }

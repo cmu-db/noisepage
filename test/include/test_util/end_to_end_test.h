@@ -8,6 +8,7 @@
 #include "binder/bind_node_visitor.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/output_checker.h"
+#include "execution/sql/ddl_executors.h"
 #include "execution/sql_test.h"
 #include "gtest/gtest.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
@@ -64,6 +65,11 @@ class EndToEndTest : public execution::SqlBasedTest {
       auto table_oid = analyze_plan->GetTableOid();
       std::vector<catalog::col_oid_t> col_oids = analyze_plan->GetColumnOids();
       test_txn_->RegisterCommitAction([=]() { stats_storage_->MarkStatsStale(db_oid, table_oid, col_oids); });
+    } else if (out_plan->GetPlanNodeType() == planner::PlanNodeType::CREATE_INDEX) {
+      execution::sql::DDLExecutors::CreateIndexExecutor(
+          common::ManagedPointer<planner::CreateIndexPlanNode>(
+              reinterpret_cast<planner::CreateIndexPlanNode *>(out_plan.get())),
+          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
     }
 
     // Execute

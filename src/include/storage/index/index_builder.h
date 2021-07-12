@@ -1,6 +1,14 @@
 #pragma once
 
+#include <algorithm>
+#include <map>
+#include <unordered_set>
+
 #include "catalog/index_schema.h"
+
+namespace noisepage::parser {
+class AbstractExpression;
+}
 
 namespace noisepage::storage::index {
 
@@ -29,6 +37,9 @@ class IndexBuilder {
   IndexBuilder &SetKeySchema(const catalog::IndexSchema &key_schema);
 
  private:
+  template <storage::index::IndexType type, class Key>
+  void ApplyIndexOptions(Index *index) const;
+
   Index *BuildBwTreeIntsKey(IndexMetadata metadata) const;
 
   Index *BuildBwTreeGenericKey(IndexMetadata metadata) const;

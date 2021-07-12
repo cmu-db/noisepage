@@ -973,8 +973,9 @@ BaseOperatorNodeContents *CreateIndex::Copy() const {
   for (auto &col : schema_->GetColumns()) {
     columns.emplace_back(col);
   }
-  auto schema = std::make_unique<catalog::IndexSchema>(std::move(columns), schema_->Type(), schema_->Unique(),
-                                                       schema_->Primary(), schema_->Exclusion(), schema_->Immediate());
+  auto schema =
+      std::make_unique<catalog::IndexSchema>(std::move(columns), schema_->Type(), schema_->Unique(), schema_->Primary(),
+                                             schema_->Exclusion(), schema_->Immediate(), schema_->GetIndexOptions());
 
   auto op = new CreateIndex();
   op->namespace_oid_ = namespace_oid_;

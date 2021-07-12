@@ -13,7 +13,11 @@ bool OperatingUnitUtil::IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f
     case ExecutionOperatingUnitType::SORT_BUILD:
     case ExecutionOperatingUnitType::SORT_TOPK_BUILD:
     case ExecutionOperatingUnitType::AGGREGATE_BUILD:
-    case ExecutionOperatingUnitType::CREATE_INDEX:
+
+    // Since the OperatingUnitRecorder wil now generate a CREATE_INDEX_MAIN OU,
+    // we treat the CREATE_INDEX_MAIN OU as the blocking OU since the caller
+    // will extract it.
+    case ExecutionOperatingUnitType::CREATE_INDEX_MAIN:
       return true;
     default:
       return false;
@@ -32,8 +36,6 @@ ExecutionOperatingUnitType OperatingUnitUtil::GetNonParallelType(ExecutionOperat
     case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_STEP:
     case ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP:
       return ExecutionOperatingUnitType::SORT_TOPK_BUILD;
-    case ExecutionOperatingUnitType::CREATE_INDEX_MAIN:
-      return ExecutionOperatingUnitType::CREATE_INDEX;
     default:
       return ExecutionOperatingUnitType::INVALID;
   }

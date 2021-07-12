@@ -89,9 +89,10 @@ void ExecutableQuery::SetPipelineOperatingUnits(std::unique_ptr<selfdriving::Pip
 }
 
 ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
-                                 ast::Context *context)
+                                 transaction::timestamp_t timestamp, ast::Context *context)
     : plan_{plan},
       exec_settings_{exec_settings},
+      timestamp_{timestamp},
       context_region_{std::make_unique<util::Region>("context_region")},
       errors_region_{std::make_unique<util::Region>("errors_region")},
       errors_{std::make_unique<sema::ErrorReporter>(errors_region_.get())},
@@ -108,20 +109,25 @@ ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const ex
 ExecutableQuery::ExecutableQuery(const std::string &contents,
                                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file,
                                  std::size_t query_state_size, const exec::ExecutionSettings &exec_settings,
-                                 ast::Context *context)
+                                 transaction::timestamp_t timestamp, ast::Context *context)
     // TODO(WAN): Giant hack for the plan. The whole point is that you have no plan.
     : plan_{reinterpret_cast<const planner::AbstractPlanNode &>(exec_settings)},
       exec_settings_{exec_settings},
+      timestamp_{timestamp},
       context_region_{std::make_unique<util::Region>("context_region")},
       errors_region_{std::make_unique<util::Region>("error_region")},
       errors_{std::make_unique<sema::ErrorReporter>(errors_region_.get())},
-      ast_context_{context} {
+      ast_context_{context},
+      query_state_size_{0},
+      pipeline_operating_units_{nullptr},
+      query_id_{query_identifier++} {
   owns_ast_context_ = (ast_context_ == nullptr);
   if (owns_ast_context_) {
     ast_context_ = new ast::Context(context_region_.get(), errors_.get());
   }
+
   // Let's scan the source
-  std::string source;
+  std::string source{};
   if (is_file) {
     auto file = llvm::MemoryBuffer::getFile(contents);
     if (std::error_code error = file.getError()) {

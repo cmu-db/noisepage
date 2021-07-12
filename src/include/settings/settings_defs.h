@@ -413,6 +413,15 @@ SETTING_bool(
     noisepage::settings::Callbacks::CompiledQueryExecution
 )
 
+SETTING_bool(
+    clear_query_cache,
+    "Clear all cached ExecutableQuery (the value is not relevant and has no effect during startup).",
+    false,
+    true,
+    noisepage::settings::Callbacks::ClearQueryCache
+)
+
+
 SETTING_string(
     application_name,
     "The name of the application (default: NO_NAME)",

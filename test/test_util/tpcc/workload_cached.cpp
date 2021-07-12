@@ -91,8 +91,8 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
                           .Build();
 
       // generate executable query and emplace it into the vector; break down here
-      auto exec_query =
-          std::make_unique<execution::compiler::ExecutableQuery>(*plan_node, exec_ctx->GetExecutionSettings());
+      auto exec_query = std::make_unique<execution::compiler::ExecutableQuery>(
+          *plan_node, exec_ctx->GetExecutionSettings(), txn->StartTime());
       exec_queries.emplace_back(std::move(exec_query));
 
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

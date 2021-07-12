@@ -128,9 +128,18 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
     function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
   }
 
+  uint32_t num_threads_override = 0;
+  auto &index_options = GetPlanAs<planner::CreateIndexPlanNode>().GetSchema()->GetIndexOptions().GetOptions();
+  if (index_options.find(catalog::IndexOptions::Knob::BUILD_THREADS) != index_options.end()) {
+    auto expr = index_options.find(catalog::IndexOptions::Knob::BUILD_THREADS)->second.get();
+    auto cve = reinterpret_cast<parser::ConstantValueExpression *>(expr);
+    num_threads_override = cve->Peek<int32_t>();
+  }
+
   ast::Expr *iter_table_parallel = codegen_->CallBuiltin(
-      ast::Builtin::TableIterParallel, {codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_),
-                                        GetQueryStatePtr(), GetExecutionContext(), codegen_->MakeExpr(work_func)});
+      ast::Builtin::TableIterParallel,
+      {codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_), GetQueryStatePtr(),
+       GetExecutionContext(), codegen_->ConstU32(num_threads_override), codegen_->MakeExpr(work_func)});
   iter_table_parallel->SetType(ast::BuiltinType::Get(codegen_->GetAstContext().Get(), ast::BuiltinType::Nil));
   function->Append(iter_table_parallel);
 
@@ -140,6 +149,14 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  if (IsPipelineMetricsEnabled()) {
+    function->Append(codegen->CallBuiltin(
+        ast::Builtin::ExecOUFeatureVectorFilter,
+        {GetPipeline()->OUFeatureVecPtr(),
+         codegen->Const32(static_cast<uint32_t>(selfdriving::ExecutionOperatingUnitType::CREATE_INDEX))}));
+  }
+
   const bool declare_local_tvi = !GetPipeline()->IsParallel();
   if (declare_local_tvi) {
     DeclareTVI(function);
@@ -151,8 +168,6 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
   if (declare_local_tvi) {
     function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
     if (IsPipelineMetricsEnabled()) {
-      auto *codegen = GetCodeGen();
-
       // Get Memory Use
       auto *get_mem = codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize,
                                            {local_storage_interface_.GetPtr(codegen_)});
