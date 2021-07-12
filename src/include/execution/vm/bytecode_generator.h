@@ -75,17 +75,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
    */
   FunctionInfo *AllocateFunction(const std::string &function_name, ast::FunctionType *function_type);
 
-  /**
-   * Allocate a new function with captures (for lambda expressions).
-   * @param function_name The function name
-   * @param function_type The function type
-   * @param captures The local variable for the captures structure
-   * @param capture_type The type of the captures structure
-   * @return A non-owning pointer to the allocated function
-   */
-  FunctionInfo *AllocateFunction(const std::string &function_name, ast::FunctionType *function_type, LocalVar captures,
-                                 ast::Type *capture_type);
-
+  // Visit a transaction abort call expression
   void VisitAbortTxn(ast::CallExpr *call);
 
   // ONLY FOR TESTING!

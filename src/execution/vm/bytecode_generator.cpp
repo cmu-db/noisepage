@@ -254,9 +254,9 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
   }
 
   GetEmitter()->EmitAssign(Bytecode::Assign8, GetExecutionResult()->GetDestination(), captures.AddressOf());
-  FunctionInfo *func_info =
-      AllocateFunction(node->GetName().GetString(), func_type, captures, node->GetCaptureStructType());
-  (void)func_info;
+  // FunctionInfo *func_info =
+  //     AllocateFunction(node->GetName().GetString(), func_type, captures, node->GetCaptureStructType());
+  FunctionInfo *func_info = AllocateFunction(node->GetName().GetString(), func_type);
 
   // Create a new deferred action for the current function
   // that visits the body of the lambda; this action is subsequently
@@ -4052,39 +4052,10 @@ FunctionInfo *BytecodeGenerator::AllocateFunction(const std::string &function_na
     }
   }
 
-  // Cache
+  // Cache the function
   func_map_[func->GetName()] = func->GetId();
-  for (const auto &action : deferred_function_create_actions_[func->GetName()]) {
-    action(func->GetId());
-  }
 
-  return func;
-}
-
-FunctionInfo *BytecodeGenerator::AllocateFunction(const std::string &function_name,
-                                                  ast::FunctionType *const function_type, LocalVar captures,
-                                                  ast::Type *capture_type) {
-  // Allocate function
-  const auto func_id = static_cast<FunctionId>(functions_.size());
-  functions_.push_back(std::make_unique<FunctionInfo>(func_id, function_name, function_type));
-  FunctionInfo *func = functions_.back().get();
-
-  // Register return type
-  if (auto *return_type = function_type->GetReturnType(); !return_type->IsNilType()) {
-    func->NewParameterLocal(return_type->PointerTo(), "hiddenRv");
-  }
-
-  // Lambda captures
-  func->NewParameterLocal(capture_type->PointerTo(), "hiddenCaptures");
-
-  // Register parameters
-  for (const auto &param : function_type->GetParams()) {
-    // TODO(Kyle): Why do we never check for SQL value types here?
-    func->NewParameterLocal(param.type_, param.name_.GetData());
-  }
-
-  // Cache
-  func_map_[func->GetName()] = func->GetId();
+  // Execute all deferred creation actions for the function
   for (const auto &action : deferred_function_create_actions_[func->GetName()]) {
     action(func->GetId());
   }

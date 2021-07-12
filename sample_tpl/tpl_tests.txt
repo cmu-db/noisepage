@@ -10,8 +10,8 @@ array.tpl,false,44
 array-iterate.tpl,false,110
 array-iterate-2.tpl,false,110
 call.tpl,false,70
-#lambda0.tpl,false,2
-#lambda1.tpl,false,3
+closure0.tpl,false,2
+closure1.tpl,false,3
 comments.tpl,false,46
 compare.tpl,false,200
 date-functions.tpl,false,0
@@ -30,7 +30,6 @@ loop4.tpl,false,166167000
 nil.tpl,false,0
 offsetof.tpl,false,54
 param.tpl,false,10
-#param-lambda.tpl,false,10                  TODO(Kyle): Requires lambdas
 point.tpl,false,-20
 pointer.tpl,false,10
 return-expr.tpl,false,15

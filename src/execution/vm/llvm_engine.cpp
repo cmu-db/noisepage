@@ -214,8 +214,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
       break;
     }
     case ast::Type::TypeId::LambdaType: {
-      // TODO(Kyle): Implement this
-      throw NOT_IMPLEMENTED_EXCEPTION("LambdaType Not Implemented");
+      llvm_type = Int32Type()->getPointerTo();
       break;
     }
     default: {
