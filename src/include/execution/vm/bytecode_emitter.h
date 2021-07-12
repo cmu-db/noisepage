@@ -324,7 +324,7 @@ class BytecodeEmitter {
 
   /** Emit a parallel table scan. */
   void EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
-                             LocalVar exec_ctx, FunctionId scan_fn);
+                             LocalVar exec_ctx, LocalVar num_threads_override, FunctionId scan_fn);
 
   /** Emit a register hook function. */
   void EmitRegisterHook(LocalVar exec_ctx, LocalVar hook_idx, FunctionId hook_fn);

@@ -51,7 +51,8 @@ IndexSchema Builder::GetDatabaseOidIndexSchema() {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true, options);
 
   return schema;
 }
@@ -65,7 +66,8 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true, options);
 
   return schema;
 }
@@ -207,6 +209,13 @@ Schema Builder::GetClassTableSchema() {
 
   columns.emplace_back("relkind", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(PgClass::RELKIND.oid_);
+
+  // TODO(wz2): Technically this should be a text[] from https://www.postgresql.org/docs/8.3/catalog-pg-class.html.
+  // However, we currently do not support array types. For now, the options supplied to CREATE INDEX are dumped
+  // in JSON form and stored in this column.
+  columns.emplace_back("reloptions", type::TypeId::VARCHAR, MAX_NAME_LENGTH, true,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  columns.back().SetOid(PgClass::RELOPTIONS.oid_);
 
   columns.emplace_back("schema", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
   columns.back().SetOid(PgClass::REL_SCHEMA.oid_);
@@ -397,7 +406,8 @@ IndexSchema Builder::GetNamespaceOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true, options);
 
   return schema;
 }
@@ -410,7 +420,8 @@ IndexSchema Builder::GetNamespaceNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true, options);
 
   return schema;
 }
@@ -423,7 +434,8 @@ IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true, options);
 
   return schema;
 }
@@ -440,7 +452,8 @@ IndexSchema Builder::GetClassNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true, options);
 
   return schema;
 }
@@ -453,7 +466,8 @@ IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true, options);
 
   return schema;
 }
@@ -466,7 +480,8 @@ IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true, options);
 
   return schema;
 }
@@ -479,7 +494,8 @@ IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true, options);
 
   return schema;
 }
@@ -496,7 +512,8 @@ IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary, must be a BPLUSTREE due to ScanAscending usage
-  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
 
   return schema;
 }
@@ -513,7 +530,8 @@ IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true, options);
 
   return schema;
 }
@@ -526,7 +544,8 @@ IndexSchema Builder::GetTypeOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true, options);
 
   return schema;
 }
@@ -543,7 +562,8 @@ IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true, options);
 
   return schema;
 }
@@ -556,7 +576,8 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true, options);
 
   return schema;
 }
@@ -570,7 +591,8 @@ IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true, options);
 
   return schema;
 }
@@ -589,7 +611,8 @@ IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true, options);
 
   return schema;
 }
@@ -603,7 +626,8 @@ IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true, options);
 
   return schema;
 }
@@ -617,7 +641,8 @@ IndexSchema Builder::GetConstraintTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true, options);
 
   return schema;
 }
@@ -631,7 +656,8 @@ IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true, options);
 
   return schema;
 }
@@ -645,7 +671,8 @@ IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true, options);
 
   return schema;
 }
@@ -658,7 +685,8 @@ IndexSchema Builder::GetLanguageOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true, options);
 
   return schema;
 }
@@ -671,7 +699,8 @@ IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true, options);
 
   return schema;
 }
@@ -813,7 +842,8 @@ IndexSchema Builder::GetProcOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true, options);
 
   return schema;
 }
@@ -830,7 +860,8 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Non-Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, false, false, false, false);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, false, false, false, false, options);
 
   return schema;
 }
@@ -848,7 +879,8 @@ IndexSchema Builder::GetStatisticOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Primary
-  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, true, true, false, true);
+  catalog::IndexOptions options;
+  IndexSchema schema(columns, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
 
   return schema;
 }

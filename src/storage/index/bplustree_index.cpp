@@ -13,6 +13,26 @@ BPlusTreeIndex<KeyType>::BPlusTreeIndex(IndexMetadata &&metadata)
     : Index(std::move(metadata)), bplustree_{new BPlusTree<KeyType, TupleSlot>} {}
 
 template <typename KeyType>
+void BPlusTreeIndex<KeyType>::SetInnerNodeSizeUpperThreshold(int threshold) {
+  bplustree_->SetInnerNodeSizeUpperThreshold(threshold);
+}
+
+template <typename KeyType>
+void BPlusTreeIndex<KeyType>::SetInnerNodeSizeLowerThreshold(int threshold) {
+  bplustree_->SetInnerNodeSizeLowerThreshold(threshold);
+}
+
+template <typename KeyType>
+int BPlusTreeIndex<KeyType>::GetInnerNodeSizeUpperThreshold() const {
+  return bplustree_->GetInnerNodeSizeUpperThreshold();
+}
+
+template <typename KeyType>
+int BPlusTreeIndex<KeyType>::GetInnerNodeSizeLowerThreshold() const {
+  return bplustree_->GetInnerNodeSizeLowerThreshold();
+}
+
+template <typename KeyType>
 size_t BPlusTreeIndex<KeyType>::EstimateHeapUsage() const {
   return bplustree_->EstimateHeapUsage();
 }

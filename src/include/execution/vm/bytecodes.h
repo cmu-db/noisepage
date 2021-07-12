@@ -136,7 +136,7 @@ namespace noisepage::execution::vm {
   F(TableVectorIteratorGetVPINumTuples, OperandType::Local, OperandType::Local)                                       \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
-    OperandType::Local, OperandType::FunctionId)                                                                      \
+    OperandType::Local, OperandType::Local, OperandType::FunctionId)                                                  \
                                                                                                                       \
   F(CteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,  \
     OperandType::UImm4)                                                                                               \

@@ -1330,7 +1330,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 5)) {
+  if (!CheckArgCount(call, 6)) {
     return;
   }
 
@@ -1366,10 +1366,16 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
     return;
   }
 
-  // The fifth argument is the scanner function.
-  auto *scan_fn_type = call_args[4]->GetType()->SafeAs<ast::FunctionType>();
+  // The fifth argument is the override for number of threads
+  if (!call_args[4]->GetType()->IsIntegerType()) {
+    ReportIncorrectCallArg(call, 4, "Fifth argument should be an integer type.");
+    return;
+  }
+
+  // The sixth argument is the scanner function.
+  auto *scan_fn_type = call_args[5]->GetType()->SafeAs<ast::FunctionType>();
   if (scan_fn_type == nullptr) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[5]->GetType());
     return;
   }
   // Check the type of the scanner function parameters. See TableVectorIterator::ScanFn.
@@ -1379,7 +1385,7 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
       || !params[0].type_->IsPointerType()                          // QueryState, must contain execCtx.
       || !params[1].type_->IsPointerType()                          // Thread state.
       || !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {  // TableVectorIterator.
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[5]->GetType());
     return;
   }
 
