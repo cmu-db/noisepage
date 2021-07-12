@@ -64,6 +64,11 @@ class SqlTable {
   ~SqlTable() { delete table_.data_table_; }
 
   /**
+   * @return number of blocks
+   */
+  size_t GetNumBlocks() { return table_.data_table_->GetNumBlocks(); }
+
+  /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
    *
    * @param txn the calling transaction

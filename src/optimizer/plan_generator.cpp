@@ -989,8 +989,9 @@ void PlanGenerator::Visit(const CreateIndex *create_index) {
   for (const auto &col : schema->GetColumns()) {
     cols.emplace_back(col);
   }
-  auto idx_schema = std::make_unique<catalog::IndexSchema>(std::move(cols), schema->Type(), schema->Unique(),
-                                                           schema->Primary(), schema->Exclusion(), schema->Immediate());
+  auto idx_schema =
+      std::make_unique<catalog::IndexSchema>(std::move(cols), schema->Type(), schema->Unique(), schema->Primary(),
+                                             schema->Exclusion(), schema->Immediate(), schema->GetIndexOptions());
   auto out_schema = std::make_unique<planner::OutputSchema>();
 
   output_plan_ = planner::CreateIndexPlanNode::Builder()

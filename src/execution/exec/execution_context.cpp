@@ -205,7 +205,8 @@ void ExecutionContext::InitializeParallelOUFeatureVector(selfdriving::ExecOUFeat
       vec->pipeline_features_->emplace_back(selfdriving::ExecutionOperatingUnitType::PARALLEL_SORT_TOPK_MERGE_STEP,
                                             feature);
       break;
-    case selfdriving::ExecutionOperatingUnitType::CREATE_INDEX:
+    case selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN:
+      // Just copy the feature that has been setup already.
       vec->pipeline_features_->emplace_back(selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);
       break;
     default:

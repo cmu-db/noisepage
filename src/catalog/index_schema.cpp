@@ -4,6 +4,26 @@
 
 namespace noisepage::catalog {
 
+nlohmann::json IndexOptions::ToJson() const {
+  nlohmann::json j;
+  std::vector<std::pair<IndexOptions::Knob, nlohmann::json>> options;
+  options.reserve(GetOptions().size());
+  for (const auto &pair : GetOptions()) {
+    options.emplace_back(pair.first, pair.second->ToJson());
+  }
+  j["knobs"] = options;
+  return j;
+}
+
+void IndexOptions::FromJson(const nlohmann::json &j) {
+  auto options = j.at("knobs").get<std::vector<std::pair<IndexOptions::Knob, nlohmann::json>>>();
+  for (const auto &key_json : options) {
+    auto deserialized = parser::DeserializeExpression(key_json.second);
+    AddOption(key_json.first, std::move(deserialized.result_));
+    NOISEPAGE_ASSERT(deserialized.non_owned_exprs_.empty(), "There should be 0 non owned expressions");
+  }
+}
+
 nlohmann::json IndexSchema::Column::ToJson() const {
   nlohmann::json j;
   j["name"] = name_;
@@ -37,6 +57,7 @@ nlohmann::json IndexSchema::ToJson() const {
   j["primary"] = is_primary_;
   j["exclusion"] = is_exclusion_;
   j["immediate"] = is_immediate_;
+  j["options"] = index_options_;
   return j;
 }
 
@@ -52,12 +73,15 @@ std::unique_ptr<IndexSchema> IndexSchema::DeserializeSchema(const nlohmann::json
   auto exclusion = j.at("exclusion").get<bool>();
   auto immediate = j.at("immediate").get<bool>();
   auto type = static_cast<storage::index::IndexType>(j.at("type").get<char>());
+  auto index_options = j.at("options").get<IndexOptions>();
 
-  auto schema = std::make_unique<IndexSchema>(columns, type, unique, primary, exclusion, immediate);
+  auto schema =
+      std::make_unique<IndexSchema>(columns, type, unique, primary, exclusion, immediate, std::move(index_options));
 
   return schema;
 }
 
+DEFINE_JSON_BODY_DECLARATIONS(IndexOptions);
 DEFINE_JSON_BODY_DECLARATIONS(IndexSchema::Column);
 DEFINE_JSON_BODY_DECLARATIONS(IndexSchema);
 

@@ -67,6 +67,9 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * IDX_SCAN
    * num_rows: size of index
    * cardinality: size of scan
+   *
+   * specific_feature0: upper size threshold for b+tree
+   * specific_feature1: lower size threshold for b+tree
    */
   IDX_SCAN,
 
@@ -120,6 +123,9 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * num_rows: index size
    * cardinality (training): batch number of indexes
    * cardinality (inference): number of index inserts or deletes
+   *
+   * specific_feature0: upper size threshold for b+tree
+   * specific_feature1: lower size threshold for b+tree
    */
   INDEX_INSERT,
   INDEX_DELETE,
@@ -130,6 +136,11 @@ enum class ExecutionOperatingUnitType : uint32_t {
   PARALLEL_SORT_MERGE_STEP,
   PARALLEL_SORT_TOPK_STEP,
   PARALLEL_SORT_TOPK_MERGE_STEP,
+
+  /**
+   * specific_feature0: upper size threshold for b+tree
+   * specific_feature1: lower size threshold for b+tree
+   */
   CREATE_INDEX,
   CREATE_INDEX_MAIN,
 

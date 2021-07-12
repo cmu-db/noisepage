@@ -1280,12 +1280,14 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * @param unique If the index to be created should be unique
    * @param index_name Name of the index
    * @param index_attrs Attributes of the index
+   * @param index_options Index options
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
                        std::string index_name,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
+                       catalog::IndexOptions index_options);
 
   /**
    * Copy
@@ -1331,6 +1333,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    */
   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
 
+  /**
+   * @return index options
+   */
+  const catalog::IndexOptions &GetIndexOptions() const { return index_options_; }
+
  private:
   /**
    * OID of the database
@@ -1366,6 +1373,11 @@ class LogicalCreateIndex : public OperatorNodeContents<LogicalCreateIndex> {
    * Index attributes
    */
   std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs_;
+
+  /**
+   * Index options
+   */
+  catalog::IndexOptions index_options_;
 };
 
 /**

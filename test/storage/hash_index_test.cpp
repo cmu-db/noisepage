@@ -66,8 +66,11 @@ class HashIndexTests : public TerrierTest {
                          parser::ColumnValueExpression(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID,
                                                        catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
-    unique_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::HASHMAP, true, true, false, true);
-    default_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::HASHMAP, false, false, false, true);
+    catalog::IndexOptions options;
+    unique_schema_ =
+        catalog::IndexSchema(keycols, storage::index::IndexType::HASHMAP, true, true, false, true, options);
+    default_schema_ =
+        catalog::IndexSchema(keycols, storage::index::IndexType::HASHMAP, false, false, false, true, options);
 
     unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
     default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();
