@@ -194,7 +194,7 @@ struct ColumnMapInfo {
   /** col_id in BlockLayout. */
   col_id_t col_id_;
   /** SQL type of the column. */
-  type::TypeId col_type_;  // TODO(Matt): nuke this? Why is type info here instead of Schema?
+  type::TypeId col_type_;  // TODO(Matt): Why is type info here instead of Schema? Huge footgun for schema changes
 };
 
 /**
