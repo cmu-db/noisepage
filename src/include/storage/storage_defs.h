@@ -3,11 +3,8 @@
 #include <algorithm>
 #include <functional>
 #include <ostream>
-#include <string>
-#include <string_view>  // NOLINT
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "common/constants.h"
