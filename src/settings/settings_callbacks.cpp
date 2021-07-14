@@ -194,6 +194,13 @@ void Callbacks::CompiledQueryExecution(void *const old_value, void *const new_va
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::ClearQueryCache(void *old_value, void *new_value, DBMain *db_main,
+                                common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  db_main->GetTrafficCop()->UpdateQueryCacheTimestamp();
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 void Callbacks::ForecastSampleLimit(void *old_value, void *new_value, DBMain *db_main,
                                     common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);

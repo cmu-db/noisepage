@@ -944,8 +944,8 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_OutputRunners)(benchmark::State &state
       db_oid, common::ManagedPointer(txn), callback, schema.get(), common::ManagedPointer(accessor), exec_settings,
       metrics_manager_, DISABLED, DISABLED);
 
-  auto exec_query =
-      execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16, exec_settings);
+  auto exec_query = execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16,
+                                                         exec_settings, txn->StartTime());
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -976,14 +976,14 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
   auto cols = ConstructSQLClause(type, type::TypeId::INVALID, key_num, 0, ", ", "", false, "");
   auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, num_rows);
   for (auto i = 0; i < num_index; i++) {
-    auto settings = GetExecutionSettings(false);
+    auto execution_settings = GetExecutionSettings(false);
     auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
 
     std::stringstream query;
     query << "CREATE INDEX idx" << i << " ON " << tbl_name << " USING BPLUSTREE (" << cols << ")";
     auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
-                                       PassthroughPlanChecker, nullptr, nullptr, &settings);
-    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
+                                       PassthroughPlanChecker, nullptr, nullptr, &execution_settings);
+    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &execution_settings);
   }
 
   // Invoke GC to clean some data
@@ -1053,9 +1053,9 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
       OpStorageInterfaceTableInsert(&slot, &si);
     } else {
       bool has_more;
-      uint32_t col_oids[] = {1};
+      uint32_t col_oids2[] = {1};
       bool done = false;
-      execution::sql::TableVectorIterator tvi(exec_ctx.get(), tbl_oid.UnderlyingValue(), col_oids, 1);
+      execution::sql::TableVectorIterator tvi(exec_ctx.get(), tbl_oid.UnderlyingValue(), col_oids2, 1);
       OpTableVectorIteratorPerformInit(&tvi);
       OpTableVectorIteratorNext(&has_more, &tvi);
       while (has_more) {

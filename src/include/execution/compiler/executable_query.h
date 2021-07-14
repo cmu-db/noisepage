@@ -10,6 +10,7 @@
 #include "execution/ast/ast_fwd.h"
 #include "execution/exec_defs.h"
 #include "execution/vm/vm_defs.h"
+#include "transaction/transaction_defs.h"
 
 namespace noisepage {
 namespace selfdriving {
@@ -110,8 +111,10 @@ class ExecutableQuery {
    * Create a query object.
    * @param plan The physical plan.
    * @param exec_settings The execution settings used for this query.
+   * @param timestamp The start timestamp of the transaction that generates this ExecutableQuery
    */
-  ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings);
+  ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
+                  transaction::timestamp_t timestamp);
 
   /**
    * This class cannot be copied or moved.
@@ -155,6 +158,9 @@ class ExecutableQuery {
   /** @return The execution settings used for this query. */
   const exec::ExecutionSettings &GetExecutionSettings() const { return exec_settings_; }
 
+  /** @return The start timestamp of the transaction that generates this ExecutableQuery */
+  transaction::timestamp_t GetTimestamp() const { return timestamp_; }
+
   /** @return The pipeline operating units that were used to generate this query. Setup must have been called! */
   common::ManagedPointer<selfdriving::PipelineOperatingUnits> GetPipelineOperatingUnits() const {
     return common::ManagedPointer(pipeline_operating_units_);
@@ -171,6 +177,8 @@ class ExecutableQuery {
   const planner::AbstractPlanNode &plan_;
   // The execution settings used for code generation.
   const exec::ExecutionSettings &exec_settings_;
+  // The start timestamp of the transaction that generates this ExecutableQuery
+  const transaction::timestamp_t timestamp_;
   std::unique_ptr<util::Region> errors_region_;
   std::unique_ptr<util::Region> context_region_;
   // The AST error reporter.
@@ -189,7 +197,8 @@ class ExecutableQuery {
 
   /** Legacy constructor that creates a hardcoded fragment with main(ExecutionContext*)->int32. */
   ExecutableQuery(const std::string &contents, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file,
-                  size_t query_state_size, const exec::ExecutionSettings &exec_settings);
+                  size_t query_state_size, const exec::ExecutionSettings &exec_settings,
+                  transaction::timestamp_t timestamp);
   /**
    * Set Pipeline Operating Units for use by mini_runners
    * @param units Pipeline Operating Units
