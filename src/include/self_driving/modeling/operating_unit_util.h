@@ -29,15 +29,13 @@ class OperatingUnitUtil {
     }
 
     auto lchild = expr->GetChild(0);
-    if (lchild->GetReturnValueType() != type::TypeId::INVALID &&
-        lchild->GetReturnValueType() != type::TypeId::PARAMETER_OFFSET) {
+    if (lchild->GetReturnValueType() != type::TypeId::INVALID) {
       return lchild->GetReturnValueType();
     }
 
     if (expr->GetChildrenSize() > 1) {
       auto rchild = expr->GetChild(1);
-      if (rchild->GetReturnValueType() != type::TypeId::INVALID &&
-          rchild->GetReturnValueType() != type::TypeId::PARAMETER_OFFSET) {
+      if (rchild->GetReturnValueType() != type::TypeId::INVALID) {
         return rchild->GetReturnValueType();
       }
     }

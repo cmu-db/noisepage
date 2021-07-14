@@ -263,7 +263,6 @@ TypeId GetTypeId(type::TypeId frontend_type) {
     case type::TypeId::VARBINARY:
       execution_type_id = execution::sql::TypeId::Varbinary;
       break;
-    case type::TypeId::PARAMETER_OFFSET:
     case type::TypeId::INVALID:
     default:
       throw std::runtime_error("Cannot convert this frontend type to execution engine type.");

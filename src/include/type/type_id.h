@@ -33,9 +33,8 @@ enum class TypeId : uint8_t {
   DATE,
   VARCHAR,
   VARBINARY,
-  PARAMETER_OFFSET,
-  VARIADIC,
-  VAR_ARRAY,  ///< pg_type requires a distinct type for var_array.
+  VARIADIC,   // TODO(Matt): nuke this?
+  VAR_ARRAY,  // pg_type requires a distinct type for var_array. TODO(Matt): nuke this?
 };
 
 }  // namespace noisepage::type

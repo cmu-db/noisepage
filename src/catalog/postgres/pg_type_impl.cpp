@@ -105,6 +105,7 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
                true, PgType::Type::BASE);
   };
 
+  // todo(Matt):: this should come from like...TypeUitl, not hardcoded
   insert_base_type(type::TypeId::INVALID, "invalid", 1);
   insert_base_type(type::TypeId::BOOLEAN, "boolean", sizeof(bool));
   insert_base_type(type::TypeId::TINYINT, "tinyint", sizeof(int8_t));
