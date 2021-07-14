@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "storage/projected_row.h"
+#include "storage/storage_defs.h"
 
 namespace noisepage::storage {
 
