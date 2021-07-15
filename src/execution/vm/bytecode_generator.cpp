@@ -237,7 +237,7 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
   }
 
   auto captures =
-      GetCurrentFunction()->NewLocal(node->GetCaptureStructType(), node->GetName().GetString() + "captures");
+      GetCurrentFunction()->NewLocal(node->GetCaptureStructType(), node->GetName().GetString() + "Captures");
   auto fields = node->GetCaptureStructType()->As<ast::StructType>()->GetFieldsWithoutPadding();
 
   // Capture each of the values for the closure by storing the
@@ -254,8 +254,6 @@ void BytecodeGenerator::VisitLambdaExpr(ast::LambdaExpr *node) {
   }
 
   GetEmitter()->EmitAssign(Bytecode::Assign8, GetExecutionResult()->GetDestination(), captures.AddressOf());
-  // FunctionInfo *func_info =
-  //     AllocateFunction(node->GetName().GetString(), func_type, captures, node->GetCaptureStructType());
   FunctionInfo *func_info = AllocateFunction(node->GetName().GetString(), func_type);
 
   // Create a new deferred action for the current function

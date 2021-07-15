@@ -12,6 +12,9 @@ array-iterate-2.tpl,false,110
 call.tpl,false,70
 closure0.tpl,false,2
 closure1.tpl,false,3
+closure2.tpl,false,6
+closure3.tpl,false,2
+closure4.tpl,false,8
 comments.tpl,false,46
 compare.tpl,false,200
 date-functions.tpl,false,0
@@ -42,7 +45,6 @@ short-circuit.tpl,false,1
 #sql-conversions.tpl,false,0                TODO(WAN): wtf Mac CI?
 sql-date.tpl,false,0
 struct.tpl,false,10
-#struct-lambda.tpl,false,10                TODO(Kyle): Requires lambdas
 struct-debug.tpl,false,100000
 struct-empty.tpl,false,0
 struct-field-use.tpl,false,30
