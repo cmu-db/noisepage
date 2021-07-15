@@ -14,41 +14,41 @@ double SelectivityUtil::ComputeSelectivity(const TableStats &table_stats, const 
   auto type = column_stats_base->GetTypeId();
 
   switch (type) {
-    case type::TypeId::BOOLEAN: {
+    case execution::sql::SqlTypeId::Boolean: {
       using T = execution::sql::BoolVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
-    case type::TypeId::TINYINT:
-    case type::TypeId::SMALLINT:
-    case type::TypeId::INTEGER:
-    case type::TypeId::BIGINT: {
+    case execution::sql::SqlTypeId::TinyInt:
+    case execution::sql::SqlTypeId::SmallInt:
+    case execution::sql::SqlTypeId::Integer:
+    case execution::sql::SqlTypeId::BigInt: {
       using T = execution::sql::Integer;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
-    case type::TypeId::REAL: {
+    case execution::sql::SqlTypeId::Double: {
       using T = execution::sql::Real;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
-    case type::TypeId::DECIMAL: {
+    case execution::sql::SqlTypeId::Decimal: {
       using T = execution::sql::DecimalVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
-    case type::TypeId::TIMESTAMP: {
+    case execution::sql::SqlTypeId::Timestamp: {
       using T = execution::sql::TimestampVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
-    case type::TypeId::DATE: {
+    case execution::sql::SqlTypeId::Date: {
       using T = execution::sql::DateVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);
     }
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY: {
+    case execution::sql::SqlTypeId::Varchar:
+    case execution::sql::SqlTypeId::Varbinary: {
       using T = execution::sql::StringVal;
       auto column_stats = column_stats_base.CastManagedPointerTo<ColumnStats<T>>();
       return ComputeSelectivity<T>(column_stats, condition);

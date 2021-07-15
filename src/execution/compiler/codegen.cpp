@@ -103,32 +103,32 @@ ast::Expr *CodeGen::ConstString(std::string_view str) const {
   return expr;
 }
 
-ast::Expr *CodeGen::ConstNull(type::TypeId type) const {
+ast::Expr *CodeGen::ConstNull(execution::sql::SqlTypeId type) const {
   ast::Expr *dummy_expr;
   // initSqlNull(&expr) produces a NULL of expr's type.
   switch (type) {
-    case type::TypeId::BOOLEAN:
+    case execution::sql::SqlTypeId::Boolean:
       dummy_expr = BoolToSql(false);
       break;
-    case type::TypeId::TINYINT:   // fallthrough
-    case type::TypeId::SMALLINT:  // fallthrough
-    case type::TypeId::INTEGER:   // fallthrough
-    case type::TypeId::BIGINT:
+    case execution::sql::SqlTypeId::TinyInt:   // fallthrough
+    case execution::sql::SqlTypeId::SmallInt:  // fallthrough
+    case execution::sql::SqlTypeId::Integer:   // fallthrough
+    case execution::sql::SqlTypeId::BigInt:
       dummy_expr = IntToSql(0);
       break;
-    case type::TypeId::DATE:
+    case execution::sql::SqlTypeId::Date:
       dummy_expr = DateToSql(0, 0, 0);
       break;
-    case type::TypeId::TIMESTAMP:
+    case execution::sql::SqlTypeId::Timestamp:
       dummy_expr = TimestampToSql(0);
       break;
-    case type::TypeId::VARCHAR:
+    case execution::sql::SqlTypeId::Varchar:
       dummy_expr = StringToSql("");
       break;
-    case type::TypeId::REAL:
+    case execution::sql::SqlTypeId::Double:
       dummy_expr = FloatToSql(0.0);
       break;
-    case type::TypeId::VARBINARY:
+    case execution::sql::SqlTypeId::Varbinary:
     default:
       UNREACHABLE("Unsupported NULL type!");
   }
@@ -521,36 +521,36 @@ ast::Expr *CodeGen::IndexIteratorScan(ast::Expr *iter_ptr, planner::IndexScanTyp
   return CallBuiltin(builtin, args);
 }
 
-ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx) {
+ast::Expr *CodeGen::PRGet(ast::Expr *pr, execution::sql::SqlTypeId type, bool nullable, uint32_t attr_idx) {
   // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
   switch (type) {
-    case type::TypeId::BOOLEAN:
+    case execution::sql::SqlTypeId::Boolean:
       builtin = nullable ? ast::Builtin::PRGetBoolNull : ast::Builtin::PRGetBool;
       break;
-    case type::TypeId::TINYINT:
+    case execution::sql::SqlTypeId::TinyInt:
       builtin = nullable ? ast::Builtin::PRGetTinyIntNull : ast::Builtin::PRGetTinyInt;
       break;
-    case type::TypeId::SMALLINT:
+    case execution::sql::SqlTypeId::SmallInt:
       builtin = nullable ? ast::Builtin::PRGetSmallIntNull : ast::Builtin::PRGetSmallInt;
       break;
-    case type::TypeId::INTEGER:
+    case execution::sql::SqlTypeId::Integer:
       builtin = nullable ? ast::Builtin::PRGetIntNull : ast::Builtin::PRGetInt;
       break;
-    case type::TypeId::BIGINT:
+    case execution::sql::SqlTypeId::BigInt:
       builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
       break;
-    case type::TypeId::REAL:
+    case execution::sql::SqlTypeId::Double:
       builtin = nullable ? ast::Builtin::PRGetDoubleNull : ast::Builtin::PRGetDouble;
       break;
-    case type::TypeId::DATE:
+    case execution::sql::SqlTypeId::Date:
       builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
       break;
-    case type::TypeId::TIMESTAMP:
+    case execution::sql::SqlTypeId::Timestamp:
       builtin = nullable ? ast::Builtin::PRGetTimestampNull : ast::Builtin::PRGetTimestamp;
       break;
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY:
+    case execution::sql::SqlTypeId::Varchar:
+    case execution::sql::SqlTypeId::Varbinary:
       builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
       break;
     default:
@@ -561,36 +561,36 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
   return CallBuiltin(builtin, {pr, idx_expr});
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, execution::sql::SqlTypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
                           bool own) {
   ast::Builtin builtin;
   switch (type) {
-    case type::TypeId::BOOLEAN:
+    case execution::sql::SqlTypeId::Boolean:
       builtin = nullable ? ast::Builtin::PRSetBoolNull : ast::Builtin::PRSetBool;
       break;
-    case type::TypeId::TINYINT:
+    case execution::sql::SqlTypeId::TinyInt:
       builtin = nullable ? ast::Builtin::PRSetTinyIntNull : ast::Builtin::PRSetTinyInt;
       break;
-    case type::TypeId::SMALLINT:
+    case execution::sql::SqlTypeId::SmallInt:
       builtin = nullable ? ast::Builtin::PRSetSmallIntNull : ast::Builtin::PRSetSmallInt;
       break;
-    case type::TypeId::INTEGER:
+    case execution::sql::SqlTypeId::Integer:
       builtin = nullable ? ast::Builtin::PRSetIntNull : ast::Builtin::PRSetInt;
       break;
-    case type::TypeId::BIGINT:
+    case execution::sql::SqlTypeId::BigInt:
       builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
       break;
-    case type::TypeId::REAL:
+    case execution::sql::SqlTypeId::Double:
       builtin = nullable ? ast::Builtin::PRSetDoubleNull : ast::Builtin::PRSetDouble;
       break;
-    case type::TypeId::DATE:
+    case execution::sql::SqlTypeId::Date:
       builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
       break;
-    case type::TypeId::TIMESTAMP:
+    case execution::sql::SqlTypeId::Timestamp:
       builtin = nullable ? ast::Builtin::PRSetTimestampNull : ast::Builtin::PRSetTimestamp;
       break;
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY:
+    case execution::sql::SqlTypeId::Varchar:
+    case execution::sql::SqlTypeId::Varbinary:
       builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
       break;
     default:

@@ -52,7 +52,7 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
 // clang-format on
 
 /**
- * Postgres Value Types
+ * Postgres Value Types //TODO(Matt): merge with execution::sql::SqlTypeId to reduce translation?
  * This defines all the types that we will support
  * We do not allow for user-defined types, nor do we try to do anything dynamic.
  * For more information, see 'pg_type.h' in Postgres

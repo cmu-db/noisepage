@@ -34,7 +34,7 @@ class PostgresPacketUtil {
    * @param read_buffer incoming postgres packet with next fields as parameter types
    * @return vector of internal types for the parameters
    */
-  static std::vector<type::TypeId> ReadParamTypes(common::ManagedPointer<ReadBufferView> read_buffer);
+  static std::vector<execution::sql::SqlTypeId> ReadParamTypes(common::ManagedPointer<ReadBufferView> read_buffer);
 
   /**
    * Given a read buffer that starts at a text value, consumes it and returns a ConstantValueExpression for that type
@@ -44,7 +44,7 @@ class PostgresPacketUtil {
    * @return ConstantValueExpression containing the value from the packet
    */
   static parser::ConstantValueExpression TextValueToInternalValue(common::ManagedPointer<ReadBufferView> read_buffer,
-                                                                  int32_t size, type::TypeId type);
+                                                                  int32_t size, execution::sql::SqlTypeId type);
 
   /**
    * Given a read buffer that starts at a binary value, consumes it and returns a ConstantValueExpression for that type
@@ -54,7 +54,7 @@ class PostgresPacketUtil {
    * @return ConstantValueExpression containing the value from the packet
    */
   static parser::ConstantValueExpression BinaryValueToInternalValue(common::ManagedPointer<ReadBufferView> read_buffer,
-                                                                    int32_t size, type::TypeId type);
+                                                                    int32_t size, execution::sql::SqlTypeId type);
 
   /**
    * Given a read buffer that starts at the parameter types for a Parse message, reads the values out
@@ -64,7 +64,7 @@ class PostgresPacketUtil {
    * @return vector of internal types for the parameters
    */
   static std::vector<parser::ConstantValueExpression> ReadParameters(common::ManagedPointer<ReadBufferView> read_buffer,
-                                                                     const std::vector<type::TypeId> &param_types,
+                                                                     const std::vector<execution::sql::SqlTypeId> &param_types,
                                                                      const std::vector<FieldFormat> &param_formats);
 };
 

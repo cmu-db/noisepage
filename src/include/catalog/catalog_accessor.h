@@ -386,7 +386,7 @@ class EXPORT CatalogAccessor {
    * @param type
    * @return type_oid of type in pg_type
    */
-  type_oid_t GetTypeOidFromTypeId(type::TypeId type);
+  type_oid_t GetTypeOidFromTypeId(execution::sql::SqlTypeId type);
 
   /**
    * @return BlockStore to be used for CREATE operations

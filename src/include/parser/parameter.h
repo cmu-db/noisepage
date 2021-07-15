@@ -17,7 +17,7 @@ class Parameter {
    * @param type_id the SQL type ID
    * @param is_nullable whether this parameter is nullable
    */
-  Parameter(Mutability mutability, type::TypeId type_id, bool is_nullable)
+  Parameter(Mutability mutability, execution::sql::SqlTypeId type_id, bool is_nullable)
       : type_(mutability), type_id_(type_id), is_nullable_(is_nullable) {}
 
   /**
@@ -26,7 +26,7 @@ class Parameter {
    * @param is_nullable whether the parameter is nullable
    * @return the new constant parameter
    */
-  static Parameter CreateConstantParameter(const type::TypeId type_id, const bool is_nullable) {
+  static Parameter CreateConstantParameter(const execution::sql::SqlTypeId type_id, const bool is_nullable) {
     return {Mutability::CONSTANT, type_id, is_nullable};
   }
 
@@ -36,7 +36,7 @@ class Parameter {
    * @param is_nullable whether the parameter is nullable
    * @return the new variable parameter
    */
-  static Parameter CreateVariableParameter(const type::TypeId type_id, const bool is_nullable) {
+  static Parameter CreateVariableParameter(const execution::sql::SqlTypeId type_id, const bool is_nullable) {
     return {Mutability::VARIABLE, type_id, is_nullable};
   }
 
@@ -44,14 +44,14 @@ class Parameter {
   Mutability GetMutability() const { return type_; }
 
   /** @return SQL type ID */
-  type::TypeId GetTypeId() const { return type_id_; }
+  execution::sql::SqlTypeId GetTypeId() const { return type_id_; }
 
   /** @return true if parameter is nullable, false otherwise */
   bool IsNullable() const { return is_nullable_; }
 
  private:
   const Mutability type_;
-  const type::TypeId type_id_;
+  const execution::sql::SqlTypeId type_id_;
   const bool is_nullable_;
 };
 

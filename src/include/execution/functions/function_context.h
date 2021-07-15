@@ -21,7 +21,7 @@ class FunctionContext {
    * @param func_ret_type Return type of function
    * @param args_type Vector of argument types
    */
-  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type)
+  FunctionContext(std::string func_name, execution::sql::SqlTypeId func_ret_type, std::vector<execution::sql::SqlTypeId> &&args_type)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(std::move(args_type)),
@@ -35,7 +35,7 @@ class FunctionContext {
    * @param builtin Which builtin this context refers to
    * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
    */
-  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+  FunctionContext(std::string func_name, execution::sql::SqlTypeId func_ret_type, std::vector<execution::sql::SqlTypeId> &&args_type,
                   ast::Builtin builtin, bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
@@ -51,13 +51,13 @@ class FunctionContext {
   /**
    * @return The vector of type arguments of the function represented by this context object
    */
-  const std::vector<type::TypeId> &GetFunctionArgsType() const { return args_type_; }
+  const std::vector<execution::sql::SqlTypeId> &GetFunctionArgsType() const { return args_type_; }
 
   /**
    * Gets the return type of the function represented by this object
    * @return return type of this function
    */
-  type::TypeId GetFunctionReturnType() const { return func_ret_type_; }
+  execution::sql::SqlTypeId GetFunctionReturnType() const { return func_ret_type_; }
 
   /**
    * @return true iff this represents a builtin function
@@ -82,8 +82,8 @@ class FunctionContext {
 
  private:
   std::string func_name_;
-  type::TypeId func_ret_type_;
-  std::vector<type::TypeId> args_type_;
+  execution::sql::SqlTypeId func_ret_type_;
+  std::vector<execution::sql::SqlTypeId> args_type_;
   bool is_builtin_;
   ast::Builtin builtin_;
   bool is_exec_ctx_required_;

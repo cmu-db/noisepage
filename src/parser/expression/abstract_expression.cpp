@@ -100,7 +100,7 @@ std::vector<std::unique_ptr<AbstractExpression>> AbstractExpression::FromJson(co
   expression_type_ = ExpressionTypeFromString(j.at("expression_type").get<std::string>());
   expression_name_ = j.at("expression_name").get<std::string>();
   alias_ = parser::AliasType(j.at("alias").get<std::string>());
-  return_value_type_ = j.at("return_value_type").get<type::TypeId>();
+  return_value_type_ = j.at("return_value_type").get<execution::sql::SqlTypeId>();
   depth_ = j.at("depth").get<int>();
   has_subquery_ = j.at("has_subquery").get<bool>();
 

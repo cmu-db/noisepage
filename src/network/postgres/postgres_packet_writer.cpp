@@ -49,7 +49,7 @@ void PostgresPacketWriter::WriteEmptyQueryResponse() {
 
 void PostgresPacketWriter::WriteNoData() { BeginPacket(NetworkMessageType::PG_NO_DATA_RESPONSE).EndPacket(); }
 
-void PostgresPacketWriter::WriteParameterDescription(const std::vector<type::TypeId> &param_types) {
+void PostgresPacketWriter::WriteParameterDescription(const std::vector<execution::sql::SqlTypeId> &param_types) {
   BeginPacket(NetworkMessageType::PG_PARAMETER_DESCRIPTION);
   AppendValue<int16_t>(static_cast<int16_t>(param_types.size()));
 
@@ -102,11 +102,11 @@ void PostgresPacketWriter::WriteRowDescription(const std::vector<planner::Output
                                   // it's a column from a table), 0 otherwise.
         .AppendValue(
             static_cast<int32_t>(PostgresProtocolUtil::InternalValueTypeToPostgresValueType(col_type)));  // type oid
-    if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY ||
+    if (col_type == execution::sql::SqlTypeId::Varchar || col_type == execution::sql::SqlTypeId::Varbinary ||
         (field_format == FieldFormat::text && static_cast<uint8_t>(col_type) > 5)) {
       AppendValue<int16_t>(-1);  // variable length
     } else {
-      AppendValue<int16_t>(type::TypeUtil::GetTypeSize(col_type));  // data type size
+      AppendValue<int16_t>(execution::sql::GetSqlTypeIdSize(col_type));  // data type size
     }
 
     AppendValue<int32_t>(-1)  // type modifier, generally -1 (see pg_attribute.atttypmod)
@@ -283,61 +283,61 @@ void PostgresPacketWriter::WriteDataRow(const byte *const tuple,
 }
 
 template <class native_type, class val_type>
-void PostgresPacketWriter::WriteBinaryVal(const execution::sql::Val *const val, const type::TypeId type) {
+void PostgresPacketWriter::WriteBinaryVal(const execution::sql::Val *const val, const execution::sql::SqlTypeId type) {
   const auto *const casted_val = reinterpret_cast<const val_type *const>(val);
-  NOISEPAGE_ASSERT(type::TypeUtil::GetTypeSize(type) == sizeof(native_type),
+  NOISEPAGE_ASSERT(execution::sql::GetSqlTypeIdSize(type) == sizeof(native_type),
                    "Mismatched native type size and size reported by TypeUtil.");
   // write the length, write the attribute
-  AppendValue<int32_t>(static_cast<int32_t>(type::TypeUtil::GetTypeSize(type)))
+  AppendValue<int32_t>(static_cast<int32_t>(execution::sql::GetSqlTypeIdSize(type)))
       .AppendValue<native_type>(static_cast<native_type>(casted_val->val_));
 }
 
 template <class native_type, class val_type>
-void PostgresPacketWriter::WriteBinaryValNeedsToNative(const execution::sql::Val *const val, const type::TypeId type) {
+void PostgresPacketWriter::WriteBinaryValNeedsToNative(const execution::sql::Val *const val, const execution::sql::SqlTypeId type) {
   const auto *const casted_val = reinterpret_cast<const val_type *const>(val);
-  NOISEPAGE_ASSERT(type::TypeUtil::GetTypeSize(type) == sizeof(native_type),
+  NOISEPAGE_ASSERT(execution::sql::GetSqlTypeIdSize(type) == sizeof(native_type),
                    "Mismatched native type size and size reported by TypeUtil.");
   // write the length, write the attribute
-  AppendValue<int32_t>(static_cast<int32_t>(type::TypeUtil::GetTypeSize(type)))
+  AppendValue<int32_t>(static_cast<int32_t>(execution::sql::GetSqlTypeIdSize(type)))
       .AppendValue<native_type>(static_cast<native_type>(casted_val->val_.ToNative()));
 }
 
-uint32_t PostgresPacketWriter::WriteBinaryAttribute(const execution::sql::Val *const val, const type::TypeId type) {
+uint32_t PostgresPacketWriter::WriteBinaryAttribute(const execution::sql::Val *const val, const execution::sql::SqlTypeId type) {
   if (val->is_null_) {
     // write a -1 for the length of the column value and continue to the next value
     AppendValue<int32_t>(static_cast<int32_t>(-1));
   } else {
     // Write the attribute
     switch (type) {
-      case type::TypeId::TINYINT: {
+      case execution::sql::SqlTypeId::TinyInt: {
         WriteBinaryVal<int8_t, execution::sql::Integer>(val, type);
         break;
       }
-      case type::TypeId::SMALLINT: {
+      case execution::sql::SqlTypeId::SmallInt: {
         WriteBinaryVal<int16_t, execution::sql::Integer>(val, type);
         break;
       }
-      case type::TypeId::INTEGER: {
+      case execution::sql::SqlTypeId::Integer: {
         WriteBinaryVal<int32_t, execution::sql::Integer>(val, type);
         break;
       }
-      case type::TypeId::BIGINT: {
+      case execution::sql::SqlTypeId::BigInt: {
         WriteBinaryVal<int64_t, execution::sql::Integer>(val, type);
         break;
       }
-      case type::TypeId::BOOLEAN: {
+      case execution::sql::SqlTypeId::Boolean: {
         WriteBinaryVal<bool, execution::sql::BoolVal>(val, type);
         break;
       }
-      case type::TypeId::REAL: {
+      case execution::sql::SqlTypeId::Double: {
         WriteBinaryVal<double, execution::sql::Real>(val, type);
         break;
       }
-      case type::TypeId::DATE: {
+      case execution::sql::SqlTypeId::Date: {
         WriteBinaryValNeedsToNative<uint32_t, execution::sql::DateVal>(val, type);
         break;
       }
-      case type::TypeId::TIMESTAMP: {
+      case execution::sql::SqlTypeId::Timestamp: {
         WriteBinaryValNeedsToNative<uint64_t, execution::sql::TimestampVal>(val, type);
         break;
       }
@@ -352,7 +352,7 @@ uint32_t PostgresPacketWriter::WriteBinaryAttribute(const execution::sql::Val *c
   return execution::sql::ValUtil::GetSqlSize(type);
 }
 
-uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *const val, const type::TypeId type) {
+uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *const val, const execution::sql::SqlTypeId type) {
   if (val->is_null_) {
     // write a -1 for the length of the column value and continue to the next value
     AppendValue<int32_t>(static_cast<int32_t>(-1));
@@ -360,15 +360,15 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
     // Convert the field to text format
     std::string string_value;
     switch (type) {
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::BIGINT:
-      case type::TypeId::INTEGER: {
+      case execution::sql::SqlTypeId::TinyInt:
+      case execution::sql::SqlTypeId::SmallInt:
+      case execution::sql::SqlTypeId::BigInt:
+      case execution::sql::SqlTypeId::Integer: {
         auto *int_val = reinterpret_cast<const execution::sql::Integer *const>(val);
         string_value = std::to_string(int_val->val_);
         break;
       }
-      case type::TypeId::BOOLEAN: {
+      case execution::sql::SqlTypeId::Boolean: {
         // Don't allocate an actual string for a BOOLEAN, just wrap a std::string_view, write the value directly, and
         // continue
         auto *bool_val = reinterpret_cast<const execution::sql::BoolVal *const>(val);
@@ -377,23 +377,23 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
         AppendValue<int32_t>(static_cast<int32_t>(str_view.length())).AppendStringView(str_view, false);
         return execution::sql::ValUtil::GetSqlSize(type);
       }
-      case type::TypeId::REAL: {
+      case execution::sql::SqlTypeId::Double: {
         auto *real_val = reinterpret_cast<const execution::sql::Real *const>(val);
         string_value = fmt::to_string(real_val->val_);
         break;
       }
-      case type::TypeId::DATE: {
+      case execution::sql::SqlTypeId::Date: {
         auto *date_val = reinterpret_cast<const execution::sql::DateVal *const>(val);
         string_value = date_val->val_.ToString();
         break;
       }
-      case type::TypeId::TIMESTAMP: {
+      case execution::sql::SqlTypeId::Timestamp: {
         auto *ts_val = reinterpret_cast<const execution::sql::TimestampVal *const>(val);
         string_value = ts_val->val_.ToString();
         break;
       }
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
+      case execution::sql::SqlTypeId::Varchar:
+      case execution::sql::SqlTypeId::Varbinary: {
         // Don't allocate an actual string for a VARCHAR, just wrap a std::string_view, write the value directly, and
         // continue
         const auto *const string_val = reinterpret_cast<const execution::sql::StringVal *const>(val);

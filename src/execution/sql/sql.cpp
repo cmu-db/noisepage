@@ -73,6 +73,38 @@ std::size_t GetTypeIdSize(TypeId type) {
   }
 }
 
+// TODO(Matt): why can't this call GetTypeIdSize for the EE matching type? seems there are discrepancies
+std::size_t GetSqlTypeIdSize(SqlTypeId type) {
+  switch (type) {
+    case SqlTypeId::Boolean:
+      return sizeof(bool);
+    case SqlTypeId::TinyInt:
+      return sizeof(int8_t);
+    case SqlTypeId::SmallInt:
+      return sizeof(int16_t);
+    case SqlTypeId::Integer:
+      return sizeof(int32_t);
+    case SqlTypeId::BigInt:
+      return sizeof(int64_t);
+      //    case SqlTypeId::Float:    // TODO(Matt): not supported on front-end
+      //      return sizeof(float);
+    case SqlTypeId::Double:
+      return sizeof(double);
+    case SqlTypeId::Date:
+      return sizeof(Date);
+    case SqlTypeId::Timestamp:
+      return sizeof(Timestamp);
+    case SqlTypeId::Varchar:
+    case SqlTypeId::Varbinary:
+      return storage::VARLEN_COLUMN;
+    case SqlTypeId::Decimal:
+      return 16;  // TODO(Matt): double-check when fixed point decimal support merges
+    default:
+      // All cases handled
+      UNREACHABLE("Impossible type");
+  }
+}
+
 std::size_t GetTypeIdAlignment(TypeId type) {
   switch (type) {
     case TypeId::Boolean:
@@ -229,41 +261,109 @@ std::string TypeIdToString(TypeId type) {
   }
 }
 
-TypeId GetTypeId(type::TypeId frontend_type) {
+// static
+std::string SqlTypeIdToString(SqlTypeId type) {
+  switch (type) {
+    case SqlTypeId::Boolean:
+      return "Boolean";
+    case SqlTypeId::TinyInt:
+      return "TinyInt";
+    case SqlTypeId::SmallInt:
+      return "SmallInt";
+    case SqlTypeId::Integer:
+      return "Integer";
+    case SqlTypeId::BigInt:
+      return "BigInt";
+    case SqlTypeId::Double:
+      return "Double";
+    case SqlTypeId::Date:
+      return "Date";
+    case SqlTypeId::Timestamp:
+      return "Timestamp";
+    case SqlTypeId::Varchar:
+      return "VarChar";
+    case SqlTypeId::Varbinary:
+      return "VarBinary";
+    default:
+      // All cases handled
+      UNREACHABLE("Impossible type");
+  }
+}
+
+SqlTypeId SqlTypeIdFromString(const std::string &type_string) {
+  if (type_string == "INVALID") {
+    return SqlTypeId::Invalid;
+  }
+  if (type_string == "BOOLEAN") {
+    return SqlTypeId::Boolean;
+  }
+  if (type_string == "TinyInt") {
+    return SqlTypeId::TinyInt;
+  }
+  if (type_string == "SmallInt") {
+    return SqlTypeId::SmallInt;
+  }
+  if (type_string == "Integer") {
+    return SqlTypeId::Integer;
+  }
+  if (type_string == "BigInt") {
+    return SqlTypeId::BigInt;
+  }
+  if (type_string == "Double") {
+    return SqlTypeId::Double;
+  }
+  if (type_string == "Decimal") {
+    return SqlTypeId::Decimal;
+  }
+  if (type_string == "Timestamp") {
+    return SqlTypeId::Timestamp;
+  }
+  if (type_string == "Date") {
+    return SqlTypeId::Date;
+  }
+  if (type_string == "Varchar") {
+    return SqlTypeId::Varchar;
+  }
+  if (type_string == "Varbinary") {
+    return SqlTypeId::Varbinary;
+  }
+  UNREACHABLE(("No type conversion for string value " + type_string).c_str());
+}
+
+TypeId GetTypeId(SqlTypeId frontend_type) {
   execution::sql::TypeId execution_type_id;
 
   switch (frontend_type) {
-    case type::TypeId::BOOLEAN:
+    case SqlTypeId::Boolean:
       execution_type_id = execution::sql::TypeId::Boolean;
       break;
-    case type::TypeId::TINYINT:
+    case SqlTypeId::TinyInt:
       execution_type_id = execution::sql::TypeId::TinyInt;
       break;
-    case type::TypeId::SMALLINT:
+    case SqlTypeId::SmallInt:
       execution_type_id = execution::sql::TypeId::SmallInt;
       break;
-    case type::TypeId::INTEGER:
+    case SqlTypeId::Integer:
       execution_type_id = execution::sql::TypeId::Integer;
       break;
-    case type::TypeId::BIGINT:
+    case SqlTypeId::BigInt:
       execution_type_id = execution::sql::TypeId::BigInt;
       break;
-    case type::TypeId::REAL:
+    case SqlTypeId::Real:
       execution_type_id = execution::sql::TypeId::Double;
       break;
-    case type::TypeId::TIMESTAMP:
+    case SqlTypeId::Timestamp:
       execution_type_id = execution::sql::TypeId::Timestamp;
       break;
-    case type::TypeId::DATE:
+    case SqlTypeId::Date:
       execution_type_id = execution::sql::TypeId::Date;
       break;
-    case type::TypeId::VARCHAR:
+    case SqlTypeId::Varchar:
       execution_type_id = execution::sql::TypeId::Varchar;
       break;
-    case type::TypeId::VARBINARY:
+    case SqlTypeId::Varbinary:
       execution_type_id = execution::sql::TypeId::Varbinary;
       break;
-    case type::TypeId::INVALID:
     default:
       throw std::runtime_error("Cannot convert this frontend type to execution engine type.");
   }

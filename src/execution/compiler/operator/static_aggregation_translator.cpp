@@ -91,7 +91,7 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
-    NOISEPAGE_ASSERT(term->GetChild(0)->GetReturnValueType() != type::TypeId::INVALID,
+    NOISEPAGE_ASSERT(term->GetChild(0)->GetReturnValueType() != execution::sql::SqlTypeId::Invalid,
                      "Return value type of child expression is invalid.");
     auto field_name = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(term_idx));
     auto type = codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));

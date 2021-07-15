@@ -13,6 +13,7 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/sql/aggregators.h"
 #include "execution/sql/hash_table_entry.h"
+#include "execution/sql/sql.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "optimizer/index_util.h"
 #include "parser/expression/constant_value_expression.h"
@@ -56,7 +57,6 @@
 #include "storage/index/bplustree.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
-#include "type/type_id.h"
 
 namespace noisepage::selfdriving {
 
@@ -169,14 +169,14 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
   return total / ref_payload;
 }
 
-void OperatingUnitRecorder::AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key) {
-  if (type == type::TypeId::VARCHAR) {
+void OperatingUnitRecorder::AdjustKeyWithType(execution::sql::SqlTypeId type, size_t *key_size, size_t *num_key) {
+  if (type == execution::sql::SqlTypeId::Varchar) {
     // TODO(lin): Some how varchar in execution engine is 24 bytes. I don't really know why, but just special case
     //  here since it's different than the storage size (16 bytes under inline)
     *key_size = *key_size + 24;
     *num_key = *num_key + 1;
   } else {
-    *key_size = *key_size + storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(type));
+    *key_size = *key_size + storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(type));
   }
 }
 
@@ -465,7 +465,7 @@ void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlan
       // Recording of simple operators
       // - num_keys is always 1
       // - key_size is max() inputs
-      auto size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(feature.first));
+      auto size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(feature.first));
       AggregateFeatures(feature.second, size, 1, plan, scaling, 1);
     }
   }
@@ -505,7 +505,7 @@ void OperatingUnitRecorder::Visit(const planner::CreateIndexPlanNode *plan) {
   // TODO(lin): further adjust the key size of VARCHAR keys for CREATE INDEX becuase of some irregularity in the
   //  training data. Needs further investigation.
   for (auto &col : schema->GetColumns()) {
-    if (col.Type() == type::TypeId::VARCHAR) {
+    if (col.Type() == execution::sql::SqlTypeId::Varchar) {
       key_size += 8;
     }
   }
@@ -768,7 +768,7 @@ void OperatingUnitRecorder::Visit(const planner::CSVScanPlanNode *plan) {
   auto num_keys = plan->GetValueTypes().size();
   size_t key_size = 0;
   for (auto type : plan->GetValueTypes()) {
-    key_size += type::TypeUtil::GetTypeSize(type);
+    key_size += execution::sql::GetSqlTypeIdSize(type);
   }
 
   AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);

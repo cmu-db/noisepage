@@ -31,21 +31,25 @@ enum class TypeId : uint8_t {
 };
 
 /**
- * Supported SQL data types.
+ * Supported SQL data types. //TODO(Matt): merge with network::PostgresValueType to reduce translation?
  */
-enum class SqlTypeId : uint8_t {
+enum class SqlTypeId : int8_t {
+  Invalid = -1,  // TODO(Matt): this is a hack from execution::sql::SqlTypeId having an INVALID (mostly used for NULLs)
   Boolean,
   TinyInt,    // 1-byte integer
   SmallInt,   // 2-byte integer
   Integer,    // 4-byte integer
   BigInt,     // 8-byte integer
-  Real,       // 4-byte float
+  Real,       // 4-byte float //TODO(Matt): front-end doesn't support this
   Double,     // 8-byte float
   Decimal,    // Arbitrary-precision numeric
   Date,       // Dates
   Timestamp,  // Timestamps
-  Char,       // Fixed-length string
-  Varchar     // Variable-length string
+  Char,       // Fixed-length string //TODO(Matt): front-end doesn't support this
+  Varchar,    // Variable-length string
+  Varbinary,  // TODO(Matt): front-end doesn't support this
+  Variadic,   // TODO(Matt): this is a hack from execution::sql::SqlTypeId having a VARIADIC (nuke this?)
+  Vararray    // TODO(Matt): this is a hack from execution::sql::SqlTypeId having a VAR_ARRAY (nuke this?)
 };
 
 /**
@@ -72,7 +76,7 @@ SqlTypeId GetSqlTypeFromInternalType(TypeId type);
 /**
  * @return The execution type ID corresponding to the given frontend type.
  */
-TypeId GetTypeId(type::TypeId frontend_type);
+TypeId GetTypeId(SqlTypeId frontend_type);
 
 /**
  * @return The primitive type ID for the C/C++ template type @em T.
@@ -119,9 +123,18 @@ constexpr inline TypeId GetTypeId() {
 std::size_t GetTypeIdSize(TypeId type);
 
 /**
+ * @return The size in bytes of a value with the primitive type @em type.
+ */
+std::size_t GetSqlTypeIdSize(SqlTypeId type);
+
+/**
  * @return The alignment in bytes of a value with the primitive type @em type.
  */
 std::size_t GetTypeIdAlignment(TypeId type);
+
+SqlTypeId SqlTypeIdFromString(const std::string &type_string);
+
+std::string SqlTypeIdToString(SqlTypeId type);
 
 /**
  * @return True if the primitive type ID @em type is a fixed-size type; false otherwise.

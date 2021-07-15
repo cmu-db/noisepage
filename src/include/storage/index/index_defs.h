@@ -19,8 +19,8 @@ enum class IndexKeyKind : uint8_t { COMPACTINTSKEY, GENERICKEY, HASHKEY };
 /**
  * Types that can be used in simple keys, i.e. CompactIntsKey and HashKey
  */
-constexpr std::array<type::TypeId, 4> NUMERIC_KEY_TYPES{type::TypeId::TINYINT, type::TypeId::SMALLINT,
-                                                        type::TypeId::INTEGER, type::TypeId::BIGINT};
+constexpr std::array<execution::sql::SqlTypeId, 4> NUMERIC_KEY_TYPES{execution::sql::SqlTypeId::TinyInt, execution::sql::SqlTypeId::SmallInt,
+                                                        execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt};
 
 enum class ScanType : uint8_t {
   Closed,   /* [low, high] range scan */

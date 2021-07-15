@@ -19,7 +19,7 @@ class SubqueryExpression : public AbstractExpression {
    * @param subselect the sub-select
    */
   explicit SubqueryExpression(std::unique_ptr<parser::SelectStatement> subselect)
-      : AbstractExpression(ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}), subselect_(std::move(subselect)) {}
+      : AbstractExpression(ExpressionType::ROW_SUBQUERY, execution::sql::SqlTypeId::Invalid, {}), subselect_(std::move(subselect)) {}
 
   /** Default constructor for JSON deserialization. */
   SubqueryExpression() = default;

@@ -75,7 +75,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param key_size
    * @param num_key
    */
-  static void AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key);
+  static void AdjustKeyWithType(execution::sql::SqlTypeId type, size_t *key_size, size_t *num_key);
 
  private:
   /**
@@ -236,7 +236,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Arithmetic features for a given plan
    */
-  std::vector<std::pair<type::TypeId, ExecutionOperatingUnitType>> arithmetic_feature_types_;
+  std::vector<std::pair<execution::sql::SqlTypeId, ExecutionOperatingUnitType>> arithmetic_feature_types_;
 
   /**
    * Structure for storing features of a pipeline

@@ -11,9 +11,9 @@
 #include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
+#include "execution/sql/sql.h"
 #include "storage/block_access_controller.h"
 #include "transaction/transaction_defs.h"
-#include "type/type_id.h"
 
 namespace noisepage::storage {
 
@@ -194,7 +194,8 @@ struct ColumnMapInfo {
   /** col_id in BlockLayout. */
   col_id_t col_id_;
   /** SQL type of the column. */
-  type::TypeId col_type_;  // TODO(Matt): Why is type info here instead of Schema? Huge footgun for schema changes
+  execution::sql::SqlTypeId
+      col_type_;  // TODO(Matt): Why is type info here instead of Schema? Huge footgun for schema changes
 };
 
 /**

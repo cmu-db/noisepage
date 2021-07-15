@@ -221,7 +221,7 @@ optimizer::TableStats CatalogAccessor::GetTableStatistics(table_oid_t table_oid)
   return dbc_->GetTableStatistics(txn_, table_oid);
 }
 
-type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }
+type_oid_t CatalogAccessor::GetTypeOidFromTypeId(execution::sql::SqlTypeId type) { return dbc_->GetTypeOidForType(type); }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
   // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a

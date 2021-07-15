@@ -201,7 +201,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
     catalog::db_oid_t db_oid = forecast->GetDboidByQid(qid);
     auto query_text = forecast->GetQuerytextByQid(qid);
 
-    std::vector<type::TypeId> *param_types = forecast->GetParamtypesByQid(qid);
+    std::vector<execution::sql::SqlTypeId> *param_types = forecast->GetParamtypesByQid(qid);
     std::vector<std::vector<parser::ConstantValueExpression>> *params = forecast->GetQueryparamsByQid(qid);
     pipeline_qids->push_back(qid);
 
@@ -220,7 +220,7 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
       //  as well.
       planning_context.GetTaskManager()->AddTask(std::make_unique<task::TaskDML>(
           db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
-          std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<type::TypeId>(*param_types),
+          std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<execution::sql::SqlTypeId>(*param_types),
           nullptr, metrics_manager, settings, true, true, std::make_optional<execution::query_id_t>(qid),
           common::ManagedPointer(&sync)));
       auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);

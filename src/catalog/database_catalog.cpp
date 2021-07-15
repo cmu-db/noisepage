@@ -313,7 +313,7 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   return pg_core_.GetIndexes(txn, table);
 }
 
-type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) {
+type_oid_t DatabaseCatalog::GetTypeOidForType(const execution::sql::SqlTypeId type) {
   // TODO(WAN): WARNING! Do not change this seeing PgCoreImpl::MakeColumn and PgCoreImpl::CreateColumn.
   return type_oid_t(static_cast<uint8_t>(type));
 }
