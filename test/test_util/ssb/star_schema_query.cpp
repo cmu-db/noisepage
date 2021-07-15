@@ -51,7 +51,8 @@ SSBQuery::SSBMakeExecutableQ1Part1(const std::unique_ptr<catalog::CatalogAccesso
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
     auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
-    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_extendedprice =
+        expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
     auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), execution::sql::SqlTypeId::Integer);
     auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), execution::sql::SqlTypeId::Integer);
 
@@ -144,7 +145,8 @@ SSBQuery::SSBMakeExecutableQ1Part2(const std::unique_ptr<catalog::CatalogAccesso
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
     auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
-    auto d_yearmonthnum = expr_maker.CVE(d_schema.GetColumn("d_yearmonthnum").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_yearmonthnum =
+        expr_maker.CVE(d_schema.GetColumn("d_yearmonthnum").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_yearmonthnum").Oid()};
     // Make the predicate: d_yearmonthnum = 199401
@@ -165,7 +167,8 @@ SSBQuery::SSBMakeExecutableQ1Part2(const std::unique_ptr<catalog::CatalogAccesso
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
     auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
-    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_extendedprice =
+        expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
     auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), execution::sql::SqlTypeId::Integer);
     auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> lo_col_oids = {
@@ -255,7 +258,8 @@ SSBQuery::SSBMakeExecutableQ1Part3(const std::unique_ptr<catalog::CatalogAccesso
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
     auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
-    auto d_weeknuminyear = expr_maker.CVE(d_schema.GetColumn("d_weeknuminyear").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_weeknuminyear =
+        expr_maker.CVE(d_schema.GetColumn("d_weeknuminyear").Oid(), execution::sql::SqlTypeId::Integer);
     auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_weeknuminyear").Oid(),
@@ -279,7 +283,8 @@ SSBQuery::SSBMakeExecutableQ1Part3(const std::unique_ptr<catalog::CatalogAccesso
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
     auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
-    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_extendedprice =
+        expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
     auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), execution::sql::SqlTypeId::Integer);
     auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> lo_col_oids = {

@@ -425,7 +425,8 @@ TEST(OperatorTests, LimitTest) {
 
   size_t offset = 90;
   size_t limit = 22;
-  auto sort_expr_ori = new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1));
+  auto sort_expr_ori =
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
   OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
 

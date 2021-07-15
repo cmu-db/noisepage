@@ -27,7 +27,6 @@
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
-
 namespace noisepage::catalog {
 
 DatabaseCatalog::DatabaseCatalog(const db_oid_t oid,

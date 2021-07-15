@@ -33,20 +33,22 @@ void QueryTraceMetricRawData::SubmitFrequencyRecordJob(uint64_t timestamp,
 
     // Since the frequency information is per segment interval,
     // we record the timestamp (i.e., low_timestamp_) corresponding to it.
-    param_vec[0] = parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt, execution::sql::Integer(timestamp));
+    param_vec[0] =
+        parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt, execution::sql::Integer(timestamp));
 
     // Record the query identifier.
-    param_vec[1] =
-        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(info.first.UnderlyingValue()));
+    param_vec[1] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
+                                                   execution::sql::Integer(info.first.UnderlyingValue()));
 
     // Record how many queries seen
-    param_vec[2] =
-        parser::ConstantValueExpression(execution::sql::SqlTypeId::Double, execution::sql::Real(static_cast<double>(info.second)));
+    param_vec[2] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Double,
+                                                   execution::sql::Real(static_cast<double>(info.second)));
     params_vec.emplace_back(std::move(param_vec));
   }
 
   // Submit the insert request if not empty
-  std::vector<execution::sql::SqlTypeId> param_types = {execution::sql::SqlTypeId::BigInt, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double};
+  std::vector<execution::sql::SqlTypeId> param_types = {
+      execution::sql::SqlTypeId::BigInt, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double};
   task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query,
                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
                                                         std::move(params_vec), std::move(param_types)));

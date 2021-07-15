@@ -119,8 +119,8 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                   catalog::db_oid_t database_oid, std::string file_name, char delimiter, char quote, char escape,
-                  std::vector<execution::sql::SqlTypeId> value_types, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
-                  bool scan_has_offset, plan_node_id_t plan_node_id);
+                  std::vector<execution::sql::SqlTypeId> value_types, uint32_t scan_limit, bool scan_has_limit,
+                  uint32_t scan_offset, bool scan_has_offset, plan_node_id_t plan_node_id);
 
  public:
   /**

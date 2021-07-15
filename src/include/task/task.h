@@ -122,10 +122,11 @@ class TaskDML : public Task {
    * @param sync Future for the caller to block on
    */
   TaskDML(catalog::db_oid_t db_oid, std::string query_text, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
-          std::vector<std::vector<parser::ConstantValueExpression>> &&params, std::vector<execution::sql::SqlTypeId> &&param_types,
-          util::TupleFunction tuple_fn, common::ManagedPointer<metrics::MetricsManager> metrics_manager,
-          execution::exec::ExecutionSettings settings, bool force_abort, bool skip_query_cache,
-          std::optional<execution::query_id_t> override_qid, common::ManagedPointer<common::Future<DummyResult>> sync)
+          std::vector<std::vector<parser::ConstantValueExpression>> &&params,
+          std::vector<execution::sql::SqlTypeId> &&param_types, util::TupleFunction tuple_fn,
+          common::ManagedPointer<metrics::MetricsManager> metrics_manager, execution::exec::ExecutionSettings settings,
+          bool force_abort, bool skip_query_cache, std::optional<execution::query_id_t> override_qid,
+          common::ManagedPointer<common::Future<DummyResult>> sync)
       : db_oid_(db_oid),
         query_text_(std::move(query_text)),
         cost_model_(std::move(cost_model)),

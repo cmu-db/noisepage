@@ -6,9 +6,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "execution/sql/sql.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "execution/sql/sql.h"
 
 namespace noisepage::binder {
 /**
@@ -62,7 +62,8 @@ class BinderSherpa {
    * @param expr The expression whose type we want to constrain.
    * @param type The desired type.
    */
-  void SetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr, const execution::sql::SqlTypeId type) {
+  void SetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr,
+                      const execution::sql::SqlTypeId type) {
     desired_expr_types_[reinterpret_cast<uintptr_t>(expr.Get())] = type;
   }
 

@@ -29,14 +29,16 @@ constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
 Schema Builder::GetDatabaseTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("datoid", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("datoid", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgDatabase::DATOID.oid_);
 
   columns.emplace_back("datname", execution::sql::SqlTypeId::Varchar, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   columns.back().SetOid(PgDatabase::DATNAME.oid_);
 
-  columns.emplace_back("pointer", execution::sql::SqlTypeId::BigInt, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
+  columns.emplace_back("pointer", execution::sql::SqlTypeId::BigInt, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
   columns.back().SetOid(PgDatabase::DAT_CATALOG.oid_);
 
   return Schema(columns);
@@ -159,7 +161,8 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
 Schema Builder::GetColumnTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("attnum", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("attnum", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgAttribute::ATTNUM.oid_);
 
   columns.emplace_back("attrelid", execution::sql::SqlTypeId::Integer, false,
@@ -196,7 +199,8 @@ Schema Builder::GetColumnTableSchema() {
 Schema Builder::GetClassTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("reloid", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("reloid", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgClass::RELOID.oid_);
 
   columns.emplace_back("relname", execution::sql::SqlTypeId::Varchar, MAX_NAME_LENGTH, false,
@@ -207,7 +211,8 @@ Schema Builder::GetClassTableSchema() {
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgClass::RELNAMESPACE.oid_);
 
-  columns.emplace_back("relkind", execution::sql::SqlTypeId::TinyInt, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
+  columns.emplace_back("relkind", execution::sql::SqlTypeId::TinyInt, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
   columns.back().SetOid(PgClass::RELKIND.oid_);
 
   // TODO(wz2): Technically this should be a text[] from https://www.postgresql.org/docs/8.3/catalog-pg-class.html.
@@ -217,10 +222,12 @@ Schema Builder::GetClassTableSchema() {
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   columns.back().SetOid(PgClass::RELOPTIONS.oid_);
 
-  columns.emplace_back("schema", execution::sql::SqlTypeId::BigInt, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
+  columns.emplace_back("schema", execution::sql::SqlTypeId::BigInt, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
   columns.back().SetOid(PgClass::REL_SCHEMA.oid_);
 
-  columns.emplace_back("pointer", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
+  columns.emplace_back("pointer", execution::sql::SqlTypeId::BigInt, true,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
   columns.back().SetOid(PgClass::REL_PTR.oid_);
 
   columns.emplace_back("nextcoloid", execution::sql::SqlTypeId::Integer, true,
@@ -233,7 +240,8 @@ Schema Builder::GetClassTableSchema() {
 Schema Builder::GetConstraintTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("conoid", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("conoid", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgConstraint::CONOID.oid_);
 
   columns.emplace_back("conname", execution::sql::SqlTypeId::Varchar, MAX_NAME_LENGTH, false,
@@ -244,7 +252,8 @@ Schema Builder::GetConstraintTableSchema() {
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgConstraint::CONNAMESPACE.oid_);
 
-  columns.emplace_back("contype", execution::sql::SqlTypeId::TinyInt, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
+  columns.emplace_back("contype", execution::sql::SqlTypeId::TinyInt, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
   columns.back().SetOid(PgConstraint::CONTYPE.oid_);
 
   columns.emplace_back("condeferrable", execution::sql::SqlTypeId::Boolean, false,
@@ -263,14 +272,16 @@ Schema Builder::GetConstraintTableSchema() {
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgConstraint::CONRELID.oid_);
 
-  columns.emplace_back("conindid", execution::sql::SqlTypeId::Integer, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("conindid", execution::sql::SqlTypeId::Integer, true,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgConstraint::CONINDID.oid_);
 
   columns.emplace_back("confrelid", execution::sql::SqlTypeId::Integer, true,
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgConstraint::CONFRELID.oid_);
 
-  columns.emplace_back("conbin", execution::sql::SqlTypeId::BigInt, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
+  columns.emplace_back("conbin", execution::sql::SqlTypeId::BigInt, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
   columns.back().SetOid(PgConstraint::CONBIN.oid_);
 
   columns.emplace_back("consrc", execution::sql::SqlTypeId::Varchar, 4096, false,
@@ -283,7 +294,8 @@ Schema Builder::GetConstraintTableSchema() {
 Schema Builder::GetIndexTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("indoid", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("indoid", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgIndex::INDOID.oid_);
 
   columns.emplace_back("indrelid", execution::sql::SqlTypeId::Integer, false,
@@ -328,7 +340,8 @@ Schema Builder::GetIndexTableSchema() {
 Schema Builder::GetNamespaceTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("nspoid", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("nspoid", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgNamespace::NSPOID.oid_);
 
   columns.emplace_back("nspname", execution::sql::SqlTypeId::Varchar, MAX_NAME_LENGTH, false,
@@ -341,7 +354,8 @@ Schema Builder::GetNamespaceTableSchema() {
 Schema Builder::GetTypeTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("typoid", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("typoid", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgType::TYPOID.oid_);
 
   columns.emplace_back("typname", execution::sql::SqlTypeId::Varchar, MAX_NAME_LENGTH, false,
@@ -360,7 +374,8 @@ Schema Builder::GetTypeTableSchema() {
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean));
   columns.back().SetOid(PgType::TYPBYVAL.oid_);
 
-  columns.emplace_back("typtype", execution::sql::SqlTypeId::TinyInt, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
+  columns.emplace_back("typtype", execution::sql::SqlTypeId::TinyInt, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
   columns.back().SetOid(PgType::TYPTYPE.oid_);
 
   return Schema(columns);
@@ -369,14 +384,16 @@ Schema Builder::GetTypeTableSchema() {
 Schema Builder::GetLanguageTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("lanoid", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("lanoid", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgLanguage::LANOID.oid_);
 
   columns.emplace_back("lanname", execution::sql::SqlTypeId::Varchar, MAX_NAME_LENGTH, false,
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   columns.back().SetOid(PgLanguage::LANNAME.oid_);
 
-  columns.emplace_back("lanispl", execution::sql::SqlTypeId::Boolean, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean));
+  columns.emplace_back("lanispl", execution::sql::SqlTypeId::Boolean, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean));
   columns.back().SetOid(PgLanguage::LANISPL.oid_);
 
   columns.emplace_back("lanpltrusted", execution::sql::SqlTypeId::Boolean, false,
@@ -742,7 +759,8 @@ Schema Builder::GetStatisticTableSchema() {
 Schema Builder::GetProcTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("prooid", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("prooid", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgProc::PROOID.oid_);
 
   columns.emplace_back("proname", execution::sql::SqlTypeId::Varchar, MAX_NAME_LENGTH, false,
@@ -753,13 +771,16 @@ Schema Builder::GetProcTableSchema() {
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgProc::PRONAMESPACE.oid_);
 
-  columns.emplace_back("prolang", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  columns.emplace_back("prolang", execution::sql::SqlTypeId::Integer, false,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgProc::PROLANG.oid_);
 
-  columns.emplace_back("procost", execution::sql::SqlTypeId::Double, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::Double));
+  columns.emplace_back("procost", execution::sql::SqlTypeId::Double, true,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Double));
   columns.back().SetOid(PgProc::PROCOST.oid_);
 
-  columns.emplace_back("prorows", execution::sql::SqlTypeId::Double, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::Double));
+  columns.emplace_back("prorows", execution::sql::SqlTypeId::Double, true,
+                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Double));
   columns.back().SetOid(PgProc::PROROWS.oid_);
 
   columns.emplace_back("provariadic", execution::sql::SqlTypeId::Integer, false,

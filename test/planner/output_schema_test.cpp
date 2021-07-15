@@ -11,7 +11,6 @@
 #include "parser/expression/constant_value_expression.h"
 #include "test_util/test_harness.h"
 
-
 namespace noisepage::planner {
 
 class OutputSchemaTests : public TerrierTest {
@@ -21,7 +20,8 @@ class OutputSchemaTests : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
+    return std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                             execution::sql::BoolVal(true));
   }
 };
 

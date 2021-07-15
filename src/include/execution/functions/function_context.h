@@ -21,7 +21,8 @@ class FunctionContext {
    * @param func_ret_type Return type of function
    * @param args_type Vector of argument types
    */
-  FunctionContext(std::string func_name, execution::sql::SqlTypeId func_ret_type, std::vector<execution::sql::SqlTypeId> &&args_type)
+  FunctionContext(std::string func_name, execution::sql::SqlTypeId func_ret_type,
+                  std::vector<execution::sql::SqlTypeId> &&args_type)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(std::move(args_type)),
@@ -35,8 +36,9 @@ class FunctionContext {
    * @param builtin Which builtin this context refers to
    * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
    */
-  FunctionContext(std::string func_name, execution::sql::SqlTypeId func_ret_type, std::vector<execution::sql::SqlTypeId> &&args_type,
-                  ast::Builtin builtin, bool is_exec_ctx_required = false)
+  FunctionContext(std::string func_name, execution::sql::SqlTypeId func_ret_type,
+                  std::vector<execution::sql::SqlTypeId> &&args_type, ast::Builtin builtin,
+                  bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         args_type_(std::move(args_type)),

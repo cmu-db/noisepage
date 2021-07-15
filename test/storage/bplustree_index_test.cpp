@@ -16,7 +16,6 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-
 namespace noisepage::storage::index {
 
 class BPlusTreeIndexTests : public TerrierTest {

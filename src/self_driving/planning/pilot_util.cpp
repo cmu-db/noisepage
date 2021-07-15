@@ -220,9 +220,9 @@ std::unique_ptr<metrics::PipelineMetricRawData> PilotUtil::CollectPipelineFeatur
       //  as well.
       planning_context.GetTaskManager()->AddTask(std::make_unique<task::TaskDML>(
           db_oid, query_text, std::make_unique<optimizer::TrivialCostModel>(),
-          std::vector<std::vector<parser::ConstantValueExpression>>(*params), std::vector<execution::sql::SqlTypeId>(*param_types),
-          nullptr, metrics_manager, settings, true, true, std::make_optional<execution::query_id_t>(qid),
-          common::ManagedPointer(&sync)));
+          std::vector<std::vector<parser::ConstantValueExpression>>(*params),
+          std::vector<execution::sql::SqlTypeId>(*param_types), nullptr, metrics_manager, settings, true, true,
+          std::make_optional<execution::query_id_t>(qid), common::ManagedPointer(&sync)));
       auto future_result = sync.WaitFor(Pilot::FUTURE_TIMEOUT);
       if (!future_result.has_value()) {
         throw PILOT_EXCEPTION("Future timed out.", common::ErrorCode::ERRCODE_IO_ERROR);

@@ -1562,7 +1562,8 @@ Column PgCoreImpl::MakeColumn(storage::ProjectedRow *const pr, const storage::Pr
   NOISEPAGE_ASSERT(deserialized.non_owned_exprs_.empty(), "Congrats, you get to refactor the catalog API.");
 
   const std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
-  Column col = (type == execution::sql::SqlTypeId::Varchar || type == execution::sql::SqlTypeId::Varbinary || type == execution::sql::SqlTypeId::Decimal)
+  Column col = (type == execution::sql::SqlTypeId::Varchar || type == execution::sql::SqlTypeId::Varbinary ||
+                type == execution::sql::SqlTypeId::Decimal)
                    ? Column(name, type, col_mod, col_null, *expr)
                    : Column(name, type, col_null, *expr);
 

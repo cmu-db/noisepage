@@ -28,7 +28,6 @@
 #include "test_util/random_test_util.h"
 #include "transaction/transaction_manager.h"
 
-
 namespace noisepage {
 class StorageTestUtil {
  public:
@@ -481,7 +480,8 @@ class StorageTestUtil {
    * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
    */
   template <typename Random>
-  static catalog::IndexSchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<execution::sql::SqlTypeId> &types,
+  static catalog::IndexSchema RandomGenericKeySchema(const uint32_t num_cols,
+                                                     const std::vector<execution::sql::SqlTypeId> &types,
                                                      Random *generator) {
     uint32_t max_varlen_size = 20;
     NOISEPAGE_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
@@ -583,8 +583,9 @@ class StorageTestUtil {
   template <typename Random>
   static catalog::Schema *RandomSchema(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
-    std::vector<execution::sql::SqlTypeId> possible_attr_types{execution::sql::SqlTypeId::Boolean, execution::sql::SqlTypeId::SmallInt, execution::sql::SqlTypeId::Integer,
-                                                  execution::sql::SqlTypeId::Double};
+    std::vector<execution::sql::SqlTypeId> possible_attr_types{
+        execution::sql::SqlTypeId::Boolean, execution::sql::SqlTypeId::SmallInt, execution::sql::SqlTypeId::Integer,
+        execution::sql::SqlTypeId::Double};
     if (allow_varlen) possible_attr_types.push_back(execution::sql::SqlTypeId::Varchar);
 
     std::vector<catalog::Schema::Column> columns;

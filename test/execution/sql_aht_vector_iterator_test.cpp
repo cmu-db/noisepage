@@ -63,10 +63,14 @@ class AggregationHashTableVectorIteratorTest : public SqlBasedTest {
  public:
   AggregationHashTableVectorIteratorTest() {
     std::vector<catalog::Schema::Column> cols = {
-        {"key", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
-        {"count1", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
-        {"count2", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
-        {"count3", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
+        {"key", execution::sql::SqlTypeId::BigInt, true,
+         parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
+        {"count1", execution::sql::SqlTypeId::BigInt, true,
+         parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
+        {"count2", execution::sql::SqlTypeId::BigInt, true,
+         parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
+        {"count3", execution::sql::SqlTypeId::BigInt, true,
+         parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
     };
     schema_ = std::make_unique<catalog::Schema>(std::move(cols));
   }

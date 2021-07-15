@@ -11,7 +11,6 @@
 #include "network/postgres/postgres_protocol_util.h"
 #include "parser/expression/constant_value_expression.h"
 
-
 namespace noisepage::network {
 
 std::vector<FieldFormat> PostgresPacketUtil::ReadFormatCodes(const common::ManagedPointer<ReadBufferView> read_buffer) {
@@ -29,7 +28,8 @@ std::vector<FieldFormat> PostgresPacketUtil::ReadFormatCodes(const common::Manag
   return formats;
 }
 
-std::vector<execution::sql::SqlTypeId> PostgresPacketUtil::ReadParamTypes(const common::ManagedPointer<ReadBufferView> read_buffer) {
+std::vector<execution::sql::SqlTypeId> PostgresPacketUtil::ReadParamTypes(
+    const common::ManagedPointer<ReadBufferView> read_buffer) {
   const auto num_params = read_buffer->ReadValue<int16_t>();
   std::vector<execution::sql::SqlTypeId> param_types;
   param_types.reserve(num_params);
@@ -41,7 +41,8 @@ std::vector<execution::sql::SqlTypeId> PostgresPacketUtil::ReadParamTypes(const 
 }
 
 parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
-    const common::ManagedPointer<ReadBufferView> read_buffer, const int32_t size, const execution::sql::SqlTypeId type) {
+    const common::ManagedPointer<ReadBufferView> read_buffer, const int32_t size,
+    const execution::sql::SqlTypeId type) {
   if (size == -1) {
     // it's a NULL
     return {type, execution::sql::Val(true)};
@@ -103,7 +104,8 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
 }
 
 parser::ConstantValueExpression PostgresPacketUtil::BinaryValueToInternalValue(
-    const common::ManagedPointer<ReadBufferView> read_buffer, const int32_t size, const execution::sql::SqlTypeId type) {
+    const common::ManagedPointer<ReadBufferView> read_buffer, const int32_t size,
+    const execution::sql::SqlTypeId type) {
   if (size == -1) {
     // it's a NULL
     return {type, execution::sql::Val(true)};

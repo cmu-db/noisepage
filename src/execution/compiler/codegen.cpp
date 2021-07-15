@@ -561,8 +561,8 @@ ast::Expr *CodeGen::PRGet(ast::Expr *pr, execution::sql::SqlTypeId type, bool nu
   return CallBuiltin(builtin, {pr, idx_expr});
 }
 
-ast::Expr *CodeGen::PRSet(ast::Expr *pr, execution::sql::SqlTypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                          bool own) {
+ast::Expr *CodeGen::PRSet(ast::Expr *pr, execution::sql::SqlTypeId type, bool nullable, uint32_t attr_idx,
+                          ast::Expr *val, bool own) {
   ast::Builtin builtin;
   switch (type) {
     case execution::sql::SqlTypeId::Boolean:

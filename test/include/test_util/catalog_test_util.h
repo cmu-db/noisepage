@@ -9,7 +9,6 @@
 #include "test_util/random_test_util.h"
 #include "test_util/storage_test_util.h"
 
-
 namespace noisepage {
 struct CatalogTestUtil {
   CatalogTestUtil() = delete;

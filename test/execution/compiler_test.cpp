@@ -40,7 +40,6 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 
-
 namespace noisepage::execution::compiler::test {
 class CompilerTest : public SqlBasedTest {
  public:
@@ -3477,16 +3476,17 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
 
     auto schema = index_scan_out.MakeSchema();
     planner::IndexScanPlanNode::Builder builder;
-    index_scan = builder.SetTableOid(table_oid1)
-                     .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
-                     .SetIndexOid(index_oid1)
-                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(execution::sql::SqlTypeId::Varchar, 0))
-                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(execution::sql::SqlTypeId::Varchar, 1))
-                     .SetScanPredicate(nullptr)
-                     .SetOutputSchema(std::move(schema))
-                     .SetScanType(planner::IndexScanType::AscendingClosed)
-                     .SetScanLimit(0)
-                     .Build();
+    index_scan =
+        builder.SetTableOid(table_oid1)
+            .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
+            .SetIndexOid(index_oid1)
+            .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(execution::sql::SqlTypeId::Varchar, 0))
+            .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(execution::sql::SqlTypeId::Varchar, 1))
+            .SetScanPredicate(nullptr)
+            .SetOutputSchema(std::move(schema))
+            .SetScanType(planner::IndexScanType::AscendingClosed)
+            .SetScanLimit(0)
+            .Build();
   }
 
   // Execute index scan

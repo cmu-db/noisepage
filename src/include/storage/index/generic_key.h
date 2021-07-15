@@ -138,25 +138,25 @@ class GenericKey {
 
 #define COMPARE_FUNC(OP)                                                                                              \
   switch (type_id) {                                                                                                  \
-    case execution::sql::SqlTypeId::Boolean:                                                                                       \
-    case execution::sql::SqlTypeId::TinyInt:                                                                                       \
+    case execution::sql::SqlTypeId::Boolean:                                                                          \
+    case execution::sql::SqlTypeId::TinyInt:                                                                          \
       return *reinterpret_cast<const int8_t *const>(lhs_attr) OP * reinterpret_cast<const int8_t *const>(rhs_attr);   \
-    case execution::sql::SqlTypeId::SmallInt:                                                                                      \
+    case execution::sql::SqlTypeId::SmallInt:                                                                         \
       return *reinterpret_cast<const int16_t *const>(lhs_attr) OP * reinterpret_cast<const int16_t *const>(rhs_attr); \
-    case execution::sql::SqlTypeId::Integer:                                                                                       \
+    case execution::sql::SqlTypeId::Integer:                                                                          \
       return *reinterpret_cast<const int32_t *const>(lhs_attr) OP * reinterpret_cast<const int32_t *const>(rhs_attr); \
-    case execution::sql::SqlTypeId::Date:                                                                                          \
+    case execution::sql::SqlTypeId::Date:                                                                             \
       return *reinterpret_cast<const uint32_t *const>(lhs_attr) OP *                                                  \
              reinterpret_cast<const uint32_t *const>(rhs_attr);                                                       \
-    case execution::sql::SqlTypeId::BigInt:                                                                                        \
+    case execution::sql::SqlTypeId::BigInt:                                                                           \
       return *reinterpret_cast<const int64_t *const>(lhs_attr) OP * reinterpret_cast<const int64_t *const>(rhs_attr); \
-    case execution::sql::SqlTypeId::Double:                                                                                          \
+    case execution::sql::SqlTypeId::Double:                                                                           \
       return *reinterpret_cast<const double *const>(lhs_attr) OP * reinterpret_cast<const double *const>(rhs_attr);   \
-    case execution::sql::SqlTypeId::Timestamp:                                                                                     \
+    case execution::sql::SqlTypeId::Timestamp:                                                                        \
       return *reinterpret_cast<const uint64_t *const>(lhs_attr) OP *                                                  \
              reinterpret_cast<const uint64_t *const>(rhs_attr);                                                       \
-    case execution::sql::SqlTypeId::Varchar:                                                                                       \
-    case execution::sql::SqlTypeId::Varbinary: {                                                                                   \
+    case execution::sql::SqlTypeId::Varchar:                                                                          \
+    case execution::sql::SqlTypeId::Varbinary: {                                                                      \
       return CompareVarlens(lhs_attr, rhs_attr) OP 0;                                                                 \
     }                                                                                                                 \
     default:                                                                                                          \
@@ -169,7 +169,8 @@ class GenericKey {
      * @param rhs_attr second value to be compared
      * @return true if first is less than second
      */
-    static bool CompareLessThan(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
+    static bool CompareLessThan(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr,
+                                const byte *const rhs_attr) {
       COMPARE_FUNC(<)  // NOLINT
     }
 
@@ -179,7 +180,8 @@ class GenericKey {
      * @param rhs_attr second value to be compared
      * @return true if first is greater than second
      */
-    static bool CompareGreaterThan(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
+    static bool CompareGreaterThan(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr,
+                                   const byte *const rhs_attr) {
       COMPARE_FUNC(>)  // NOLINT
     }
 
@@ -189,7 +191,8 @@ class GenericKey {
      * @param rhs_attr second value to be compared
      * @return true if first is equal to second
      */
-    static bool CompareEquals(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
+    static bool CompareEquals(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr,
+                              const byte *const rhs_attr) {
       COMPARE_FUNC(==)
     }
   };

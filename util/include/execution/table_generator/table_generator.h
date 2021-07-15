@@ -66,8 +66,8 @@ class TableGenerator {
    * @param car Cardinality
    * @return table name
    */
-  static std::string GenerateTableName(std::vector<execution::sql::SqlTypeId> types, std::vector<uint32_t> cols, size_t row,
-                                       size_t car) {
+  static std::string GenerateTableName(std::vector<execution::sql::SqlTypeId> types, std::vector<uint32_t> cols,
+                                       size_t row, size_t car) {
     std::stringstream table_name;
     for (size_t idx = 0; idx < cols.size(); idx++) {
       if (cols[idx] != 0) {
@@ -174,7 +174,8 @@ class TableGenerator {
     /**
      * Constructor
      */
-    ColumnInsertMeta(std::string name, const execution::sql::SqlTypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
+    ColumnInsertMeta(std::string name, const execution::sql::SqlTypeId type, bool nullable, Dist dist, uint64_t min,
+                     uint64_t max)
         : name_(std::move(name)), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
 
     /**

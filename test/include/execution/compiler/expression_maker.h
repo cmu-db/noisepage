@@ -45,16 +45,16 @@ class ExpressionMaker {
    * Create an integer constant expression
    */
   ManagedExpression Constant(int32_t val) {
-    return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(val)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer,
+                                                                         execution::sql::Integer(val)));
   }
 
   /**
    * Create a floating point constant expression
    */
   ManagedExpression Constant(double val) {
-    return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(val)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double,
+                                                                         execution::sql::Real(val)));
   }
 
   /**
@@ -62,8 +62,8 @@ class ExpressionMaker {
    */
   ManagedExpression Constant(const std::string &str) {
     auto string_val = execution::sql::ValueUtil::CreateStringVal(str);
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Varchar, string_val.first,
-                                                                         std::move(string_val.second)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
+        execution::sql::SqlTypeId::Varchar, string_val.first, std::move(string_val.second)));
   }
 
   /**
@@ -188,7 +188,8 @@ class ExpressionMaker {
   /**
    * Create a unary operation expression
    */
-  ManagedExpression Operator(parser::ExpressionType op_type, execution::sql::SqlTypeId ret_type, ManagedExpression child) {
+  ManagedExpression Operator(parser::ExpressionType op_type, execution::sql::SqlTypeId ret_type,
+                             ManagedExpression child) {
     std::vector<OwnedExpression> children;
     children.emplace_back(child->Copy());
     return MakeManaged(std::make_unique<parser::OperatorExpression>(op_type, ret_type, std::move(children)));
@@ -197,8 +198,8 @@ class ExpressionMaker {
   /**
    * Create a binary operation expression
    */
-  ManagedExpression Operator(parser::ExpressionType op_type, execution::sql::SqlTypeId ret_type, ManagedExpression child1,
-                             ManagedExpression child2) {
+  ManagedExpression Operator(parser::ExpressionType op_type, execution::sql::SqlTypeId ret_type,
+                             ManagedExpression child1, ManagedExpression child2) {
     std::vector<OwnedExpression> children;
     children.emplace_back(child1->Copy());
     children.emplace_back(child2->Copy());

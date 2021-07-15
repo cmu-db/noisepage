@@ -127,7 +127,8 @@ void BinderContext::AddCTETable(const std::string &table_name,
   }
   std::unordered_map<parser::AliasType, execution::sql::SqlTypeId> nested_column_mappings{};
   for (std::size_t i = 0; i < col_aliases.size(); i++) {
-    NOISEPAGE_ASSERT(select_list[i]->GetReturnValueType() != execution::sql::SqlTypeId::Invalid, "CTE column type not resolved");
+    NOISEPAGE_ASSERT(select_list[i]->GetReturnValueType() != execution::sql::SqlTypeId::Invalid,
+                     "CTE column type not resolved");
     nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();
   }
 
@@ -337,11 +338,11 @@ void BinderContext::GenerateAllColumnExpressions(
       // this is to order the generated columns in the same order that they appear
       // in the nested table; the serial number of their aliases signifies this ordering
       std::vector<std::pair<parser::AliasType, execution::sql::SqlTypeId>> cols_vector{cols.begin(), cols.end()};
-      std::sort(
-          cols_vector.begin(), cols_vector.end(),
-          [](const std::pair<parser::AliasType, execution::sql::SqlTypeId> &A, const std::pair<parser::AliasType, execution::sql::SqlTypeId> &B) {
-            return A.first.GetSerialNo() < B.first.GetSerialNo();
-          });
+      std::sort(cols_vector.begin(), cols_vector.end(),
+                [](const std::pair<parser::AliasType, execution::sql::SqlTypeId> &A,
+                   const std::pair<parser::AliasType, execution::sql::SqlTypeId> &B) {
+                  return A.first.GetSerialNo() < B.first.GetSerialNo();
+                });
       for (const auto &col_entry : cols_vector) {
         auto tv_expr = new parser::ColumnValueExpression{table_alias, col_entry.first.GetName()};
         tv_expr->SetReturnValueType(col_entry.second);

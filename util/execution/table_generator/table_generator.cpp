@@ -234,11 +234,13 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
         if (col_meta.type_ == other.type_) {
           column_data.emplace_back(column_data[col_meta.clone_idx_]);
         } else if (col_meta.type_ == execution::sql::SqlTypeId::Integer &&
-                   (other.type_ == execution::sql::SqlTypeId::BigInt || other.type_ == execution::sql::SqlTypeId::Double)) {
+                   (other.type_ == execution::sql::SqlTypeId::BigInt ||
+                    other.type_ == execution::sql::SqlTypeId::Double)) {
           auto copy = CloneColumnData<int64_t, int32_t>(column_data[col_meta.clone_idx_], num_vals);
           column_data.emplace_back(copy);
           alloc_buffers.emplace_back(copy);
-        } else if ((col_meta.type_ == execution::sql::SqlTypeId::BigInt || col_meta.type_ == execution::sql::SqlTypeId::Double) &&
+        } else if ((col_meta.type_ == execution::sql::SqlTypeId::BigInt ||
+                    col_meta.type_ == execution::sql::SqlTypeId::Double) &&
                    other.type_ == execution::sql::SqlTypeId::Integer) {
           auto copy = CloneColumnData<int32_t, int64_t>(column_data[col_meta.clone_idx_], num_vals);
           column_data.emplace_back(copy);
@@ -259,7 +261,8 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
           redo->Delta()->SetNull(offset);
         } else {
           byte *data = redo->Delta()->AccessForceNotNull(offset);
-          uint32_t elem_size = execution::sql::GetSqlTypeIdSize(table_meta->col_meta_[k].type_) & static_cast<uint8_t>(0x7f);
+          uint32_t elem_size =
+              execution::sql::GetSqlTypeIdSize(table_meta->col_meta_[k].type_) & static_cast<uint8_t>(0x7f);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
         }
       }
@@ -360,7 +363,8 @@ void TableGenerator::GenerateTestTables() {
        {{"col1", execution::sql::SqlTypeId::SmallInt, false, Dist::Serial, 0, 0},
         {"col2", execution::sql::SqlTypeId::Integer, true, Dist::Uniform, 0, 9},
         {"col3", execution::sql::SqlTypeId::BigInt, false, Dist::Uniform, 0, common::Constants::K_DEFAULT_VECTOR_SIZE},
-        {"col4", execution::sql::SqlTypeId::Integer, true, Dist::Uniform, 0, 2 * common::Constants::K_DEFAULT_VECTOR_SIZE}}},
+        {"col4", execution::sql::SqlTypeId::Integer, true, Dist::Uniform, 0,
+         2 * common::Constants::K_DEFAULT_VECTOR_SIZE}}},
 
       // Empty table with two columns
       {"empty_table2",
@@ -486,7 +490,8 @@ void TableGenerator::GenerateExecutionRunnersData(const runner::ExecutionRunners
   }
 }
 
-void TableGenerator::BuildExecutionRunnerIndex(execution::sql::SqlTypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num) {
+void TableGenerator::BuildExecutionRunnerIndex(execution::sql::SqlTypeId type, uint32_t tbl_cols, int64_t row_num,
+                                               int64_t key_num) {
   auto table_name = GenerateTableName({type}, {tbl_cols}, row_num, row_num);
   auto type_name = execution::sql::SqlTypeIdToString(type);
 
@@ -512,7 +517,8 @@ void TableGenerator::BuildExecutionRunnerIndex(execution::sql::SqlTypeId type, u
   CreateIndex(&index_meta);
 }
 
-bool TableGenerator::DropExecutionRunnerIndex(execution::sql::SqlTypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num) {
+bool TableGenerator::DropExecutionRunnerIndex(execution::sql::SqlTypeId type, uint32_t tbl_cols, int64_t row_num,
+                                              int64_t key_num) {
   auto table_name = GenerateTableName({type}, {tbl_cols}, row_num, row_num);
   auto accessor = exec_ctx_->GetAccessor();
   auto table_oid = accessor->GetTableOid(table_name);
@@ -616,13 +622,18 @@ void TableGenerator::InitTestIndexes() {
       // Table 2: two cols
       {"index_2_multi",
        "test_2",
-       {{"index_col1", execution::sql::SqlTypeId::SmallInt, false, "col1"}, {"index_col2", execution::sql::SqlTypeId::Integer, true, "col2"}}},
+       {{"index_col1", execution::sql::SqlTypeId::SmallInt, false, "col1"},
+        {"index_col2", execution::sql::SqlTypeId::Integer, true, "col2"}}},
 
       // Index on a varchar
-      {"varchar_index", "all_types_empty_table", {{"index_varchar_col", execution::sql::SqlTypeId::Varchar, false, "varchar_col"}}},
+      {"varchar_index",
+       "all_types_empty_table",
+       {{"index_varchar_col", execution::sql::SqlTypeId::Varchar, false, "varchar_col"}}},
 
       // Index action table
-      {"index_index_action", "index_action_test_table", {{"index_col1", execution::sql::SqlTypeId::Integer, false, "col1"}}},
+      {"index_index_action",
+       "index_action_test_table",
+       {{"index_col1", execution::sql::SqlTypeId::Integer, false, "col1"}}},
   };
 
   for (auto &index_meta : index_metas) {

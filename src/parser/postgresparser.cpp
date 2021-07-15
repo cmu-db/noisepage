@@ -625,7 +625,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResul
         children.emplace_back(ExprTransform(parse_result, expr_node, nullptr));
       }
     }
-    result = std::make_unique<FunctionExpression>(std::move(func_name), execution::sql::SqlTypeId::Invalid, std::move(children));
+    result = std::make_unique<FunctionExpression>(std::move(func_name), execution::sql::SqlTypeId::Invalid,
+                                                  std::move(children));
   } else {
     // aggregate function
     auto agg_fun_type = StringToExpressionType("AGGREGATE_" + func_name);
@@ -745,8 +746,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
   std::unique_ptr<AbstractExpression> result;
   switch (val.type_) {
     case T_Integer: {
-      result =
-          std::make_unique<ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(val.val_.ival_));
+      result = std::make_unique<ConstantValueExpression>(execution::sql::SqlTypeId::Integer,
+                                                         execution::sql::Integer(val.val_.ival_));
       break;
     }
 

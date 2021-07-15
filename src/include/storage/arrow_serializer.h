@@ -10,7 +10,6 @@
 #include "storage/arrow_block_metadata.h"
 #include "storage/data_table.h"
 
-
 namespace flatbuf = org::apache::arrow::flatbuf;
 
 namespace noisepage::storage {
@@ -114,7 +113,8 @@ class ArrowSerializer {
    * @param flatbuf_builder flatbuffer builder
    */
   void WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
-                          std::vector<execution::sql::SqlTypeId> *col_types, flatbuffers::FlatBufferBuilder *flatbuf_builder);
+                          std::vector<execution::sql::SqlTypeId> *col_types,
+                          flatbuffers::FlatBufferBuilder *flatbuf_builder);
 
   /**
    * This function write a Dictionary message. The dictionary message is something contains the dictionary entries.

@@ -5,7 +5,6 @@
 
 #include "parser/expression/abstract_expression.h"
 
-
 namespace noisepage::parser {
 /**
  * ParameterValueExpression represents a parameter's offset in an expression.
@@ -20,7 +19,8 @@ class ParameterValueExpression : public AbstractExpression {
    * After being visited by the binder, the type should reflect the correct value
    */
   explicit ParameterValueExpression(const uint32_t value_idx)
-      : AbstractExpression(ExpressionType::VALUE_PARAMETER, execution::sql::SqlTypeId::Invalid, {}), value_idx_(value_idx) {}
+      : AbstractExpression(ExpressionType::VALUE_PARAMETER, execution::sql::SqlTypeId::Invalid, {}),
+        value_idx_(value_idx) {}
 
   /**
    * Instantiates a new ParameterValueExpression with the given offset and the given type

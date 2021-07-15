@@ -7,7 +7,6 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/select_statement.h"
 
-
 namespace noisepage::parser {
 /**
  * SubqueryExpression represents an expression which contains a select statement ("sub-select").
@@ -19,7 +18,8 @@ class SubqueryExpression : public AbstractExpression {
    * @param subselect the sub-select
    */
   explicit SubqueryExpression(std::unique_ptr<parser::SelectStatement> subselect)
-      : AbstractExpression(ExpressionType::ROW_SUBQUERY, execution::sql::SqlTypeId::Invalid, {}), subselect_(std::move(subselect)) {}
+      : AbstractExpression(ExpressionType::ROW_SUBQUERY, execution::sql::SqlTypeId::Invalid, {}),
+        subselect_(std::move(subselect)) {}
 
   /** Default constructor for JSON deserialization. */
   SubqueryExpression() = default;

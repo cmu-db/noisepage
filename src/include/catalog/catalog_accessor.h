@@ -15,7 +15,6 @@
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
 
-
 namespace noisepage::storage {
 class SqlTable;
 namespace index {

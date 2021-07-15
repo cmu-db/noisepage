@@ -12,7 +12,6 @@
 #include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
 
-
 namespace noisepage::common {
 
 template <class Tag, typename IntType>
@@ -65,7 +64,7 @@ template class StrongTypeAlias<noisepage::selfdriving::pilot::tags::tree_node_id
 template class StrongTypeAlias<noisepage::storage::tags::col_id_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<noisepage::storage::tags::layout_version_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<noisepage::transaction::tags::timestamp_t_typedef_tag, uint64_t>;
-//template class StrongTypeAlias<noisepage::type::tags::date_t_typedef_tag, uint32_t>;
-//template class StrongTypeAlias<noisepage::type::tags::timestamp_t_typedef_tag, uint64_t>;
+// template class StrongTypeAlias<noisepage::type::tags::date_t_typedef_tag, uint32_t>;
+// template class StrongTypeAlias<noisepage::type::tags::timestamp_t_typedef_tag, uint64_t>;
 
 }  // namespace noisepage::common

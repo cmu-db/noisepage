@@ -9,7 +9,6 @@
 #include "traffic_cop/traffic_cop_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
 
-
 namespace noisepage::network {
 
 Statement::Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,

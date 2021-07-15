@@ -9,7 +9,6 @@
 #include "execution/table_generator/schema_reader.h"
 #include "transaction/transaction_context.h"
 
-
 // Forward declaration
 namespace csv {
 class CSVField;
@@ -46,7 +45,8 @@ class TableReader {
   void CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid);
 
   // Writes a column according to its type.
-  void WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, execution::sql::SqlTypeId type, csv::CSVField *field);
+  void WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, execution::sql::SqlTypeId type,
+                     csv::CSVField *field);
 
   // Write an index entry
   void WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *table_pr,

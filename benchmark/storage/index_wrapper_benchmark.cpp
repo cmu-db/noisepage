@@ -13,7 +13,6 @@
 #include "test_util/multithread_test_util.h"
 #include "transaction/deferred_action_manager.h"
 
-
 namespace noisepage {
 
 // This benchmark simulates key lookup on a filled table and associated indices to determine the total amount of time

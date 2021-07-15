@@ -12,7 +12,6 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
 
-
 namespace noisepage::network {
 
 /**
@@ -148,7 +147,7 @@ class Statement {
   // same query text. The exception to this that DDL changes can break these cached objects.
   std::unique_ptr<optimizer::OptimizeResult> optimize_result_ = nullptr;              // generated in the Bind phase
   std::unique_ptr<execution::compiler::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
-  std::vector<execution::sql::SqlTypeId> desired_param_types_;                                     // generated in the Bind phase
+  std::vector<execution::sql::SqlTypeId> desired_param_types_;                        // generated in the Bind phase
 };
 
 }  // namespace noisepage::network

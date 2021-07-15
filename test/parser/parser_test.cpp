@@ -884,7 +884,8 @@ TEST_F(ParserTestBase, OldConstTest) {
   auto select_columns = statement->GetSelectColumns();
   EXPECT_EQ(3, select_columns.size());
 
-  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Varchar, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double};
+  std::vector<execution::sql::SqlTypeId> types = {
+      execution::sql::SqlTypeId::Varchar, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double};
 
   for (size_t i = 0; i < select_columns.size(); i++) {
     auto column = select_columns[i];
@@ -1158,9 +1159,11 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   auto child11 = child1->GetChild(1);
   EXPECT_EQ(child01->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(child11->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(child01.CastManagedPointerTo<ConstantValueExpression>()->GetReturnValueType(), execution::sql::SqlTypeId::Integer);
+  EXPECT_EQ(child01.CastManagedPointerTo<ConstantValueExpression>()->GetReturnValueType(),
+            execution::sql::SqlTypeId::Integer);
   EXPECT_EQ(child01.CastManagedPointerTo<ConstantValueExpression>()->Peek<int64_t>(), 2101);
-  EXPECT_EQ(child11.CastManagedPointerTo<ConstantValueExpression>()->GetReturnValueType(), execution::sql::SqlTypeId::Integer);
+  EXPECT_EQ(child11.CastManagedPointerTo<ConstantValueExpression>()->GetReturnValueType(),
+            execution::sql::SqlTypeId::Integer);
   EXPECT_EQ(child11.CastManagedPointerTo<ConstantValueExpression>()->Peek<int64_t>(), 2);
 
   // Check update clause
@@ -1726,8 +1729,9 @@ TEST_F(ParserTestBase, OldTypeCastTest) {
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::TEXT);");
   queries.emplace_back("INSERT INTO test_table VALUES (1, 2, '2017'::VARCHAR);");
 
-  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double, execution::sql::SqlTypeId::Double,
-                                     execution::sql::SqlTypeId::Varchar, execution::sql::SqlTypeId::Varchar};
+  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double,
+                                                  execution::sql::SqlTypeId::Double, execution::sql::SqlTypeId::Varchar,
+                                                  execution::sql::SqlTypeId::Varchar};
 
   for (size_t i = 0; i < queries.size(); i++) {
     std::string query = queries[i];

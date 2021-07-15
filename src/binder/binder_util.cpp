@@ -15,7 +15,8 @@ namespace noisepage::binder {
 
 void BinderUtil::ValidateWhereClause(const common::ManagedPointer<parser::AbstractExpression> value) {
   if (value->GetReturnValueType() != execution::sql::SqlTypeId::Boolean) {
-    // TODO(Matt): NULL literal (execution::sql::SqlTypeId::Invalid and cve->IsNull()) should be allowed but breaks stuff downstream
+    // TODO(Matt): NULL literal (execution::sql::SqlTypeId::Invalid and cve->IsNull()) should be allowed but breaks
+    // stuff downstream
     throw BINDER_EXCEPTION("argument of WHERE must be type boolean", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
   }
 }

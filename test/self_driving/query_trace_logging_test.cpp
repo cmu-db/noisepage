@@ -21,8 +21,8 @@ class QueryTraceLogging : public TerrierTest {
       std::string file = std::string(env) + "/bin/startup.sql";
       const auto string = std::string_view(file);
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      param_map.find(settings::Param::startup_ddl_path)->second.value_ =
-          parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar, string_val.first, std::move(string_val.second));
+      param_map.find(settings::Param::startup_ddl_path)->second.value_ = parser::ConstantValueExpression(
+          execution::sql::SqlTypeId::Varchar, string_val.first, std::move(string_val.second));
     }
 
     db_main_ = noisepage::DBMain::Builder()

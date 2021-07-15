@@ -13,7 +13,6 @@
 #include "storage/projected_row.h"
 #include "storage/storage_util.h"
 
-
 namespace noisepage::storage::index {
 
 /**

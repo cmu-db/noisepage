@@ -14,9 +14,10 @@ CteScanIterator::CteScanIterator(noisepage::execution::exec::ExecutionContext *e
   // Create column metadata for every column.
   std::vector<catalog::Schema::Column> all_columns;
   for (uint32_t i = 0; i < num_schema_cols; i++) {
-    catalog::Schema::Column col("col" + std::to_string(i), static_cast<execution::sql::SqlTypeId>(schema_cols_type[i]), false,
-                                parser::ConstantValueExpression(static_cast<execution::sql::SqlTypeId>(schema_cols_type[i])),
-                                catalog::col_oid_t(schema_cols_ids[i]));
+    catalog::Schema::Column col(
+        "col" + std::to_string(i), static_cast<execution::sql::SqlTypeId>(schema_cols_type[i]), false,
+        parser::ConstantValueExpression(static_cast<execution::sql::SqlTypeId>(schema_cols_type[i])),
+        catalog::col_oid_t(schema_cols_ids[i]));
     all_columns.push_back(col);
     col_oids_.emplace_back(catalog::col_oid_t(schema_cols_ids[i]));
   }

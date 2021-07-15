@@ -23,7 +23,8 @@ class SampleOutput {
    */
   void InitTestOutput() {
     // Sample output formats
-    auto pred = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
+    auto pred = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                                  execution::sql::BoolVal(true));
     planner::OutputSchema::Column int_col{"dummy", execution::sql::SqlTypeId::Integer, pred->Copy()};
     planner::OutputSchema::Column real_col{"dummy", execution::sql::SqlTypeId::Double, pred->Copy()};
     planner::OutputSchema::Column date_col{"dummy", execution::sql::SqlTypeId::Date, pred->Copy()};
@@ -60,7 +61,8 @@ class SampleOutput {
 
  private:
   void InitTPCHOutput() {
-    auto pred = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
+    auto pred = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                                  execution::sql::BoolVal(true));
     planner::OutputSchema::Column int_col{"dummy", execution::sql::SqlTypeId::Integer, pred->Copy()};
     planner::OutputSchema::Column real_col{"dummy", execution::sql::SqlTypeId::Double, pred->Copy()};
     planner::OutputSchema::Column date_col{"dummy", execution::sql::SqlTypeId::Date, pred->Copy()};

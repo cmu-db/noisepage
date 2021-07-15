@@ -366,7 +366,7 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
                                 const common::ManagedPointer<DatabaseCatalog> dbc) {
   const auto INT = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Integer);   // NOLINT
   const auto STR = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Varchar);   // NOLINT
-  const auto REAL = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Double);     // NOLINT
+  const auto REAL = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Double);   // NOLINT
   const auto DATE = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Date);     // NOLINT
   const auto BOOL = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Boolean);  // NOLINT
   const auto VAR = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Variadic);  // NOLINT
@@ -464,7 +464,8 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
 
 void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const common::ManagedPointer<DatabaseCatalog> dbc, std::string &&func_name,
-                                      const execution::sql::SqlTypeId func_ret_type, std::vector<execution::sql::SqlTypeId> &&arg_types,
+                                      const execution::sql::SqlTypeId func_ret_type,
+                                      std::vector<execution::sql::SqlTypeId> &&arg_types,
                                       const execution::ast::Builtin builtin, const bool is_exec_ctx_required) {
   std::vector<type_oid_t> arg_type_oids;
   arg_type_oids.reserve(arg_types.size());
@@ -481,12 +482,13 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
 
 void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const common::ManagedPointer<DatabaseCatalog> dbc) {
-  constexpr auto REAL = execution::sql::SqlTypeId::Double;    // NOLINT
+  constexpr auto REAL = execution::sql::SqlTypeId::Double;  // NOLINT
   constexpr auto INT = execution::sql::SqlTypeId::Integer;  // NOLINT
   constexpr auto VAR = execution::sql::SqlTypeId::Varchar;  // NOLINT
 
-  auto create_fn = [&](std::string &&func_name, execution::sql::SqlTypeId func_ret_type, std::vector<execution::sql::SqlTypeId> &&arg_types,
-                       execution::ast::Builtin builtin, bool is_exec_ctx_required) {
+  auto create_fn = [&](std::string &&func_name, execution::sql::SqlTypeId func_ret_type,
+                       std::vector<execution::sql::SqlTypeId> &&arg_types, execution::ast::Builtin builtin,
+                       bool is_exec_ctx_required) {
     BootstrapProcContext(txn, dbc, std::move(func_name), func_ret_type, std::move(arg_types), builtin,
                          is_exec_ctx_required);
   };

@@ -19,8 +19,8 @@ class BinderUtilTest : public TerrierTest {};
  * @param invalid_val string representation of invalid value for the conversion
  */
 template <typename cpp_type>
-void TestCheckAndTryPromoteType(const execution::sql::SqlTypeId sql_type, const std::string_view valid_val, const cpp_type peek_val,
-                                const std::string_view invalid_val) {
+void TestCheckAndTryPromoteType(const execution::sql::SqlTypeId sql_type, const std::string_view valid_val,
+                                const cpp_type peek_val, const std::string_view invalid_val) {
   auto string_val = execution::sql::ValueUtil::CreateStringVal(valid_val);
   auto cve = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Varchar, string_val.first,
                                                                std::move(string_val.second));

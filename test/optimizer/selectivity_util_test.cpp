@@ -557,7 +557,8 @@ TEST_F(SelectivityUtilTests, TestBoolEqual) {
   // TEST PART 1
   // Create a constant value expression to pass to ValueCondition.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                        execution::sql::BoolVal(true));
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table4_bool_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
@@ -569,8 +570,8 @@ TEST_F(SelectivityUtilTests, TestBoolEqual) {
 
   // TEST PART 2
   // Create a constant value expression to pass to ValueCondition.
-  const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
+  const_value_expr_ptr = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                                           execution::sql::BoolVal(false));
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
       ValueCondition(table4_bool_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
@@ -651,7 +652,8 @@ TEST_F(SelectivityUtilTests, TestVarcharGreaterThanOrEqualTo) {
 // NOLINTNEXTLINE
 TEST_F(SelectivityUtilTests, TestEmptyEqual) {
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(666));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer,
+                                                        execution::sql::Integer(666));
   ValueCondition value_condition(table6_varchar_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
   double res = SelectivityUtil::ComputeSelectivity(table_stats_7_, value_condition);

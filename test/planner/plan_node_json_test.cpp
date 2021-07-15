@@ -44,7 +44,6 @@
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
-
 namespace noisepage::planner {
 
 class PlanNodeJsonTest : public TerrierTest {
@@ -64,7 +63,8 @@ class PlanNodeJsonTest : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
+    return std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                             execution::sql::BoolVal(true));
   }
 };
 
@@ -277,8 +277,10 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
     std::vector<catalog::Schema::Column> columns = {
         catalog::Schema::Column("a", execution::sql::SqlTypeId::Integer, false,
                                 parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer)),
-        catalog::Schema::Column("u_a", execution::sql::SqlTypeId::Double, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Double)),
-        catalog::Schema::Column("u_b", execution::sql::SqlTypeId::Date, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::Date))};
+        catalog::Schema::Column("u_a", execution::sql::SqlTypeId::Double, false,
+                                parser::ConstantValueExpression(execution::sql::SqlTypeId::Double)),
+        catalog::Schema::Column("u_b", execution::sql::SqlTypeId::Date, true,
+                                parser::ConstantValueExpression(execution::sql::SqlTypeId::Date))};
     StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
     StorageTestUtil::ForceOid(&(columns[1]), catalog::col_oid_t(2));
     StorageTestUtil::ForceOid(&(columns[2]), catalog::col_oid_t(3));

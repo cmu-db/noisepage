@@ -6,7 +6,6 @@
 
 #include "parser/expression/abstract_expression.h"
 
-
 namespace noisepage::parser {
 
 /**

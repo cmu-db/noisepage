@@ -8,7 +8,6 @@
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 
-
 namespace noisepage::parser {
 
 /**

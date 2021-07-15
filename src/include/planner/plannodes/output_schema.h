@@ -14,8 +14,6 @@
 #include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
 
-
-
 namespace noisepage::planner {
 
 /**

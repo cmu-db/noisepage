@@ -14,7 +14,6 @@
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
 
-
 namespace noisepage::execution::sql {
 
 // Maps from index columns to table columns.
@@ -107,7 +106,7 @@ class SchemaReader {
       : type_names_{{"tinyint", execution::sql::SqlTypeId::TinyInt}, {"smallint", execution::sql::SqlTypeId::SmallInt},
                     {"int", execution::sql::SqlTypeId::Integer},     {"bigint", execution::sql::SqlTypeId::BigInt},
                     {"bool", execution::sql::SqlTypeId::Boolean},    {"real", execution::sql::SqlTypeId::Double},
-                    {"decimal", execution::sql::SqlTypeId::Double},    {"varchar", execution::sql::SqlTypeId::Varchar},
+                    {"decimal", execution::sql::SqlTypeId::Double},  {"varchar", execution::sql::SqlTypeId::Varchar},
                     {"varlen", execution::sql::SqlTypeId::Varchar},  {"date", execution::sql::SqlTypeId::Date}} {}
 
   /**

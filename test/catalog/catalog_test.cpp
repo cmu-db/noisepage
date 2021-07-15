@@ -143,9 +143,9 @@ TEST_F(CatalogTests, ProcTest) {
                                                                 catalog::postgres::PgProc::ArgModes::IN};
   auto src = "int sample(arg1, arg2, arg3){return 2;}";
 
-  auto proc_oid =
-      accessor->CreateProcedure(procname, lan_oid, ns_oid, args, arg_types, arg_types, arg_modes,
-                                catalog::type_oid_t(static_cast<uint8_t>(execution::sql::SqlTypeId::Integer)), src, false);
+  auto proc_oid = accessor->CreateProcedure(
+      procname, lan_oid, ns_oid, args, arg_types, arg_types, arg_modes,
+      catalog::type_oid_t(static_cast<uint8_t>(execution::sql::SqlTypeId::Integer)), src, false);
   EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -266,8 +266,10 @@ TEST_F(CatalogTests, UserTableTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
-  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -311,8 +313,10 @@ TEST_F(CatalogTests, UserIndexTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
-  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -322,8 +326,9 @@ TEST_F(CatalogTests, UserIndexTest) {
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
 
   // Create the index
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", execution::sql::SqlTypeId::Integer, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+  std::vector<catalog::IndexSchema::Column> key_cols{
+      catalog::IndexSchema::Column{"id", execution::sql::SqlTypeId::Integer, false,
+                                   parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
   catalog::IndexOptions options;
   auto index_schema =
       catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
@@ -365,8 +370,10 @@ TEST_F(CatalogTests, CascadingDropTableTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
-  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -380,8 +387,9 @@ TEST_F(CatalogTests, CascadingDropTableTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
   EXPECT_NE(accessor, nullptr);
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", execution::sql::SqlTypeId::Integer, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+  std::vector<catalog::IndexSchema::Column> key_cols{
+      catalog::IndexSchema::Column{"id", execution::sql::SqlTypeId::Integer, false,
+                                   parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
   catalog::IndexOptions options;
   auto index_schema =
       catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
@@ -428,8 +436,10 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
-  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   txn = txn_manager_->BeginTransaction();
@@ -446,8 +456,9 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
   EXPECT_NE(accessor, nullptr);
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", execution::sql::SqlTypeId::Integer, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+  std::vector<catalog::IndexSchema::Column> key_cols{
+      catalog::IndexSchema::Column{"id", execution::sql::SqlTypeId::Integer, false,
+                                   parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
   catalog::IndexOptions options;
   auto index_schema =
       catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
@@ -495,8 +506,10 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
-  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   txn = txn_manager_->BeginTransaction();
@@ -513,8 +526,9 @@ TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
   EXPECT_NE(accessor, nullptr);
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", execution::sql::SqlTypeId::Integer, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+  std::vector<catalog::IndexSchema::Column> key_cols{
+      catalog::IndexSchema::Column{"id", execution::sql::SqlTypeId::Integer, false,
+                                   parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
   catalog::IndexOptions options;
   auto index_schema =
       catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
@@ -572,8 +586,10 @@ TEST_F(CatalogTests, UserSearchPathTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
-  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   // Insert a table into "public"
@@ -629,8 +645,10 @@ TEST_F(CatalogTests, CatalogSearchPathTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
-  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   // Check whether name conflict is inserted into the proper default (first in search path) and masked by implicit
@@ -687,7 +705,8 @@ TEST_F(CatalogTests, GetIndexesTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -696,8 +715,9 @@ TEST_F(CatalogTests, GetIndexesTest) {
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
 
   // Create the index
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", execution::sql::SqlTypeId::Integer, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+  std::vector<catalog::IndexSchema::Column> key_cols{
+      catalog::IndexSchema::Column{"id", execution::sql::SqlTypeId::Integer, false,
+                                   parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
   catalog::IndexOptions options;
   auto index_schema =
       catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
@@ -733,7 +753,8 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -862,7 +883,8 @@ TEST_F(CatalogTests, StatisticTest) {
   const auto *table_name = "stat_test";
   const auto *column_name = "a";
   std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back(column_name, execution::sql::SqlTypeId::Integer, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+  cols.emplace_back(column_name, execution::sql::SqlTypeId::Integer, false,
+                    parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   auto tmp_schema = catalog::Schema(cols);
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), table_name, tmp_schema);

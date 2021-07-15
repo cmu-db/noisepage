@@ -18,7 +18,6 @@
 #include "execution/sql/value.h"
 #include "loggers/optimizer_logger.h"
 
-
 namespace noisepage::optimizer {
 
 /**

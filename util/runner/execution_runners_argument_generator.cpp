@@ -53,7 +53,8 @@ void ExecutionRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const 
 void ExecutionRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
                                                          const ExecutionRunnersDataConfig &config) {
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double, execution::sql::SqlTypeId::Varchar};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double,
+                execution::sql::SqlTypeId::Varchar};
   const std::vector<uint32_t> *num_cols;
   for (auto type : types) {
     if (type == execution::sql::SqlTypeId::Varchar)
@@ -231,7 +232,8 @@ void ExecutionRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, c
 
 void ExecutionRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
                                                             const ExecutionRunnersDataConfig &config) {
-  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt, execution::sql::SqlTypeId::Varchar};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt,
+                execution::sql::SqlTypeId::Varchar};
   auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto &lookup_sizes = config.sweep_index_lookup_sizes_;
   const std::vector<uint32_t> *key_sizes;
@@ -309,7 +311,8 @@ void ExecutionRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, c
   auto &idx_key = config.sweep_update_index_col_nums_;
   auto &update_keys = config.sweep_update_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt};
+  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer,
+                                                  execution::sql::SqlTypeId::BigInt};
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
       for (auto update_key : update_keys) {
@@ -356,7 +359,8 @@ void ExecutionRunnersArgumentGenerator::GenDeleteIndexArguments(OutputArgs *b, c
                                                                 const ExecutionRunnersDataConfig &config) {
   auto &idx_key = config.sweep_index_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt};
+  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer,
+                                                  execution::sql::SqlTypeId::BigInt};
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
       for (auto row_num : row_nums) {

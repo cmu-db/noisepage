@@ -19,8 +19,6 @@
 #include "parser/expression/constant_value_expression.h"
 #include "storage/index/index_defs.h"
 
-
-
 namespace noisepage {
 class StorageTestUtil;
 class TpccPlanTest;

@@ -13,7 +13,6 @@
 #include "execution/exec_defs.h"
 #include "planner/plannodes/output_schema.h"
 
-
 namespace noisepage::transaction {
 class TransactionContext;
 class TransactionManager;

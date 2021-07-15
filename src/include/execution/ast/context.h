@@ -9,7 +9,6 @@
 #include "execution/ast/type.h"
 #include "execution/util/region.h"
 
-
 namespace noisepage::execution {
 
 namespace sema {
