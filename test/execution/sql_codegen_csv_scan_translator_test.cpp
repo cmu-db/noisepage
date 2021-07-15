@@ -38,12 +38,12 @@ TEST_F(CSVScanTranslatorTest, ManyTypesTest) {
   std::unique_ptr<planner::AbstractPlanNode> csv_scan;
   compiler::test::OutputSchemaHelper seq_scan_out(0, &expr_maker);
   {
-    auto col1 = expr_maker.CVE(catalog::col_oid_t(0), type::TypeId::TINYINT);
-    auto col2 = expr_maker.CVE(catalog::col_oid_t(1), type::TypeId::SMALLINT);
-    auto col3 = expr_maker.CVE(catalog::col_oid_t(2), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(catalog::col_oid_t(3), type::TypeId::BIGINT);
-    auto col5 = expr_maker.CVE(catalog::col_oid_t(4), type::TypeId::REAL);
-    auto col6 = expr_maker.CVE(catalog::col_oid_t(5), type::TypeId::VARCHAR);
+    auto col1 = expr_maker.CVE(catalog::col_oid_t(0), execution::sql::SqlTypeId::TinyInt);
+    auto col2 = expr_maker.CVE(catalog::col_oid_t(1), execution::sql::SqlTypeId::SmallInt);
+    auto col3 = expr_maker.CVE(catalog::col_oid_t(2), execution::sql::SqlTypeId::Integer);
+    auto col4 = expr_maker.CVE(catalog::col_oid_t(3), execution::sql::SqlTypeId::BigInt);
+    auto col5 = expr_maker.CVE(catalog::col_oid_t(4), execution::sql::SqlTypeId::Double);
+    auto col6 = expr_maker.CVE(catalog::col_oid_t(5), execution::sql::SqlTypeId::Varchar);
 
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);

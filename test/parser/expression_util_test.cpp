@@ -8,7 +8,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "parser/expression/operator_expression.h"
-#include "type/type_id.h"
+
 
 using ::testing::ElementsAre;
 
@@ -32,7 +32,7 @@ TEST(ExpressionUtilTest, GetColumnOidsTest) {
   children1.emplace_back(std::move(child1));
   children1.emplace_back(std::move(child2));
   auto op_expr_1 =
-      std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children1));
+      std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_PLUS, execution::sql::SqlTypeId::Invalid, std::move(children1));
   oids.clear();
   ExpressionUtil::GetColumnOids(&oids, common::ManagedPointer<AbstractExpression>(op_expr_1.get()));
   EXPECT_THAT(oids, ElementsAre(catalog::col_oid_t(4), catalog::col_oid_t(5)));
@@ -46,13 +46,13 @@ TEST(ExpressionUtilTest, GetColumnOidsTest) {
   children2.emplace_back(std::move(child3));
   children2.emplace_back(std::move(child4));
   auto op_expr_2 =
-      std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children2));
+      std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_PLUS, execution::sql::SqlTypeId::Invalid, std::move(children2));
 
   std::vector<std::unique_ptr<AbstractExpression>> children3;
   children3.emplace_back(std::move(op_expr_1));
   children3.emplace_back(std::move(op_expr_2));
   auto op_expr_3 =
-      std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children3));
+      std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_PLUS, execution::sql::SqlTypeId::Invalid, std::move(children3));
   oids.clear();
   ExpressionUtil::GetColumnOids(&oids, common::ManagedPointer<AbstractExpression>(op_expr_3.get()));
   EXPECT_THAT(oids,

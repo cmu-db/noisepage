@@ -4,9 +4,9 @@
 #include <utility>
 
 #include "common/error/exception.h"
+#include "execution/sql/sql.h"
 #include "network/network_defs.h"
 #include "network/postgres/postgres_defs.h"
-
 
 namespace noisepage::network {
 

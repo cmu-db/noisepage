@@ -10,7 +10,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::execution::sql::test {
 
@@ -33,8 +33,8 @@ TEST_F(CTEScanTest, CTEInitTest) {
   // Check the mapping of col_oids to the col_ids in the constructed table
 
   uint32_t cte_table_col_type[4] = {
-      static_cast<uint32_t>(type::TypeId::BIGINT), static_cast<uint32_t>(type::TypeId::INTEGER),
-      static_cast<uint32_t>(type::TypeId::SMALLINT), static_cast<uint32_t>(type::TypeId::VARCHAR)};
+      static_cast<uint32_t>(execution::sql::SqlTypeId::BigInt), static_cast<uint32_t>(execution::sql::SqlTypeId::Integer),
+      static_cast<uint32_t>(execution::sql::SqlTypeId::SmallInt), static_cast<uint32_t>(execution::sql::SqlTypeId::Varchar)};
   uint32_t cte_table_col_ids[4] = {exec_ctx_->GetAccessor()->GetNewTempOid(), exec_ctx_->GetAccessor()->GetNewTempOid(),
                                    exec_ctx_->GetAccessor()->GetNewTempOid(),
                                    exec_ctx_->GetAccessor()->GetNewTempOid()};

@@ -23,8 +23,8 @@ namespace noisepage::planner {
 
 class PlanNodeTest : public TerrierTest {
  public:
-  static std::unique_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type) {
-    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+  static std::unique_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const execution::sql::SqlTypeId type) {
+    auto pred = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
     std::vector<OutputSchema::Column> cols;
     cols.emplace_back(OutputSchema::Column(std::move(name), type, std::move(pred)));
     return std::make_unique<OutputSchema>(std::move(cols));
@@ -39,7 +39,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
   AnalyzePlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(db_oid)
                   .SetTableOid(table_oid)
-                  .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                  .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer))
                   .Build();
 
   EXPECT_TRUE(plan != nullptr);
@@ -51,7 +51,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
   AnalyzePlanNode::Builder builder2;
   auto plan2 = builder2.SetDatabaseOid(catalog::db_oid_t(db_oid))
                    .SetTableOid(table_oid)
-                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer))
                    .Build();
   EXPECT_EQ(plan->GetDatabaseOid(), plan2->GetDatabaseOid());
   EXPECT_EQ(plan->GetTableOid(), plan2->GetTableOid());
@@ -63,7 +63,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
   for (int i = 0; i < 3; i++) {
     catalog::db_oid_t other_db_oid = db_oid;
     catalog::table_oid_t other_table_oid = table_oid;
-    auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
+    auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer);
 
     switch (i) {
       case 0:
@@ -73,7 +73,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
         other_table_oid = catalog::table_oid_t(777);
         break;
       case 2:
-        other_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
+        other_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", execution::sql::SqlTypeId::Integer);
         break;
     }
 
@@ -97,7 +97,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   auto scan_pred_1 = std::make_unique<parser::StarExpression>();
   // Build left scan
   auto seq_scan_1 =
-      seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+      seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer))
           .SetTableOid(catalog::table_oid_t(1))
           .SetDatabaseOid(catalog::db_oid_t(0))
           .SetScanPredicate(common::ManagedPointer(scan_pred_1).CastManagedPointerTo<parser::AbstractExpression>())
@@ -113,7 +113,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
 
   auto scan_pred_2 = std::make_unique<parser::StarExpression>();
   auto seq_scan_2 =
-      seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER))
+      seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", execution::sql::SqlTypeId::Integer))
           .SetTableOid(catalog::table_oid_t(2))
           .SetDatabaseOid(catalog::db_oid_t(0))
           .SetScanPredicate(common::ManagedPointer(scan_pred_2).CastManagedPointerTo<parser::AbstractExpression>())
@@ -135,7 +135,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
 
   auto hash_join_plan =
       hash_join_builder.SetJoinType(LogicalJoinType::INNER)
-          .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+          .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer))
           .SetJoinPredicate(common::ManagedPointer(cmp_expression).CastManagedPointerTo<parser::AbstractExpression>())
           .AddChild(std::move(seq_scan_1))
           .AddChild(std::move(seq_scan_2))
@@ -151,7 +151,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
 TEST(PlanNodeTest, AggregatePlanTest) {
   parser::AbstractExpression *predicate = new parser::StarExpression();
   auto cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col1");
-  auto dve = std::make_unique<parser::DerivedValueExpression>(type::TypeId::INTEGER, 0, 0);
+  auto dve = std::make_unique<parser::DerivedValueExpression>(execution::sql::SqlTypeId::Integer, 0, 0);
   auto gb_term = reinterpret_cast<parser::AbstractExpression *>(dve.get());
   std::vector<std::unique_ptr<parser::AbstractExpression>> children;
   children.emplace_back(std::move(cve));
@@ -164,7 +164,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
   builder.AddGroupByTerm(common::ManagedPointer(gb_term));
   builder.SetHavingClausePredicate(common::ManagedPointer(predicate));
   builder.SetAggregateStrategyType(planner::AggregateStrategyType::HASH);
-  builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER));
+  builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer));
   auto plan = builder.Build();
 
   EXPECT_TRUE(plan != nullptr);
@@ -184,7 +184,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
   builder2.AddGroupByTerm(common::ManagedPointer(gb_term));
   builder2.SetHavingClausePredicate(common::ManagedPointer(predicate2));
   builder2.SetAggregateStrategyType(planner::AggregateStrategyType::HASH);
-  builder2.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER));
+  builder2.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer));
   auto plan2 = builder2.Build();
   EXPECT_EQ(*plan, *plan2);
   EXPECT_EQ(plan->Hash(), plan2->Hash());
@@ -196,14 +196,14 @@ TEST(PlanNodeTest, AggregatePlanTest) {
     auto dve_copy = dve->Copy();
     auto other_strategy = planner::AggregateStrategyType::HASH;
     parser::AggregateExpression *other_aggr = dynamic_cast<parser::AggregateExpression *>(aggr_term->Copy().release());
-    auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
+    auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer);
 
     switch (i) {
       case 0:
         other_predicate = std::make_unique<parser::ColumnValueExpression>("tbl", "col");
         break;
       case 1:
-        dve_copy = std::make_unique<parser::DerivedValueExpression>(type::TypeId::INTEGER, 0, 1);
+        dve_copy = std::make_unique<parser::DerivedValueExpression>(execution::sql::SqlTypeId::Integer, 0, 1);
         break;
       case 2: {
         auto o_cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col");
@@ -214,7 +214,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
         break;
       }
       case 3:
-        other_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
+        other_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", execution::sql::SqlTypeId::Integer);
         break;
     }
 
@@ -242,7 +242,7 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
   char delimiter = ',';
   char quote = '"';
   char escape = '\\';
-  std::vector<type::TypeId> value_types = {type::TypeId::INTEGER};
+  std::vector<execution::sql::SqlTypeId> value_types = {execution::sql::SqlTypeId::Integer};
 
   planner::CSVScanPlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(db_oid)
@@ -252,7 +252,7 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
                   .SetQuote(quote)
                   .SetEscape(escape)
                   .SetValueTypes(value_types)
-                  .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                  .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer))
                   .Build();
 
   EXPECT_TRUE(plan != nullptr);
@@ -273,7 +273,7 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
                    .SetQuote(quote)
                    .SetEscape(escape)
                    .SetValueTypes(value_types)
-                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer))
                    .Build();
   EXPECT_EQ(*plan, *plan2);
   EXPECT_EQ(plan->Hash(), plan2->Hash());
@@ -286,8 +286,8 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
     char o_delimiter = ',';
     char o_quote = '"';
     char o_escape = '\\';
-    std::vector<type::TypeId> o_value_types = {type::TypeId::INTEGER};
-    auto o_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
+    std::vector<execution::sql::SqlTypeId> o_value_types = {execution::sql::SqlTypeId::Integer};
+    auto o_schema = PlanNodeTest::BuildOneColumnSchema("col1", execution::sql::SqlTypeId::Integer);
     auto o_update = false;
 
     switch (i) {
@@ -307,10 +307,10 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
         o_escape = '\0';
         break;
       case 5:
-        o_value_types = {type::TypeId::VARCHAR};
+        o_value_types = {execution::sql::SqlTypeId::Varchar};
         break;
       case 6:
-        o_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
+        o_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", execution::sql::SqlTypeId::Integer);
         break;
       case 7:
         o_update = true;

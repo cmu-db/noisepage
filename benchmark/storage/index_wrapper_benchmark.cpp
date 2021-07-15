@@ -12,7 +12,7 @@
 #include "test_util/catalog_test_util.h"
 #include "test_util/multithread_test_util.h"
 #include "transaction/deferred_action_manager.h"
-#include "type/type_id.h"
+
 
 namespace noisepage {
 
@@ -58,8 +58,8 @@ class IndexBenchmark : public benchmark::Fixture {
   // Set up table and associated managers and garbage collector for structure
   void SetUp(const benchmark::State &state) override {
     // Define standard column template type to have name, integer type, non-nullable state, and associated parser
-    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
-                                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+    auto col = catalog::Schema::Column("attribute", execution::sql::SqlTypeId::Integer, false,
+                                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
 
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
 
@@ -97,7 +97,7 @@ class IndexBenchmark : public benchmark::Fixture {
   void CreateIndex(const storage::index::IndexType type) {
     // Create attribute for schema
     std::vector<catalog::IndexSchema::Column> keycols;
-    keycols.emplace_back("", type::TypeId::INTEGER, false,
+    keycols.emplace_back("", execution::sql::SqlTypeId::Integer, false,
                          parser::ColumnValueExpression(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID,
                                                        catalog::col_oid_t(1)));
 

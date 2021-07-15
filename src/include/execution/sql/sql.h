@@ -6,7 +6,6 @@
 #include "common/macros.h"
 #include "execution/sql/runtime_types.h"
 
-
 namespace noisepage::execution::sql {
 
 /**
@@ -135,6 +134,15 @@ std::size_t GetTypeIdAlignment(TypeId type);
 SqlTypeId SqlTypeIdFromString(const std::string &type_string);
 
 std::string SqlTypeIdToString(SqlTypeId type);
+
+/**
+ * Get the true size of the given type (without flipping the sign bit)
+ * @param type_id the type to get the size of
+ * @return size in bytes used to represent the given type
+ */
+inline uint16_t SqlTypeIdTrueSize(const SqlTypeId type_id) {
+  return GetSqlTypeIdSize(type_id) & static_cast<uint8_t>(0x7f);
+}
 
 /**
  * @return True if the primitive type ID @em type is a fixed-size type; false otherwise.

@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "execution/sql/sql.h"
 #include "network/network_defs.h"
-
 
 namespace noisepage::parser {
 class ConstantValueExpression;
@@ -63,9 +63,9 @@ class PostgresPacketUtil {
    * @param param_formats
    * @return vector of internal types for the parameters
    */
-  static std::vector<parser::ConstantValueExpression> ReadParameters(common::ManagedPointer<ReadBufferView> read_buffer,
-                                                                     const std::vector<execution::sql::SqlTypeId> &param_types,
-                                                                     const std::vector<FieldFormat> &param_formats);
+  static std::vector<parser::ConstantValueExpression> ReadParameters(
+      common::ManagedPointer<ReadBufferView> read_buffer, const std::vector<execution::sql::SqlTypeId> &param_types,
+      const std::vector<FieldFormat> &param_formats);
 };
 
 }  // namespace noisepage::network

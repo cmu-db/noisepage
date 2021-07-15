@@ -27,7 +27,7 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 #include "transaction/transaction_manager.h"
-#include "type/type_id.h"
+
 
 namespace noisepage {
 class StorageTestUtil {
@@ -481,7 +481,7 @@ class StorageTestUtil {
    * Generates a random GenericKey-compatible schema with the given number of columns using the given types.
    */
   template <typename Random>
-  static catalog::IndexSchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<type::TypeId> &types,
+  static catalog::IndexSchema RandomGenericKeySchema(const uint32_t num_cols, const std::vector<execution::sql::SqlTypeId> &types,
                                                      Random *generator) {
     uint32_t max_varlen_size = 20;
     NOISEPAGE_ASSERT(num_cols > 0, "Must have at least one column in your key schema.");
@@ -503,8 +503,8 @@ class StorageTestUtil {
       auto is_nullable = static_cast<bool>(std::uniform_int_distribution(0, 1)(*generator));
 
       switch (type) {
-        case type::TypeId::VARBINARY:
-        case type::TypeId::VARCHAR: {
+        case execution::sql::SqlTypeId::Varbinary:
+        case execution::sql::SqlTypeId::Varchar: {
           auto varlen_size = std::uniform_int_distribution(1U, max_varlen_size)(*generator);
           key_cols.emplace_back("", type, varlen_size, is_nullable, parser::ConstantValueExpression(type));
           break;
@@ -544,7 +544,7 @@ class StorageTestUtil {
     for (uint16_t bytes_used = 0; bytes_used != key_size;) {
       auto max_offset = static_cast<uint8_t>(storage::index::NUMERIC_KEY_TYPES.size() - 1);
       for (const auto &type : storage::index::NUMERIC_KEY_TYPES) {
-        if (key_size - bytes_used < type::TypeUtil::GetTypeSize(type)) {
+        if (key_size - bytes_used < execution::sql::GetSqlTypeIdSize(type)) {
           max_offset--;
         }
       }
@@ -553,7 +553,7 @@ class StorageTestUtil {
 
       key_cols.emplace_back("", type, false, parser::ConstantValueExpression(type));
       ForceOid(&(key_cols.back()), key_oids[col++]);
-      bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
+      bytes_used = static_cast<uint16_t>(bytes_used + execution::sql::GetSqlTypeIdSize(type));
     }
 
     catalog::IndexOptions options;
@@ -583,9 +583,9 @@ class StorageTestUtil {
   template <typename Random>
   static catalog::Schema *RandomSchema(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
-    std::vector<type::TypeId> possible_attr_types{type::TypeId::BOOLEAN, type::TypeId::SMALLINT, type::TypeId::INTEGER,
-                                                  type::TypeId::REAL};
-    if (allow_varlen) possible_attr_types.push_back(type::TypeId::VARCHAR);
+    std::vector<execution::sql::SqlTypeId> possible_attr_types{execution::sql::SqlTypeId::Boolean, execution::sql::SqlTypeId::SmallInt, execution::sql::SqlTypeId::Integer,
+                                                  execution::sql::SqlTypeId::Double};
+    if (allow_varlen) possible_attr_types.push_back(execution::sql::SqlTypeId::Varchar);
 
     std::vector<catalog::Schema::Column> columns;
     columns.reserve(num_attrs);
@@ -594,7 +594,7 @@ class StorageTestUtil {
       auto random_type = *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator);
 
       catalog::Schema::Column col;
-      if (random_type == type::TypeId::VARCHAR) {
+      if (random_type == execution::sql::SqlTypeId::Varchar) {
         col = catalog::Schema::Column("col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
                                       parser::ConstantValueExpression(random_type));
       } else {

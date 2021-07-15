@@ -43,7 +43,7 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::planner {
 
@@ -55,7 +55,7 @@ class PlanNodeJsonTest : public TerrierTest {
    */
   static std::unique_ptr<OutputSchema> BuildDummyOutputSchema() {
     std::vector<OutputSchema::Column> cols;
-    cols.emplace_back(OutputSchema::Column("dummy_col", type::TypeId::INTEGER, BuildDummyPredicate()));
+    cols.emplace_back(OutputSchema::Column("dummy_col", execution::sql::SqlTypeId::Integer, BuildDummyPredicate()));
     return std::make_unique<OutputSchema>(std::move(cols));
   }
 
@@ -64,14 +64,14 @@ class PlanNodeJsonTest : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+    return std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   }
 };
 
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   // Test Column serialization
-  OutputSchema::Column col("col1", type::TypeId::BOOLEAN, PlanNodeJsonTest::BuildDummyPredicate());
+  OutputSchema::Column col("col1", execution::sql::SqlTypeId::Boolean, PlanNodeJsonTest::BuildDummyPredicate());
   auto col_json = col.ToJson();
   EXPECT_FALSE(col_json.is_null());
 
@@ -265,7 +265,7 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 
   // CHECK CONSTRAINT
   auto get_check_info = []() {
-    parser::ConstantValueExpression val(type::TypeId::INTEGER, execution::sql::Integer(1));
+    parser::ConstantValueExpression val(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
     std::vector<CheckInfo> checks;
     std::vector<std::string> cks = {"ck_a"};
     checks.emplace_back(cks, "ck_a", parser::ExpressionType::COMPARE_GREATER_THAN, std::move(val));
@@ -275,10 +275,10 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   // Columns
   auto get_schema = []() {
     std::vector<catalog::Schema::Column> columns = {
-        catalog::Schema::Column("a", type::TypeId::INTEGER, false,
-                                parser::ConstantValueExpression(type::TypeId::INTEGER)),
-        catalog::Schema::Column("u_a", type::TypeId::REAL, false, parser::ConstantValueExpression(type::TypeId::REAL)),
-        catalog::Schema::Column("u_b", type::TypeId::DATE, true, parser::ConstantValueExpression(type::TypeId::DATE))};
+        catalog::Schema::Column("a", execution::sql::SqlTypeId::Integer, false,
+                                parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer)),
+        catalog::Schema::Column("u_a", execution::sql::SqlTypeId::Double, false, parser::ConstantValueExpression(execution::sql::SqlTypeId::Double)),
+        catalog::Schema::Column("u_b", execution::sql::SqlTypeId::Date, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::Date))};
     StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
     StorageTestUtil::ForceOid(&(columns[1]), catalog::col_oid_t(2));
     StorageTestUtil::ForceOid(&(columns[2]), catalog::col_oid_t(3));
@@ -663,11 +663,11 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   auto get_values = [&](int offset, int num_cols) {
     std::vector<common::ManagedPointer<parser::AbstractExpression>> tuple;
 
-    auto ptr = new parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(offset));
+    auto ptr = new parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(offset));
     free_exprs.push_back(ptr);
     tuple.emplace_back(ptr);
     for (; num_cols - 1 > 0; num_cols--) {
-      auto cve = new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      auto cve = new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
       free_exprs.push_back(cve);
       tuple.emplace_back(cve);
     }
@@ -767,8 +767,8 @@ TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
 TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   // Construct OrderByPlanNode
   OrderByPlanNode::Builder builder;
-  parser::AbstractExpression *sortkey1 = new parser::DerivedValueExpression(type::TypeId::INTEGER, 0, 0);
-  parser::AbstractExpression *sortkey2 = new parser::DerivedValueExpression(type::TypeId::INTEGER, 0, 1);
+  parser::AbstractExpression *sortkey1 = new parser::DerivedValueExpression(execution::sql::SqlTypeId::Integer, 0, 0);
+  parser::AbstractExpression *sortkey2 = new parser::DerivedValueExpression(execution::sql::SqlTypeId::Integer, 0, 1);
 
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .AddSortKey(common::ManagedPointer(sortkey1), optimizer::OrderByOrderingType::ASC)

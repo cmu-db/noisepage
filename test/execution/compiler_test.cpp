@@ -39,7 +39,7 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::execution::compiler::test {
 class CompilerTest : public SqlBasedTest {
@@ -146,8 +146,8 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     // Make New Column
     auto col3 = expr_maker.OpMul(col1, col2);
     auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
@@ -216,8 +216,8 @@ TEST_F(CompilerTest, SimpleSeqScanNonVecFilterTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     // Make New Column
     auto col3 = expr_maker.OpMul(col1, col2);
     auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
@@ -299,8 +299,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
     // Get Table columns
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     // Make New Column
     seq_scan_out.AddOutput("col1", common::ManagedPointer(col1));
     seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
@@ -378,11 +378,11 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     // Make New Column
     auto col3 = expr_maker.OpMul(col1, col2);
-    auto param1 = expr_maker.PVE(type::TypeId::INTEGER, 0);
+    auto param1 = expr_maker.PVE(execution::sql::SqlTypeId::Integer, 0);
     auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(param1, col2));
     seq_scan_out.AddOutput("col1", common::ManagedPointer(col1));
     seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
@@ -390,8 +390,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
     seq_scan_out.AddOutput("col4", common::ManagedPointer(col4));
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
-    auto param2 = expr_maker.PVE(type::TypeId::INTEGER, 1);
-    auto param3 = expr_maker.PVE(type::TypeId::INTEGER, 2);
+    auto param2 = expr_maker.PVE(execution::sql::SqlTypeId::Integer, 1);
+    auto param3 = expr_maker.PVE(execution::sql::SqlTypeId::Integer, 2);
     auto comp1 = expr_maker.ComparisonLt(col1, param2);
     auto comp2 = expr_maker.ComparisonGe(col2, param3);
     auto predicate = expr_maker.ConjunctionAnd(comp1, comp2);
@@ -418,9 +418,9 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
   std::vector<parser::ConstantValueExpression> params;
-  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(100));
-  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(500));
-  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(3));
+  params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(100));
+  params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(500));
+  params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(3));
   exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
 
   // Run & Check
@@ -456,8 +456,8 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     auto const_500 = expr_maker.Constant(500);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -514,8 +514,8 @@ TEST_F(CompilerTest, SimpleIndexScanAscendingTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
@@ -595,8 +595,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAscendingTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
@@ -675,8 +675,8 @@ TEST_F(CompilerTest, SimpleIndexScanDescendingTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
@@ -755,8 +755,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDescendingTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
     auto schema = index_scan_out.MakeSchema();
@@ -835,8 +835,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -926,8 +926,8 @@ TEST_F(CompilerTest, AggregateWithDistinctAndGroupByTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -1076,7 +1076,7 @@ TEST_F(CompilerTest, StaticAggregateTest) {
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     auto schema = seq_scan_out.MakeSchema();
     // Build
@@ -1147,7 +1147,7 @@ TEST_F(CompilerTest, StaticDistinctAggregateTest) {
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto colb_oid = table_schema.GetColumn("colB").Oid();
-    auto col1 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     auto schema = seq_scan_out.MakeSchema();
     // Build
@@ -1242,8 +1242,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -1413,8 +1413,8 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     auto cola_oid = table_schema1.GetColumn("colA").Oid();
     auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
@@ -1437,8 +1437,8 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     auto cola_oid = table_schema2.GetColumn("col1").Oid();
     auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::SmallInt);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
@@ -1558,7 +1558,7 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
     // OIDs
     auto cola_oid = table_schema1.GetColumn("colA").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out1.AddOutput("col1", col1);
     auto schema = seq_scan_out1.MakeSchema();
     // Make predicate
@@ -1579,7 +1579,7 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
     // OIDs
     auto cola_oid = table_schema2.GetColumn("col1").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::SmallInt);
     seq_scan_out2.AddOutput("col1", col1);
     auto schema = seq_scan_out2.MakeSchema();
     auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(100));
@@ -1598,7 +1598,7 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
     // OIDs
     auto cola_oid = table_schema1.GetColumn("colA").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out3.AddOutput("col1", col1);
     auto schema = seq_scan_out3.MakeSchema();
     // Make predicate
@@ -1745,8 +1745,8 @@ TEST_F(CompilerTest, SimpleSortTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -1862,8 +1862,8 @@ TEST_F(CompilerTest, SortWithLimitTest) {
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     auto colb_oid = table_schema.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -1963,7 +1963,7 @@ TEST_F(CompilerTest, SortWithLimitAndOffsetTest) {
     // OIDs
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
@@ -2053,7 +2053,7 @@ TEST_F(CompilerTest, LimitAndOffsetTest) {
     // OIDs
     auto cola_oid = table_schema.GetColumn("colA").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     auto schema = seq_scan_out.MakeSchema();
     // Make predicate
@@ -2141,8 +2141,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     auto cola_oid = table_schema1.GetColumn("colA").Oid();
     auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
@@ -2165,8 +2165,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     auto cola_oid = table_schema2.GetColumn("col1").Oid();
     auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::SMALLINT);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::SmallInt);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
@@ -2283,8 +2283,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     auto cola_oid = table_schema2.GetColumn("col1").Oid();
     auto colb_oid = table_schema2.GetColumn("col2").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -2308,7 +2308,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     auto table_schema1 = accessor->GetSchema(table_oid1);
     auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
     // t1.col1, and t1.col2
-    auto t1_col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto t1_col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), execution::sql::SqlTypeId::Integer);
     // t2.col1, and t2.col2
     auto t2_col1 = seq_scan_out.GetOutput("col1");
     auto t2_col2 = seq_scan_out.GetOutput("col2");
@@ -2403,8 +2403,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     auto cola_oid = table_schema1.GetColumn("colA").Oid();
     auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -2426,8 +2426,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     auto table_schema2 = accessor->GetSchema(table_oid2);
     auto index_oid2 = accessor->GetIndexOid(NSOid(), "index_2_multi");
     // t2.col1, and t2.col2
-    auto t2_col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::INTEGER);
-    auto t2_col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    auto t2_col1 = expr_maker.CVE(table_schema2.GetColumn("col1").Oid(), execution::sql::SqlTypeId::Integer);
+    auto t2_col2 = expr_maker.CVE(table_schema2.GetColumn("col2").Oid(), execution::sql::SqlTypeId::Integer);
     // t1.col1, and t1.col2
     auto t1_col1 = seq_scan_out.GetOutput("col1");
     auto t1_col2 = seq_scan_out.GetOutput("col2");
@@ -2517,7 +2517,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), execution::sql::SqlTypeId::Integer);
     seq_scan_out1.AddOutput("col1", col1);
     auto schema = seq_scan_out1.MakeSchema();
 
@@ -2568,7 +2568,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // OIDs
     auto cola_oid = table_schema1.GetColumn("colA").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     // Make predicate
     auto pred1 = expr_maker.ComparisonGe(col1, expr_maker.Constant(495));
@@ -2603,7 +2603,7 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   OutputSchemaHelper index_scan_out{0, &expr_maker};
   {
     // Get Table columns
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), execution::sql::SqlTypeId::Integer);
 
     index_scan_out.AddOutput("col1", col1);
     auto schema = index_scan_out.MakeSchema();
@@ -2650,10 +2650,10 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), execution::sql::SqlTypeId::Integer);
+    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), execution::sql::SqlTypeId::Integer);
+    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), execution::sql::SqlTypeId::Integer);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     seq_scan_out1.AddOutput("col3", col3);
@@ -2733,8 +2733,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     auto cola_oid = table_schema1.GetColumn("colA").Oid();
     auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     // Make predicate
@@ -2795,8 +2795,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     auto cola_oid = table_schema1.GetColumn("colA").Oid();
     auto colb_oid = table_schema1.GetColumn("colB").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -2901,10 +2901,10 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     auto colc_oid = table_schema1.GetColumn("colC").Oid();
     auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
+    auto col3 = expr_maker.CVE(colc_oid, execution::sql::SqlTypeId::Integer);
+    auto col4 = expr_maker.CVE(cold_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
@@ -2968,10 +2968,10 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     auto colc_oid = table_schema1.GetColumn("colC").Oid();
     auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
+    auto col3 = expr_maker.CVE(colc_oid, execution::sql::SqlTypeId::Integer);
+    auto col4 = expr_maker.CVE(cold_oid, execution::sql::SqlTypeId::Integer);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -3023,18 +3023,18 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
   std::unique_ptr<planner::AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0, &expr_maker};
   {
-    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(table_schema1.GetColumn("colA").Oid(), execution::sql::SqlTypeId::Integer);
     auto neg_col1 = expr_maker.OpMul(expr_maker.Constant(-1), col1);
-    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(table_schema1.GetColumn("colB").Oid(), execution::sql::SqlTypeId::Integer);
+    auto col3 = expr_maker.CVE(table_schema1.GetColumn("colC").Oid(), execution::sql::SqlTypeId::Integer);
+    auto col4 = expr_maker.CVE(table_schema1.GetColumn("colD").Oid(), execution::sql::SqlTypeId::Integer);
     seq_scan_out1.AddOutput("col1", neg_col1);
     seq_scan_out1.AddOutput("col2", col2);
     seq_scan_out1.AddOutput("col3", col3);
     seq_scan_out1.AddOutput("col4", col4);
     auto schema = seq_scan_out1.MakeSchema();
-    auto param1 = expr_maker.PVE(type::TypeId::INTEGER, 0);
-    auto param2 = expr_maker.PVE(type::TypeId::INTEGER, 1);
+    auto param1 = expr_maker.PVE(execution::sql::SqlTypeId::Integer, 0);
+    auto param2 = expr_maker.PVE(execution::sql::SqlTypeId::Integer, 1);
     auto pred1 = expr_maker.ComparisonGe(col1, param1);
     auto pred2 = expr_maker.ComparisonLe(col1, param2);
     auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
@@ -3075,8 +3075,8 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
     auto exec_ctx = MakeExecCtx(&callback_fn, insert->GetOutputSchema().Get());
     std::vector<parser::ConstantValueExpression> params;
-    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(495));
-    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(505));
+    params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(495));
+    params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(505));
     exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
@@ -3105,10 +3105,10 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     auto colc_oid = table_schema1.GetColumn("colC").Oid();
     auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
+    auto col3 = expr_maker.CVE(colc_oid, execution::sql::SqlTypeId::Integer);
+    auto col4 = expr_maker.CVE(cold_oid, execution::sql::SqlTypeId::Integer);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     seq_scan_out.AddOutput("col3", col3);
@@ -3170,10 +3170,10 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     auto colc_oid = table_schema1.GetColumn("colC").Oid();
     auto cold_oid = table_schema1.GetColumn("colD").Oid();
     // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
-    auto col3 = expr_maker.CVE(colc_oid, type::TypeId::INTEGER);
-    auto col4 = expr_maker.CVE(cold_oid, type::TypeId::INTEGER);
+    auto col1 = expr_maker.CVE(cola_oid, execution::sql::SqlTypeId::Integer);
+    auto col2 = expr_maker.CVE(colb_oid, execution::sql::SqlTypeId::Integer);
+    auto col3 = expr_maker.CVE(colc_oid, execution::sql::SqlTypeId::Integer);
+    auto col4 = expr_maker.CVE(cold_oid, execution::sql::SqlTypeId::Integer);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -3254,23 +3254,23 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<ExpressionMaker::ManagedExpression> values2;
 
     int param_idx = 0;
-    values1.push_back(expr_maker.PVE(type::TypeId::VARCHAR, param_idx++));
-    values1.push_back(expr_maker.PVE(type::TypeId::DATE, param_idx++));
-    values1.push_back(expr_maker.PVE(type::TypeId::REAL, param_idx++));
-    values1.push_back(expr_maker.PVE(type::TypeId::BOOLEAN, param_idx++));
-    values1.push_back(expr_maker.PVE(type::TypeId::TINYINT, param_idx++));
-    values1.push_back(expr_maker.PVE(type::TypeId::SMALLINT, param_idx++));
-    values1.push_back(expr_maker.PVE(type::TypeId::INTEGER, param_idx++));
-    values1.push_back(expr_maker.PVE(type::TypeId::BIGINT, param_idx++));
+    values1.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Varchar, param_idx++));
+    values1.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Date, param_idx++));
+    values1.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Double, param_idx++));
+    values1.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Boolean, param_idx++));
+    values1.push_back(expr_maker.PVE(execution::sql::SqlTypeId::TinyInt, param_idx++));
+    values1.push_back(expr_maker.PVE(execution::sql::SqlTypeId::SmallInt, param_idx++));
+    values1.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Integer, param_idx++));
+    values1.push_back(expr_maker.PVE(execution::sql::SqlTypeId::BigInt, param_idx++));
 
-    values2.push_back(expr_maker.PVE(type::TypeId::VARCHAR, param_idx++));
-    values2.push_back(expr_maker.PVE(type::TypeId::DATE, param_idx++));
-    values2.push_back(expr_maker.PVE(type::TypeId::REAL, param_idx++));
-    values2.push_back(expr_maker.PVE(type::TypeId::BOOLEAN, param_idx++));
-    values2.push_back(expr_maker.PVE(type::TypeId::TINYINT, param_idx++));
-    values2.push_back(expr_maker.PVE(type::TypeId::SMALLINT, param_idx++));
-    values2.push_back(expr_maker.PVE(type::TypeId::INTEGER, param_idx++));
-    values2.push_back(expr_maker.PVE(type::TypeId::BIGINT, param_idx++));
+    values2.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Varchar, param_idx++));
+    values2.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Date, param_idx++));
+    values2.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Double, param_idx++));
+    values2.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Boolean, param_idx++));
+    values2.push_back(expr_maker.PVE(execution::sql::SqlTypeId::TinyInt, param_idx++));
+    values2.push_back(expr_maker.PVE(execution::sql::SqlTypeId::SmallInt, param_idx++));
+    values2.push_back(expr_maker.PVE(execution::sql::SqlTypeId::Integer, param_idx++));
+    values2.push_back(expr_maker.PVE(execution::sql::SqlTypeId::BigInt, param_idx++));
 
     auto output_schema = std::make_unique<planner::OutputSchema>();
 
@@ -3300,24 +3300,24 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<parser::ConstantValueExpression> params;
     // First parameter list
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
-    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
-    params.emplace_back(type::TypeId::DATE, sql::DateVal(date1.val_));
-    params.emplace_back(type::TypeId::REAL, sql::Real(real1));
-    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool1));
-    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint1));
-    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint1));
-    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int1));
-    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint1));
+    params.emplace_back(execution::sql::SqlTypeId::Varchar, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(execution::sql::SqlTypeId::Date, sql::DateVal(date1.val_));
+    params.emplace_back(execution::sql::SqlTypeId::Double, sql::Real(real1));
+    params.emplace_back(execution::sql::SqlTypeId::Boolean, sql::BoolVal(bool1));
+    params.emplace_back(execution::sql::SqlTypeId::TinyInt, sql::Integer(tinyint1));
+    params.emplace_back(execution::sql::SqlTypeId::SmallInt, sql::Integer(smallint1));
+    params.emplace_back(execution::sql::SqlTypeId::Integer, sql::Integer(int1));
+    params.emplace_back(execution::sql::SqlTypeId::BigInt, sql::Integer(bigint1));
     // Second parameter list
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
-    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
-    params.emplace_back(type::TypeId::DATE, sql::DateVal(date2.val_));
-    params.emplace_back(type::TypeId::REAL, sql::Real(real2));
-    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool2));
-    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint2));
-    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint2));
-    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int2));
-    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint2));
+    params.emplace_back(execution::sql::SqlTypeId::Varchar, str2_val.first, std::move(str2_val.second));
+    params.emplace_back(execution::sql::SqlTypeId::Date, sql::DateVal(date2.val_));
+    params.emplace_back(execution::sql::SqlTypeId::Double, sql::Real(real2));
+    params.emplace_back(execution::sql::SqlTypeId::Boolean, sql::BoolVal(bool2));
+    params.emplace_back(execution::sql::SqlTypeId::TinyInt, sql::Integer(tinyint2));
+    params.emplace_back(execution::sql::SqlTypeId::SmallInt, sql::Integer(smallint2));
+    params.emplace_back(execution::sql::SqlTypeId::Integer, sql::Integer(int2));
+    params.emplace_back(execution::sql::SqlTypeId::BigInt, sql::Integer(bigint2));
     exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
@@ -3347,14 +3347,14 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto col8_oid = table_schema1.GetColumn("bigint_col").Oid();
 
     // Get Table columns
-    auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
-    auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::REAL);
-    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::BOOLEAN);
-    auto col5 = expr_maker.CVE(col5_oid, type::TypeId::TINYINT);
-    auto col6 = expr_maker.CVE(col6_oid, type::TypeId::SMALLINT);
-    auto col7 = expr_maker.CVE(col7_oid, type::TypeId::INTEGER);
-    auto col8 = expr_maker.CVE(col8_oid, type::TypeId::BIGINT);
+    auto col1 = expr_maker.CVE(col1_oid, execution::sql::SqlTypeId::Varchar);
+    auto col2 = expr_maker.CVE(col2_oid, execution::sql::SqlTypeId::Date);
+    auto col3 = expr_maker.CVE(col3_oid, execution::sql::SqlTypeId::Double);
+    auto col4 = expr_maker.CVE(col4_oid, execution::sql::SqlTypeId::Boolean);
+    auto col5 = expr_maker.CVE(col5_oid, execution::sql::SqlTypeId::TinyInt);
+    auto col6 = expr_maker.CVE(col6_oid, execution::sql::SqlTypeId::SmallInt);
+    auto col7 = expr_maker.CVE(col7_oid, execution::sql::SqlTypeId::Integer);
+    auto col8 = expr_maker.CVE(col8_oid, execution::sql::SqlTypeId::BigInt);
 
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
@@ -3457,14 +3457,14 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     auto col8_oid = table_schema1.GetColumn("bigint_col").Oid();
 
     // Get Table columns
-    auto col1 = expr_maker.CVE(col1_oid, type::TypeId::VARCHAR);
-    auto col2 = expr_maker.CVE(col2_oid, type::TypeId::DATE);
-    auto col3 = expr_maker.CVE(col3_oid, type::TypeId::REAL);
-    auto col4 = expr_maker.CVE(col4_oid, type::TypeId::BOOLEAN);
-    auto col5 = expr_maker.CVE(col5_oid, type::TypeId::TINYINT);
-    auto col6 = expr_maker.CVE(col6_oid, type::TypeId::SMALLINT);
-    auto col7 = expr_maker.CVE(col7_oid, type::TypeId::INTEGER);
-    auto col8 = expr_maker.CVE(col8_oid, type::TypeId::BIGINT);
+    auto col1 = expr_maker.CVE(col1_oid, execution::sql::SqlTypeId::Varchar);
+    auto col2 = expr_maker.CVE(col2_oid, execution::sql::SqlTypeId::Date);
+    auto col3 = expr_maker.CVE(col3_oid, execution::sql::SqlTypeId::Double);
+    auto col4 = expr_maker.CVE(col4_oid, execution::sql::SqlTypeId::Boolean);
+    auto col5 = expr_maker.CVE(col5_oid, execution::sql::SqlTypeId::TinyInt);
+    auto col6 = expr_maker.CVE(col6_oid, execution::sql::SqlTypeId::SmallInt);
+    auto col7 = expr_maker.CVE(col7_oid, execution::sql::SqlTypeId::Integer);
+    auto col8 = expr_maker.CVE(col8_oid, execution::sql::SqlTypeId::BigInt);
 
     index_scan_out.AddOutput("col1", col1);
     index_scan_out.AddOutput("col2", col2);
@@ -3480,8 +3480,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     index_scan = builder.SetTableOid(table_oid1)
                      .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
                      .SetIndexOid(index_oid1)
-                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
-                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(execution::sql::SqlTypeId::Varchar, 0))
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(execution::sql::SqlTypeId::Varchar, 1))
                      .SetScanPredicate(nullptr)
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
@@ -3501,8 +3501,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     std::vector<parser::ConstantValueExpression> params;
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
-    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
-    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
+    params.emplace_back(execution::sql::SqlTypeId::Varchar, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(execution::sql::SqlTypeId::Varchar, str2_val.first, std::move(str2_val.second));
     exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
     auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
@@ -3529,13 +3529,13 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Read all needed columns
-    auto l_returnflag = expr_maker.TVE(0, catalog_table->ColNumToOffset(8), noisepage::type::TypeId::VARCHAR);
-    auto l_linestatus = expr_maker.TVE(0, catalog_table->ColNumToOffset(9), noisepage::type::TypeId::VARCHAR);
-    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), noisepage::type::TypeId::REAL);
-    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), noisepage::type::TypeId::REAL);
-    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), noisepage::type::TypeId::REAL);
-    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), noisepage::type::TypeId::REAL);
-    auto l_shipdate = expr_maker.TVE(0, catalog_table->ColNumToOffset(10), noisepage::type::TypeId::DATE);
+    auto l_returnflag = expr_maker.TVE(0, catalog_table->ColNumToOffset(8), execution::sql::SqlTypeId::Varchar);
+    auto l_linestatus = expr_maker.TVE(0, catalog_table->ColNumToOffset(9), execution::sql::SqlTypeId::Varchar);
+    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), execution::sql::SqlTypeId::Double);
+    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), execution::sql::SqlTypeId::Double);
+    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), execution::sql::SqlTypeId::Double);
+    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), execution::sql::SqlTypeId::Double);
+    auto l_shipdate = expr_maker.TVE(0, catalog_table->ColNumToOffset(10), execution::sql::SqlTypeId::Date);
     // Make the output schema
     seq_scan_out.AddOutput("l_returnflag", l_returnflag);
     seq_scan_out.AddOutput("l_linestatus", l_linestatus);

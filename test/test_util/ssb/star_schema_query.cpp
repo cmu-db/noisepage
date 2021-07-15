@@ -28,8 +28,8 @@ SSBQuery::SSBMakeExecutableQ1Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_year").Oid()};
     // Make the predicate: d_year=1993
@@ -50,10 +50,10 @@ SSBQuery::SSBMakeExecutableQ1Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), type::TypeId::INTEGER);
-    auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), type::TypeId::INTEGER);
-    auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), execution::sql::SqlTypeId::Integer);
 
     std::vector<catalog::col_oid_t> lo_col_oids = {
         lo_schema.GetColumn("lo_quantity").Oid(), lo_schema.GetColumn("lo_discount").Oid(),
@@ -143,8 +143,8 @@ SSBQuery::SSBMakeExecutableQ1Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_yearmonthnum = expr_maker.CVE(d_schema.GetColumn("d_yearmonthnum").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_yearmonthnum = expr_maker.CVE(d_schema.GetColumn("d_yearmonthnum").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_yearmonthnum").Oid()};
     // Make the predicate: d_yearmonthnum = 199401
@@ -164,10 +164,10 @@ SSBQuery::SSBMakeExecutableQ1Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), type::TypeId::INTEGER);
-    auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), type::TypeId::INTEGER);
-    auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> lo_col_oids = {
         lo_schema.GetColumn("lo_quantity").Oid(), lo_schema.GetColumn("lo_discount").Oid(),
         lo_schema.GetColumn("lo_extendedprice").Oid(), lo_schema.GetColumn("lo_orderdate").Oid()};
@@ -254,9 +254,9 @@ SSBQuery::SSBMakeExecutableQ1Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_weeknuminyear = expr_maker.CVE(d_schema.GetColumn("d_weeknuminyear").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_weeknuminyear = expr_maker.CVE(d_schema.GetColumn("d_weeknuminyear").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_weeknuminyear").Oid(),
                                               d_schema.GetColumn("d_year").Oid()};
@@ -278,10 +278,10 @@ SSBQuery::SSBMakeExecutableQ1Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), type::TypeId::INTEGER);
-    auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), type::TypeId::INTEGER);
-    auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_extendedprice = expr_maker.CVE(lo_schema.GetColumn("lo_extendedprice").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_discount = expr_maker.CVE(lo_schema.GetColumn("lo_discount").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_quantity = expr_maker.CVE(lo_schema.GetColumn("lo_quantity").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> lo_col_oids = {
         lo_schema.GetColumn("lo_quantity").Oid(), lo_schema.GetColumn("lo_discount").Oid(),
         lo_schema.GetColumn("lo_extendedprice").Oid(), lo_schema.GetColumn("lo_orderdate").Oid()};
@@ -375,8 +375,8 @@ SSBQuery::SSBMakeExecutableQ2Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{1, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_year").Oid()};
     // Make output schema.
@@ -395,9 +395,9 @@ SSBQuery::SSBMakeExecutableQ2Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> p_seq_scan;
   execution::compiler::test::OutputSchemaHelper p_seq_scan_out{0, &expr_maker};
   {
-    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), type::TypeId::INTEGER);
-    auto p_brand1 = expr_maker.CVE(p_schema.GetColumn("p_brand1").Oid(), type::TypeId::VARCHAR);
-    auto p_category = expr_maker.CVE(p_schema.GetColumn("p_category").Oid(), type::TypeId::VARCHAR);
+    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto p_brand1 = expr_maker.CVE(p_schema.GetColumn("p_brand1").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto p_category = expr_maker.CVE(p_schema.GetColumn("p_category").Oid(), execution::sql::SqlTypeId::Varchar);
 
     std::vector<catalog::col_oid_t> p_oids = {p_schema.GetColumn("p_partkey").Oid(),
                                               p_schema.GetColumn("p_brand1").Oid(),
@@ -420,8 +420,8 @@ SSBQuery::SSBMakeExecutableQ2Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                               s_schema.GetColumn("s_region").Oid()};
     // Make the predicate: s_region = 'AMERICA'
@@ -441,10 +441,10 @@ SSBQuery::SSBMakeExecutableQ2Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
 
     std::vector<catalog::col_oid_t> lo_col_oids = {
         lo_schema.GetColumn("lo_revenue").Oid(), lo_schema.GetColumn("lo_suppkey").Oid(),
@@ -622,8 +622,8 @@ SSBQuery::SSBMakeExecutableQ2Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{1, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_year").Oid()};
     // Make output schema.
@@ -642,8 +642,8 @@ SSBQuery::SSBMakeExecutableQ2Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> p_seq_scan;
   execution::compiler::test::OutputSchemaHelper p_seq_scan_out{0, &expr_maker};
   {
-    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), type::TypeId::INTEGER);
-    auto p_brand1 = expr_maker.CVE(p_schema.GetColumn("p_brand1").Oid(), type::TypeId::VARCHAR);
+    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto p_brand1 = expr_maker.CVE(p_schema.GetColumn("p_brand1").Oid(), execution::sql::SqlTypeId::Varchar);
 
     std::vector<catalog::col_oid_t> p_oids = {p_schema.GetColumn("p_partkey").Oid(),
                                               p_schema.GetColumn("p_brand1").Oid()};
@@ -666,8 +666,8 @@ SSBQuery::SSBMakeExecutableQ2Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                               s_schema.GetColumn("s_region").Oid()};
     // Make the predicate: s_region = 'ASIA'
@@ -687,10 +687,10 @@ SSBQuery::SSBMakeExecutableQ2Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> lo_col_oids = {
         lo_schema.GetColumn("lo_revenue").Oid(), lo_schema.GetColumn("lo_suppkey").Oid(),
         lo_schema.GetColumn("lo_partkey").Oid(), lo_schema.GetColumn("lo_orderdate").Oid()};
@@ -867,8 +867,8 @@ SSBQuery::SSBMakeExecutableQ2Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{1, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_year").Oid()};
     // Make output schema.
@@ -887,8 +887,8 @@ SSBQuery::SSBMakeExecutableQ2Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> p_seq_scan;
   execution::compiler::test::OutputSchemaHelper p_seq_scan_out{0, &expr_maker};
   {
-    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), type::TypeId::INTEGER);
-    auto p_brand1 = expr_maker.CVE(p_schema.GetColumn("p_brand1").Oid(), type::TypeId::VARCHAR);
+    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto p_brand1 = expr_maker.CVE(p_schema.GetColumn("p_brand1").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> p_oids = {p_schema.GetColumn("p_partkey").Oid(),
                                               p_schema.GetColumn("p_brand1").Oid()};
     // Make the predicate: p_brand1 = 'MFGR#2221'
@@ -909,8 +909,8 @@ SSBQuery::SSBMakeExecutableQ2Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), execution::sql::SqlTypeId::Varchar);
 
     std::vector<catalog::col_oid_t> s_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                               s_schema.GetColumn("s_region").Oid()};
@@ -931,10 +931,10 @@ SSBQuery::SSBMakeExecutableQ2Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> lo_col_oids = {
         lo_schema.GetColumn("lo_revenue").Oid(), lo_schema.GetColumn("lo_suppkey").Oid(),
         lo_schema.GetColumn("lo_partkey").Oid(), lo_schema.GetColumn("lo_orderdate").Oid()};
@@ -1111,8 +1111,8 @@ SSBQuery::SSBMakeExecutableQ3Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_year").Oid()};
     // Make output schema.
@@ -1134,9 +1134,9 @@ SSBQuery::SSBMakeExecutableQ3Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> c_seq_scan;
   execution::compiler::test::OutputSchemaHelper c_seq_scan_out{0, &expr_maker};
   {
-    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), type::TypeId::INTEGER);
-    auto c_nation = expr_maker.CVE(c_schema.GetColumn("c_nation").Oid(), type::TypeId::VARCHAR);
-    auto c_region = expr_maker.CVE(c_schema.GetColumn("c_region").Oid(), type::TypeId::VARCHAR);
+    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto c_nation = expr_maker.CVE(c_schema.GetColumn("c_nation").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto c_region = expr_maker.CVE(c_schema.GetColumn("c_region").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> c_oids = {c_schema.GetColumn("c_custkey").Oid(),
                                               c_schema.GetColumn("c_nation").Oid(),
                                               c_schema.GetColumn("c_region").Oid()};
@@ -1158,9 +1158,9 @@ SSBQuery::SSBMakeExecutableQ3Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_nation = expr_maker.CVE(s_schema.GetColumn("s_nation").Oid(), type::TypeId::VARCHAR);
-    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_nation = expr_maker.CVE(s_schema.GetColumn("s_nation").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                               s_schema.GetColumn("s_nation").Oid(),
                                               s_schema.GetColumn("s_region").Oid()};
@@ -1182,10 +1182,10 @@ SSBQuery::SSBMakeExecutableQ3Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> lo_col_oids = {
         lo_schema.GetColumn("lo_revenue").Oid(), lo_schema.GetColumn("lo_suppkey").Oid(),
         lo_schema.GetColumn("lo_custkey").Oid(), lo_schema.GetColumn("lo_orderdate").Oid()};
@@ -1372,8 +1372,8 @@ SSBQuery::SSBMakeExecutableQ3Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_year").Oid()};  // Make output schema.
     d_seq_scan_out.AddOutput("d_datekey", d_datekey);
@@ -1393,9 +1393,9 @@ SSBQuery::SSBMakeExecutableQ3Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> c_seq_scan;
   execution::compiler::test::OutputSchemaHelper c_seq_scan_out{0, &expr_maker};
   {
-    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), type::TypeId::INTEGER);
-    auto c_nation = expr_maker.CVE(c_schema.GetColumn("c_nation").Oid(), type::TypeId::VARCHAR);
-    auto c_city = expr_maker.CVE(c_schema.GetColumn("c_city").Oid(), type::TypeId::VARCHAR);
+    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto c_nation = expr_maker.CVE(c_schema.GetColumn("c_nation").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto c_city = expr_maker.CVE(c_schema.GetColumn("c_city").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> c_oids = {c_schema.GetColumn("c_custkey").Oid(),
                                               c_schema.GetColumn("c_nation").Oid(), c_schema.GetColumn("c_city").Oid()};
     // Make the predicate: c_nation = 'UNITED STATES'
@@ -1416,9 +1416,9 @@ SSBQuery::SSBMakeExecutableQ3Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_nation = expr_maker.CVE(s_schema.GetColumn("s_nation").Oid(), type::TypeId::VARCHAR);
-    auto s_city = expr_maker.CVE(s_schema.GetColumn("s_city").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_nation = expr_maker.CVE(s_schema.GetColumn("s_nation").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto s_city = expr_maker.CVE(s_schema.GetColumn("s_city").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                               s_schema.GetColumn("s_nation").Oid(), s_schema.GetColumn("s_city").Oid()};
     // Make the predicate: s_nation = 'UNITED STATES'
@@ -1439,10 +1439,10 @@ SSBQuery::SSBMakeExecutableQ3Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector<catalog::col_oid_t> lo_col_oids = {
         lo_schema.GetColumn("lo_revenue").Oid(), lo_schema.GetColumn("lo_suppkey").Oid(),
         lo_schema.GetColumn("lo_custkey").Oid(), lo_schema.GetColumn("lo_orderdate").Oid()};
@@ -1629,8 +1629,8 @@ SSBQuery::SSBMakeExecutableQ3Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector d_oids = {d_schema.GetColumn("d_datekey").Oid(), d_schema.GetColumn("d_year").Oid()};
 
     // Make output schema.
@@ -1651,8 +1651,8 @@ SSBQuery::SSBMakeExecutableQ3Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> c_seq_scan;
   execution::compiler::test::OutputSchemaHelper c_seq_scan_out{0, &expr_maker};
   {
-    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), type::TypeId::INTEGER);
-    auto c_city = expr_maker.CVE(c_schema.GetColumn("c_city").Oid(), type::TypeId::VARCHAR);
+    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto c_city = expr_maker.CVE(c_schema.GetColumn("c_city").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> c_oids = {c_schema.GetColumn("c_custkey").Oid(),
                                               c_schema.GetColumn("c_city").Oid()};
 
@@ -1675,8 +1675,8 @@ SSBQuery::SSBMakeExecutableQ3Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_city = expr_maker.CVE(s_schema.GetColumn("s_city").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_city = expr_maker.CVE(s_schema.GetColumn("s_city").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                               s_schema.GetColumn("s_city").Oid()};
 
@@ -1699,10 +1699,10 @@ SSBQuery::SSBMakeExecutableQ3Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector lo_col_oids = {lo_schema.GetColumn("lo_orderdate").Oid(), lo_schema.GetColumn("lo_custkey").Oid(),
                                lo_schema.GetColumn("lo_suppkey").Oid(), lo_schema.GetColumn("lo_revenue").Oid()};
     // Make output schema.
@@ -1888,9 +1888,9 @@ SSBQuery::SSBMakeExecutableQ3Part4(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{0, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
-    auto d_yearmonth = expr_maker.CVE(d_schema.GetColumn("d_yearmonth").Oid(), type::TypeId::VARCHAR);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_yearmonth = expr_maker.CVE(d_schema.GetColumn("d_yearmonth").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector d_oids = {d_schema.GetColumn("d_datekey").Oid(), d_schema.GetColumn("d_year").Oid(),
                           d_schema.GetColumn("d_yearmonth").Oid()};
     // Make output schema.
@@ -1911,8 +1911,8 @@ SSBQuery::SSBMakeExecutableQ3Part4(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> c_seq_scan;
   execution::compiler::test::OutputSchemaHelper c_seq_scan_out{0, &expr_maker};
   {
-    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), type::TypeId::INTEGER);
-    auto c_city = expr_maker.CVE(c_schema.GetColumn("c_city").Oid(), type::TypeId::VARCHAR);
+    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto c_city = expr_maker.CVE(c_schema.GetColumn("c_city").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> c_oids = {c_schema.GetColumn("c_custkey").Oid(),
                                               c_schema.GetColumn("c_city").Oid()};
 
@@ -1935,8 +1935,8 @@ SSBQuery::SSBMakeExecutableQ3Part4(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_city = expr_maker.CVE(s_schema.GetColumn("s_city").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_city = expr_maker.CVE(s_schema.GetColumn("s_city").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                               s_schema.GetColumn("s_city").Oid()};
 
@@ -1959,10 +1959,10 @@ SSBQuery::SSBMakeExecutableQ3Part4(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector lo_col_oids = {lo_schema.GetColumn("lo_orderdate").Oid(), lo_schema.GetColumn("lo_custkey").Oid(),
                                lo_schema.GetColumn("lo_suppkey").Oid(), lo_schema.GetColumn("lo_revenue").Oid()};
     // Make output schema.
@@ -2151,8 +2151,8 @@ SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{1, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector d_col_oids = {d_schema.GetColumn("d_datekey").Oid(), d_schema.GetColumn("d_year").Oid()};
     // Make output schema.
     d_seq_scan_out.AddOutput("d_datekey", d_datekey);
@@ -2170,9 +2170,9 @@ SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> c_seq_scan;
   execution::compiler::test::OutputSchemaHelper c_seq_scan_out{0, &expr_maker};
   {
-    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), type::TypeId::INTEGER);
-    auto c_nation = expr_maker.CVE(c_schema.GetColumn("c_nation").Oid(), type::TypeId::VARCHAR);
-    auto c_region = expr_maker.CVE(c_schema.GetColumn("c_region").Oid(), type::TypeId::VARCHAR);
+    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto c_nation = expr_maker.CVE(c_schema.GetColumn("c_nation").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto c_region = expr_maker.CVE(c_schema.GetColumn("c_region").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> c_col_oids = {c_schema.GetColumn("c_custkey").Oid(),
                                                   c_schema.GetColumn("c_nation").Oid(),
                                                   c_schema.GetColumn("c_region").Oid()};
@@ -2194,8 +2194,8 @@ SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_col_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                                   s_schema.GetColumn("s_region").Oid()};
     // Make the predicate: s_region = 'AMERICA'
@@ -2215,8 +2215,8 @@ SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> p_seq_scan;
   execution::compiler::test::OutputSchemaHelper p_seq_scan_out{0, &expr_maker};
   {
-    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), type::TypeId::INTEGER);
-    auto p_mfgr = expr_maker.CVE(p_schema.GetColumn("p_mfgr").Oid(), type::TypeId::VARCHAR);
+    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto p_mfgr = expr_maker.CVE(p_schema.GetColumn("p_mfgr").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> p_col_oids = {p_schema.GetColumn("p_partkey").Oid(),
                                                   p_schema.GetColumn("p_mfgr").Oid()};
     // Make the predicate: p_mfgr = 'MFGR#1' or p_mfgr = 'MFGR#2'
@@ -2237,12 +2237,12 @@ SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
-    auto lo_supplycost = expr_maker.CVE(lo_schema.GetColumn("lo_supplycost").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_supplycost = expr_maker.CVE(lo_schema.GetColumn("lo_supplycost").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector lo_col_oids = {lo_schema.GetColumn("lo_orderdate").Oid(), lo_schema.GetColumn("lo_custkey").Oid(),
                                lo_schema.GetColumn("lo_suppkey").Oid(),   lo_schema.GetColumn("lo_partkey").Oid(),
                                lo_schema.GetColumn("lo_revenue").Oid(),   lo_schema.GetColumn("lo_supplycost").Oid()};
@@ -2462,8 +2462,8 @@ SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{1, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector d_col_oids = {d_schema.GetColumn("d_datekey").Oid(), d_schema.GetColumn("d_year").Oid()};
     // Make predicate: d_year = 1997 or d_year = 1998
     auto predicate = expr_maker.ConjunctionOr(expr_maker.ComparisonEq(d_year, expr_maker.Constant(1997)),
@@ -2484,8 +2484,8 @@ SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> c_seq_scan;
   execution::compiler::test::OutputSchemaHelper c_seq_scan_out{0, &expr_maker};
   {
-    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), type::TypeId::INTEGER);
-    auto c_region = expr_maker.CVE(c_schema.GetColumn("c_region").Oid(), type::TypeId::VARCHAR);
+    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto c_region = expr_maker.CVE(c_schema.GetColumn("c_region").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> c_col_oids = {c_schema.GetColumn("c_custkey").Oid(),
                                                   c_schema.GetColumn("c_region").Oid()};
     // Make the predicate: c_region = 'AMERICA'
@@ -2505,9 +2505,9 @@ SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), type::TypeId::VARCHAR);
-    auto s_nation = expr_maker.CVE(s_schema.GetColumn("s_nation").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_region = expr_maker.CVE(s_schema.GetColumn("s_region").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto s_nation = expr_maker.CVE(s_schema.GetColumn("s_nation").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_col_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                                   s_schema.GetColumn("s_region").Oid(),
                                                   s_schema.GetColumn("s_nation").Oid()};
@@ -2529,9 +2529,9 @@ SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> p_seq_scan;
   execution::compiler::test::OutputSchemaHelper p_seq_scan_out{0, &expr_maker};
   {
-    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), type::TypeId::INTEGER);
-    auto p_mfgr = expr_maker.CVE(p_schema.GetColumn("p_mfgr").Oid(), type::TypeId::VARCHAR);
-    auto p_category = expr_maker.CVE(p_schema.GetColumn("p_category").Oid(), type::TypeId::VARCHAR);
+    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto p_mfgr = expr_maker.CVE(p_schema.GetColumn("p_mfgr").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto p_category = expr_maker.CVE(p_schema.GetColumn("p_category").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> p_col_oids = {p_schema.GetColumn("p_partkey").Oid(),
                                                   p_schema.GetColumn("p_mfgr").Oid(),
                                                   p_schema.GetColumn("p_category").Oid()};
@@ -2555,12 +2555,12 @@ SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
-    auto lo_supplycost = expr_maker.CVE(lo_schema.GetColumn("lo_supplycost").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_supplycost = expr_maker.CVE(lo_schema.GetColumn("lo_supplycost").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector lo_col_oids = {lo_schema.GetColumn("lo_orderdate").Oid(), lo_schema.GetColumn("lo_custkey").Oid(),
                                lo_schema.GetColumn("lo_suppkey").Oid(),   lo_schema.GetColumn("lo_partkey").Oid(),
                                lo_schema.GetColumn("lo_revenue").Oid(),   lo_schema.GetColumn("lo_supplycost").Oid()};
@@ -2793,8 +2793,8 @@ SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> d_seq_scan;
   execution::compiler::test::OutputSchemaHelper d_seq_scan_out{1, &expr_maker};
   {
-    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), type::TypeId::INTEGER);
-    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), type::TypeId::INTEGER);
+    auto d_datekey = expr_maker.CVE(d_schema.GetColumn("d_datekey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto d_year = expr_maker.CVE(d_schema.GetColumn("d_year").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector d_col_oids = {d_schema.GetColumn("d_datekey").Oid(), d_schema.GetColumn("d_year").Oid()};
     // Make predicate: d_year = 1997 or d_year = 1998
     auto predicate = expr_maker.ConjunctionOr(expr_maker.ComparisonEq(d_year, expr_maker.Constant(1997)),
@@ -2815,8 +2815,8 @@ SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> c_seq_scan;
   execution::compiler::test::OutputSchemaHelper c_seq_scan_out{0, &expr_maker};
   {
-    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), type::TypeId::INTEGER);
-    auto c_region = expr_maker.CVE(c_schema.GetColumn("c_region").Oid(), type::TypeId::VARCHAR);
+    auto c_custkey = expr_maker.CVE(c_schema.GetColumn("c_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto c_region = expr_maker.CVE(c_schema.GetColumn("c_region").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> c_col_oids = {c_schema.GetColumn("c_custkey").Oid(),
                                                   c_schema.GetColumn("c_region").Oid()};
     // Make the predicate: c_region = 'AMERICA'
@@ -2836,9 +2836,9 @@ SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> s_seq_scan;
   execution::compiler::test::OutputSchemaHelper s_seq_scan_out{0, &expr_maker};
   {
-    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), type::TypeId::INTEGER);
-    auto s_city = expr_maker.CVE(s_schema.GetColumn("s_city").Oid(), type::TypeId::VARCHAR);
-    auto s_nation = expr_maker.CVE(s_schema.GetColumn("s_nation").Oid(), type::TypeId::VARCHAR);
+    auto s_suppkey = expr_maker.CVE(s_schema.GetColumn("s_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto s_city = expr_maker.CVE(s_schema.GetColumn("s_city").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto s_nation = expr_maker.CVE(s_schema.GetColumn("s_nation").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> s_col_oids = {s_schema.GetColumn("s_suppkey").Oid(),
                                                   s_schema.GetColumn("s_city").Oid(),
                                                   s_schema.GetColumn("s_nation").Oid()};
@@ -2860,9 +2860,9 @@ SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> p_seq_scan;
   execution::compiler::test::OutputSchemaHelper p_seq_scan_out{0, &expr_maker};
   {
-    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), type::TypeId::INTEGER);
-    auto p_brand1 = expr_maker.CVE(p_schema.GetColumn("p_brand1").Oid(), type::TypeId::VARCHAR);
-    auto p_category = expr_maker.CVE(p_schema.GetColumn("p_category").Oid(), type::TypeId::VARCHAR);
+    auto p_partkey = expr_maker.CVE(p_schema.GetColumn("p_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto p_brand1 = expr_maker.CVE(p_schema.GetColumn("p_brand1").Oid(), execution::sql::SqlTypeId::Varchar);
+    auto p_category = expr_maker.CVE(p_schema.GetColumn("p_category").Oid(), execution::sql::SqlTypeId::Varchar);
     std::vector<catalog::col_oid_t> p_col_oids = {p_schema.GetColumn("p_partkey").Oid(),
                                                   p_schema.GetColumn("p_brand1").Oid(),
                                                   p_schema.GetColumn("p_category").Oid()};
@@ -2884,12 +2884,12 @@ SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccesso
   std::unique_ptr<planner::AbstractPlanNode> lo_seq_scan;
   execution::compiler::test::OutputSchemaHelper lo_seq_scan_out{1, &expr_maker};
   {
-    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), type::TypeId::INTEGER);
-    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), type::TypeId::INTEGER);
-    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), type::TypeId::INTEGER);
-    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), type::TypeId::INTEGER);
-    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), type::TypeId::INTEGER);
-    auto lo_supplycost = expr_maker.CVE(lo_schema.GetColumn("lo_supplycost").Oid(), type::TypeId::INTEGER);
+    auto lo_orderdate = expr_maker.CVE(lo_schema.GetColumn("lo_orderdate").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_custkey = expr_maker.CVE(lo_schema.GetColumn("lo_custkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_suppkey = expr_maker.CVE(lo_schema.GetColumn("lo_suppkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_partkey = expr_maker.CVE(lo_schema.GetColumn("lo_partkey").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_revenue = expr_maker.CVE(lo_schema.GetColumn("lo_revenue").Oid(), execution::sql::SqlTypeId::Integer);
+    auto lo_supplycost = expr_maker.CVE(lo_schema.GetColumn("lo_supplycost").Oid(), execution::sql::SqlTypeId::Integer);
     std::vector lo_col_oids = {lo_schema.GetColumn("lo_orderdate").Oid(), lo_schema.GetColumn("lo_custkey").Oid(),
                                lo_schema.GetColumn("lo_suppkey").Oid(),   lo_schema.GetColumn("lo_partkey").Oid(),
                                lo_schema.GetColumn("lo_revenue").Oid(),   lo_schema.GetColumn("lo_supplycost").Oid()};

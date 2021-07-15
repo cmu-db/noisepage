@@ -8,7 +8,7 @@
 #include "execution/sql/value.h"
 #include "planner/plannodes/output_schema.h"
 #include "test_util/test_harness.h"
-#include "type/type_id.h"
+
 
 // TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary
 // expressions, but this is no simple task. We would basically need an expression evaluator on output rows.
@@ -303,36 +303,36 @@ class OutputStore {
         }
         // TODO(Amadou): Figure out to print other types.
         switch (col.GetType()) {
-          case noisepage::type::TypeId::TINYINT:
-          case noisepage::type::TypeId::SMALLINT:
-          case noisepage::type::TypeId::BIGINT:
-          case noisepage::type::TypeId::INTEGER: {
+          case execution::sql::SqlTypeId::TinyInt:
+          case execution::sql::SqlTypeId::SmallInt:
+          case execution::sql::SqlTypeId::BigInt:
+          case execution::sql::SqlTypeId::Integer: {
             auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case noisepage::type::TypeId::BOOLEAN: {
+          case execution::sql::SqlTypeId::Boolean: {
             auto *val = reinterpret_cast<sql::BoolVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case noisepage::type::TypeId::REAL: {
+          case execution::sql::SqlTypeId::Double: {
             auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case noisepage::type::TypeId::DATE: {
+          case execution::sql::SqlTypeId::Date: {
             auto *val = reinterpret_cast<sql::DateVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case noisepage::type::TypeId::TIMESTAMP: {
+          case execution::sql::SqlTypeId::Timestamp: {
             auto *val = reinterpret_cast<sql::TimestampVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case noisepage::type::TypeId::VARCHAR:
-          case noisepage::type::TypeId::VARBINARY: {
+          case execution::sql::SqlTypeId::Varchar:
+          case execution::sql::SqlTypeId::Varbinary: {
             auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;

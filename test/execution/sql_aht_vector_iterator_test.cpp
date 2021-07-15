@@ -63,10 +63,10 @@ class AggregationHashTableVectorIteratorTest : public SqlBasedTest {
  public:
   AggregationHashTableVectorIteratorTest() {
     std::vector<catalog::Schema::Column> cols = {
-        {"key", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT)},
-        {"count1", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT)},
-        {"count2", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT)},
-        {"count3", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT)},
+        {"key", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
+        {"count1", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
+        {"count2", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
+        {"count3", execution::sql::SqlTypeId::BigInt, true, parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
     };
     schema_ = std::make_unique<catalog::Schema>(std::move(cols));
   }

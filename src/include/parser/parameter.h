@@ -1,5 +1,6 @@
 #pragma once
 
+#include "execution/sql/sql.h"
 
 namespace noisepage::parser {
 

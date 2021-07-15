@@ -8,7 +8,7 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 #include "test_util/storage_test_util.h"
-#include "type/type_id.h"
+
 
 namespace noisepage {
 struct CatalogTestUtil {
@@ -21,16 +21,16 @@ struct CatalogTestUtil {
     NOISEPAGE_ASSERT(max_cols > 0, "There should be at least 1 columm.");
     catalog::col_oid_t col_oid(0);
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
-    std::vector<type::TypeId> possible_attr_types{
-        type::TypeId::BOOLEAN,   type::TypeId::TINYINT, type::TypeId::SMALLINT,
-        type::TypeId::INTEGER,   type::TypeId::BIGINT,  type::TypeId::REAL,
-        type::TypeId::TIMESTAMP, type::TypeId::DATE,    type::TypeId::VARCHAR};
+    std::vector<execution::sql::SqlTypeId> possible_attr_types{
+        execution::sql::SqlTypeId::Boolean,   execution::sql::SqlTypeId::TinyInt, execution::sql::SqlTypeId::SmallInt,
+        execution::sql::SqlTypeId::Integer,   execution::sql::SqlTypeId::BigInt,  execution::sql::SqlTypeId::Double,
+        execution::sql::SqlTypeId::Timestamp, execution::sql::SqlTypeId::Date,    execution::sql::SqlTypeId::Varchar};
     std::vector<bool> possible_attr_nullable{true, false};
     std::vector<catalog::Schema::Column> columns;
     for (uint16_t i = 0; i < num_attrs; i++) {
-      type::TypeId attr_type = *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator);
+      execution::sql::SqlTypeId attr_type = *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator);
       bool attr_nullable = *RandomTestUtil::UniformRandomElement(&possible_attr_nullable, generator);
-      if (attr_type != type::TypeId::VARCHAR && attr_type != type::TypeId::VARBINARY)
+      if (attr_type != execution::sql::SqlTypeId::Varchar && attr_type != execution::sql::SqlTypeId::Varbinary)
         columns.emplace_back("col_name", attr_type, attr_nullable, col_oid++);
       else
         columns.emplace_back("col_name", attr_type, 255, attr_nullable, col_oid++);

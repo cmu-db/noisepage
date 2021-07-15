@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "csv/csv.hpp"  // NOLINT
+#include "execution/sql/sql.h"
 #include "execution/sql/value.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
@@ -126,7 +127,7 @@ void TableReader::WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *
       index_info->index_pr_->SetNull(index_offset);
     } else {
       byte *index_data = index_info->index_pr_->AccessForceNotNull(index_offset);
-      uint8_t type_size = type::TypeUtil::GetTypeTrueSize(index_info->cols_[index_col_idx].Type());
+      uint8_t type_size = execution::sql::SqlTypeIdTrueSize(index_info->cols_[index_col_idx].Type());
       std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
     }
   }
@@ -134,7 +135,7 @@ void TableReader::WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *
   index_info->index_ptr_->Insert(exec_ctx_->GetTxn(), *index_info->index_pr_, slot);
 }
 
-void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, type::TypeId type,
+void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, execution::sql::SqlTypeId type,
                                 csv::CSVField *field) {
   if (*field == NULL_STRING) {
     insert_pr->SetNull(col_offset);
@@ -142,37 +143,37 @@ void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_o
   }
   byte *insert_offset = insert_pr->AccessForceNotNull(col_offset);
   switch (type) {
-    case type::TypeId::TINYINT: {
+    case execution::sql::SqlTypeId::TinyInt: {
       auto val = field->get<int8_t>();
       std::memcpy(insert_offset, &val, sizeof(int8_t));
       break;
     }
-    case type::TypeId::SMALLINT: {
+    case execution::sql::SqlTypeId::SmallInt: {
       auto val = field->get<int16_t>();
       std::memcpy(insert_offset, &val, sizeof(int16_t));
       break;
     }
-    case type::TypeId::INTEGER: {
+    case execution::sql::SqlTypeId::Integer: {
       auto val = field->get<int32_t>();
       std::memcpy(insert_offset, &val, sizeof(int32_t));
       break;
     }
-    case type::TypeId::BIGINT: {
+    case execution::sql::SqlTypeId::BigInt: {
       auto val = field->get<int64_t>();
       std::memcpy(insert_offset, &val, sizeof(int64_t));
       break;
     }
-    case type::TypeId::REAL: {
+    case execution::sql::SqlTypeId::Double: {
       auto val = field->get<double>();
       std::memcpy(insert_offset, &val, sizeof(double));
       break;
     }
-    case type::TypeId::DATE: {
+    case execution::sql::SqlTypeId::Date: {
       auto val = sql::Date::FromString(field->get<std::string>());
       std::memcpy(insert_offset, &val, sizeof(uint32_t));
       break;
     }
-    case type::TypeId::VARCHAR: {
+    case execution::sql::SqlTypeId::Varchar: {
       auto val = field->get<std::string_view>();
       auto content_size = static_cast<uint32_t>(val.size());
       if (content_size <= storage::VarlenEntry::InlineThreshold()) {

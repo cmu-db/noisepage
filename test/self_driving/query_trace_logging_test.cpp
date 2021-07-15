@@ -22,7 +22,7 @@ class QueryTraceLogging : public TerrierTest {
       const auto string = std::string_view(file);
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
       param_map.find(settings::Param::startup_ddl_path)->second.value_ =
-          parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar, string_val.first, std::move(string_val.second));
     }
 
     db_main_ = noisepage::DBMain::Builder()
@@ -75,19 +75,19 @@ TEST_F(QueryTraceLogging, BasicLogging) {
   std::vector<std::string> texts = {"a", "b", "c", "d", "e", "f", "g"};
   std::vector<std::vector<parser::ConstantValueExpression>> parameters = {
       std::vector<parser::ConstantValueExpression>{
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(11))},
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(11))},
       std::vector<parser::ConstantValueExpression>{
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(22))},
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(22))},
       std::vector<parser::ConstantValueExpression>{
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(33))},
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(33))},
       std::vector<parser::ConstantValueExpression>{
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(44))},
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(44))},
       std::vector<parser::ConstantValueExpression>{
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(55))},
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(55))},
       std::vector<parser::ConstantValueExpression>{
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(66))},
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(66))},
       std::vector<parser::ConstantValueExpression>{
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(77))},
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(77))},
   };
 
   // Create 3 intervals of time
@@ -163,7 +163,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
     }
 
     std::vector<std::vector<parser::ConstantValueExpression>> params;
-    std::vector<type::TypeId> param_types;
+    std::vector<execution::sql::SqlTypeId> param_types;
 
     common::Future<task::DummyResult> sync;
     execution::exec::ExecutionSettings settings{};
@@ -212,7 +212,7 @@ TEST_F(QueryTraceLogging, BasicLogging) {
 
       std::vector<std::string> type_strs;
       for (const auto &param_val : parameters[qid]) {
-        auto tstr = type::TypeUtil::TypeIdToString(param_val.GetReturnValueType());
+        auto tstr = execution::sql::SqlTypeIdToString(param_val.GetReturnValueType());
         type_strs.push_back(tstr);
       }
 

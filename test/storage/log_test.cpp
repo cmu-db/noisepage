@@ -295,8 +295,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   // Create SQLTable
-  auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
-                                     parser::ConstantValueExpression(type::TypeId::INTEGER));
+  auto col = catalog::Schema::Column("attribute", execution::sql::SqlTypeId::Integer, false,
+                                     parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   auto *const sql_table = new storage::SqlTable(store_, table_schema);
@@ -366,8 +366,8 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   // Create SQLTable
-  auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
-                                     parser::ConstantValueExpression(type::TypeId::INTEGER));
+  auto col = catalog::Schema::Column("attribute", execution::sql::SqlTypeId::Integer, false,
+                                     parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   auto *const sql_table = new storage::SqlTable(store_, table_schema);
@@ -422,8 +422,8 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
 // BEGIN; COMMIT; across PSQL and noticing that COMMIT blocked forever with a real callback.
 TEST_F(WriteAheadLoggingTests, ReadOnlyCallbackTest) {
   // Create SQLTable
-  auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
-                                     parser::ConstantValueExpression(type::TypeId::INTEGER));
+  auto col = catalog::Schema::Column("attribute", execution::sql::SqlTypeId::Integer, false,
+                                     parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   auto *const sql_table = new storage::SqlTable(store_, table_schema);
