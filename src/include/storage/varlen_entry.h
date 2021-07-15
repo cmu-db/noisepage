@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <functional>
+#include <vector>
 
 #include "common/hash_util.h"
 #include "common/json.h"
