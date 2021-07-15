@@ -13,8 +13,8 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "type/type_id.h"
-#include "type/type_util.h"
+
+
 
 namespace noisepage::planner {
 

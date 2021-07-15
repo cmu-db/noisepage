@@ -7,7 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "execution/ast/builtins.h"
-#include "type/type_id.h"
+
 namespace noisepage::execution::functions {
 
 /**

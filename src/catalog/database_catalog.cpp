@@ -26,7 +26,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::catalog {
 

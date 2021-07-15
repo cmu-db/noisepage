@@ -11,7 +11,7 @@
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::network {
 

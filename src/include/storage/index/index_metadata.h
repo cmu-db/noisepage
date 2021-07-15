@@ -12,7 +12,7 @@
 #include "storage/index/index_defs.h"
 #include "storage/projected_row.h"
 #include "storage/storage_util.h"
-#include "type/type_util.h"
+
 
 namespace noisepage::storage::index {
 

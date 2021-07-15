@@ -10,7 +10,7 @@
 #include "common/managed_pointer.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "self_driving/modeling/operating_unit.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::catalog {
 class CatalogAccessor;

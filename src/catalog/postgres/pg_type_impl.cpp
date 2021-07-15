@@ -100,7 +100,8 @@ void PgTypeImpl::InsertType(const common::ManagedPointer<transaction::Transactio
 
 void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> dbc,
                                 const common::ManagedPointer<transaction::TransactionContext> txn) {
-  auto insert_base_type = [&](const execution::sql::SqlTypeId type, const std::string &type_name, const int16_t type_size) {
+  auto insert_base_type = [&](const execution::sql::SqlTypeId type, const std::string &type_name,
+                              const int16_t type_size) {
     InsertType(txn, dbc->GetTypeOidForType(type), type_name, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, type_size,
                true, PgType::Type::BASE);
   };
@@ -114,8 +115,8 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
   insert_base_type(execution::sql::SqlTypeId::BigInt, "bigint", sizeof(int64_t));
   insert_base_type(execution::sql::SqlTypeId::Double, "double", sizeof(double));
   insert_base_type(execution::sql::SqlTypeId::Decimal, "decimal", sizeof(int128_t));
-  insert_base_type(execution::sql::SqlTypeId::Date, "date", sizeof(type::date_t));
-  insert_base_type(execution::sql::SqlTypeId::Timestamp, "timestamp", sizeof(type::timestamp_t));
+  insert_base_type(execution::sql::SqlTypeId::Date, "date", sizeof(uint32_t));
+  insert_base_type(execution::sql::SqlTypeId::Timestamp, "timestamp", sizeof(uint64_t));
 
   InsertType(txn, dbc->GetTypeOidForType(execution::sql::SqlTypeId::Varchar), "varchar",
              PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);

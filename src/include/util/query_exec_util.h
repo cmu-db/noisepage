@@ -12,7 +12,7 @@
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
 #include "planner/plannodes/output_schema.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::transaction {
 class TransactionContext;

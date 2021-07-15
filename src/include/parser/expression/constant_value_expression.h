@@ -10,7 +10,7 @@
 #include "common/hash_util.h"
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
-#include "type/type_util.h"
+
 
 namespace noisepage::binder {
 class BindNodeVisitor;

@@ -17,7 +17,7 @@
 #include "common/macros.h"
 #include "execution/sql/value.h"
 #include "loggers/optimizer_logger.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::optimizer {
 

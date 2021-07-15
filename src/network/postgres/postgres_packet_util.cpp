@@ -10,7 +10,7 @@
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_protocol_util.h"
 #include "parser/expression/constant_value_expression.h"
-#include "type/type_id.h"
+
 
 namespace noisepage::network {
 

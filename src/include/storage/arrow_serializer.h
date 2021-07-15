@@ -9,7 +9,7 @@
 
 #include "storage/arrow_block_metadata.h"
 #include "storage/data_table.h"
-#include "type/type_id.h"
+
 
 namespace flatbuf = org::apache::arrow::flatbuf;
 
