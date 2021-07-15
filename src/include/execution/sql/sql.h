@@ -124,7 +124,7 @@ std::size_t GetTypeIdSize(TypeId type);
 /**
  * @return The size in bytes of a value with the primitive type @em type.
  */
-std::size_t GetSqlTypeIdSize(SqlTypeId type);
+uint16_t GetSqlTypeIdSize(SqlTypeId type);
 
 /**
  * @return The alignment in bytes of a value with the primitive type @em type.
@@ -141,7 +141,7 @@ std::string SqlTypeIdToString(SqlTypeId type);
  * @return size in bytes used to represent the given type
  */
 inline uint16_t SqlTypeIdTrueSize(const SqlTypeId type_id) {
-  return GetSqlTypeIdSize(type_id) & static_cast<uint8_t>(0x7f);
+  return GetSqlTypeIdSize(type_id) & static_cast<uint8_t>(0x7f);  // TODO(Matt): replace with AttrSizeBytes
 }
 
 /**

@@ -74,7 +74,7 @@ std::size_t GetTypeIdSize(TypeId type) {
 }
 
 // TODO(Matt): why can't this call GetTypeIdSize for the EE matching type? seems there are discrepancies
-std::size_t GetSqlTypeIdSize(SqlTypeId type) {
+uint16_t GetSqlTypeIdSize(SqlTypeId type) {
   switch (type) {
     case SqlTypeId::Boolean:
       return sizeof(bool);
