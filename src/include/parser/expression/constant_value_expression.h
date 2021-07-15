@@ -11,7 +11,6 @@
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
 
-
 namespace noisepage::binder {
 class BindNodeVisitor;
 }
@@ -211,7 +210,7 @@ class ConstantValueExpression : public AbstractExpression {
       case execution::sql::SqlTypeId::BigInt: {
         return GetInteger().is_null_;
       }
-      case execution::sql::SqlTypeId::Real: {
+      case execution::sql::SqlTypeId::Double: {
         return GetReal().is_null_;
       }
       case execution::sql::SqlTypeId::Timestamp: {
