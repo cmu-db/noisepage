@@ -18,8 +18,7 @@ namespace execution::ast::udf {
 class FunctionAST;
 }
 
-namespace parser {
-namespace udf {
+namespace parser::udf {
 
 /**
  * Namespace alias to make below more manageable.
@@ -37,7 +36,7 @@ class PLpgSQLParser {
    * @param accessor The accessor to use during parsing
    * @param db_oid The database OID
    */
-  PLpgSQLParser(common::ManagedPointer<udfexec::UDFASTContext> udf_ast_context,
+  PLpgSQLParser(common::ManagedPointer<udfexec::UdfAstContext> udf_ast_context,
                 const common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::db_oid_t db_oid)
       : udf_ast_context_(udf_ast_context), accessor_(accessor), db_oid_(db_oid) {}
 
@@ -51,7 +50,7 @@ class PLpgSQLParser {
    */
   std::unique_ptr<udfexec::FunctionAST> Parse(std::vector<std::string> &&param_names,
                                               std::vector<type::TypeId> &&param_types, const std::string &func_body,
-                                              common::ManagedPointer<udfexec::UDFASTContext> ast_context);
+                                              common::ManagedPointer<udfexec::UdfAstContext> ast_context);
 
  private:
   /**
@@ -126,7 +125,7 @@ class PLpgSQLParser {
 
  private:
   /** The UDF AST context */
-  common::ManagedPointer<udfexec::UDFASTContext> udf_ast_context_;
+  common::ManagedPointer<udfexec::UdfAstContext> udf_ast_context_;
 
   /** The catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> accessor_;
@@ -138,6 +137,5 @@ class PLpgSQLParser {
   std::unordered_map<std::string, type::TypeId> symbol_table_;
 };
 
-}  // namespace udf
-}  // namespace parser
+}  // namespace parser::udf
 }  // namespace noisepage

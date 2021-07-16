@@ -7,21 +7,18 @@
 
 #include "type/type_id.h"
 
-namespace noisepage {
-namespace execution {
-namespace ast {
-namespace udf {
+namespace noisepage::execution::ast::udf {
 
 /**
- * The UDFASTContext class maintains state that is utilized
+ * The UdfAstContext class maintains state that is utilized
  * throughout construction of the UDF abstract syntax tree.
  */
-class UDFASTContext {
+class UdfAstContext {
  public:
   /**
-   * Construct a new UDFASTContext.
+   * Construct a new AstContext instance.
    */
-  UDFASTContext() = default;
+  UdfAstContext() = default;
 
   /**
    * Set the type of the variabel identifed by `name`.
@@ -84,15 +81,12 @@ class UDFASTContext {
   }
 
  private:
-  // The symbol table for the UDF.
+  /** The symbol table for the UDF. */
   std::unordered_map<std::string, type::TypeId> symbol_table_;
-  // Collection of local variable names for the UDF.
+  /** Collection of local variable names for the UDF. */
   std::vector<std::string> local_variables_;
-  // Collection of record types for the UDF.
+  /** Collection of record types for the UDF. */
   std::unordered_map<std::string, std::vector<std::pair<std::string, type::TypeId>>> record_types_;
 };
 
-}  // namespace udf
-}  // namespace ast
-}  // namespace execution
-}  // namespace noisepage
+}  // namespace noisepage::execution::ast::udf

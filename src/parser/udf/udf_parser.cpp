@@ -46,7 +46,7 @@ static constexpr const char K_PLPGSQL_STMT_DYNEXECUTE[] = "PLpgSQL_stmt_dynexecu
 
 std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
     std::vector<std::string> &&param_names, std::vector<type::TypeId> &&param_types, const std::string &func_body,
-    common::ManagedPointer<execution::ast::udf::UDFASTContext> ast_context) {
+    common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context) {
   auto result = pg_query_parse_plpgsql(func_body.c_str());
   if (result.error != nullptr) {
     pg_query_free_plpgsql_parse_result(result);

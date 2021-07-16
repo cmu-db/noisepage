@@ -68,7 +68,7 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   }
 
   // Make the context here using the body
-  ast::udf::UDFASTContext udf_ast_context{};
+  ast::udf::UdfAstContext udf_ast_context{};
   parser::udf::PLpgSQLParser udf_parser{(common::ManagedPointer(&udf_ast_context)), accessor, node->GetDatabaseOid()};
 
   std::unique_ptr<ast::udf::FunctionAST> ast{};
@@ -103,9 +103,9 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
       &codegen, codegen.MakeFreshIdentifier(name), std::move(fn_params),
       codegen.TplType(execution::sql::GetTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType())))};
 
-  compiler::udf::UDFCodegen udf_codegen{accessor.Get(), &fb, &udf_ast_context, &codegen, node->GetDatabaseOid()};
-  udf_codegen.GenerateUDF(ast->Body());
-  auto *file = udf_codegen.Finish();
+  // Run UDF code generation
+  auto *file = compiler::udf::UdfCodegen::Run(accessor.Get(), &fb, &udf_ast_context, &codegen, node->GetDatabaseOid(),
+                                              ast.get());
 
   {
     sema::Sema type_check{codegen.GetAstContext().Get()};

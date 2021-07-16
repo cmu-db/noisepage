@@ -66,7 +66,7 @@ BindNodeVisitor::~BindNodeVisitor() = default;
 
 std::unordered_map<std::string, std::pair<std::string, std::size_t>> BindNodeVisitor::BindAndGetUDFParams(
     common::ManagedPointer<parser::ParseResult> parse_result,
-    common::ManagedPointer<execution::ast::udf::UDFASTContext> udf_ast_context) {
+    common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context) {
   NOISEPAGE_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
   sherpa_ = std::make_unique<BinderSherpa>(parse_result, nullptr, nullptr);
   NOISEPAGE_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");

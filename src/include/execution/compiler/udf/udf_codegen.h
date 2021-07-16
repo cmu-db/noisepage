@@ -41,27 +41,41 @@ class ForStmtAST;
 namespace compiler::udf {
 
 /**
- * The UDFCodegen class implements a visitor for UDF AST nodes
- * and encapsulates all of the logic required to generate code
- * from the UDF abstract syntax tree.
+ * The UdfCodegen class implements a visitor for UDF AST
+ * nodes and encapsulates all of the logic required to generate
+ * code from the UDF abstract syntax tree.
  */
-class UDFCodegen : ast::udf::ASTNodeVisitor {
+class UdfCodegen : ast::udf::ASTNodeVisitor {
  public:
   /**
-   * Construct a new UDFCodegen instance.
+   * Construct a new UdfCodegen instance.
    * @param accessor The catalog accessor used in code generation
    * @param fb The function builder instance used for the UDF
    * @param udf_ast_context The AST context for the UDF
    * @param codegen The codegen instance
    * @param db_oid The OID for the relevant database
    */
-  UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb, ast::udf::UDFASTContext *udf_ast_context,
+  UdfCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb, ast::udf::UdfAstContext *udf_ast_context,
              CodeGen *codegen, catalog::db_oid_t db_oid);
 
   /**
    * Destroy the UDF code generation context.
    */
-  ~UDFCodegen() override = default;
+  ~UdfCodegen() override = default;
+
+  /**
+   * Run UDF code generation.
+   * @param accessor The catalog accessor
+   * @param function_builder The function builder to use during code generation
+   * @param ast_context The UDF AST context
+   * @param codegen The code generation instance
+   * @param db_oid The database OID
+   * @param root The root of the UDF AST for which code is generated
+   * @return The file containing the generated code
+   */
+  static execution::ast::File *Run(catalog::CatalogAccessor *accessor, FunctionBuilder *function_builder,
+                                   ast::udf::UdfAstContext *ast_context, CodeGen *codegen, catalog::db_oid_t db_oid,
+                                   ast::udf::FunctionAST *root);
 
   /**
    * Generate a UDF from the given abstract syntax tree.
@@ -216,7 +230,7 @@ class UDFCodegen : ast::udf::ASTNodeVisitor {
   FunctionBuilder *fb_;
 
   /** The AST context for the UDF */
-  ast::udf::UDFASTContext *udf_ast_context_;
+  ast::udf::UdfAstContext *udf_ast_context_;
 
   /** The code generation instance */
   CodeGen *codegen_;

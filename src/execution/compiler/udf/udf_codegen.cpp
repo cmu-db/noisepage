@@ -29,8 +29,8 @@
 
 namespace noisepage::execution::compiler::udf {
 
-UDFCodegen::UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
-                       ast::udf::UDFASTContext *udf_ast_context, CodeGen *codegen, catalog::db_oid_t db_oid)
+UdfCodegen::UdfCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
+                       ast::udf::UdfAstContext *udf_ast_context, CodeGen *codegen, catalog::db_oid_t db_oid)
     : accessor_{accessor},
       fb_{fb},
       udf_ast_context_{udf_ast_context},
@@ -46,19 +46,28 @@ UDFCodegen::UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
 }
 
 // Static
-const char *UDFCodegen::GetReturnParamString() { return "return_val"; }
-
-void UDFCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
-
-void UDFCodegen::Visit(ast::udf::AbstractAST *ast) {
-  throw NOT_IMPLEMENTED_EXCEPTION("UDFCodegen::Visit(AbstractAST*)");
+execution::ast::File *UdfCodegen::Run(catalog::CatalogAccessor *accessor, FunctionBuilder *function_builder,
+                                      ast::udf::UdfAstContext *ast_context, CodeGen *codegen, catalog::db_oid_t db_oid,
+                                      ast::udf::FunctionAST *root) {
+  UdfCodegen generator{accessor, function_builder, ast_context, codegen, db_oid};
+  generator.GenerateUDF(root->Body());
+  return generator.Finish();
 }
 
-void UDFCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) {
-  throw NOT_IMPLEMENTED_EXCEPTION("UDFCodegen::Visit(DynamicSQLStmtAST*)");
+// Static
+const char *UdfCodegen::GetReturnParamString() { return "return_val"; }
+
+void UdfCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
+
+void UdfCodegen::Visit(ast::udf::AbstractAST *ast) {
+  throw NOT_IMPLEMENTED_EXCEPTION("UdfCodegen::Visit(AbstractAST*)");
 }
 
-catalog::type_oid_t UDFCodegen::GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type) {
+void UdfCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) {
+  throw NOT_IMPLEMENTED_EXCEPTION("UdfCodegen::Visit(DynamicSQLStmtAST*)");
+}
+
+catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type) {
   switch (type) {
     case execution::ast::BuiltinType::Kind::Integer: {
       return accessor_->GetTypeOidFromTypeId(type::TypeId::INTEGER);
@@ -72,7 +81,7 @@ catalog::type_oid_t UDFCodegen::GetCatalogTypeOidFromSQLType(execution::ast::Bui
   }
 }
 
-execution::ast::File *UDFCodegen::Finish() {
+execution::ast::File *UdfCodegen::Finish() {
   auto fn = fb_->Finish();
   execution::util::RegionVector<execution::ast::Decl *> decls{{fn}, codegen_->GetAstContext()->GetRegion()};
   decls.insert(decls.begin(), aux_decls_.begin(), aux_decls_.end());
@@ -80,7 +89,7 @@ execution::ast::File *UDFCodegen::Finish() {
   return file;
 }
 
-void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
+void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
   std::vector<execution::ast::Expr *> args_ast{};
   std::vector<execution::ast::Expr *> args_ast_region_vec{};
   std::vector<catalog::type_oid_t> arg_types{};
@@ -119,11 +128,11 @@ void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
   }
 }
 
-void UDFCodegen::Visit(ast::udf::StmtAST *ast) { UNREACHABLE("Not implemented"); }
+void UdfCodegen::Visit(ast::udf::StmtAST *ast) { UNREACHABLE("Not implemented"); }
 
-void UDFCodegen::Visit(ast::udf::ExprAST *ast) { UNREACHABLE("Not implemented"); }
+void UdfCodegen::Visit(ast::udf::ExprAST *ast) { UNREACHABLE("Not implemented"); }
 
-void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
+void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   if (ast->Name() == "*internal*") {
     return;
   }
@@ -155,20 +164,20 @@ void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   current_type_ = prev_type;
 }
 
-void UDFCodegen::Visit(ast::udf::FunctionAST *ast) {
+void UdfCodegen::Visit(ast::udf::FunctionAST *ast) {
   for (size_t i = 0; i < ast->ParameterTypes().size(); i++) {
     SymbolTable()[ast->ParameterNames().at(i)] = codegen_->MakeFreshIdentifier("udf");
   }
   ast->Body()->Accept(this);
 }
 
-void UDFCodegen::Visit(ast::udf::VariableExprAST *ast) {
+void UdfCodegen::Visit(ast::udf::VariableExprAST *ast) {
   auto it = SymbolTable().find(ast->Name());
   NOISEPAGE_ASSERT(it != SymbolTable().end(), "Variable not declared");
   dst_ = codegen_->MakeExpr(it->second);
 }
 
-void UDFCodegen::Visit(ast::udf::ValueExprAST *ast) {
+void UdfCodegen::Visit(ast::udf::ValueExprAST *ast) {
   auto val = common::ManagedPointer(ast->Value()).CastManagedPointerTo<parser::ConstantValueExpression>();
   if (val->IsNull()) {
     dst_ = codegen_->ConstNull(current_type_);
@@ -202,7 +211,7 @@ void UDFCodegen::Visit(ast::udf::ValueExprAST *ast) {
   }
 }
 
-void UDFCodegen::Visit(ast::udf::AssignStmtAST *ast) {
+void UdfCodegen::Visit(ast::udf::AssignStmtAST *ast) {
   type::TypeId left_type = type::TypeId::INVALID;
   udf_ast_context_->GetVariableType(ast->Destination()->Name(), &left_type);
   current_type_ = left_type;
@@ -218,7 +227,7 @@ void UDFCodegen::Visit(ast::udf::AssignStmtAST *ast) {
   fb_->Append(codegen_->Assign(left_expr, rhs_expr));
 }
 
-void UDFCodegen::Visit(ast::udf::BinaryExprAST *ast) {
+void UdfCodegen::Visit(ast::udf::BinaryExprAST *ast) {
   execution::parsing::Token::Type op_token;
   bool compare = false;
   switch (ast->Op()) {
@@ -279,7 +288,7 @@ void UDFCodegen::Visit(ast::udf::BinaryExprAST *ast) {
   }
 }
 
-void UDFCodegen::Visit(ast::udf::IfStmtAST *ast) {
+void UdfCodegen::Visit(ast::udf::IfStmtAST *ast) {
   ast->Condition()->Accept(this);
   auto cond = dst_;
 
@@ -292,7 +301,7 @@ void UDFCodegen::Visit(ast::udf::IfStmtAST *ast) {
   branch.EndIf();
 }
 
-void UDFCodegen::Visit(ast::udf::IsNullExprAST *ast) {
+void UdfCodegen::Visit(ast::udf::IsNullExprAST *ast) {
   ast->Child()->Accept(this);
   auto chld = dst_;
   dst_ = codegen_->CallBuiltin(execution::ast::Builtin::IsValNull, {chld});
@@ -301,13 +310,13 @@ void UDFCodegen::Visit(ast::udf::IsNullExprAST *ast) {
   }
 }
 
-void UDFCodegen::Visit(ast::udf::SeqStmtAST *ast) {
+void UdfCodegen::Visit(ast::udf::SeqStmtAST *ast) {
   for (auto &stmt : ast->Statements()) {
     stmt->Accept(this);
   }
 }
 
-void UDFCodegen::Visit(ast::udf::WhileStmtAST *ast) {
+void UdfCodegen::Visit(ast::udf::WhileStmtAST *ast) {
   ast->Condition()->Accept(this);
   auto cond = dst_;
   Loop loop(fb_, cond);
@@ -315,7 +324,7 @@ void UDFCodegen::Visit(ast::udf::WhileStmtAST *ast) {
   loop.EndLoop();
 }
 
-void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
+void UdfCodegen::Visit(ast::udf::ForStmtAST *ast) {
   // Once we encounter a For-statement we know we need an execution context
   needs_exec_ctx_ = true;
 
@@ -462,13 +471,13 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
 }
 
-void UDFCodegen::Visit(ast::udf::RetStmtAST *ast) {
+void UdfCodegen::Visit(ast::udf::RetStmtAST *ast) {
   ast->Return()->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
   auto ret_expr = dst_;
   fb_->Append(codegen_->Return(ret_expr));
 }
 
-void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
+void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   // As soon as we encounter an embedded SQL statement,
   // we know we need an execution context
   needs_exec_ctx_ = true;
@@ -642,7 +651,7 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
 }
 
-void UDFCodegen::Visit(ast::udf::MemberExprAST *ast) {
+void UdfCodegen::Visit(ast::udf::MemberExprAST *ast) {
   ast->Object()->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
   auto object = dst_;
   dst_ = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->FieldName()));
