@@ -88,7 +88,7 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   index_iter1.Init();
 
   // Create cte_table
-  uint32_t cte_table_col_type[1] = {4};  // Represents TypeId for {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
 
   auto cte_scan = new noisepage::execution::sql::CteScanIterator(
@@ -157,7 +157,7 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
 
   // Create cte_table
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
-  uint32_t cte_table_col_type[1] = {4};  // Represents TypeId for {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
 
   auto cte_scan = new noisepage::execution::sql::CteScanIterator(
       exec_ctx_.get(), catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
