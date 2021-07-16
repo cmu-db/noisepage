@@ -933,8 +933,8 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_OutputRunners)(benchmark::State &state
     cols.emplace_back(col.str(), execution::sql::SqlTypeId::Double, nullptr);
   }
 
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
-  auto real_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Double);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto real_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Double));
   auto tuple_size = int_size * num_integers + real_size * num_reals;
 
   auto txn = txn_manager_->BeginTransaction();
@@ -1186,7 +1186,7 @@ void ExecutionRunners::ExecuteSeqScan(benchmark::State *state) {
     return;
   }
 
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
   execution::sql::SqlTypeId mix_type;
   if (varchar_mix == 1)
     mix_type = execution::sql::SqlTypeId::Varchar;
@@ -1336,7 +1336,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &
 
   // No warmup
   int num_iters = 1;
-  auto type_size = execution::sql::SqlTypeIdTrueSize(type);
+  auto type_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(type));
   auto tuple_size = type_size * key_num;
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
@@ -1447,8 +1447,8 @@ void ExecutionRunners::ExecuteInsert(benchmark::State *state) {
     }
   }
 
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
-  auto real_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Double);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto real_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Double));
   auto tuple_size = int_size * num_ints + real_size * num_reals;
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
@@ -1492,8 +1492,8 @@ void ExecutionRunners::ExecuteUpdate(benchmark::State *state) {
   // A lookup size of 0 indicates a special query
   bool is_first_type = tbl_ints != 0;
   auto type = is_first_type ? (execution::sql::SqlTypeId::Integer) : (execution::sql::SqlTypeId::BigInt);
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
-  auto bigint_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::BigInt);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto bigint_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
   auto tuple_size = is_first_type ? (int_size * update_keys) : (bigint_size * update_keys);
   auto num_col = is_first_type ? num_integers : num_bigints;
   auto idx_size = is_first_type ? (int_size * num_col) : (bigint_size * num_col);
@@ -1589,8 +1589,8 @@ void ExecutionRunners::ExecuteDelete(benchmark::State *state) {
 
   // A lookup size of 0 indicates a special query
   auto type = tbl_ints != 0 ? (execution::sql::SqlTypeId::Integer) : (execution::sql::SqlTypeId::BigInt);
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
-  auto bigint_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::BigInt);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto bigint_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
   auto tbl_col = tbl_ints + tbl_bigints;
@@ -1673,8 +1673,8 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ3_SortRunners)(benchmark::State &state) 
     return;
   }
 
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
-  auto real_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Double);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto real_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Double));
   auto tuple_size = int_size * num_integers + real_size * num_reals;
   auto num_col = num_integers + num_reals;
 
@@ -1731,8 +1731,8 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ4_HashJoinSelfRunners)(benchmark::State 
   // Size of the scan tuple
   // Size of hash key size, probe key size
   // Size of output since only output 1 side
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
-  auto bigint_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::BigInt);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto bigint_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
 
@@ -1786,8 +1786,8 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::Sta
     return;
   }
 
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
-  auto bigint_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::BigInt);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto bigint_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
 
@@ -1843,7 +1843,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ5_0_AggregateRunners)(benchmark::State &
     return;
   }
 
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
   size_t tuple_size = int_size * num_integers;
   size_t num_col = num_integers + num_varchars;
   for (auto i = 0; i < num_varchars; i++) {
@@ -1891,7 +1891,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ5_1_AggregateRunners)(benchmark::State &
     return;
   }
 
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
   auto tuple_size = int_size * num_integers;
   auto num_col = num_integers;
   auto out_cols = num_col;
@@ -1948,7 +1948,7 @@ void ExecutionRunners::ExecuteCreateIndex(benchmark::State *state) {
 
   // Only generate counters if executing in parallel
   auto exec_settings = GetParallelExecutionSettings(num_threads, num_threads != 0);
-  auto int_size = execution::sql::SqlTypeIdTrueSize(execution::sql::SqlTypeId::Integer);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
   execution::sql::SqlTypeId mix_type;
   if (varchar_mix == 1)
     mix_type = execution::sql::SqlTypeId::Varchar;

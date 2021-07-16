@@ -136,15 +136,6 @@ SqlTypeId SqlTypeIdFromString(const std::string &type_string);
 std::string SqlTypeIdToString(SqlTypeId type);
 
 /**
- * Get the true size of the given type (without flipping the sign bit)
- * @param type_id the type to get the size of
- * @return size in bytes used to represent the given type
- */
-inline uint16_t SqlTypeIdTrueSize(const SqlTypeId type_id) {
-  return GetSqlTypeIdSize(type_id) & static_cast<uint8_t>(0x7f);  // TODO(Matt): replace with AttrSizeBytes
-}
-
-/**
  * @return True if the primitive type ID @em type is a fixed-size type; false otherwise.
  */
 bool IsTypeFixedSize(TypeId type);

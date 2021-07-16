@@ -127,7 +127,8 @@ void TableReader::WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *
       index_info->index_pr_->SetNull(index_offset);
     } else {
       byte *index_data = index_info->index_pr_->AccessForceNotNull(index_offset);
-      uint8_t type_size = execution::sql::SqlTypeIdTrueSize(index_info->cols_[index_col_idx].Type());
+      uint8_t type_size =
+          storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(index_info->cols_[index_col_idx].Type()));
       std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
     }
   }
