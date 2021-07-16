@@ -12,18 +12,11 @@
 #include "parser/expression_util.h"
 #include "parser/postgresparser.h"
 
-namespace noisepage {
-
-namespace execution::ast::udf {
+namespace noisepage::execution::ast::udf {
 class FunctionAST;
-}
+}  // namespace noisepage::execution::ast::udf
 
-namespace parser::udf {
-
-/**
- * Namespace alias to make below more manageable.
- */
-namespace udfexec = execution::ast::udf;
+namespace noisepage::parser::udf {
 
 /**
  * The PLpgSQLParser class parses source PL/pgSQL to an abstract syntax tree.
@@ -36,7 +29,7 @@ class PLpgSQLParser {
    * @param accessor The accessor to use during parsing
    * @param db_oid The database OID
    */
-  PLpgSQLParser(common::ManagedPointer<udfexec::UdfAstContext> udf_ast_context,
+  PLpgSQLParser(common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context,
                 const common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::db_oid_t db_oid)
       : udf_ast_context_(udf_ast_context), accessor_(accessor), db_oid_(db_oid) {}
 
@@ -48,9 +41,9 @@ class PLpgSQLParser {
    * @param ast_context The AST context to use during parsing
    * @return The abstract syntax tree for the source function
    */
-  std::unique_ptr<udfexec::FunctionAST> Parse(std::vector<std::string> &&param_names,
-                                              std::vector<type::TypeId> &&param_types, const std::string &func_body,
-                                              common::ManagedPointer<udfexec::UdfAstContext> ast_context);
+  std::unique_ptr<execution::ast::udf::FunctionAST> Parse(
+      std::vector<std::string> &&param_names, std::vector<type::TypeId> &&param_types, const std::string &func_body,
+      common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context);
 
  private:
   /**
@@ -58,74 +51,74 @@ class PLpgSQLParser {
    * @param block The input JSON object
    * @return The AST for the block
    */
-  std::unique_ptr<udfexec::StmtAST> ParseBlock(const nlohmann::json &block);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseBlock(const nlohmann::json &block);
 
   /**
    * Parse a function statement.
    * @param block The input JSON object
    * @return The AST for the function
    */
-  std::unique_ptr<udfexec::StmtAST> ParseFunction(const nlohmann::json &function);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseFunction(const nlohmann::json &function);
 
   /**
    * Parse a declaration statement.
    * @param decl The input JSON object
    * @return The AST for the declaration
    */
-  std::unique_ptr<udfexec::StmtAST> ParseDecl(const nlohmann::json &decl);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseDecl(const nlohmann::json &decl);
 
   /**
    * Parse an if-statement.
    * @param block The input JSON object
    * @return The AST for the if-statement
    */
-  std::unique_ptr<udfexec::StmtAST> ParseIf(const nlohmann::json &branch);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseIf(const nlohmann::json &branch);
 
   /**
    * Parse a while-statement.
    * @param block The input JSON object
    * @return The AST for the while-statement
    */
-  std::unique_ptr<udfexec::StmtAST> ParseWhile(const nlohmann::json &loop);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseWhile(const nlohmann::json &loop);
 
   /**
    * Parse a for-statement.
    * @param block The input JSON object
    * @return The AST for the for-statement
    */
-  std::unique_ptr<udfexec::StmtAST> ParseFor(const nlohmann::json &loop);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseFor(const nlohmann::json &loop);
 
   /**
    * Parse a SQL statement.
    * @param sql_stmt The input JSON object
    * @return The AST for the SQL statement
    */
-  std::unique_ptr<udfexec::StmtAST> ParseSQL(const nlohmann::json &sql_stmt);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseSQL(const nlohmann::json &sql_stmt);
 
   /**
    * Parse a dynamic SQL statement.
    * @param block The input JSON object
    * @return The AST for the dynamic SQL statement
    */
-  std::unique_ptr<udfexec::StmtAST> ParseDynamicSQL(const nlohmann::json &sql_stmt);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseDynamicSQL(const nlohmann::json &sql_stmt);
 
   /**
    * Parse a SQL expression.
    * @param sql The SQL expression string
    * @return The AST for the SQL expression
    */
-  std::unique_ptr<udfexec::ExprAST> ParseExprSQL(const std::string &sql);
+  std::unique_ptr<execution::ast::udf::ExprAST> ParseExprSQL(const std::string &sql);
 
   /**
    * Parse an expression.
    * @param expr The expression
    * @return The AST for the expression
    */
-  std::unique_ptr<udfexec::ExprAST> ParseExpr(common::ManagedPointer<parser::AbstractExpression> expr);
+  std::unique_ptr<execution::ast::udf::ExprAST> ParseExpr(common::ManagedPointer<parser::AbstractExpression> expr);
 
  private:
   /** The UDF AST context */
-  common::ManagedPointer<udfexec::UdfAstContext> udf_ast_context_;
+  common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context_;
 
   /** The catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> accessor_;
@@ -137,5 +130,4 @@ class PLpgSQLParser {
   std::unordered_map<std::string, type::TypeId> symbol_table_;
 };
 
-}  // namespace parser::udf
-}  // namespace noisepage
+}  // namespace noisepage::parser::udf

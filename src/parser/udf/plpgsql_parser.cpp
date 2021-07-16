@@ -2,7 +2,7 @@
 
 #include "binder/bind_node_visitor.h"
 #include "execution/ast/udf/udf_ast_nodes.h"
-#include "parser/udf/udf_parser.h"
+#include "parser/udf/plpgsql_parser.h"
 
 #include "libpg_query/pg_query.h"
 #include "nlohmann/json.hpp"

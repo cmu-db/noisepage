@@ -17,7 +17,7 @@
 #include "execution/sema/sema.h"
 #include "loggers/execution_logger.h"
 #include "parser/expression/column_value_expression.h"
-#include "parser/udf/udf_parser.h"
+#include "parser/udf/plpgsql_parser.h"
 #include "planner/plannodes/create_database_plan_node.h"
 #include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
@@ -69,8 +69,11 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
 
   // Make the context here using the body
   ast::udf::UdfAstContext udf_ast_context{};
-  parser::udf::PLpgSQLParser udf_parser{(common::ManagedPointer(&udf_ast_context)), accessor, node->GetDatabaseOid()};
 
+  // TODO(Kyle): Revisit this after clearing up what the
+  // preferred way to report errors is in the system, both
+  // within components and between components...
+  parser::udf::PLpgSQLParser udf_parser{(common::ManagedPointer(&udf_ast_context)), accessor, node->GetDatabaseOid()};
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
     ast = udf_parser.Parse(node->GetFunctionParameterNames(), std::move(param_type_ids), body,
