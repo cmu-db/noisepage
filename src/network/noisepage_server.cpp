@@ -140,7 +140,7 @@ void TerrierServer::RunServer() {
   RegisterSocket<NETWORKED_SOCKET>();
 
   // Register the Unix domain socket.
-  RegisterSocket<UNIX_DOMAIN_SOCKET>();
+  // RegisterSocket<UNIX_DOMAIN_SOCKET>();
 
   // Register the ConnectionDispatcherTask. This handles connections to the sockets created above.
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(

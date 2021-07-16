@@ -23,11 +23,8 @@ ast::Expr *FunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
   const auto &func_expr = GetExpressionAs<parser::FunctionExpression>();
   auto proc_oid = func_expr.GetProcOid();
   auto func_context = codegen->GetCatalogAccessor()->GetFunctionContext(proc_oid);
-  if (!func_context->IsBuiltin()) {
-    UNREACHABLE("User-defined functions are not supported");
-  }
 
-  std::vector<ast::Expr *> params;
+  std::vector<ast::Expr *> params{};
   if (func_context->IsExecCtxRequired()) {
     params.push_back(GetExecutionContextPtr());
   }
@@ -37,9 +34,9 @@ ast::Expr *FunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
   }
 
   if (!func_context->IsBuiltin()) {
-    auto ident_expr = main_fn_;
-    std::vector<ast::Expr *> args{params.cbegin(), params.cbegin()};
-    return GetCodeGen()->Call(ident_expr, args);
+    const auto identifier_expr = main_fn_;
+    std::vector<ast::Expr *> args{params.cbegin(), params.cend()};
+    return GetCodeGen()->Call(identifier_expr, args);
   }
 
   return codegen->CallBuiltin(func_context->GetBuiltin(), params);

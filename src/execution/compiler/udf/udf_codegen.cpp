@@ -41,7 +41,7 @@ UDFCodegen::UDFCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
   for (auto i = 0UL; fb->GetParameterByPosition(i) != nullptr; ++i) {
     auto param = fb->GetParameterByPosition(i);
     const auto &name = param->As<execution::ast::IdentifierExpr>()->Name();
-    str_to_ident_.emplace(name.GetString(), name);
+    SymbolTable()[name.GetString()] = name;
   }
 }
 
@@ -68,7 +68,7 @@ catalog::type_oid_t UDFCodegen::GetCatalogTypeOidFromSQLType(execution::ast::Bui
     }
     default:
       return accessor_->GetTypeOidFromTypeId(type::TypeId::INVALID);
-      NOISEPAGE_ASSERT(false, "Unsupported param type");
+      NOISEPAGE_ASSERT(false, "Unsupported parameter type");
   }
 }
 
@@ -90,8 +90,8 @@ void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
     args_ast.push_back(dst_);
     args_ast_region_vec.push_back(dst_);
     auto *builtin = dst_->GetType()->SafeAs<execution::ast::BuiltinType>();
-    NOISEPAGE_ASSERT(builtin != nullptr, "Not builtin parameter");
-    NOISEPAGE_ASSERT(builtin->IsSqlValueType(), "Param is not SQL Value Type");
+    NOISEPAGE_ASSERT(builtin != nullptr, "Parameter must be a built-in type");
+    NOISEPAGE_ASSERT(builtin->IsSqlValueType(), "Parameter must be a SQL value type");
     arg_types.push_back(GetCatalogTypeOidFromSQLType(builtin->GetKind()));
   }
   auto proc_oid = accessor_->GetProcOid(ast->Callee(), arg_types);
@@ -101,9 +101,9 @@ void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
   if (context->IsBuiltin()) {
     fb_->Append(codegen_->MakeStmt(codegen_->CallBuiltin(context->GetBuiltin(), args_ast)));
   } else {
-    auto it = str_to_ident_.find(ast->Callee());
+    auto it = SymbolTable().find(ast->Callee());
     execution::ast::Identifier ident_expr;
-    if (it != str_to_ident_.end()) {
+    if (it != SymbolTable().end()) {
       ident_expr = it->second;
     } else {
       auto file = reinterpret_cast<execution::ast::File *>(
@@ -113,7 +113,7 @@ void UDFCodegen::Visit(ast::udf::CallExprAST *ast) {
         aux_decls_.push_back(decl);
       }
       ident_expr = codegen_->MakeFreshIdentifier(file->Declarations().back()->Name().GetString());
-      str_to_ident_[file->Declarations().back()->Name().GetString()] = ident_expr;
+      SymbolTable()[file->Declarations().back()->Name().GetString()] = ident_expr;
     }
     fb_->Append(codegen_->MakeStmt(codegen_->Call(ident_expr, args_ast_region_vec)));
   }
@@ -127,13 +127,14 @@ void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   if (ast->Name() == "*internal*") {
     return;
   }
-  execution::ast::Identifier ident = codegen_->MakeFreshIdentifier(ast->Name());
-  str_to_ident_.emplace(ast->Name(), ident);
+  const execution::ast::Identifier ident = codegen_->MakeFreshIdentifier(ast->Name());
+  SymbolTable()[ast->Name()] = ident;
+
   auto prev_type = current_type_;
   execution::ast::Expr *tpl_type = nullptr;
   if (ast->Type() == type::TypeId::INVALID) {
     // record type
-    execution::util::RegionVector<execution::ast::FieldDecl *> fields(codegen_->GetAstContext()->GetRegion());
+    execution::util::RegionVector<execution::ast::FieldDecl *> fields{codegen_->GetAstContext()->GetRegion()};
     for (const auto &p : udf_ast_context_->GetRecordType(ast->Name())) {
       fields.push_back(codegen_->MakeField(codegen_->MakeIdentifier(p.first),
                                            codegen_->TplType(execution::sql::GetTypeId(p.second))));
@@ -156,15 +157,14 @@ void UDFCodegen::Visit(ast::udf::DeclStmtAST *ast) {
 
 void UDFCodegen::Visit(ast::udf::FunctionAST *ast) {
   for (size_t i = 0; i < ast->ParameterTypes().size(); i++) {
-    //    auto param_type = codegen_->TplType(ast->param_types_[i]);
-    str_to_ident_.emplace(ast->ParameterNames().at(i), codegen_->MakeFreshIdentifier("udf"));
+    SymbolTable()[ast->ParameterNames().at(i)] = codegen_->MakeFreshIdentifier("udf");
   }
   ast->Body()->Accept(this);
 }
 
 void UDFCodegen::Visit(ast::udf::VariableExprAST *ast) {
-  auto it = str_to_ident_.find(ast->Name());
-  NOISEPAGE_ASSERT(it != str_to_ident_.end(), "variable not declared");
+  auto it = SymbolTable().find(ast->Name());
+  NOISEPAGE_ASSERT(it != SymbolTable().end(), "Variable not declared");
   dst_ = codegen_->MakeExpr(it->second);
 }
 
@@ -210,8 +210,8 @@ void UDFCodegen::Visit(ast::udf::AssignStmtAST *ast) {
   reinterpret_cast<ast::udf::AbstractAST *>(ast->Source())->Accept(this);
   auto rhs_expr = dst_;
 
-  auto it = str_to_ident_.find(ast->Destination()->Name());
-  NOISEPAGE_ASSERT(it != str_to_ident_.end(), "Variable not found");
+  auto it = SymbolTable().find(ast->Destination()->Name());
+  NOISEPAGE_ASSERT(it != SymbolTable().end(), "Variable not found");
   auto left_codegen_ident = it->second;
 
   auto *left_expr = codegen_->MakeExpr(left_codegen_ident);
@@ -264,7 +264,7 @@ void UDFCodegen::Visit(ast::udf::BinaryExprAST *ast) {
       op_token = execution::parsing::Token::Type::EQUAL_EQUAL;
       break;
     default:
-      // TODO(tanujnay112): figure out concatenation operation from expressions?
+      // TODO(Kyle): Figure out concatenation operation from expressions?
       UNREACHABLE("Unsupported expression");
   }
   ast->Left()->Accept(this);
@@ -341,9 +341,10 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
       codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
   std::size_t i{0};
   for (const auto &var : ast->Variables()) {
-    var_idents.push_back(str_to_ident_.find(var)->second);
+    var_idents.push_back(SymbolTable().find(var)->second);
     auto var_ident = var_idents.back();
-    NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "Can't support non scalars yet!");
+    NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1,
+                     "UDF support for non-scalars is not implemented");
     auto type = codegen_->TplType(execution::sql::GetTypeId(plan->GetOutputSchema()->GetColumn(i).GetType()));
 
     fb_->Append(codegen_->Assign(codegen_->MakeExpr(var_ident),
@@ -368,7 +369,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
   }
 
   execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
-  for (const auto &[name, identifier] : str_to_ident_) {
+  for (const auto &[name, identifier] : SymbolTable()) {
     // TODO(Kyle): Why do we skip this particular identifier?
     if (name == "executionCtx") {
       continue;
@@ -442,7 +443,7 @@ void UDFCodegen::Visit(ast::udf::ForStmtAST *ast) {
       default:
         UNREACHABLE("Unsupported parameter type");
     }
-    fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, codegen_->MakeExpr(str_to_ident_[entry->first])}));
+    fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, codegen_->MakeExpr(SymbolTable().at(entry->first))}));
   }
 
   fb_->Append(codegen_->Assign(
@@ -503,7 +504,7 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   std::vector<execution::ast::Expr *> assignees{};
   execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
   for (auto &col : cols) {
-    execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->Name())->second);
+    execution::ast::Expr *capture_var = codegen_->MakeExpr(SymbolTable().find(ast->Name())->second);
     type::TypeId udf_type{};
     udf_ast_context_->GetVariableType(ast->Name(), &udf_type);
     if (udf_type == type::TypeId::INVALID) {
@@ -573,11 +574,11 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
       auto &fields = udf_ast_context_->GetRecordType(entry->second.first);
       auto it = std::find_if(fields.begin(), fields.end(), [=](auto p) { return p.first == entry->first; });
       type = it->second;
-      expr = codegen_->AccessStructMember(codegen_->MakeExpr(str_to_ident_[entry->second.first]),
+      expr = codegen_->AccessStructMember(codegen_->MakeExpr(SymbolTable().at(entry->second.first)),
                                           codegen_->MakeIdentifier(entry->first));
     } else {
       udf_ast_context_->GetVariableType(entry->first, &type);
-      expr = codegen_->MakeExpr(str_to_ident_[entry->first]);
+      expr = codegen_->MakeExpr(SymbolTable().at(entry->first));
     }
 
     execution::ast::Builtin builtin{};
@@ -619,7 +620,7 @@ void UDFCodegen::Visit(ast::udf::SQLStmtAST *ast) {
       codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
 
   for (auto &col : cols) {
-    execution::ast::Expr *capture_var = codegen_->MakeExpr(str_to_ident_.find(ast->Name())->second);
+    execution::ast::Expr *capture_var = codegen_->MakeExpr(SymbolTable().find(ast->Name())->second);
     auto *lhs = capture_var;
     if (cols.size() > 1) {
       // Record struct type

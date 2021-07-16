@@ -21,7 +21,7 @@ namespace noisepage::execution::functions {
 class FunctionContext {
  public:
   /**
-   * Creates a FunctionContext object
+   * Construct a FunctionContext instance.
    * @param func_name Name of function
    * @param func_ret_type Return type of function
    * @param arg_types Vector of argument types
@@ -34,7 +34,7 @@ class FunctionContext {
         is_exec_ctx_required_{false} {}
 
   /**
-   * Creates a FunctionContext object for a builtin function
+   * Construct a FunctionContext instance for a builtin function.
    * @param func_name Name of function
    * @param func_ret_type Return type of function
    * @param arg_types Vector of argument types
@@ -51,7 +51,7 @@ class FunctionContext {
         is_exec_ctx_required_{is_exec_ctx_required} {}
 
   /**
-   * Creates a FunctionContext object for a non-builtin function.
+   * Construct a FunctionContext instance for a non-builtin function.
    * @param func_name Name of function=
    * @param func_ret_type Return type of function
    * @param arg_types Vector of argument types
@@ -73,14 +73,10 @@ class FunctionContext {
         ast_context_{std::move(ast_context)},
         file_{file} {}
 
-  /**
-   * @return The name of the function represented by this context object.
-   */
+  /** @return The name of the function represented by this context object. */
   const std::string &GetFunctionName() const { return func_name_; }
 
-  /**
-   * @return The vector of type arguments of the function represented by this context object.
-   */
+  /** @return The vector of type arguments of the function represented by this context object. */
   const std::vector<type::TypeId> &GetFunctionArgTypes() const { return arg_types_; }
 
   /**
@@ -89,47 +85,35 @@ class FunctionContext {
    */
   type::TypeId GetFunctionReturnType() const { return func_ret_type_; }
 
-  /**
-   * @return `true` if this represents a builtin function, `false` otherwise.
-   */
+  /** @return `true` if this represents a builtin function, `false` otherwise. */
   bool IsBuiltin() const { return is_builtin_; }
 
-  /**
-   * @return The builtin function this procedure represents.
-   */
+  /** @return The builtin function this procedure represents. */
   ast::Builtin GetBuiltin() const {
     NOISEPAGE_ASSERT(IsBuiltin(), "Getting a builtin from a non-builtin function");
     return builtin_;
   }
 
-  /**
-   * @return `true` if this function requires an execution context, `false` otherwise.
-   */
+  /** @return `true` if this function requires an execution context, `false` otherwise. */
   bool IsExecCtxRequired() const {
-    NOISEPAGE_ASSERT(IsBuiltin(), "IsExecCtxRequired is only valid or a builtin function");
+    // TODO(Kyle): Is it valid to query execution context requirement for non-builtins?
     return is_exec_ctx_required_;
   }
 
-  /**
-   * @return The main functiondecl of this UDF.
-   */
+  /** @return The main function declaration of this UDF. */
   common::ManagedPointer<ast::FunctionDecl> GetMainFunctionDecl() const {
     NOISEPAGE_ASSERT(!IsBuiltin(), "Getting a non-builtin from a builtin function");
     return common::ManagedPointer<ast::FunctionDecl>(
         reinterpret_cast<ast::FunctionDecl *>(file_->Declarations().back()));
   }
 
-  /**
-   * @return The file with the functiondecl and supporting decls.
-   */
+  /** @return The file with the function declaration and supporting declarations. */
   ast::File *GetFile() const {
     NOISEPAGE_ASSERT(!IsBuiltin(), "Getting a non-builtin from a builtin function");
     return file_;
   }
 
-  /**
-   * @return The AST context for this procedure.
-   */
+  /** @return The AST context for this procedure. */
   ast::Context *GetASTContext() const {
     NOISEPAGE_ASSERT(!IsBuiltin(), "No AST Context associated with builtin function");
     return ast_context_.get();

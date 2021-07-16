@@ -13,12 +13,10 @@ namespace noisepage::catalog {
 class CatalogAccessor;
 }
 
-namespace noisepage {
-namespace execution {
+namespace noisepage::execution {
 
 // Forward declarations
-namespace ast {
-namespace udf {
+namespace ast::udf {
 class AbstractAST;
 class StmtAST;
 class ExprAST;
@@ -38,11 +36,9 @@ class FunctionAST;
 class IsNullExprAST;
 class DynamicSQLStmtAST;
 class ForStmtAST;
-}  // namespace udf
-}  // namespace ast
+}  // namespace ast::udf
 
-namespace compiler {
-namespace udf {
+namespace compiler::udf {
 
 /**
  * The UDFCodegen class implements a visitor for UDF AST nodes
@@ -206,6 +202,13 @@ class UDFCodegen : ast::udf::ASTNodeVisitor {
    */
   catalog::type_oid_t GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type);
 
+  /** @return A mutable reference to the symbol table */
+  std::unordered_map<std::string, execution::ast::Identifier> &SymbolTable() { return symbol_table_; }
+
+  /** @return An immutable reference to the symbol table */
+  const std::unordered_map<std::string, execution::ast::Identifier> &SymbolTable() const { return symbol_table_; }
+
+ private:
   /** The catalog access used during code generation */
   catalog::CatalogAccessor *accessor_;
 
@@ -234,10 +237,8 @@ class UDFCodegen : ast::udf::ASTNodeVisitor {
   execution::ast::Expr *dst_;
 
   /** Map from human-readable string identifier to internal identifier */
-  std::unordered_map<std::string, execution::ast::Identifier> str_to_ident_;
+  std::unordered_map<std::string, execution::ast::Identifier> symbol_table_;
 };
 
-}  // namespace udf
-}  // namespace compiler
-}  // namespace execution
-}  // namespace noisepage
+}  // namespace compiler::udf
+}  // namespace noisepage::execution
