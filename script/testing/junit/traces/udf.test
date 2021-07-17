@@ -1,0 +1,64 @@
+statement ok
+-- udf.sql
+
+statement ok
+-- Integration tests for user-defined functions.
+
+statement ok
+--
+
+statement ok
+-- Currently, these tests rely on the fact that we
+
+statement ok
+-- utilize Postgres as a reference implementation
+
+statement ok
+-- because all user-defined functions are implemented
+
+statement ok
+-- in the Postgres PL/SQL dialect, PL/pgSQL.
+
+statement ok
+
+
+statement ok
+-- Create the test table
+
+statement ok
+CREATE TABLE test(id INT PRIMARY KEY, x INT);
+
+statement ok
+
+
+statement ok
+-- Insert some data
+
+statement ok
+INSERT INTO test (id, x) VALUES (0, 1), (1, 2), (2, 3);
+
+statement ok
+
+
+statement ok
+-- Create functions
+
+statement ok
+CREATE FUNCTION return_constant() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- Invoke
+
+query II rowsort
+SELECT x, return_constant() FROM test;
+----
+1
+1
+2
+1
+3
+1
+

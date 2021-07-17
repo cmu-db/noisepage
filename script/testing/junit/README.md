@@ -96,7 +96,7 @@ The procedure for running the `GenerateTrace.java` program is as follows:
 1. Establish a local Postgres database and start the database server. The procedure to accomplish this depends on the particulars of your development environment. If you are using a CMU DB development machine, see the _PostgreSQL on CMU DB Development Machines_ section below.
 2. Write your own SQL input file. The format of this file consists of SQL statements, one per line. Comments (denoted by `#`)) are permitted. 
 3. Compile the test infrastructure: `ant compile`
-4. Run the filter trace program: `ant filter-trace`. The program expects 6 arguments:
+4. Run the filter trace program: `ant generate-trace`. The program expects 6 arguments:
   - `path`: The path to the input file
   - `db-url`: The JDBC URL for the DBMS server
   - `db-user`: The database username

@@ -20,6 +20,10 @@ namespace noisepage::parser::udf {
 
 /**
  * The PLpgSQLParser class parses source PL/pgSQL to an abstract syntax tree.
+ * 
+ * Internally, PLpgSQLParser utilizes libpg_query to perform the actual parsing
+ * of the input PL/pgSQL source, and then maps the representation from libpg_query
+ * to our our internal representation that then proceeds through code generation.
  */
 class PLpgSQLParser {
  public:
