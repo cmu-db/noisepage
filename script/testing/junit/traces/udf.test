@@ -62,3 +62,4 @@ SELECT x, return_constant() FROM test;
 3
 1
 
+

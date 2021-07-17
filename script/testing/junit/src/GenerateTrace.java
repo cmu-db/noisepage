@@ -87,6 +87,11 @@ public class GenerateTrace {
     private static final String MULTILINE_DELIMITER = "\\";
 
     /**
+     * The current working directory.
+     */
+    private static final String WORKING_DRIECTORY = System.getProperty("user.dir");
+
+    /**
      * The logger instance.
      */
     private static final ILogger LOGGER = new StandardLogger();
@@ -103,58 +108,74 @@ public class GenerateTrace {
             System.exit(EXIT_ERROR);
         }
 
-        LOGGER.info("Working Directory = " + System.getProperty("user.dir"));
-        
-        final String path = args[0];
-        File file = new File(path);
+        LOGGER.info("Working Directory = " + WORKING_DRIECTORY);
+
+        // Parse commandline arguments
+        final String inputPath = args[0];
+        final String jdbcUrl = args[1];
+        final String dbUsername = args[2];
+        final String dbPassword = args[3];
+        final String outputPath = args[4];
                 
-        MogSqlite mog = new MogSqlite(file);
+        MogSqlite mog = new MogSqlite(new File(inputPath));
         
         // Open connection to Postgre database over JDBC
-        MogDb db = new MogDb(args[1], args[2], args[3]);
+        MogDb db = new MogDb(jdbcUrl, dbUsername, dbPassword);
         Connection connection = db.getDbTest().newConn();
         
         // Initialize the database
         removeAllTables(mog, connection);
         removeAllFunctions(mog, connection);
 
+        BufferedReader reader = new BufferedReader(new FileReader(new File(inputPath)));
+        FileWriter writer = new FileWriter(new File(Constants.DEST_DIR, outputPath));
+
+        System.exit(run(db, mog, connection, reader, writer));
+    }
+
+    /**
+     * Run trace generation.
+     * @param db The `MogDb` instance
+     * @param mog The `MogSqlite` instance
+     * @param connection The database connection
+     * @param reader The buffered reader for the input file
+     * @param writer The file writer for the output file
+     * @return The status code
+     */
+    private static int run(MogDb db, MogSqlite mog, Connection connection,
+        BufferedReader reader, FileWriter writer) throws SQLException, IOException {
         String line;
         String label;
         Statement statement = null;
-        BufferedReader br = new BufferedReader(new FileReader(file));
-        
-        // Create output file
-        FileWriter writer = new FileWriter(new File(Constants.DEST_DIR, args[4]));
-        
+
         int expected_result_num = -1;
         boolean include_result = false;
-        while (null != (line = readLine(br, MULTILINE_DELIMITER))) {
+        while (null != (line = readLine(reader, MULTILINE_DELIMITER))) {
             line = line.trim();
-            LOGGER.info(line);
             
             // Execute SQL statement
-            try{
+            try {
                 statement = connection.createStatement();
                 statement.execute(line);
                 label = Constants.STATEMENT_OK;
             } catch (SQLException e) {
-                System.err.println("Error executing SQL Statement: '" + line + "'; " + e.getMessage());
+                LOGGER.error("Error executing SQL Statement: '" + line + "'; " + e.getMessage());
                 label = Constants.STATEMENT_ERROR;
             } catch (Throwable e) {
                 label = Constants.STATEMENT_ERROR;
             }
 
-            if(line.startsWith("SELECT") || line.toLowerCase().startsWith("with")) {
+            if (line.startsWith("SELECT") || line.startsWith("WITH")) {
                 ResultSet rs = statement.getResultSet();
-                if (line.toLowerCase().startsWith("with") && null == rs) {
+                if (line.startsWith("WITH") && null == rs) {
                     // We might have a query that begins with `WITH` that has a null result set
                     int updateCount = statement.getUpdateCount();
                     // check if expected number is equal to update count
-                    if(expected_result_num>=0 && expected_result_num!=updateCount){
+                    if (expected_result_num >= 0 && expected_result_num != updateCount) {
                         label = Constants.STATEMENT_ERROR;
                     }
-                    writeToFile(writer, label);
-                    writeToFile(writer, line);
+                    writeLine(writer, label);
+                    writeLine(writer, line);
                     writer.write('\n');
                     expected_result_num = -1;
                     continue;
@@ -165,13 +186,13 @@ public class GenerateTrace {
                 for (int i = 1; i <= rsmd.getColumnCount(); ++i) {
                     String colTypeName = rsmd.getColumnTypeName(i);
                     MogDb.DbColumnType colType = db.getDbTest().getDbColumnType(colTypeName);
-                    if(colType==MogDb.DbColumnType.FLOAT){
+                    if (colType == MogDb.DbColumnType.FLOAT) {
                         typeString += "R";
-                    }else if(colType==MogDb.DbColumnType.INTEGER){
+                    } else if (colType == MogDb.DbColumnType.INTEGER) {
                         typeString += "I";
-                    }else if(colType==MogDb.DbColumnType.TEXT){
+                    } else if(colType == MogDb.DbColumnType.TEXT) {
                         typeString += "T";
-                    }else{
+                    } else {
                         System.out.println(colTypeName + " column invalid");
                     }
                 }
@@ -186,78 +207,76 @@ public class GenerateTrace {
                     sortOption = "rowsort";
                     mog.sortMode = "rowsort";
                 }
-                String query_sort = Constants.QUERY + " " + typeString + " " + sortOption;
-                writeToFile(writer, query_sort);
-                writeToFile(writer, line);
-                writeToFile(writer, Constants.SEPARATION);
-                List<String> res = mog.processResults(rs);
-                // compute the hash
-                String hash = TestUtility.getHashFromDb(res);
-                String queryResult = "";
-                // when include_result is true, set queryResult to be exact result instead of hash
-                if(include_result){
-                    for(String i:res){
-                        queryResult += i;
-                        queryResult += "\n";
+                final String query_sort = Constants.QUERY + " " + typeString + " " + sortOption;
+                writeLine(writer, query_sort);
+                writeLine(writer, line);
+                writeLine(writer, Constants.SEPARATION);
+
+                final List<String> results = mog.processResults(rs);
+                final String hash = TestUtility.getHashFromDb(results);
+                
+                StringBuilder resultBuilder = new StringBuilder();
+                if (include_result) {
+                    for (final String result : results) {
+                        resultBuilder.append(result);
+                        resultBuilder.append('\n');
                     }
-                    queryResult = queryResult.trim();
-                }else{
-                    // if expected number of results is specified
-                    if(expected_result_num>=0){
-                        queryResult = "Expected " + expected_result_num + " values hashing to " + hash;
-                    }else{
-                        if(res.size()>0){
-                            // set queryResult to format x values hashing to xxx
-                            queryResult = res.size() + " values hashing to " + hash;
+                } else {
+                    // Expected number of results is specified
+                    if (expected_result_num >= 0) {
+                        resultBuilder.append("Expected " + expected_result_num + " values hashing to " + hash);
+                    } else {
+                        if (results.size() > 0) {
+                            resultBuilder.append(results.size() + " values hashing to " + hash);
                         }
-                        // set queryResult to be exact result instead of hash when
-                        // result size is smaller than Constants.DISPLAY_RESULT_SIZE
-                        if(res.size() < Constants.DISPLAY_RESULT_SIZE){
-                            queryResult = "";
-                            for(String i:res){
-                                queryResult += i;
-                                queryResult += "\n";
+                        if (results.size() < Constants.DISPLAY_RESULT_SIZE) {
+                            resultBuilder.setLength(0);
+                            for (final String result : results) {
+                                resultBuilder.append(result);
+                                resultBuilder.append('\n');
                             }
-                            queryResult = queryResult.trim();
                         }
                     }
                 }
-                writeToFile(writer, queryResult);
-                if(res.size()>0){
+                
+                writeLine(writer, resultBuilder.toString());
+                if (results.size() > 0) {
                     writer.write('\n');
                 }
+
                 include_result = false;
                 expected_result_num = -1;
-            } else if(line.startsWith(Constants.HASHTAG)){
-                writeToFile(writer, line);
-                if(line.contains(Constants.NUM_OUTPUT_FLAG)){
-                    // case for specifying the expected number of outputs
-                    String[] arr = line.split(" ");
-                    expected_result_num = Integer.parseInt(arr[arr.length-1]);
-                }else if(line.contains(Constants.FAIL_FLAG)){
-                    // case for expecting the query to fail
+            } else if (line.startsWith(Constants.HASHTAG)) {
+                writeLine(writer, line);
+                if (line.contains(Constants.NUM_OUTPUT_FLAG)) {
+                    // Case for specifying the expected number of outputs
+                    final String[] arr = line.split(" ");
+                    expected_result_num = Integer.parseInt(arr[arr.length - 1]);
+                } else if (line.contains(Constants.FAIL_FLAG)) {
+                    // Case for expecting the query to fail
                     label = Constants.STATEMENT_ERROR;
-                } else if(line.contains(Constants.EXPECTED_OUTPUT_FLAG)){
-                    // case for including exact result in mog.queryResult
+                } else if (line.contains(Constants.EXPECTED_OUTPUT_FLAG)) {
+                    // Case for including exact result in mog.queryResult
                     include_result = true;
                 }
-            } else{
-                // other sql statements
-                int rs = statement.getUpdateCount();
+            } else {
+                // Other sql statements
+                final int updateCount = statement.getUpdateCount();
                 // check if expected number is equal to update count
-                if(expected_result_num>=0 && expected_result_num!=rs){
+                if (expected_result_num >= 0 && expected_result_num != updateCount){
                     label = Constants.STATEMENT_ERROR;
                 }
-                writeToFile(writer, label);
-                writeToFile(writer, line);
+                writeLine(writer, label);
+                writeLine(writer, line);
                 writer.write('\n');
                 expected_result_num = -1;
             }
         }
-        writer.close();
-        br.close();
 
-        System.exit(EXIT_SUCCESS);
+        writer.close();
+        reader.close();
+
+        return EXIT_SUCCESS;
     }
 
     /**
@@ -292,7 +311,7 @@ public class GenerateTrace {
      * @param line The line to be written
      * @throws IOException On IO error
      */
-    public static void writeToFile(FileWriter writer, final String line) throws IOException {
+    public static void writeLine(FileWriter writer, final String line) throws IOException {
         writer.write(line);
         writer.write('\n');
     }
