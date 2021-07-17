@@ -41,16 +41,19 @@ statement ok
 
 
 statement ok
--- Create functions
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- return_constant()
+
+statement ok
+
 
 statement ok
 CREATE FUNCTION return_constant() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE PLPGSQL;
 
 statement ok
 
-
-statement ok
--- Invoke
 
 query II rowsort
 SELECT x, return_constant() FROM test;

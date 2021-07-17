@@ -25,7 +25,16 @@ import moglib.Constants;
  * (Apparently `Logger` is already taken)
  */
 interface ILogger {
+    /**
+     * Log an informational message.
+     * @param message The message
+     */
     public void info(final String message);
+
+    /**
+     * Log an error message.
+     * @param message The message
+     */
     public void error(final String message);
 }
 

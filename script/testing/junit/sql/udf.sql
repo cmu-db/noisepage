@@ -12,12 +12,13 @@ CREATE TABLE test(id INT PRIMARY KEY, x INT);
 -- Insert some data
 INSERT INTO test (id, x) VALUES (0, 1), (1, 2), (2, 3);
 
--- Create functions
+-- ----------------------------------------------------------------------------
+-- return_constant()
+
 CREATE FUNCTION return_constant() RETURNS INT AS $$ \
 BEGIN                                               \
   RETURN 1;                                         \
 END                                                 \
 $$ LANGUAGE PLPGSQL;                              
 
--- Invoke
 SELECT x, return_constant() FROM test;
