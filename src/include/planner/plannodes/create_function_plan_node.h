@@ -243,12 +243,12 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   /**
    * @return parameter names of the user defined function
    */
-  std::vector<std::string> GetFunctionParameterNames() const { return function_param_names_; }
+  const std::vector<std::string> &GetFunctionParameterNames() const { return function_param_names_; }
 
   /**
    * @return parameter types of the user defined function
    */
-  std::vector<parser::BaseFunctionParameter::DataType> GetFunctionParameterTypes() const {
+  const std::vector<parser::BaseFunctionParameter::DataType> &GetFunctionParameterTypes() const {
     return function_param_types_;
   }
 

@@ -92,10 +92,6 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
     std::vector<std::string> arg_name_vec{};
     arg_name_vec.reserve(args.size() * sizeof(storage::VarlenEntry));
     std::copy(args.cbegin(), args.cend(), std::back_inserter(arg_name_vec));
-    // arg_name_vec.reserve(args.size() * );
-    // for (auto &arg : args) {
-    //   arg_name_vec.push_back(arg);
-    // }
 
     const auto arg_names_varlen = storage::StorageUtil::CreateVarlen(args);
     const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);

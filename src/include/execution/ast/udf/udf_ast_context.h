@@ -57,8 +57,10 @@ class UdfAstContext {
    * @return The name of the variable at the specified index
    */
   const std::string &GetLocalVariableAtIndex(const std::size_t index) {
-    NOISEPAGE_ASSERT(local_variables_.size() >= index, "Bad variable");
-    // TODO(Kyle): Why did this originally have index - 1?
+    NOISEPAGE_ASSERT(local_variables_.size() >= index, "Index out of range");
+    // TODO(Kyle): I moved the subtraction to the call site because
+    // it seems misleading to have a getter for an index but deliver
+    // a local that does not actually appear at that index...
     return local_variables_.at(index);
   }
 

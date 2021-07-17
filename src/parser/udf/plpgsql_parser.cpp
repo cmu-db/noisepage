@@ -45,8 +45,8 @@ static constexpr const char K_PLPGSQL_ROW[] = "PLpgSQL_row";
 static constexpr const char K_PLPGSQL_STMT_DYNEXECUTE[] = "PLpgSQL_stmt_dynexecute";
 
 std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
-    std::vector<std::string> &&param_names, std::vector<type::TypeId> &&param_types, const std::string &func_body,
-    common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context) {
+    const std::vector<std::string> &param_names, const std::vector<type::TypeId> &param_types,
+    const std::string &func_body, common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context) {
   auto result = pg_query_parse_plpgsql(func_body.c_str());
   if (result.error != nullptr) {
     pg_query_free_plpgsql_parse_result(result);
@@ -72,8 +72,8 @@ std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
     udf_ast_context_->SetVariableType(udf_name, param_types[i++]);
   }
   const auto function = function_list[0][K_PLPGSQL_FUNCTION];
-  auto function_ast = std::make_unique<execution::ast::udf::FunctionAST>(
-      ParseFunction(function), std::move(param_names), std::move(param_types));
+  auto function_ast =
+      std::make_unique<execution::ast::udf::FunctionAST>(ParseFunction(function), param_names, param_types);
   return function_ast;
 }
 
@@ -110,8 +110,10 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
       stmts.push_back(ParseIf(stmt[K_PLPGSQL_STMT_IF]));
     } else if (stmt_names.key() == K_PLPGSQL_STMT_ASSIGN) {
       // TODO(Kyle): Need to fix Assignment expression / statement
+      // NOTE(Kyle): We subtract 1 here because variable numbers from
+      // the Postres parser index from 1 rather than 0 (?)
       const auto &var_name =
-          udf_ast_context_->GetLocalVariableAtIndex(stmt[K_PLPGSQL_STMT_ASSIGN][K_VARNO].get<std::size_t>());
+          udf_ast_context_->GetLocalVariableAtIndex(stmt[K_PLPGSQL_STMT_ASSIGN][K_VARNO].get<std::size_t>() - 1);
       auto lhs = std::make_unique<execution::ast::udf::VariableExprAST>(var_name);
       auto rhs = ParseExprSQL(stmt[K_PLPGSQL_STMT_ASSIGN][K_EXPR][K_PLPGSQL_EXPR][K_QUERY].get<std::string>());
       stmts.push_back(std::make_unique<execution::ast::udf::AssignStmtAST>(std::move(lhs), std::move(rhs)));

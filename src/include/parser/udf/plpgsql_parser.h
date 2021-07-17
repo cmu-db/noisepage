@@ -20,7 +20,7 @@ namespace noisepage::parser::udf {
 
 /**
  * The PLpgSQLParser class parses source PL/pgSQL to an abstract syntax tree.
- * 
+ *
  * Internally, PLpgSQLParser utilizes libpg_query to perform the actual parsing
  * of the input PL/pgSQL source, and then maps the representation from libpg_query
  * to our our internal representation that then proceeds through code generation.
@@ -46,8 +46,8 @@ class PLpgSQLParser {
    * @return The abstract syntax tree for the source function
    */
   std::unique_ptr<execution::ast::udf::FunctionAST> Parse(
-      std::vector<std::string> &&param_names, std::vector<type::TypeId> &&param_types, const std::string &func_body,
-      common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context);
+      const std::vector<std::string> &param_names, const std::vector<type::TypeId> &param_types,
+      const std::string &func_body, common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context);
 
  private:
   /**

@@ -639,12 +639,14 @@ class FunctionAST : public AbstractAST {
    * @param parameter_names The names of the parameters to the function
    * @param parameter_types The types of the parameters to the function
    */
-  FunctionAST(std::unique_ptr<StmtAST> &&body, std::vector<std::string> &&parameter_names,
-              std::vector<type::TypeId> &&parameter_types)
+  FunctionAST(std::unique_ptr<StmtAST> &&body, std::vector<std::string> parameter_names,
+              std::vector<type::TypeId> parameter_types)
       : body_{std::move(body)},
         parameter_names_{std::move(parameter_names)},
         parameter_types_{std::move(parameter_types)} {
     NOISEPAGE_ASSERT(parameter_names_.size() == parameter_types_.size(), "Parameter Name and Type Mismatch");
+    // TODO(Kyle): The copies made in this constructor may not be necessary,
+    // I need to look more closely at the ownership for this data
   }
 
   /**

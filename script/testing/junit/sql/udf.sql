@@ -22,3 +22,14 @@ END                                                 \
 $$ LANGUAGE PLPGSQL;                              
 
 SELECT x, return_constant() FROM test;
+
+-- ----------------------------------------------------------------------------
+-- return_input()
+
+CREATE FUNCTION return_input(x INT) RETURNS INT AS $$ \
+BEGIN                                                 \
+  RETURN x;                                           \
+END                                                   \
+$$ LANGUAGE PLPGSQL;
+
+SELECT x, return_input(x) FROM test;

@@ -66,3 +66,32 @@ SELECT x, return_constant() FROM test;
 1
 
 
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- return_input()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_input(x INT) RETURNS INT AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query II rowsort
+SELECT x, return_input(x) FROM test;
+----
+1
+1
+2
+2
+3
+3
+
+

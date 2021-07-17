@@ -76,7 +76,7 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   parser::udf::PLpgSQLParser udf_parser{(common::ManagedPointer(&udf_ast_context)), accessor, node->GetDatabaseOid()};
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
-    ast = udf_parser.Parse(node->GetFunctionParameterNames(), std::move(param_type_ids), body,
+    ast = udf_parser.Parse(node->GetFunctionParameterNames(), param_type_ids, body,
                            (common::ManagedPointer(&udf_ast_context)));
   } catch (Exception &e) {
     return false;
@@ -95,8 +95,8 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
                         codegen.PointerType(codegen.BuiltinType(ast::BuiltinType::ExecutionContext))));
 
   for (auto i = 0UL; i < node->GetFunctionParameterNames().size(); i++) {
-    const auto &name = node->GetFunctionParameterNames()[i];
-    const auto &type = parser::ReturnType::DataTypeToTypeId(node->GetFunctionParameterTypes()[i]);
+    const auto name = node->GetFunctionParameterNames()[i];
+    const auto type = parser::ReturnType::DataTypeToTypeId(node->GetFunctionParameterTypes()[i]);
     fn_params.emplace_back(
         codegen.MakeField(ast_context->GetIdentifier(name), codegen.TplType(execution::sql::GetTypeId(type))));
   }
