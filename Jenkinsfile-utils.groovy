@@ -76,13 +76,13 @@ void stageTest(Boolean runPipelineMetrics, Map args = [:]) {
 
     buildType = (args.cmake.toUpperCase().contains("CMAKE_BUILD_TYPE=RELEASE")) ? "release" : "debug"
 
-    sh script: "cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=$buildType --query-mode=simple", label: 'UnitTest (Simple)'
+    sh script: "cd build && PYTHONPATH=.. timeout 40m python3 -m script.testing.junit --build-type=$buildType --query-mode=simple", label: 'UnitTest (Simple)'
     sh script: "cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=$buildType --query-mode=simple -a 'compiled_query_execution=True' -a 'bytecode_handlers_path=./bytecode_handlers_ir.bc'", label: 'UnitTest (Simple, Compiled Execution)'
-    sh script: "cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended", label: 'UnitTest (Extended)'
+    sh script: "cd build && PYTHONPATH=.. timeout 40m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended", label: 'UnitTest (Extended)'
     sh script: "cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'compiled_query_execution=True' -a 'bytecode_handlers_path=./bytecode_handlers_ir.bc'", label: 'UnitTest (Extended, Compiled Execution)'
 
     if (runPipelineMetrics) {
-        sh script: "cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'pipeline_metrics_enable=True' -a 'pipeline_metrics_sample_rate=100' -a 'counters_enable=True' -a 'query_trace_metrics_enable=True'", label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
+        sh script: "cd build && PYTHONPATH=.. timeout 40m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'pipeline_metrics_enable=True' -a 'pipeline_metrics_sample_rate=100' -a 'counters_enable=True' -a 'query_trace_metrics_enable=True'", label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
         sh script: "cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'pipeline_metrics_enable=True' -a 'pipeline_metrics_sample_rate=100' -a 'counters_enable=True' -a 'query_trace_metrics_enable=True' -a 'compiled_query_execution=True' -a 'bytecode_handlers_path=./bytecode_handlers_ir.bc'", label: 'UnitTest (Extended, Compiled Execution with pipeline metrics, counters, and query trace metrics)'
     }
 
