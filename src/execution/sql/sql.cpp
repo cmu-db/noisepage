@@ -72,8 +72,6 @@ std::size_t GetTypeIdSize(TypeId type) {
       UNREACHABLE("Impossible type");
   }
 }
-
-// TODO(Matt): why can't this call GetTypeIdSize for the EE matching type? seems there are discrepancies
 uint16_t GetSqlTypeIdSize(SqlTypeId type) {
   switch (type) {
     case SqlTypeId::Boolean:

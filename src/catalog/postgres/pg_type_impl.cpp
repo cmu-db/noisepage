@@ -107,16 +107,26 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
   };
 
   // todo(Matt):: this should come from sql.h/.cpp, not hardcoded
-  insert_base_type(execution::sql::SqlTypeId::Invalid, "invalid", 1);
-  insert_base_type(execution::sql::SqlTypeId::Boolean, "boolean", sizeof(bool));
-  insert_base_type(execution::sql::SqlTypeId::TinyInt, "tinyint", sizeof(int8_t));
-  insert_base_type(execution::sql::SqlTypeId::SmallInt, "smallint", sizeof(int16_t));
-  insert_base_type(execution::sql::SqlTypeId::Integer, "integer", sizeof(int32_t));
-  insert_base_type(execution::sql::SqlTypeId::BigInt, "bigint", sizeof(int64_t));
-  insert_base_type(execution::sql::SqlTypeId::Double, "double", sizeof(double));
-  insert_base_type(execution::sql::SqlTypeId::Decimal, "decimal", sizeof(int128_t));
-  insert_base_type(execution::sql::SqlTypeId::Date, "date", sizeof(uint32_t));
-  insert_base_type(execution::sql::SqlTypeId::Timestamp, "timestamp", sizeof(uint64_t));
+  insert_base_type(execution::sql::SqlTypeId::Invalid, "invalid",
+                   1);  // TODO(Matt): should this be inserted in pg_type?
+  insert_base_type(execution::sql::SqlTypeId::Boolean, "boolean",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Boolean));
+  insert_base_type(execution::sql::SqlTypeId::TinyInt, "tinyint",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::TinyInt));
+  insert_base_type(execution::sql::SqlTypeId::SmallInt, "smallint",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::SmallInt));
+  insert_base_type(execution::sql::SqlTypeId::Integer, "integer",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  insert_base_type(execution::sql::SqlTypeId::BigInt, "bigint",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
+  insert_base_type(execution::sql::SqlTypeId::Double, "double",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Double));
+  insert_base_type(execution::sql::SqlTypeId::Decimal, "decimal",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Decimal));
+  insert_base_type(execution::sql::SqlTypeId::Date, "date",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Date));
+  insert_base_type(execution::sql::SqlTypeId::Timestamp, "timestamp",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Timestamp));
 
   InsertType(txn, dbc->GetTypeOidForType(execution::sql::SqlTypeId::Varchar), "varchar",
              PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);
