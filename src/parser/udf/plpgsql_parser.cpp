@@ -3,15 +3,14 @@
 #include "binder/bind_node_visitor.h"
 #include "execution/ast/udf/udf_ast_nodes.h"
 #include "parser/udf/plpgsql_parser.h"
+#include "parser/udf/string_utils.h"
 
 #include "libpg_query/pg_query.h"
 #include "nlohmann/json.hpp"
 
 namespace noisepage::parser::udf {
 
-/**
- * @brief The identifiers used as keys in the parse tree.
- */
+/** The identifiers used as keys in the parse tree */
 static constexpr const char K_FUNCTION_LIST[] = "FunctionList";
 static constexpr const char K_DATUMS[] = "datums";
 static constexpr const char K_PLPGSQL_VAR[] = "PLpgSQL_var";
@@ -44,6 +43,15 @@ static constexpr const char K_NAME[] = "name";
 static constexpr const char K_PLPGSQL_ROW[] = "PLpgSQL_row";
 static constexpr const char K_PLPGSQL_STMT_DYNEXECUTE[] = "PLpgSQL_stmt_dynexecute";
 
+/** Variable declaration type identifiers */
+static constexpr const char DECL_TYPE_ID_INT[] = "int";
+static constexpr const char DECL_TYPE_ID_INTEGER[] = "integer";
+static constexpr const char DECL_TYPE_ID_DOUBLE[] = "double";
+static constexpr const char DECL_TYPE_ID_NUMERIC[] = "numeric";
+static constexpr const char DECL_TYPE_ID_VARCHAR[] = "varchar";
+static constexpr const char DECL_TYPE_ID_DATE[] = "date";
+static constexpr const char DECL_TYPE_ID_RECORD[] = "record";
+
 std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
     const std::vector<std::string> &param_names, const std::vector<type::TypeId> &param_types,
     const std::string &func_body, common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context) {
@@ -67,6 +75,7 @@ std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
     throw PARSER_EXCEPTION("Function list has size other than 1");
   }
 
+  // TODO(Kyle): This is a zip()
   std::size_t i{0};
   for (const auto &udf_name : param_names) {
     udf_ast_context_->SetVariableType(udf_name, param_types[i++]);
@@ -135,48 +144,61 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlohmann::json &decl) {
   const auto &decl_names = decl.items().begin();
-
   if (decl_names.key() == K_PLPGSQL_VAR) {
     auto var_name = decl[K_PLPGSQL_VAR][K_REFNAME].get<std::string>();
     udf_ast_context_->AddVariable(var_name);
-    auto type = decl[K_PLPGSQL_VAR][K_DATATYPE][K_PLPGSQL_TYPE][K_TYPENAME].get<std::string>();
-    std::unique_ptr<execution::ast::udf::ExprAST> initial = nullptr;
+
+    // Grab the type identifier from the PL/pgSQL parser
+    const std::string type = StringUtils::Strip(
+        StringUtils::Lower(decl[K_PLPGSQL_VAR][K_DATATYPE][K_PLPGSQL_TYPE][K_TYPENAME].get<std::string>()));
+
+    // Parse the initializer, if present
+    std::unique_ptr<execution::ast::udf::ExprAST> initial{nullptr};
     if (decl[K_PLPGSQL_VAR].find(K_DEFAULT_VAL) != decl[K_PLPGSQL_VAR].end()) {
       initial = ParseExprSQL(decl[K_PLPGSQL_VAR][K_DEFAULT_VAL][K_PLPGSQL_EXPR][K_QUERY].get<std::string>());
     }
 
+    // Detemine if the variable has already been declared;
+    // if so, just re-use this type that has already been resolved
     type::TypeId temp_type{};
     if (udf_ast_context_->GetVariableType(var_name, &temp_type)) {
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, temp_type, std::move(initial));
     }
-    if ((type.find("integer") != std::string::npos) || type.find("INTEGER") != std::string::npos) {
+
+    // Otherwise, we perform a string comparison with the type identifier
+    // for the variable to determine the type for the declaration
+
+    if ((type == DECL_TYPE_ID_INT) || (type == DECL_TYPE_ID_INTEGER)) {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::INTEGER);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INTEGER, std::move(initial));
     }
-    if (type == "double" || type.rfind("numeric") == 0) {
+    if ((type == DECL_TYPE_ID_DOUBLE) || (type == DECL_TYPE_ID_NUMERIC)) {
+      // TODO(Kyle): type.rfind("numeric")
       udf_ast_context_->SetVariableType(var_name, type::TypeId::DECIMAL);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::DECIMAL, std::move(initial));
     }
-    if (type == "varchar") {
+    if (type == DECL_TYPE_ID_VARCHAR) {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::VARCHAR);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::VARCHAR, std::move(initial));
     }
-    if (type.find("date") != std::string::npos) {
+    if (type == DECL_TYPE_ID_DATE) {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::DATE);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::DATE, std::move(initial));
     }
-    if (type == "record") {
+    if (type == DECL_TYPE_ID_RECORD) {
       udf_ast_context_->SetVariableType(var_name, type::TypeId::INVALID);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INVALID, std::move(initial));
     }
     NOISEPAGE_ASSERT(false, "Unsupported Type");
   } else if (decl_names.key() == K_PLPGSQL_ROW) {
-    auto var_name = decl[K_PLPGSQL_ROW][K_REFNAME].get<std::string>();
+    const auto var_name = decl[K_PLPGSQL_ROW][K_REFNAME].get<std::string>();
     NOISEPAGE_ASSERT(var_name == "*internal*", "Unexpected refname");
+
     // TODO(Kyle): Support row types later
     udf_ast_context_->SetVariableType(var_name, type::TypeId::INVALID);
     return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INVALID, nullptr);
   }
+
   // TODO(Kyle): Need to handle other types like row, table etc;
   throw PARSER_EXCEPTION("Declaration type not supported");
 }

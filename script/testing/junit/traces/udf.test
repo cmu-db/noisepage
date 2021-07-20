@@ -23,10 +23,10 @@ statement ok
 
 
 statement ok
--- Create the test table
+-- Create a test table
 
 statement ok
-CREATE TABLE test(id INT PRIMARY KEY, x INT);
+CREATE TABLE integers(x INT, y INT);
 
 statement ok
 
@@ -35,7 +35,7 @@ statement ok
 -- Insert some data
 
 statement ok
-INSERT INTO test (id, x) VALUES (0, 1), (1, 2), (2, 3);
+INSERT INTO integers (x, y) VALUES (1, 1), (2, 2), (3, 3);
 
 statement ok
 
@@ -56,7 +56,7 @@ statement ok
 
 
 query II rowsort
-SELECT x, return_constant() FROM test;
+SELECT x, return_constant() FROM integers;
 ----
 1
 1
@@ -85,7 +85,7 @@ statement ok
 
 
 query II rowsort
-SELECT x, return_input(x) FROM test;
+SELECT x, return_input(x) FROM integers;
 ----
 1
 1
@@ -93,5 +93,101 @@ SELECT x, return_input(x) FROM test;
 2
 3
 3
+
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- return_sum()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_sum(x INT, y INT) RETURNS INT AS $$ BEGIN RETURN x + y; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query III rowsort
+SELECT x, y, return_sum(x, y) FROM integers;
+----
+1
+1
+2
+2
+2
+4
+3
+3
+6
+
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- return_prod()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_product(x INT, y INT) RETURNS INT AS $$ BEGIN RETURN x * y; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query III rowsort
+SELECT x, y, return_product(x, y) FROM integers;
+----
+1
+1
+1
+2
+2
+4
+3
+3
+9
+
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- integer_decl()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION integer_decl() RETURNS INT AS $$ DECLARE x INT := 0; BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query III rowsort
+SELECT x, y, integer_decl() FROM integers;
+----
+1
+1
+0
+2
+2
+0
+3
+3
+0
 
 
