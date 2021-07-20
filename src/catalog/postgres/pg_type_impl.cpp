@@ -106,9 +106,6 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
                true, PgType::Type::BASE);
   };
 
-  // todo(Matt):: this should come from sql.h/.cpp, not hardcoded
-  insert_base_type(execution::sql::SqlTypeId::Invalid, "invalid",
-                   1);  // TODO(Matt): should this be inserted in pg_type?
   insert_base_type(execution::sql::SqlTypeId::Boolean, "boolean",
                    execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Boolean));
   insert_base_type(execution::sql::SqlTypeId::TinyInt, "tinyint",
@@ -133,9 +130,6 @@ void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> db
 
   InsertType(txn, dbc->GetTypeOidForType(execution::sql::SqlTypeId::Varbinary), "varbinary",
              PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);
-
-  InsertType(txn, dbc->GetTypeOidForType(execution::sql::SqlTypeId::Vararray), "vararray",
-             PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::COMPOSITE);
 }
 
 }  // namespace noisepage::catalog::postgres

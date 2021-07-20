@@ -47,8 +47,7 @@ enum class SqlTypeId : int8_t {
   Char,       // Fixed-length string //TODO(Matt): front-end doesn't support this
   Varchar,    // Variable-length string
   Varbinary,  // TODO(Matt): front-end doesn't support this
-  Variadic,   // TODO(Matt): this is a hack from execution::sql::SqlTypeId having a VARIADIC (nuke this?)
-  Vararray    // TODO(Matt): this is a hack from execution::sql::SqlTypeId having a VAR_ARRAY (nuke this?)
+  Variadic    // TODO(Matt): this is a hack from execution::sql::SqlTypeId having a VARIADIC (nuke this?)
 };
 
 /**
