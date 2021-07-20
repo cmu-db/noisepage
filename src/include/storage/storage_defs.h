@@ -189,15 +189,6 @@ class BlockAllocator {
   void Delete(RawBlock *const ptr) { delete ptr; }
 };
 
-/** ColumnMapInfo maps between col_oids in Schema and useful information that we need about a Column in SqlTable. */
-struct ColumnMapInfo {
-  /** col_id in BlockLayout. */
-  col_id_t col_id_;
-  /** SQL type of the column. */
-  execution::sql::SqlTypeId
-      col_type_;  // TODO(Matt): Why is type info here instead of Schema? Huge footgun for schema changes
-};
-
 /**
  * A block store is essentially an object pool. However, all blocks should be
  * aligned, so we will need to use the default constructor instead of raw
@@ -207,7 +198,7 @@ using BlockStore = common::ObjectPool<RawBlock, BlockAllocator>;
 /**
  * Used by SqlTable to map between col_oids in Schema and useful necessary information.
  */
-using ColumnMap = std::unordered_map<catalog::col_oid_t, ColumnMapInfo>;
+using ColumnMap = std::unordered_map<catalog::col_oid_t, col_id_t>;
 /**
  * Used by execution and storage layers to map between col_oids and offsets within a ProjectedRow
  */

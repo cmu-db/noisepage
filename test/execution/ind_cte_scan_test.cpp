@@ -44,7 +44,7 @@ TEST_F(IndCteScanTest, IndCTEEmptyAccumulateTest) {
   EXPECT_FALSE(cte_scan.Accumulate());
 
   TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(), col_oids, 1};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()), cte_scan.GetReadCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;  // The number of records found
 
@@ -114,7 +114,7 @@ TEST_F(IndCteScanTest, IndCTESingleInsertTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
                                col_oids.data(), static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()), cte_scan.GetReadCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
@@ -186,7 +186,8 @@ TEST_F(IndCteScanTest, IndCTEWriteTableTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), cte_scan.GetReadTableOid().UnderlyingValue(), cte_table_col_ids,
                                static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteCte()->GetTable()),
+                         cte_scan.GetWriteCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
@@ -259,7 +260,7 @@ TEST_F(IndCteScanTest, IndCTEDoubleAccumulateTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
                                col_oids.data(), static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()), cte_scan.GetReadCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
@@ -357,7 +358,7 @@ TEST_F(IndCteScanTest, IndCTEMultipleInsertTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
                                col_oids.data(), static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()), cte_scan.GetReadCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 

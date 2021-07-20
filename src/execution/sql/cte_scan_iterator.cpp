@@ -23,8 +23,8 @@ CteScanIterator::CteScanIterator(noisepage::execution::exec::ExecutionContext *e
   }
 
   // Create the table in the catalog.
-  catalog::Schema cte_table_schema(all_columns);
-  cte_table_ = new storage::SqlTable(exec_ctx->GetAccessor()->GetBlockStore(), cte_table_schema);
+  cte_table_schema_ = catalog::Schema(all_columns);
+  cte_table_ = new storage::SqlTable(exec_ctx->GetAccessor()->GetBlockStore(), cte_table_schema_);
   exec_ctx->GetAccessor()->RegisterTempTable(table_oid, common::ManagedPointer(cte_table_));
 
   storage::SqlTable *cte_table_local = cte_table_;
@@ -67,7 +67,4 @@ storage::TupleSlot CteScanIterator::TableInsert() {
   return cte_table_->Insert(exec_ctx_->GetTxn(), table_redo_);
 }
 
-storage::SqlTable *CteScanIterator::GetTable() { return cte_table_; }
-
-catalog::table_oid_t CteScanIterator::GetTableOid() { return cte_table_oid_; }
 }  // namespace noisepage::execution::sql

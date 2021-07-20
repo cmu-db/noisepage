@@ -121,7 +121,7 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
   TableVectorIterator table_iter(exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
                                  cte_table_col_ids, static_cast<uint32_t>(col_oids.size()));
-  table_iter.InitTempTable(common::ManagedPointer(cte_table));
+  table_iter.InitTempTable(common::ManagedPointer(cte_table), cte_scan->GetSchema());
   VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
@@ -189,7 +189,7 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
   auto table_iter = new TableVectorIterator(exec_ctx_.get(), (cte_scan->GetTableOid()).UnderlyingValue(),
                                             cte_table_col_ids, static_cast<uint32_t>(col_oids.size()));
-  table_iter->InitTempTable(common::ManagedPointer(cte_table));
+  table_iter->InitTempTable(common::ManagedPointer(cte_table), cte_scan->GetSchema());
   VectorProjectionIterator *vpi = table_iter->GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter->Advance()) {
