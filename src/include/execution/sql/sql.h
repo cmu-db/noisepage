@@ -33,21 +33,21 @@ enum class TypeId : uint8_t {
  * Supported SQL data types. //TODO(Matt): merge with network::PostgresValueType to reduce translation?
  */
 enum class SqlTypeId : int8_t {
-  Invalid = -1,  // TODO(Matt): this is a hack from execution::sql::SqlTypeId having an INVALID (mostly used for NULLs)
+  Invalid = -1,  // TODO(Matt): this is a hack, mostly used to transport un-typed NULLs after parsing
   Boolean,
   TinyInt,    // 1-byte integer
   SmallInt,   // 2-byte integer
   Integer,    // 4-byte integer
   BigInt,     // 8-byte integer
-  Real,       // 4-byte float //TODO(Matt): front-end doesn't support this
+  Real,       // 4-byte float //TODO(Matt): front-end doesn't support this, just changes REAL to DOUBLE
   Double,     // 8-byte float
-  Decimal,    // Arbitrary-precision numeric
+  Decimal,    // Arbitrary-precision numeric //TODO(Matt): back-end doesn't support this. See #1434
   Date,       // Dates
   Timestamp,  // Timestamps
   Char,       // Fixed-length string //TODO(Matt): front-end doesn't support this
   Varchar,    // Variable-length string
-  Varbinary,  // TODO(Matt): front-end doesn't support this
-  Variadic    // TODO(Matt): this is a hack from execution::sql::SqlTypeId having a VARIADIC (nuke this?)
+  Varbinary,  // TODO(Matt): front-end doesn't support this. See #788
+  Variadic    // TODO(Matt): hack from type::TypeId having a VARIADIC. See #1183
 };
 
 /**
