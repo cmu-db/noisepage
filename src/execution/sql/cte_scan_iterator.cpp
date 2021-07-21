@@ -25,7 +25,9 @@ CteScanIterator::CteScanIterator(noisepage::execution::exec::ExecutionContext *e
   // Create the table in the catalog.
   cte_table_schema_ = catalog::Schema(all_columns);
   cte_table_ = new storage::SqlTable(exec_ctx->GetAccessor()->GetBlockStore(), cte_table_schema_);
-  exec_ctx->GetAccessor()->RegisterTempTable(table_oid, common::ManagedPointer(cte_table_));
+  exec_ctx->GetAccessor()->RegisterTempTable(
+      table_oid, common::ManagedPointer(cte_table_),
+      common::ManagedPointer(reinterpret_cast<const catalog::Schema *>(&cte_table_schema_)));
 
   storage::SqlTable *cte_table_local = cte_table_;
 
