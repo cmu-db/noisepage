@@ -68,3 +68,74 @@ END                                              \
 $$ LANGUAGE PLPGSQL;
 
 SELECT x, y, integer_decl() FROM integers; 
+
+-- ----------------------------------------------------------------------------
+-- conditional()
+--
+-- TODO(Kyle): The final RETURN 0 is unreachable, but we
+-- need this temporary hack to deal with missing logic in parser
+
+CREATE FUNCTION conditional(x INT) RETURNS INT AS $$ \
+BEGIN                                                \
+  IF x > 1 THEN                                      \
+    RETURN 1;                                        \
+  ELSE                                               \
+    RETURN 2;                                        \
+  END IF;                                            \
+  RETURN 0;                                          \
+END                                                  \
+$$ LANGUAGE PLPGSQL;
+
+SELECT x, conditional(x) FROM integers;
+
+-- ----------------------------------------------------------------------------
+-- proc_while()
+
+CREATE FUNCTION proc_while() RETURNS INT AS $$ \
+DECLARE                                        \
+  x INT := 0;                                  \
+BEGIN                                          \
+  WHILE x < 10 LOOP                            \
+    x = x + 1;                                 \
+  END LOOP;                                    \
+  RETURN x;                                    \
+END                                            \
+$$ LANGUAGE PLPGSQL;
+
+SELECT x, proc_while() FROM integers;
+
+-- ----------------------------------------------------------------------------
+-- proc_fori()
+
+-- CREATE FUNCTION proc_fori() RETURNS INT AS $$ \
+-- DECLARE                                       \
+--   x INT := 0;                                 \
+-- BEGIN                                         \
+--   FOR i IN 1..10 LOOP                         \
+--     x = x + 1;                                \
+--   END LOOP;                                   \
+--   RETURN x;                                   \
+-- END                                           \
+-- $$ LANGUAGE PLPGSQL;
+
+-- SELECT x, proc_fori() FROM integers;
+
+-- ----------------------------------------------------------------------------
+-- proc_fors()
+
+-- CREATE TABLE temp(z INT);
+-- INSERT INTO temp(z) VALUES (0), (1);
+
+-- CREATE FUNCTION proc_fors() RETURNS INT AS $$ \
+-- DECLARE                                       \ 
+--   x INT := 0;                                 \
+-- BEGIN                                         \
+--   FOR v IN SELECT z FROM temp                 \
+--   LOOP                                        \
+--     x = x + 1;                                \
+--   END LOOP;                                   \
+--   RETURN x;                                   \
+-- END                                           \
+-- $$ LANGUAGE PLPGSQL;
+
+-- SELECT x, proc_fors() FROM integers;

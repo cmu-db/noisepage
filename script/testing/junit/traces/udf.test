@@ -191,3 +191,124 @@ SELECT x, y, integer_decl() FROM integers;
 0
 
 
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- conditional()
+
+statement ok
+--
+
+statement ok
+-- TODO(Kyle): The final RETURN 0 is unreachable, but we
+
+statement ok
+-- need this temporary hack to deal with missing logic in parser
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION conditional(x INT) RETURNS INT AS $$ BEGIN IF x > 1 THEN RETURN 1; ELSE RETURN 2; END IF; RETURN 0; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query II rowsort
+SELECT x, conditional(x) FROM integers;
+----
+1
+2
+2
+1
+3
+1
+
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_while()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_while() RETURNS INT AS $$ DECLARE x INT := 0; BEGIN WHILE x < 10 LOOP x = x + 1; END LOOP; RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query II rowsort
+SELECT x, proc_while() FROM integers;
+----
+1
+10
+2
+10
+3
+10
+
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fori()
+
+statement ok
+
+
+statement ok
+-- CREATE FUNCTION proc_fori() RETURNS INT AS $$ -- DECLARE --   x INT := 0; -- BEGIN --   FOR i IN 1..10 LOOP --     x = x + 1; --   END LOOP; --   RETURN x; -- END -- $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- SELECT x, proc_fori() FROM integers;
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fors()
+
+statement ok
+
+
+statement ok
+-- CREATE TABLE temp(z INT);
+
+statement ok
+-- INSERT INTO temp(z) VALUES (0), (1);
+
+statement ok
+
+
+statement ok
+-- CREATE FUNCTION proc_fors() RETURNS INT AS $$ -- DECLARE                                       \
+
+statement ok
+--   x INT := 0; -- BEGIN --   FOR v IN SELECT z FROM temp --   LOOP --     x = x + 1; --   END LOOP; --   RETURN x; -- END -- $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- SELECT x, proc_fors() FROM integers;
+

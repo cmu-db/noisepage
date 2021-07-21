@@ -75,7 +75,8 @@ std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
     throw PARSER_EXCEPTION("Function list has size other than 1");
   }
 
-  // TODO(Kyle): This is a zip()
+  // TODO(Kyle): This is a zip(), can we add our own generic
+  // algorithms library somewhere for stuff like this?
   std::size_t i{0};
   for (const auto &udf_name : param_names) {
     udf_ast_context_->SetVariableType(udf_name, param_types[i++]);
@@ -112,8 +113,11 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
   for (const auto &stmt : block) {
     const auto stmt_names = stmt.items().begin();
     if (stmt_names.key() == K_PLPGSQL_STMT_RETURN) {
+      // TODO(Kyle): Handle RETURN without expression
+      if (stmt[K_PLPGSQL_STMT_RETURN].empty()) {
+        throw NOT_IMPLEMENTED_EXCEPTION("RETURN without expression not implemented.");
+      }
       auto expr = ParseExprSQL(stmt[K_PLPGSQL_STMT_RETURN][K_EXPR][K_PLPGSQL_EXPR][K_QUERY].get<std::string>());
-      // TODO(Kyle): Handle return stmt w/o expression
       stmts.push_back(std::make_unique<execution::ast::udf::RetStmtAST>(std::move(expr)));
     } else if (stmt_names.key() == K_PLPGSQL_STMT_IF) {
       stmts.push_back(ParseIf(stmt[K_PLPGSQL_STMT_IF]));
