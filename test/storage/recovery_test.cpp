@@ -83,7 +83,7 @@ class RecoveryTests : public TerrierTest {
   catalog::IndexSchema DummyIndexSchema() {
     std::vector<catalog::IndexSchema::Column> keycols;
     keycols.emplace_back(
-        "", type::TypeId::INTEGER, false,
+        "", execution::sql::SqlTypeId::Integer, false,
         parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
     catalog::IndexOptions options;
@@ -106,8 +106,8 @@ class RecoveryTests : public TerrierTest {
   catalog::table_oid_t CreateTable(transaction::TransactionContext *txn,
                                    common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
                                    const catalog::namespace_oid_t ns_oid, const std::string &table_name) {
-    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
-                                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+    auto col = catalog::Schema::Column("attribute", execution::sql::SqlTypeId::Integer, false,
+                                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
     auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
     auto table_oid = db_catalog->CreateTable(common::ManagedPointer(txn), ns_oid, table_name, table_schema);
     EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
@@ -594,7 +594,7 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   auto table_ptr = db_catalog->GetTable(common::ManagedPointer(txn1), table_oid);
   const auto &schema = db_catalog->GetSchema(common::ManagedPointer(txn1), table_oid);
   EXPECT_EQ(1, schema.GetColumns().size());
-  EXPECT_EQ(type::TypeId::INTEGER, schema.GetColumn(0).Type());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, schema.GetColumn(0).Type());
   auto initializer = table_ptr->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
   auto *redo_record = txn1->StageWrite(db_oid, table_oid, initializer);
   *reinterpret_cast<int32_t *>(redo_record->Delta()->AccessForceNotNull(0)) = 0;

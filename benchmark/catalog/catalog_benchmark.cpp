@@ -44,9 +44,10 @@ class CatalogBenchmark : public benchmark::Fixture {
 
     // Create the column definition (no OIDs)
     std::vector<catalog::Schema::Column> cols;
-    cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-    cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TypeId::INTEGER));
+    cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                      parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+    cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                      parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
     auto tmp_schema = catalog::Schema(cols);
 
     const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -69,9 +70,10 @@ class CatalogBenchmark : public benchmark::Fixture {
 
     // Create the column definition (no OIDs)
     std::vector<catalog::Schema::Column> cols;
-    cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
-    cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TypeId::INTEGER));
+    cols.emplace_back("id", execution::sql::SqlTypeId::Integer, false,
+                      parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
+    cols.emplace_back("user_col_1", execution::sql::SqlTypeId::Integer, false,
+                      parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
     auto tmp_schema = catalog::Schema(cols);
 
     const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -103,8 +105,9 @@ class CatalogBenchmark : public benchmark::Fixture {
   catalog::index_oid_t AddIndex(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 catalog::table_oid_t table_oid, const std::string &index_name,
                                 const catalog::Schema::Column &col) {
-    std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-        col.Name(), type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, col.Oid())}};
+    std::vector<catalog::IndexSchema::Column> key_cols{
+        catalog::IndexSchema::Column{col.Name(), execution::sql::SqlTypeId::Integer, false,
+                                     parser::ColumnValueExpression(db_, table_oid, col.Oid())}};
     catalog::IndexOptions options;
     auto index_schema =
         catalog::IndexSchema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);

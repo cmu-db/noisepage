@@ -13,7 +13,6 @@
 #include "loggers/execution_logger.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
-#include "type/type_id.h"
 
 namespace noisepage::execution::sql {
 
@@ -104,11 +103,11 @@ class SchemaReader {
    * Constructor
    */
   SchemaReader()
-      : type_names_{{"tinyint", type::TypeId::TINYINT}, {"smallint", type::TypeId::SMALLINT},
-                    {"int", type::TypeId::INTEGER},     {"bigint", type::TypeId::BIGINT},
-                    {"bool", type::TypeId::BOOLEAN},    {"real", type::TypeId::REAL},
-                    {"decimal", type::TypeId::REAL},    {"varchar", type::TypeId::VARCHAR},
-                    {"varlen", type::TypeId::VARCHAR},  {"date", type::TypeId::DATE}} {}
+      : type_names_{{"tinyint", execution::sql::SqlTypeId::TinyInt}, {"smallint", execution::sql::SqlTypeId::SmallInt},
+                    {"int", execution::sql::SqlTypeId::Integer},     {"bigint", execution::sql::SqlTypeId::BigInt},
+                    {"bool", execution::sql::SqlTypeId::Boolean},    {"real", execution::sql::SqlTypeId::Double},
+                    {"decimal", execution::sql::SqlTypeId::Double},  {"varchar", execution::sql::SqlTypeId::Varchar},
+                    {"varlen", execution::sql::SqlTypeId::Varchar},  {"date", execution::sql::SqlTypeId::Date}} {}
 
   /**
    * Reads table metadata
@@ -163,13 +162,13 @@ class SchemaReader {
     // Read each column
     std::string col_name;
     std::string col_type_str;
-    type::TypeId col_type;
+    execution::sql::SqlTypeId col_type;
     uint32_t varchar_size{0};
     bool nullable;
     for (uint32_t i = 0; i < num_cols; i++) {
       *in >> col_name >> col_type_str >> nullable;
       col_type = type_names_.at(col_type_str);
-      if (col_type == type::TypeId::VARCHAR) {
+      if (col_type == execution::sql::SqlTypeId::Varchar) {
         *in >> varchar_size;
         cols.emplace_back(col_name, col_type, varchar_size, nullable, parser::ConstantValueExpression(col_type));
       } else {
@@ -181,6 +180,6 @@ class SchemaReader {
 
  private:
   // Supported types
-  const std::unordered_map<std::string, type::TypeId> type_names_;
+  const std::unordered_map<std::string, execution::sql::SqlTypeId> type_names_;
 };
 }  // namespace noisepage::execution::sql

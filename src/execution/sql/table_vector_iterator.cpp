@@ -29,11 +29,12 @@ bool TableVectorIterator::Init() { return Init(0, storage::DataTable::GetMaxBloc
 
 bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
   auto table = exec_ctx_->GetAccessor()->GetTable(table_oid_);
-  return Init(table, block_start, block_end);
+  const auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid_);
+  return Init(table, schema, block_start, block_end);
 }
 
-bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, uint32_t block_start,
-                               uint32_t block_end) {
+bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, const catalog::Schema &schema,
+                               uint32_t block_start, uint32_t block_end) {
   // No-op if already initialized
   if (IsInitialized()) {
     return true;
@@ -54,8 +55,8 @@ bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, 
   std::vector<TypeId> col_types(col_oids_.size());
   for (uint64_t idx = 0; idx < col_oids_.size(); idx++) {
     auto col_oid = col_oids_[idx];
-    auto col_type = GetTypeId(table_col_map.at(col_oid).col_type_);
-    auto storage_col_id = table_col_map.at(col_oid).col_id_;
+    auto col_type = GetTypeId(schema.GetColumn(col_oid).Type());
+    auto storage_col_id = table_col_map.at(col_oid);
 
     col_ids.emplace_back(storage_col_id);
     col_types[idx] = col_type;
@@ -71,8 +72,9 @@ bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, 
   return true;
 }
 
-bool TableVectorIterator::InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table) {
-  return Init(cte_table, 0, storage::DataTable::GetMaxBlocks());
+bool TableVectorIterator::InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table,
+                                        const catalog::Schema &schema) {
+  return Init(cte_table, schema, 0, storage::DataTable::GetMaxBlocks());
 }
 
 bool TableVectorIterator::Advance() {

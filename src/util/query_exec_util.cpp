@@ -96,7 +96,8 @@ void QueryExecUtil::EndTransaction(bool commit) {
 
 std::unique_ptr<network::Statement> QueryExecUtil::PlanStatement(
     const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-    common::ManagedPointer<std::vector<type::TypeId>> param_types, std::unique_ptr<optimizer::AbstractCostModel> cost) {
+    common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> param_types,
+    std::unique_ptr<optimizer::AbstractCostModel> cost) {
   NOISEPAGE_ASSERT(txn_ != nullptr, "Transaction must have been started");
   ResetError();
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
@@ -215,7 +216,7 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query, bool what_if) {
 
 bool QueryExecUtil::CompileQuery(const std::string &statement,
                                  common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                                 common::ManagedPointer<std::vector<type::TypeId>> param_types,
+                                 common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> param_types,
                                  std::unique_ptr<optimizer::AbstractCostModel> cost,
                                  std::optional<execution::query_id_t> override_qid,
                                  const execution::exec::ExecutionSettings &exec_settings) {
@@ -299,8 +300,8 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
 
 bool QueryExecUtil::ExecuteDML(const std::string &query,
                                common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                               common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
-                               common::ManagedPointer<metrics::MetricsManager> metrics,
+                               common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> param_types,
+                               TupleFunction tuple_fn, common::ManagedPointer<metrics::MetricsManager> metrics,
                                std::unique_ptr<optimizer::AbstractCostModel> cost,
                                std::optional<execution::query_id_t> override_qid,
                                const execution::exec::ExecutionSettings &exec_settings) {

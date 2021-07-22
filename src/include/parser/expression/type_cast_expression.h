@@ -25,7 +25,7 @@ class TypeCastExpression : public AbstractExpression {
   // Wan: can you elaborate? How do you envision this being used?
  public:
   /** Instantiates a new type cast expression. */
-  TypeCastExpression(type::TypeId type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
+  TypeCastExpression(execution::sql::SqlTypeId type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : AbstractExpression(ExpressionType::OPERATOR_CAST, type, std::move(children)) {}
 
   /** Default constructor for JSON deserialization. */

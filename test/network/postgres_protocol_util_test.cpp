@@ -14,20 +14,20 @@ TEST_F(PostgresProtocolUtilTests, TypeConversionTest) {
   // Check that we can correctly convert our types back and forth from Postgres types
 
   // I hate C++ enums so much. Just give me a fucking iterator...
-  std::vector<type::TypeId> all_types = {
-      type::TypeId::BOOLEAN,
+  std::vector<execution::sql::SqlTypeId> all_types = {
+      execution::sql::SqlTypeId::Boolean,
       // TINYINT is aliased to boolean in Postgres, so we'll skip it
-      // type::TypeId::TINYINT,
-      type::TypeId::SMALLINT,
-      type::TypeId::INTEGER,
-      type::TypeId::BIGINT,
-      type::TypeId::REAL,
-      type::TypeId::TIMESTAMP,
-      type::TypeId::DATE,
-      type::TypeId::VARCHAR,
-      type::TypeId::VARBINARY,
+      // execution::sql::SqlTypeId::TinyInt,
+      execution::sql::SqlTypeId::SmallInt,
+      execution::sql::SqlTypeId::Integer,
+      execution::sql::SqlTypeId::BigInt,
+      execution::sql::SqlTypeId::Double,
+      execution::sql::SqlTypeId::Timestamp,
+      execution::sql::SqlTypeId::Date,
+      execution::sql::SqlTypeId::Varchar,
+      execution::sql::SqlTypeId::Varbinary,
   };
-  for (type::TypeId orig_internal_type : all_types) {
+  for (execution::sql::SqlTypeId orig_internal_type : all_types) {
     auto postgres_type = PostgresProtocolUtil::InternalValueTypeToPostgresValueType(orig_internal_type);
     auto internal_type = PostgresProtocolUtil::PostgresValueTypeToInternalValueType(postgres_type);
 

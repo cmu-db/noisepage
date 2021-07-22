@@ -19,7 +19,7 @@ class ConjunctionExpression : public AbstractExpression {
    * @param children vector containing exactly two children, left then right  TODO(WAN): wtf? tpcc_plan_delivery_test
    */
   ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
-      : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
+      : AbstractExpression(cmp_type, execution::sql::SqlTypeId::Boolean, std::move(children)) {}
 
   /** Default constructor for deserialization. */
   ConjunctionExpression() = default;

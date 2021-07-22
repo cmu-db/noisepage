@@ -18,7 +18,7 @@ nlohmann::json Schema::Column::ToJson() const {
 
 std::vector<std::unique_ptr<parser::AbstractExpression>> Schema::Column::FromJson(const nlohmann::json &j) {
   name_ = j.at("name").get<std::string>();
-  type_ = j.at("type").get<type::TypeId>();
+  type_ = j.at("type").get<execution::sql::SqlTypeId>();
   attr_length_ = j.at("attr_length").get<uint16_t>();
   type_modifier_ = j.at("type_modifier").get<int32_t>();
   nullable_ = j.at("nullable").get<bool>();

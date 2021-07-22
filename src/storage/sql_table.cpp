@@ -43,7 +43,7 @@ std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid
   // Build the input to the initializer constructor
   for (const catalog::col_oid_t col_oid : col_oids) {
     NOISEPAGE_ASSERT(table_.column_map_.count(col_oid) > 0, "Provided col_oid does not exist in the table.");
-    const col_id_t col_id = table_.column_map_.at(col_oid).col_id_;
+    const col_id_t col_id = table_.column_map_.at(col_oid);
     col_ids.push_back(col_id);
   }
 
@@ -101,10 +101,10 @@ void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionCo
         new_pr->SetNull(offset);
         continue;
       }
-      std::memcpy(new_pr_ptr, src_ptr, table_.layout_.AttrSize(cols.second.col_id_));
+      std::memcpy(new_pr_ptr, src_ptr, table_.layout_.AttrSize(cols.second));
 
       // copy over varlens contents
-      if (table_.layout_.IsVarlen(cols.second.col_id_)) {
+      if (table_.layout_.IsVarlen(cols.second)) {
         auto varlen = reinterpret_cast<storage::VarlenEntry *>(src_ptr);
         if (varlen->NeedReclaim()) {
           byte *new_allocation = common::AllocationUtil::AllocateAligned(varlen->Size());
@@ -120,9 +120,8 @@ void SqlTable::CopyTable(const common::ManagedPointer<transaction::TransactionCo
 }
 
 catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
-  const auto oid_to_id =
-      std::find_if(table_.column_map_.cbegin(), table_.column_map_.cend(),
-                   [&](const auto &oid_to_id) -> bool { return oid_to_id.second.col_id_ == col_id; });
+  const auto oid_to_id = std::find_if(table_.column_map_.cbegin(), table_.column_map_.cend(),
+                                      [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });
   return oid_to_id->first;
 }
 

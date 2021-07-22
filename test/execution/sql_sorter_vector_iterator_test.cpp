@@ -90,8 +90,10 @@ class SorterVectorIteratorTest : public SqlBasedTest {
  public:
   SorterVectorIteratorTest()
       : schema_({
-            {"key", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT)},
-            {"attributes", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT)},
+            {"key", execution::sql::SqlTypeId::BigInt, false,
+             parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
+            {"attributes", execution::sql::SqlTypeId::BigInt, true,
+             parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt)},
         }) {}
 
  protected:

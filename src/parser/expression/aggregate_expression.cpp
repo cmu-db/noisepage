@@ -26,7 +26,7 @@ void AggregateExpression::DeriveReturnValueType() {
   auto expr_type = this->GetExpressionType();
   switch (expr_type) {
     case ExpressionType::AGGREGATE_COUNT:
-      this->SetReturnValueType(type::TypeId::INTEGER);
+      this->SetReturnValueType(execution::sql::SqlTypeId::Integer);
       break;
     // keep the type of the base
     case ExpressionType::AGGREGATE_MAX:
@@ -37,11 +37,11 @@ void AggregateExpression::DeriveReturnValueType() {
       this->SetReturnValueType(this->GetChild(0)->GetReturnValueType());
       break;
     case ExpressionType::AGGREGATE_AVG:
-      this->SetReturnValueType(type::TypeId::REAL);
+      this->SetReturnValueType(execution::sql::SqlTypeId::Double);
       break;
     case ExpressionType::AGGREGATE_TOP_K:
     case ExpressionType::AGGREGATE_HISTOGRAM:
-      this->SetReturnValueType(type::TypeId::VARBINARY);
+      this->SetReturnValueType(execution::sql::SqlTypeId::Varbinary);
       break;
     default:
       throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));

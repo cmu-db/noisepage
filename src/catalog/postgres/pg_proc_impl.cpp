@@ -312,7 +312,7 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
   std::vector<proc_oid_t> matching_functions;
 
   if (!results.empty()) {
-    const std::vector<type_oid_t> variadic = {dbc->GetTypeOidForType(type::TypeId::VARIADIC)};
+    const std::vector<type_oid_t> variadic = {dbc->GetTypeOidForType(execution::sql::SqlTypeId::Variadic)};
     auto variadic_varlen = storage::StorageUtil::CreateVarlen(variadic);
     auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
 
@@ -364,12 +364,12 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
 
 void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn,
                                 const common::ManagedPointer<DatabaseCatalog> dbc) {
-  const auto INT = dbc->GetTypeOidForType(type::TypeId::INTEGER);   // NOLINT
-  const auto STR = dbc->GetTypeOidForType(type::TypeId::VARCHAR);   // NOLINT
-  const auto REAL = dbc->GetTypeOidForType(type::TypeId::REAL);     // NOLINT
-  const auto DATE = dbc->GetTypeOidForType(type::TypeId::DATE);     // NOLINT
-  const auto BOOL = dbc->GetTypeOidForType(type::TypeId::BOOLEAN);  // NOLINT
-  const auto VAR = dbc->GetTypeOidForType(type::TypeId::VARIADIC);  // NOLINT
+  const auto INT = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Integer);   // NOLINT
+  const auto STR = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Varchar);   // NOLINT
+  const auto REAL = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Double);   // NOLINT
+  const auto DATE = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Date);     // NOLINT
+  const auto BOOL = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Boolean);  // NOLINT
+  const auto VAR = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Variadic);  // NOLINT
 
   auto create_fn = [&](const std::string &procname, const std::vector<std::string> &args,
                        const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
@@ -464,7 +464,8 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
 
 void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const common::ManagedPointer<DatabaseCatalog> dbc, std::string &&func_name,
-                                      const type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
+                                      const execution::sql::SqlTypeId func_ret_type,
+                                      std::vector<execution::sql::SqlTypeId> &&arg_types,
                                       const execution::ast::Builtin builtin, const bool is_exec_ctx_required) {
   std::vector<type_oid_t> arg_type_oids;
   arg_type_oids.reserve(arg_types.size());
@@ -481,12 +482,13 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
 
 void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const common::ManagedPointer<DatabaseCatalog> dbc) {
-  constexpr auto REAL = type::TypeId::REAL;    // NOLINT
-  constexpr auto INT = type::TypeId::INTEGER;  // NOLINT
-  constexpr auto VAR = type::TypeId::VARCHAR;  // NOLINT
+  constexpr auto REAL = execution::sql::SqlTypeId::Double;  // NOLINT
+  constexpr auto INT = execution::sql::SqlTypeId::Integer;  // NOLINT
+  constexpr auto VAR = execution::sql::SqlTypeId::Varchar;  // NOLINT
 
-  auto create_fn = [&](std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
-                       execution::ast::Builtin builtin, bool is_exec_ctx_required) {
+  auto create_fn = [&](std::string &&func_name, execution::sql::SqlTypeId func_ret_type,
+                       std::vector<execution::sql::SqlTypeId> &&arg_types, execution::ast::Builtin builtin,
+                       bool is_exec_ctx_required) {
     BootstrapProcContext(txn, dbc, std::move(func_name), func_ret_type, std::move(arg_types), builtin,
                          is_exec_ctx_required);
   };
@@ -545,7 +547,7 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   create_fn("rtrim", VAR, {VAR, VAR}, execution::ast::Builtin::Rtrim, true);
   create_fn("rtrim", VAR, {VAR}, execution::ast::Builtin::Rtrim, true);
   create_fn("split_part", VAR, {VAR, VAR, INT}, execution::ast::Builtin::SplitPart, true);
-  create_fn("starts_with", type::TypeId::BOOLEAN, {VAR, VAR}, execution::ast::Builtin::StartsWith, true);
+  create_fn("starts_with", execution::sql::SqlTypeId::Boolean, {VAR, VAR}, execution::ast::Builtin::StartsWith, true);
   create_fn("substr", VAR, {VAR, INT, INT}, execution::ast::Builtin::Substring, true);
   create_fn("upper", VAR, {VAR}, execution::ast::Builtin::Upper, true);
 
@@ -553,7 +555,7 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   create_fn("replication_get_last_txn_id", INT, {}, execution::ast::Builtin::ReplicationGetLastTransactionId, true);
 
   // Other functions.
-  create_fn("date_part", INT, {type::TypeId::DATE, INT}, execution::ast::Builtin::DatePart, false);
+  create_fn("date_part", INT, {execution::sql::SqlTypeId::Date, INT}, execution::ast::Builtin::DatePart, false);
   create_fn("version", VAR, {}, execution::ast::Builtin::Version, true);
 
   create_fn("nprunnersemitint", INT, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitInt, true);

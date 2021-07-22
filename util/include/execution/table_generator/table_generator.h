@@ -66,12 +66,12 @@ class TableGenerator {
    * @param car Cardinality
    * @return table name
    */
-  static std::string GenerateTableName(std::vector<type::TypeId> types, std::vector<uint32_t> cols, size_t row,
-                                       size_t car) {
+  static std::string GenerateTableName(std::vector<execution::sql::SqlTypeId> types, std::vector<uint32_t> cols,
+                                       size_t row, size_t car) {
     std::stringstream table_name;
     for (size_t idx = 0; idx < cols.size(); idx++) {
       if (cols[idx] != 0) {
-        table_name << type::TypeUtil::TypeIdToString(types[idx]);
+        table_name << execution::sql::SqlTypeIdToString(types[idx]);
         table_name << "Col" << cols[idx];
       }
     }
@@ -102,7 +102,7 @@ class TableGenerator {
    * @param row_num # of rows in the underlying table
    * @param key_num Number of keys comprising the index
    */
-  void BuildExecutionRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
+  void BuildExecutionRunnerIndex(execution::sql::SqlTypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
 
   /**
    * Drops a unique execution-runner index on GenerateTableName({type}, {tbl_cols}, row_num, row_num)
@@ -113,7 +113,7 @@ class TableGenerator {
    * @param key_num Number of keys comprising the index
    * @returns bool indicating whether successful
    */
-  bool DropExecutionRunnerIndex(type::TypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
+  bool DropExecutionRunnerIndex(execution::sql::SqlTypeId type, uint32_t tbl_cols, int64_t row_num, int64_t key_num);
 
  private:
   exec::ExecutionContext *exec_ctx_;
@@ -137,7 +137,7 @@ class TableGenerator {
     /**
      * Type of the column
      */
-    type::TypeId type_;
+    execution::sql::SqlTypeId type_;
     /**
      * Whether the column is nullable
      */
@@ -174,13 +174,14 @@ class TableGenerator {
     /**
      * Constructor
      */
-    ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
+    ColumnInsertMeta(std::string name, const execution::sql::SqlTypeId type, bool nullable, Dist dist, uint64_t min,
+                     uint64_t max)
         : name_(std::move(name)), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
 
     /**
      * Clone Constructor
      */
-    ColumnInsertMeta(std::string name, const type::TypeId type, bool nullable, size_t clone_idx)
+    ColumnInsertMeta(std::string name, const execution::sql::SqlTypeId type, bool nullable, size_t clone_idx)
         : name_(std::move(name)), type_(type), nullable_(nullable), is_clone_(true), clone_idx_(clone_idx) {}
   };
 
@@ -220,7 +221,7 @@ class TableGenerator {
     /**
      * Type of the column
      */
-    const type::TypeId type_;
+    const execution::sql::SqlTypeId type_;
     /**
      * Whether the columns is nullable
      */
@@ -233,7 +234,7 @@ class TableGenerator {
     /**
      * Constructor
      */
-    IndexColumn(const char *name, const type::TypeId type, bool nullable, const char *table_col_name)
+    IndexColumn(const char *name, const execution::sql::SqlTypeId type, bool nullable, const char *table_col_name)
         : name_(name), type_(type), nullable_(nullable), table_col_name_(table_col_name) {}
   };
 

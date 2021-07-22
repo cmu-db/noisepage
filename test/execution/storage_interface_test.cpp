@@ -146,7 +146,7 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
   // Try to fetch the inserted values.
   TableVectorIterator table_iter(exec_ctx_.get(), cte_table_oid.UnderlyingValue(), col_oids.data(),
                                  static_cast<uint32_t>(col_oids.size()));
-  table_iter.InitTempTable(common::ManagedPointer(cte_table));
+  table_iter.InitTempTable(common::ManagedPointer(cte_table), child_schema);
   VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {

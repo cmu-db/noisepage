@@ -285,7 +285,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
 
     // @prSet(insert_index_pr, attr_type, attr_idx, nullable, attr_index, col_expr, false)
     uint16_t attr_offset = index_pm.at(index_col.Oid());
-    type::TypeId attr_type = index_col.Type();
+    execution::sql::SqlTypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
     auto *set_key_call = codegen_->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false);
     function->Append(codegen_->MakeStmt(set_key_call));

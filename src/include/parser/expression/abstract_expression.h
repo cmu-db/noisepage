@@ -8,8 +8,8 @@
 #include "common/hash_defs.h"
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
+#include "execution/sql/sql.h"
 #include "parser/expression_defs.h"
-#include "type/type_id.h"
 
 namespace noisepage::optimizer {
 class OptimizerUtil;
@@ -131,7 +131,7 @@ class AbstractExpression {
    * @param return_value_type the type of the expression's value
    * @param children the list of children for this node
    */
-  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
+  AbstractExpression(const ExpressionType expression_type, const execution::sql::SqlTypeId return_value_type,
                      std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
 
@@ -142,8 +142,8 @@ class AbstractExpression {
    * @param alias alias of the column (used in column value expression)
    * @param children the list of children for this node
    */
-  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, AliasType alias,
-                     std::vector<std::unique_ptr<AbstractExpression>> &&children)
+  AbstractExpression(const ExpressionType expression_type, const execution::sql::SqlTypeId return_value_type,
+                     AliasType alias, std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type),
         alias_(std::move(alias)),
         return_value_type_(return_value_type),
@@ -174,7 +174,7 @@ class AbstractExpression {
   /**
    * @param return_value_type Set the return value type of the current expression
    */
-  void SetReturnValueType(type::TypeId return_value_type) { return_value_type_ = return_value_type; }
+  void SetReturnValueType(execution::sql::SqlTypeId return_value_type) { return_value_type_ = return_value_type; }
 
   /**
    * @param depth Set the depth of the current expression
@@ -238,7 +238,7 @@ class AbstractExpression {
   /**
    * @return type of the return value
    */
-  type::TypeId GetReturnValueType() const { return return_value_type_; }
+  execution::sql::SqlTypeId GetReturnValueType() const { return return_value_type_; }
 
   /**
    * @return number of children in this abstract expression
@@ -356,7 +356,7 @@ class AbstractExpression {
   /** Alias of the current expression */
   AliasType alias_;
   /** Type of the return value */
-  type::TypeId return_value_type_;
+  execution::sql::SqlTypeId return_value_type_;
 
   /**
    * MUTABLE Sub-query depth level for the current expression.

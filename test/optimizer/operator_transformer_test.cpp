@@ -85,16 +85,16 @@ class OperatorTransformerTest : public TerrierTest {
     OPTIMIZER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
     // get default values of the columns
-    auto int_default = parser::ConstantValueExpression(type::TypeId::INTEGER);
-    auto varchar_default = parser::ConstantValueExpression(type::TypeId::VARCHAR);
+    auto int_default = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer);
+    auto varchar_default = parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar);
 
     // create table A
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a;
-    cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
-    cols_a.emplace_back("a2", type::TypeId::VARCHAR, 20, true, varchar_default);
+    cols_a.emplace_back("a1", execution::sql::SqlTypeId::Integer, true, int_default);
+    cols_a.emplace_back("a2", execution::sql::SqlTypeId::Varchar, 20, true, varchar_default);
     auto schema_a = catalog::Schema(cols_a);
 
     table_a_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "a", schema_a);
@@ -110,8 +110,8 @@ class OperatorTransformerTest : public TerrierTest {
 
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
-    cols_b.emplace_back("b1", type::TypeId::INTEGER, true, int_default);
-    cols_b.emplace_back("b2", type::TypeId::VARCHAR, 20, true, varchar_default);
+    cols_b.emplace_back("b1", execution::sql::SqlTypeId::Integer, true, int_default);
+    cols_b.emplace_back("b2", execution::sql::SqlTypeId::Varchar, 20, true, varchar_default);
 
     auto schema_b = catalog::Schema(cols_b);
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
@@ -124,7 +124,7 @@ class OperatorTransformerTest : public TerrierTest {
     accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_oid_, DISABLED);
 
     auto col = catalog::IndexSchema::Column(
-        "a1", type::TypeId::INTEGER, true,
+        "a1", execution::sql::SqlTypeId::Integer, true,
         parser::ColumnValueExpression(db_oid_, table_a_oid_, accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid()));
     catalog::IndexOptions options;
     auto idx_schema =
@@ -245,12 +245,12 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 
   auto insert_value_a1 =
       logical_insert->GetValues().Get()[0][0][0].CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(insert_value_a1->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(insert_value_a1->GetReturnValueType(), execution::sql::SqlTypeId::Integer);
   EXPECT_EQ(insert_value_a1->Peek<int64_t>(), 5);
 
   auto insert_value_a2 =
       logical_insert->GetValues().Get()[0][0][1].CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(insert_value_a2->GetReturnValueType(), type::TypeId::VARCHAR);
+  EXPECT_EQ(insert_value_a2->GetReturnValueType(), execution::sql::SqlTypeId::Varchar);
   EXPECT_EQ(insert_value_a2->Peek<std::string_view>(), "MY DATA");
 }
 
@@ -319,7 +319,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   auto update_clause = logical_update->GetUpdateClauses()[0].Get();
   EXPECT_EQ("a1", update_clause->GetColumnName());
   auto constant = update_clause->GetUpdateValue().CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(constant->GetReturnValueType(), execution::sql::SqlTypeId::Integer);
   EXPECT_EQ(constant->Peek<int64_t>(), 999);
 
   // Test LogicalGet
@@ -1005,7 +1005,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   auto def_expr = ct->GetColumns()[3]->GetDefaultExpression();
   EXPECT_EQ(def_expr->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(*(def_expr.CastManagedPointerTo<parser::ConstantValueExpression>()),
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(14)));
+            parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(14)));
 
   auto chk_expr = ct->GetColumns()[3]->GetCheckExpression();
   EXPECT_EQ(chk_expr->GetExpressionType(), parser::ExpressionType::COMPARE_LESS_THAN);
@@ -1014,7 +1014,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(chk_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "c4");
   EXPECT_EQ(chk_expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(*(chk_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>()),
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(100)));
+            parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(100)));
   planner::PlanMetaData plan_meta_data{};
   optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
   optimizer::PropertySet property_set{};
@@ -1035,10 +1035,10 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].Name(), "c2");
   EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].Name(), "c3");
   EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].Name(), "c4");
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].Type(), type::TypeId::VARCHAR);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[0].Type(), execution::sql::SqlTypeId::Integer);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[1].Type(), execution::sql::SqlTypeId::Varchar);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].Type(), execution::sql::SqlTypeId::Integer);
+  EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].Type(), execution::sql::SqlTypeId::Integer);
   EXPECT_FALSE(ctpn->GetSchema()->GetColumns()[0].Nullable());
   EXPECT_FALSE(ctpn->GetSchema()->GetColumns()[1].Nullable());
   EXPECT_TRUE(ctpn->GetSchema()->GetColumns()[2].Nullable());
@@ -1048,7 +1048,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(ctpn->GetSchema()->GetColumns()[2].AttributeLength(), 4);
   EXPECT_EQ(ctpn->GetSchema()->GetColumns()[3].AttributeLength(), 4);
   EXPECT_EQ(*ctpn->GetSchema()->GetColumns()[3].StoredExpression(),
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(14)));
+            parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(14)));
 
   EXPECT_TRUE(ctpn->HasPrimaryKey());
   EXPECT_EQ(ctpn->GetPrimaryKey().primary_key_cols_.size(), 1);
@@ -1073,7 +1073,7 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(ctpn->GetCheckConstraints()[0].constraint_name_, "con_check");
   EXPECT_EQ(ctpn->GetCheckConstraints()[0].expr_type_, parser::ExpressionType::COMPARE_LESS_THAN);
   EXPECT_EQ(ctpn->GetCheckConstraints()[0].expr_value_,
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(100)));
+            parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(100)));
 }
 
 // NOLINTNEXTLINE
@@ -1365,7 +1365,7 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   EXPECT_EQ(sc0.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "a1");
   EXPECT_EQ(sc1->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(*(sc1.CastManagedPointerTo<parser::ConstantValueExpression>()),
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(4)));
+            parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(4)));
 
   planner::PlanMetaData plan_meta_data{};
   optimizer::PlanGenerator plan_generator(common::ManagedPointer<planner::PlanMetaData>{&plan_meta_data});
@@ -1391,7 +1391,7 @@ TEST_F(OperatorTransformerTest, CreateViewTest) {
   EXPECT_EQ(scpn0.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "a1");
   EXPECT_EQ(scpn1->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(*(scpn1.CastManagedPointerTo<parser::ConstantValueExpression>()),
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(4)));
+            parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(4)));
 }
 
 // NOLINTNEXTLINE

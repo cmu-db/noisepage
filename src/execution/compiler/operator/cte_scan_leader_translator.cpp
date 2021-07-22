@@ -1,4 +1,5 @@
 #include "execution/compiler/operator/cte_scan_leader_translator.h"
+
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
@@ -154,9 +155,9 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
     auto set_decl = codegen->DeclareVar(insertion_val, codegen->TplType(execution::sql::GetTypeId(col.Type())), val);
     builder->Append(set_decl);
 
-    auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), col.Type(), false,
-                                      table_pm_.find(table_col_oid)->second.col_id_.UnderlyingValue(),
-                                      codegen->MakeExpr(insertion_val), true);
+    auto pr_set_call =
+        codegen->PRSet(codegen->MakeExpr(insert_pr_), col.Type(), false,
+                       table_pm_.find(table_col_oid)->second.UnderlyingValue(), codegen->MakeExpr(insertion_val), true);
     builder->Append(codegen->MakeStmt(pr_set_call));
   }
 }

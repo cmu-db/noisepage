@@ -6,42 +6,42 @@
 
 namespace noisepage::network {
 
-type::TypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const PostgresValueType type) {
+execution::sql::SqlTypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const PostgresValueType type) {
   switch (type) {
     case PostgresValueType::INVALID:
-      return type::TypeId::INVALID;
+      return execution::sql::SqlTypeId::Invalid;
 
     case PostgresValueType::BOOLEAN:
-      return type::TypeId::BOOLEAN;
+      return execution::sql::SqlTypeId::Boolean;
 
     case PostgresValueType::SMALLINT:
-      return type::TypeId::SMALLINT;
+      return execution::sql::SqlTypeId::SmallInt;
     case PostgresValueType::INTEGER:
-      return type::TypeId::INTEGER;
+      return execution::sql::SqlTypeId::Integer;
     case PostgresValueType::BIGINT:
-      return type::TypeId::BIGINT;
+      return execution::sql::SqlTypeId::BigInt;
     case PostgresValueType::REAL:
     case PostgresValueType::DOUBLE:
-      return type::TypeId::REAL;
+      return execution::sql::SqlTypeId::Double;
 
     case PostgresValueType::BPCHAR:
     case PostgresValueType::BPCHAR2:
     case PostgresValueType::VARCHAR:
     case PostgresValueType::VARCHAR2:
     case PostgresValueType::TEXT:
-      return type::TypeId::VARCHAR;
+      return execution::sql::SqlTypeId::Varchar;
 
     case PostgresValueType::VARBINARY:
-      return type::TypeId::VARBINARY;
+      return execution::sql::SqlTypeId::Varbinary;
 
     case PostgresValueType::DATE:
-      return type::TypeId::DATE;
+      return execution::sql::SqlTypeId::Date;
     case PostgresValueType::TIMESTAMPS:
     case PostgresValueType::TIMESTAMPS2:
-      return type::TypeId::TIMESTAMP;
+      return execution::sql::SqlTypeId::Timestamp;
 
     case PostgresValueType::DECIMAL:
-      return type::TypeId::DECIMAL;
+      return execution::sql::SqlTypeId::Decimal;
     default: {
       std::ostringstream os;
       os << "No TypeId conversion for PostgresValueType '" << static_cast<int>(type) << "'";
@@ -50,43 +50,43 @@ type::TypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const Po
   }
 }
 
-PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(const type::TypeId type) {
+PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(const execution::sql::SqlTypeId type) {
   switch (type) {
-    case type::TypeId::INVALID:
+    case execution::sql::SqlTypeId::Invalid:
       return PostgresValueType::INVALID;
 
-    case type::TypeId::BOOLEAN:
+    case execution::sql::SqlTypeId::Boolean:
       return PostgresValueType::BOOLEAN;
 
-    case type::TypeId::TINYINT:
+    case execution::sql::SqlTypeId::TinyInt:
       return PostgresValueType::TINYINT;
 
-    case type::TypeId::SMALLINT:
+    case execution::sql::SqlTypeId::SmallInt:
       return PostgresValueType::SMALLINT;
 
-    case type::TypeId::INTEGER:
+    case execution::sql::SqlTypeId::Integer:
       return PostgresValueType::INTEGER;
 
-    case type::TypeId::BIGINT:
+    case execution::sql::SqlTypeId::BigInt:
       return PostgresValueType::BIGINT;
 
-    case type::TypeId::REAL:
+    case execution::sql::SqlTypeId::Double:
       return PostgresValueType::DOUBLE;
 
-    case type::TypeId::DECIMAL:
+    case execution::sql::SqlTypeId::Decimal:
       return PostgresValueType::DECIMAL;
 
-    case type::TypeId::TIMESTAMP:
+    case execution::sql::SqlTypeId::Timestamp:
       return PostgresValueType::TIMESTAMPS;
 
-    case type::TypeId::DATE:
+    case execution::sql::SqlTypeId::Date:
       return PostgresValueType::DATE;
 
-    case type::TypeId::VARCHAR:
+    case execution::sql::SqlTypeId::Varchar:
       return PostgresValueType::VARCHAR2;  // TODO(Matt): should this just be VARCHAR? VARCHAR2 is an Postgres-Oracle
                                            // compatibility thing
 
-    case type::TypeId::VARBINARY:
+    case execution::sql::SqlTypeId::Varbinary:
       return PostgresValueType::VARBINARY;
 
     default: {
