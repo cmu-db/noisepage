@@ -65,9 +65,10 @@ class EXPORT TableVectorIterator {
   /**
    * Initialize the temp table, returning true if the initialization succeeded
    * @param cte_table the CTE table to initialize
+   * @param schema schema of the CTE table since can't get it from the Catalog
    * @return True if the initialization succeeded; false otherwise
    */
-  bool InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table);
+  bool InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table, const catalog::Schema &schema);
 
   /**
    * Initialize the iterator over a chunk of blocks [start, end), returning true if the iteration succeeded.
@@ -148,7 +149,8 @@ class EXPORT TableVectorIterator {
 
   // True if the iterator has been initialized.
   bool initialized_{false};
-  bool Init(common::ManagedPointer<storage::SqlTable> table, uint32_t block_start, uint32_t block_end);
+  bool Init(common::ManagedPointer<storage::SqlTable> table, const catalog::Schema &schema, uint32_t block_start,
+            uint32_t block_end);
 };
 
 }  // namespace noisepage::execution::sql

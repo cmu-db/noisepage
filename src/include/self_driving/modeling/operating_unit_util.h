@@ -22,27 +22,25 @@ class OperatingUnitUtil {
    * @param expr Expression
    * @return type of computation
    */
-  static type::TypeId DeriveComputation(common::ManagedPointer<parser::AbstractExpression> expr) {
+  static execution::sql::SqlTypeId DeriveComputation(common::ManagedPointer<parser::AbstractExpression> expr) {
     if (expr->GetChildrenSize() == 0) {
       // Not a computation
-      return type::TypeId::INVALID;
+      return execution::sql::SqlTypeId::Invalid;
     }
 
     auto lchild = expr->GetChild(0);
-    if (lchild->GetReturnValueType() != type::TypeId::INVALID &&
-        lchild->GetReturnValueType() != type::TypeId::PARAMETER_OFFSET) {
+    if (lchild->GetReturnValueType() != execution::sql::SqlTypeId::Invalid) {
       return lchild->GetReturnValueType();
     }
 
     if (expr->GetChildrenSize() > 1) {
       auto rchild = expr->GetChild(1);
-      if (rchild->GetReturnValueType() != type::TypeId::INVALID &&
-          rchild->GetReturnValueType() != type::TypeId::PARAMETER_OFFSET) {
+      if (rchild->GetReturnValueType() != execution::sql::SqlTypeId::Invalid) {
         return rchild->GetReturnValueType();
       }
     }
 
-    return type::TypeId::INVALID;
+    return execution::sql::SqlTypeId::Invalid;
   }
 
   /**
@@ -54,7 +52,7 @@ class OperatingUnitUtil {
    * @param expr Expression
    * @return converted equivalent selfdriving::ExecutionOperatingUnitType
    */
-  static std::pair<type::TypeId, ExecutionOperatingUnitType> ConvertExpressionType(
+  static std::pair<execution::sql::SqlTypeId, ExecutionOperatingUnitType> ConvertExpressionType(
       common::ManagedPointer<parser::AbstractExpression> expr) {
     auto type = DeriveComputation(expr);
     switch (expr->GetExpressionType()) {
@@ -65,12 +63,12 @@ class OperatingUnitUtil {
       case parser::ExpressionType::OPERATOR_PLUS:
       case parser::ExpressionType::OPERATOR_MINUS: {
         switch (type) {
-          case type::TypeId::TINYINT:
-          case type::TypeId::SMALLINT:
-          case type::TypeId::INTEGER:
-          case type::TypeId::BIGINT:
+          case execution::sql::SqlTypeId::TinyInt:
+          case execution::sql::SqlTypeId::SmallInt:
+          case execution::sql::SqlTypeId::Integer:
+          case execution::sql::SqlTypeId::BigInt:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS);
-          case type::TypeId::REAL:
+          case execution::sql::SqlTypeId::Double:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_REAL_PLUS_OR_MINUS);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
@@ -78,12 +76,12 @@ class OperatingUnitUtil {
       }
       case parser::ExpressionType::OPERATOR_MULTIPLY: {
         switch (type) {
-          case type::TypeId::TINYINT:
-          case type::TypeId::SMALLINT:
-          case type::TypeId::INTEGER:
-          case type::TypeId::BIGINT:
+          case execution::sql::SqlTypeId::TinyInt:
+          case execution::sql::SqlTypeId::SmallInt:
+          case execution::sql::SqlTypeId::Integer:
+          case execution::sql::SqlTypeId::BigInt:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY);
-          case type::TypeId::REAL:
+          case execution::sql::SqlTypeId::Double:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_REAL_MULTIPLY);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
@@ -91,12 +89,12 @@ class OperatingUnitUtil {
       }
       case parser::ExpressionType::OPERATOR_DIVIDE: {
         switch (type) {
-          case type::TypeId::TINYINT:
-          case type::TypeId::SMALLINT:
-          case type::TypeId::INTEGER:
-          case type::TypeId::BIGINT:
+          case execution::sql::SqlTypeId::TinyInt:
+          case execution::sql::SqlTypeId::SmallInt:
+          case execution::sql::SqlTypeId::Integer:
+          case execution::sql::SqlTypeId::BigInt:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_DIVIDE);
-          case type::TypeId::REAL:
+          case execution::sql::SqlTypeId::Double:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_REAL_DIVIDE);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
@@ -111,20 +109,20 @@ class OperatingUnitUtil {
       case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
       case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO: {
         switch (type) {
-          case type::TypeId::BOOLEAN:
+          case execution::sql::SqlTypeId::Boolean:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_BOOL_COMPARE);
-          case type::TypeId::TINYINT:
-          case type::TypeId::SMALLINT:
-          case type::TypeId::INTEGER:
-          case type::TypeId::BIGINT:
+          case execution::sql::SqlTypeId::TinyInt:
+          case execution::sql::SqlTypeId::SmallInt:
+          case execution::sql::SqlTypeId::Integer:
+          case execution::sql::SqlTypeId::BigInt:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_COMPARE);
-          case type::TypeId::REAL:
+          case execution::sql::SqlTypeId::Double:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_REAL_COMPARE);
-          case type::TypeId::TIMESTAMP:
-          case type::TypeId::DATE:
+          case execution::sql::SqlTypeId::Timestamp:
+          case execution::sql::SqlTypeId::Date:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_INTEGER_COMPARE);
-          case type::TypeId::VARCHAR:
-          case type::TypeId::VARBINARY:
+          case execution::sql::SqlTypeId::Varchar:
+          case execution::sql::SqlTypeId::Varbinary:
             return std::make_pair(type, ExecutionOperatingUnitType::OP_VARCHAR_COMPARE);
           default:
             return std::make_pair(type, ExecutionOperatingUnitType::INVALID);
@@ -140,11 +138,11 @@ class OperatingUnitUtil {
    * @param expr Expression to extract features from
    * @return vector of extracted features
    */
-  static std::vector<std::pair<type::TypeId, ExecutionOperatingUnitType>> ExtractFeaturesFromExpression(
+  static std::vector<std::pair<execution::sql::SqlTypeId, ExecutionOperatingUnitType>> ExtractFeaturesFromExpression(
       common::ManagedPointer<parser::AbstractExpression> expr) {
-    if (expr == nullptr) return std::vector<std::pair<type::TypeId, ExecutionOperatingUnitType>>();
+    if (expr == nullptr) return std::vector<std::pair<execution::sql::SqlTypeId, ExecutionOperatingUnitType>>();
 
-    std::vector<std::pair<type::TypeId, ExecutionOperatingUnitType>> feature_types;
+    std::vector<std::pair<execution::sql::SqlTypeId, ExecutionOperatingUnitType>> feature_types;
     std::queue<common::ManagedPointer<parser::AbstractExpression>> work;
     work.push(expr);
 

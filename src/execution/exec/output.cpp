@@ -28,10 +28,10 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
       }
       // TODO(Amadou): Figure out to print other types.
       switch (schema_->GetColumns()[col].GetType()) {
-        case type::TypeId::TINYINT:
-        case type::TypeId::SMALLINT:
-        case type::TypeId::BIGINT:
-        case type::TypeId::INTEGER: {
+        case execution::sql::SqlTypeId::TinyInt:
+        case execution::sql::SqlTypeId::SmallInt:
+        case execution::sql::SqlTypeId::BigInt:
+        case execution::sql::SqlTypeId::Integer: {
           auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_)
             ss << "NULL";
@@ -39,7 +39,7 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
             ss << val->val_;
           break;
         }
-        case type::TypeId::BOOLEAN: {
+        case execution::sql::SqlTypeId::Boolean: {
           auto *val = reinterpret_cast<sql::BoolVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_) {
             ss << "NULL";
@@ -52,7 +52,7 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
           }
           break;
         }
-        case type::TypeId::REAL: {
+        case execution::sql::SqlTypeId::Double: {
           auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_)
             ss << "NULL";
@@ -60,7 +60,7 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
             ss << val->val_;
           break;
         }
-        case type::TypeId::DATE: {
+        case execution::sql::SqlTypeId::Date: {
           auto *val = reinterpret_cast<sql::DateVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_) {
             ss << "NULL";
@@ -69,8 +69,8 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
           }
           break;
         }
-        case type::TypeId::VARCHAR:
-        case type::TypeId::VARBINARY: {
+        case execution::sql::SqlTypeId::Varchar:
+        case execution::sql::SqlTypeId::Varbinary: {
           auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null_) {
             ss << "NULL";

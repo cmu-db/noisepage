@@ -19,31 +19,31 @@ ast::Expr *ParamValueTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
   auto param_idx = param_val.GetValueIdx();
   ast::Builtin builtin;
   switch (param_val.GetReturnValueType()) {
-    case type::TypeId::BOOLEAN:
+    case execution::sql::SqlTypeId::Boolean:
       builtin = ast::Builtin::GetParamBool;
       break;
-    case type::TypeId::TINYINT:
+    case execution::sql::SqlTypeId::TinyInt:
       builtin = ast::Builtin::GetParamTinyInt;
       break;
-    case type::TypeId::SMALLINT:
+    case execution::sql::SqlTypeId::SmallInt:
       builtin = ast::Builtin::GetParamSmallInt;
       break;
-    case type::TypeId::INTEGER:
+    case execution::sql::SqlTypeId::Integer:
       builtin = ast::Builtin::GetParamInt;
       break;
-    case type::TypeId::BIGINT:
+    case execution::sql::SqlTypeId::BigInt:
       builtin = ast::Builtin::GetParamBigInt;
       break;
-    case type::TypeId::REAL:
+    case execution::sql::SqlTypeId::Double:
       builtin = ast::Builtin::GetParamDouble;
       break;
-    case type::TypeId::DATE:
+    case execution::sql::SqlTypeId::Date:
       builtin = ast::Builtin::GetParamDate;
       break;
-    case type::TypeId::TIMESTAMP:
+    case execution::sql::SqlTypeId::Timestamp:
       builtin = ast::Builtin::GetParamTimestamp;
       break;
-    case type::TypeId::VARCHAR:
+    case execution::sql::SqlTypeId::Varchar:
       builtin = ast::Builtin::GetParamString;
       break;
     default:

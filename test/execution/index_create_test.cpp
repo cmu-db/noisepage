@@ -104,7 +104,7 @@ TEST_F(IndexCreateTest, SimpleIndexCreate) {
   std::vector<catalog::IndexSchema::Column> index_cols;
   const auto &table_col = table_schema.GetColumn("colA");
   parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
-  index_cols.emplace_back("index_colA", type::TypeId::INTEGER, false, col_expr);
+  index_cols.emplace_back("index_colA", execution::sql::SqlTypeId::Integer, false, col_expr);
 
   catalog::IndexOptions options;
   catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BPLUSTREE, false, false, false, false,
@@ -126,7 +126,7 @@ TEST_F(IndexCreateTest, SimpleIndexCreate2) {
   std::vector<catalog::IndexSchema::Column> index_cols;
   const auto &table_col = table_schema.GetColumn("colE");
   parser::ColumnValueExpression col_expr(table_oid, table_col.Oid(), table_col.Type());
-  index_cols.emplace_back("index_colE", type::TypeId::INTEGER, false, col_expr);
+  index_cols.emplace_back("index_colE", execution::sql::SqlTypeId::Integer, false, col_expr);
 
   catalog::IndexOptions options;
   catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BPLUSTREE, false, false, false, false,
@@ -148,11 +148,11 @@ TEST_F(IndexCreateTest, MultiColumnIndexCreate) {
   std::vector<catalog::IndexSchema::Column> index_cols;
   const auto &table_col_a = table_schema.GetColumn("colA");
   parser::ColumnValueExpression col_expr_a(table_oid, table_col_a.Oid(), table_col_a.Type());
-  index_cols.emplace_back("index_colA", type::TypeId::INTEGER, false, col_expr_a);
+  index_cols.emplace_back("index_colA", execution::sql::SqlTypeId::Integer, false, col_expr_a);
 
   const auto &table_col_b = table_schema.GetColumn("colB");
   parser::ColumnValueExpression col_expr_b(table_oid, table_col_b.Oid(), table_col_b.Type());
-  index_cols.emplace_back("index_colB", type::TypeId::INTEGER, false, col_expr_b);
+  index_cols.emplace_back("index_colB", execution::sql::SqlTypeId::Integer, false, col_expr_b);
 
   catalog::IndexOptions options;
   catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BPLUSTREE, false, false, false, false,

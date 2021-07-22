@@ -43,7 +43,7 @@ class WorkloadMetadata {
       query_id_to_params_;
 
   /** Map from query id to query parameter types */
-  std::unordered_map<execution::query_id_t, std::vector<type::TypeId>> query_id_to_param_types_;
+  std::unordered_map<execution::query_id_t, std::vector<execution::sql::SqlTypeId>> query_id_to_param_types_;
 };
 
 /**
@@ -111,7 +111,7 @@ class WorkloadForecast {
     return &(workload_metadata_.query_id_to_params_.at(qid));
   }
 
-  std::vector<type::TypeId> *GetParamtypesByQid(execution::query_id_t qid) {
+  std::vector<execution::sql::SqlTypeId> *GetParamtypesByQid(execution::query_id_t qid) {
     NOISEPAGE_ASSERT(
         workload_metadata_.query_id_to_param_types_.find(qid) != workload_metadata_.query_id_to_param_types_.end(),
         "invalid qid");

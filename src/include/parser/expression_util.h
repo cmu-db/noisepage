@@ -446,7 +446,7 @@ class ExpressionUtil {
       /*
       TODO(wz2): Uncomment and fix this when Functions exist
       auto func_expr = (expression::FunctionExpression *)expr;
-      std::vector<type::TypeId> argtypes;
+      std::vector<execution::sql::SqlTypeId> argtypes;
       for (size_t i = 0; i < children_size; i++)
         argtypes.push_back(expr->GetChild(i)->GetValueType());
       // Check and set the function ptr

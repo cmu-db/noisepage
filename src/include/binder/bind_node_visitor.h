@@ -6,7 +6,7 @@
 
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
-#include "type/type_id.h"
+#include "execution/sql/sql.h"
 
 namespace noisepage {
 
@@ -55,7 +55,7 @@ class BindNodeVisitor final : public SqlNodeVisitor {
    */
   void BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result,
                       common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
-                      common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types);
+                      common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> desired_parameter_types);
 
   void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) override;
   void Visit(common::ManagedPointer<parser::CopyStatement> node) override;

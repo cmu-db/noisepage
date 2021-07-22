@@ -16,6 +16,7 @@
 #include "planner/plannodes/output_schema.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_defs.h"
+#include "transaction/transaction_context.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;

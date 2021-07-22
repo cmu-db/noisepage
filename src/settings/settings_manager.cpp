@@ -50,8 +50,8 @@ void SettingsManager::ValidateParams() {
   // This will expand to invoke settings_manager::DefineSetting on
   // all of the settings defined in settings.h.
   // Example:
-  //   ValidateSetting(Param::port, parser::ConstantValueExpression(type::TypeID::INTEGER,
-  //   execution::sql::Integer(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
+  //   ValidateSetting(Param::port, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
+  //   execution::sql::Integer(1024)), parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
   //   execution::sql::Integer(65535)));
 
 #define __SETTING_VALIDATE__         // NOLINT
@@ -134,10 +134,10 @@ std::string SettingsManager::GetString(Param param) {
     setter_callback(action_context);                                                                                \
   }
 
-DEFINE_SETTINGS_MANAGER_SET(Bool, bool, type::TypeId::BOOLEAN, execution::sql::BoolVal, false);
-DEFINE_SETTINGS_MANAGER_SET(Int, int32_t, type::TypeId::INTEGER, execution::sql::Integer, true);
-DEFINE_SETTINGS_MANAGER_SET(Int64, int64_t, type::TypeId::BIGINT, execution::sql::Integer, true);
-DEFINE_SETTINGS_MANAGER_SET(Double, double, type::TypeId::REAL, execution::sql::Real, true);
+DEFINE_SETTINGS_MANAGER_SET(Bool, bool, execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal, false);
+DEFINE_SETTINGS_MANAGER_SET(Int, int32_t, execution::sql::SqlTypeId::Integer, execution::sql::Integer, true);
+DEFINE_SETTINGS_MANAGER_SET(Int64, int64_t, execution::sql::SqlTypeId::BigInt, execution::sql::Integer, true);
+DEFINE_SETTINGS_MANAGER_SET(Double, double, execution::sql::SqlTypeId::Double, execution::sql::Real, true);
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
                                 common::ManagedPointer<ActionContext> action_context,
@@ -152,7 +152,7 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
 
   auto string_val = execution::sql::ValueUtil::CreateStringVal(value);
 
-  if (!SetValue(param, {type::TypeId::VARCHAR, string_val.first, std::move(string_val.second)})) {
+  if (!SetValue(param, {execution::sql::SqlTypeId::Varchar, string_val.first, std::move(string_val.second)})) {
     action_context->SetState(ActionState::FAILURE);
     setter_callback(action_context);
     /* TODO(WAN): I don't know what the right ErrorCode is here. */
@@ -194,11 +194,11 @@ bool SettingsManager::ValidateValue(const parser::ConstantValueExpression &value
                                     const parser::ConstantValueExpression &min_value,
                                     const parser::ConstantValueExpression &max_value) {
   switch (value.GetReturnValueType()) {
-    case type::TypeId::INTEGER:
+    case execution::sql::SqlTypeId::Integer:
       return value.Peek<int32_t>() >= min_value.Peek<int32_t>() && value.Peek<int32_t>() <= max_value.Peek<int32_t>();
-    case type::TypeId::BIGINT:
+    case execution::sql::SqlTypeId::BigInt:
       return value.Peek<int64_t>() >= min_value.Peek<int64_t>() && value.Peek<int64_t>() <= max_value.Peek<int64_t>();
-    case type::TypeId ::DECIMAL:
+    case execution::sql::SqlTypeId::Decimal:  // TODO(Matt): this should be SqlTypeId::Double?
       return value.Peek<double>() >= min_value.Peek<double>() && value.Peek<double>() <= max_value.Peek<double>();
     default:
       return true;
@@ -223,9 +223,9 @@ void SettingsManager::ConstructParamMap(                                        
    * This will expand to a list of code like:
    * param_map.emplace(
    *     noisepage::settings::Param::port,
-   *     noisepage::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
+   *     noisepage::settings::ParamInfo(port, parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
    *     execution::sql::Integer(FLAGS_port)), "Terrier port (default: 15721)",
-   *     parser::ConstantValueExpression(type::TypeID::INTEGER, execution::sql::Integer(15721)),
+   *     parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(15721)),
    *     is_mutable));
    */
 
@@ -263,7 +263,7 @@ void SettingsManager::SetParameter(const std::string &name,
   const Param param = GetParam(name);
   const ParamInfo &info = GetParamInfo(param);
   NOISEPAGE_ASSERT(info.name_ == name, "Inconsistent setting name.");
-  const type::TypeId param_type = info.value_.GetReturnValueType();
+  const execution::sql::SqlTypeId param_type = info.value_.GetReturnValueType();
 
   // Get the value to be set.
   NOISEPAGE_ASSERT(values.size() == 1, "The SettingsManager currently assumes that each setting only has one value.");
@@ -290,25 +290,25 @@ void SettingsManager::SetParameter(const std::string &name,
 
   // Set the parameter.
   switch (param_type) {
-    case type::TypeId::BOOLEAN:
+    case execution::sql::SqlTypeId::Boolean:
       SetBool(param, value->GetBoolVal().val_, common::ManagedPointer(&action_context),
               SettingsManager::EmptySetterCallback);
       break;
-    case type::TypeId::TINYINT:
-    case type::TypeId::SMALLINT:
-    case type::TypeId::INTEGER:
+    case execution::sql::SqlTypeId::TinyInt:
+    case execution::sql::SqlTypeId::SmallInt:
+    case execution::sql::SqlTypeId::Integer:
       SetInt(param, value->GetInteger().val_, common::ManagedPointer(&action_context),
              SettingsManager::EmptySetterCallback);
       break;
-    case type::TypeId::BIGINT:
+    case execution::sql::SqlTypeId::BigInt:
       SetInt64(param, value->GetInteger().val_, common::ManagedPointer(&action_context),
                SettingsManager::EmptySetterCallback);
       break;
-    case type::TypeId::REAL:
+    case execution::sql::SqlTypeId::Double:
       SetDouble(param, value->GetReal().val_, common::ManagedPointer(&action_context),
                 SettingsManager::EmptySetterCallback);
       break;
-    case type::TypeId::VARCHAR:
+    case execution::sql::SqlTypeId::Varchar:
       SetString(param, value->GetStringVal().StringView(), common::ManagedPointer(&action_context),
                 SettingsManager::EmptySetterCallback);
       break;
