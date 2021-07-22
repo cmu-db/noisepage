@@ -156,8 +156,8 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlohmann::json &decl) {
-  const auto &decl_names = decl.items().begin();
-  if (decl_names.key() == K_PLPGSQL_VAR) {
+  const auto &declaration_type = decl.items().begin().key();
+  if (declaration_type == K_PLPGSQL_VAR) {
     auto var_name = decl[K_PLPGSQL_VAR][K_REFNAME].get<std::string>();
 
     // Track the local variable (for assignment)
@@ -204,8 +204,11 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
       udf_ast_context_->SetVariableType(var_name, type::TypeId::INVALID);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INVALID, std::move(initial));
     }
+
     throw PARSER_EXCEPTION(fmt::format("Unsupported type '{}' for variable '{}'", type, var_name));
-  } else if (decl_names.key() == K_PLPGSQL_ROW) {
+  }
+
+  if (declaration_type == K_PLPGSQL_ROW) {
     const auto var_name = decl[K_PLPGSQL_ROW][K_REFNAME].get<std::string>();
     NOISEPAGE_ASSERT(var_name == "*internal*", "Unexpected refname");
 
@@ -215,7 +218,7 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
   }
 
   // TODO(Kyle): Need to handle other types like row, table etc;
-  throw PARSER_EXCEPTION("Declaration type not supported");
+  throw PARSER_EXCEPTION(fmt::format("Declaration type '{}' not supported", declaration_type));
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseIf(const nlohmann::json &branch) {
