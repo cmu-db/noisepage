@@ -1,7 +1,10 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "execution/ast/udf/udf_ast_context.h"
 #include "execution/ast/udf/udf_ast_node_visitor.h"
@@ -77,6 +80,7 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
                                    ast::udf::UdfAstContext *ast_context, CodeGen *codegen, catalog::db_oid_t db_oid,
                                    ast::udf::FunctionAST *root);
 
+ private:
   /**
    * Generate a UDF from the given abstract syntax tree.
    * @param ast The AST from which to generate the UDF
@@ -222,7 +226,26 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   /** @return An immutable reference to the symbol table */
   const std::unordered_map<std::string, execution::ast::Identifier> &SymbolTable() const { return symbol_table_; }
 
+  /**
+   * Get the type of the variable identified by `name`.
+   * @param name The name of the variable
+   * @return The type of the variable identified by `name`
+   * @throw EXECUTION_EXCEPTION on failure to resolve type
+   */
+  type::TypeId GetVariableType(const std::string &name) const;
+
+  /**
+   * Get the type of the record variable identified by `name`.
+   * @param name The name of the variable
+   * @return The type of the record variable identified by `name`
+   * @throw EXECUTION_EXCEPTION on failure to resolve type
+   */
+  std::vector<std::pair<std::string, type::TypeId>> GetRecordType(const std::string &name) const;
+
  private:
+  /** The string identifier for internal declarations */
+  constexpr static const char INTERNAL_DECL_ID[] = "*internal*";
+
   /** The catalog access used during code generation */
   catalog::CatalogAccessor *accessor_;
 

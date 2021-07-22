@@ -45,9 +45,9 @@ class PLpgSQLParser {
    * @param ast_context The AST context to use during parsing
    * @return The abstract syntax tree for the source function
    */
-  std::unique_ptr<execution::ast::udf::FunctionAST> Parse(
-      const std::vector<std::string> &param_names, const std::vector<type::TypeId> &param_types,
-      const std::string &func_body, common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context);
+  std::unique_ptr<execution::ast::udf::FunctionAST> Parse(const std::vector<std::string> &param_names,
+                                                          const std::vector<type::TypeId> &param_types,
+                                                          const std::string &func_body);
 
  private:
   /**

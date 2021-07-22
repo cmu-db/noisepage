@@ -1,3 +1,6 @@
+#include "execution/compiler/udf/udf_codegen.h"
+
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 
 #include "binder/bind_node_visitor.h"
@@ -23,7 +26,6 @@
 #include "parser/postgresparser.h"
 
 #include "execution/ast/udf/udf_ast_nodes.h"
-#include "execution/compiler/udf/udf_codegen.h"
 
 #include "planner/plannodes/abstract_plan_node.h"
 
@@ -133,18 +135,27 @@ void UdfCodegen::Visit(ast::udf::StmtAST *ast) { UNREACHABLE("Not implemented");
 void UdfCodegen::Visit(ast::udf::ExprAST *ast) { UNREACHABLE("Not implemented"); }
 
 void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
-  if (ast->Name() == "*internal*") {
+  if (ast->Name() == INTERNAL_DECL_ID) {
     return;
   }
-  const execution::ast::Identifier ident = codegen_->MakeFreshIdentifier(ast->Name());
-  SymbolTable()[ast->Name()] = ident;
+
+  const execution::ast::Identifier identifier = codegen_->MakeFreshIdentifier(ast->Name());
+  SymbolTable()[ast->Name()] = identifier;
 
   auto prev_type = current_type_;
   execution::ast::Expr *tpl_type = nullptr;
   if (ast->Type() == type::TypeId::INVALID) {
-    // record type
+    // Record type
     execution::util::RegionVector<execution::ast::FieldDecl *> fields{codegen_->GetAstContext()->GetRegion()};
-    for (const auto &p : udf_ast_context_->GetRecordType(ast->Name())) {
+
+    // TODO(Kyle): Handle unbound record types
+    const auto record_type = udf_ast_context_->GetRecordType(ast->Name());
+    if (!record_type.has_value()) {
+      // Unbound record type
+      throw NOT_IMPLEMENTED_EXCEPTION("Unbound RECORD types not supported");
+    }
+
+    for (const auto &p : record_type.value()) {
       fields.push_back(codegen_->MakeField(codegen_->MakeIdentifier(p.first),
                                            codegen_->TplType(execution::sql::GetTypeId(p.second))));
     }
@@ -157,9 +168,9 @@ void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   current_type_ = ast->Type();
   if (ast->Initial() != nullptr) {
     ast->Initial()->Accept(this);
-    fb_->Append(codegen_->DeclareVar(ident, tpl_type, dst_));
+    fb_->Append(codegen_->DeclareVar(identifier, tpl_type, dst_));
   } else {
-    fb_->Append(codegen_->DeclareVarNoInit(ident, tpl_type));
+    fb_->Append(codegen_->DeclareVarNoInit(identifier, tpl_type));
   }
   current_type_ = prev_type;
 }
@@ -212,8 +223,7 @@ void UdfCodegen::Visit(ast::udf::ValueExprAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::AssignStmtAST *ast) {
-  type::TypeId left_type = type::TypeId::INVALID;
-  udf_ast_context_->GetVariableType(ast->Destination()->Name(), &left_type);
+  const type::TypeId left_type = GetVariableType(ast->Destination()->Name());
   current_type_ = left_type;
 
   reinterpret_cast<ast::udf::AbstractAST *>(ast->Source())->Accept(this);
@@ -418,8 +428,7 @@ void UdfCodegen::Visit(ast::udf::ForStmtAST *ast) {
   std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second < y->second; });
   for (auto entry : sorted_vec) {
     // TODO(Kyle): Order these
-    type::TypeId type = type::TypeId::INVALID;
-    udf_ast_context_->GetVariableType(entry->first, &type);
+    const type::TypeId type = GetVariableType(entry->first);
     execution::ast::Builtin builtin{};
     switch (type) {
       case type::TypeId::BOOLEAN:
@@ -514,11 +523,10 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
   for (auto &col : cols) {
     execution::ast::Expr *capture_var = codegen_->MakeExpr(SymbolTable().find(ast->Name())->second);
-    type::TypeId udf_type{};
-    udf_ast_context_->GetVariableType(ast->Name(), &udf_type);
-    if (udf_type == type::TypeId::INVALID) {
+    const type::TypeId type = GetVariableType(ast->Name());
+    if (type == type::TypeId::INVALID) {
       // Record type
-      auto &struct_vars = udf_ast_context_->GetRecordType(ast->Name());
+      const auto struct_vars = GetRecordType(ast->Name());
       if (captures.empty()) {
         captures.push_back(capture_var);
       }
@@ -528,10 +536,9 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
       assignees.push_back(capture_var);
       captures.push_back(capture_var);
     }
-    auto *type = codegen_->TplType(execution::sql::GetTypeId(col.GetType()));
-
+    auto *tpl_type = codegen_->TplType(execution::sql::GetTypeId(col.GetType()));
     auto input_param = codegen_->MakeFreshIdentifier("input");
-    params.push_back(codegen_->MakeField(input_param, type));
+    params.push_back(codegen_->MakeField(input_param, tpl_type));
     i++;
   }
 
@@ -577,18 +584,22 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second.second < y->second.second; });
   for (auto entry : sorted_vec) {
     // TODO(Kyle): Order these
-    type::TypeId type = type::TypeId::INVALID;
-    execution::ast::Expr *expr = nullptr;
-    if (entry->second.first.length() > 0) {
-      auto &fields = udf_ast_context_->GetRecordType(entry->second.first);
-      auto it = std::find_if(fields.begin(), fields.end(), [=](auto p) { return p.first == entry->first; });
-      type = it->second;
-      expr = codegen_->AccessStructMember(codegen_->MakeExpr(SymbolTable().at(entry->second.first)),
-                                          codegen_->MakeIdentifier(entry->first));
-    } else {
-      udf_ast_context_->GetVariableType(entry->first, &type);
-      expr = codegen_->MakeExpr(SymbolTable().at(entry->first));
-    }
+
+    // TODO(Kyle): This IILE is cool and all... but way more
+    // complex than I would like, all of the logic in this
+    // function deserves a second look to refactor
+    auto [type, expr] = [=, &entry]() {
+      if (entry->second.first.length() > 0) {
+        const auto fields = GetRecordType(entry->second.first);
+        auto it = std::find_if(fields.cbegin(), fields.cend(), [=](auto p) { return p.first == entry->first; });
+        NOISEPAGE_ASSERT(it != fields.cend(), "Broken invariant");
+        return std::pair<type::TypeId, execution::ast::Expr *>{
+            it->second, codegen_->AccessStructMember(codegen_->MakeExpr(SymbolTable().at(entry->second.first)),
+                                                     codegen_->MakeIdentifier(entry->first))};
+      }
+      const type::TypeId type = GetVariableType(entry->first);
+      return std::pair<type::TypeId, execution::ast::Expr *>{type, codegen_->MakeExpr(SymbolTable().at(entry->first))};
+    }();
 
     execution::ast::Builtin builtin{};
     switch (type) {
@@ -655,6 +666,24 @@ void UdfCodegen::Visit(ast::udf::MemberExprAST *ast) {
   ast->Object()->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
   auto object = dst_;
   dst_ = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->FieldName()));
+}
+
+type::TypeId UdfCodegen::GetVariableType(const std::string &name) const {
+  auto type = udf_ast_context_->GetVariableType(name);
+  if (!type.has_value()) {
+    throw EXECUTION_EXCEPTION(fmt::format("Failed to resolve type for variable '{}'", name),
+                              common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+  return type.value();
+}
+
+std::vector<std::pair<std::string, type::TypeId>> UdfCodegen::GetRecordType(const std::string &name) const {
+  auto type = udf_ast_context_->GetRecordType(name);
+  if (!type.has_value()) {
+    throw EXECUTION_EXCEPTION(fmt::format("Failed to resolve type for record variable '{}'", name),
+                              common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+  return type.value();
 }
 
 }  // namespace noisepage::execution::compiler::udf

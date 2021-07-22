@@ -157,6 +157,9 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   void ValidateAndCorrectInsertValues(common::ManagedPointer<parser::InsertStatement> node,
                                       std::vector<common::ManagedPointer<parser::AbstractExpression>> *values,
                                       const catalog::Schema &table_schema);
+
+  /** @return `true` if we are binding within the context of a UDF, `false` otherwise */
+  bool BindingForUDF() const;
 };
 
 }  // namespace binder

@@ -52,9 +52,9 @@ static constexpr const char DECL_TYPE_ID_VARCHAR[] = "varchar";
 static constexpr const char DECL_TYPE_ID_DATE[] = "date";
 static constexpr const char DECL_TYPE_ID_RECORD[] = "record";
 
-std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
-    const std::vector<std::string> &param_names, const std::vector<type::TypeId> &param_types,
-    const std::string &func_body, common::ManagedPointer<execution::ast::udf::UdfAstContext> ast_context) {
+std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(const std::vector<std::string> &param_names,
+                                                                       const std::vector<type::TypeId> &param_types,
+                                                                       const std::string &func_body) {
   auto result = pg_query_parse_plpgsql(func_body.c_str());
   if (result.error != nullptr) {
     pg_query_free_plpgsql_parse_result(result);
@@ -164,9 +164,9 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
 
     // Detemine if the variable has already been declared;
     // if so, just re-use this type that has already been resolved
-    type::TypeId temp_type{};
-    if (udf_ast_context_->GetVariableType(var_name, &temp_type)) {
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, temp_type, std::move(initial));
+    const auto resolved_type = udf_ast_context_->GetVariableType(var_name);
+    if (resolved_type.has_value()) {
+      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, resolved_type.value(), std::move(initial));
     }
 
     // Otherwise, we perform a string comparison with the type identifier
@@ -262,20 +262,20 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseSQL(const nloh
   }
 
   // Check to see if a record type can be bound to this
-  type::TypeId type{};
-  auto ret = udf_ast_context_->GetVariableType(var_name, &type);
-  if (!ret) {
+  const auto type = udf_ast_context_->GetVariableType(var_name);
+  if (!type.has_value()) {
     throw PARSER_EXCEPTION("PL/pgSQL parser: variable was not declared");
   }
 
-  if (type == type::TypeId::INVALID) {
+  if (type.value() == type::TypeId::INVALID) {
     std::vector<std::pair<std::string, type::TypeId>> elems{};
     const auto &select_columns =
         parse_result->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>()->GetSelectColumns();
     elems.reserve(select_columns.size());
-    for (const auto &col : select_columns) {
-      elems.emplace_back(col->GetAlias().GetName(), col->GetReturnValueType());
-    }
+    std::transform(select_columns.cbegin(), select_columns.cend(), std::back_inserter(elems),
+                   [](const common::ManagedPointer<AbstractExpression> &column) {
+                     return std::make_pair(column->GetAlias().GetName(), column->GetReturnValueType());
+                   });
     udf_ast_context_->SetRecordType(var_name, std::move(elems));
   }
 

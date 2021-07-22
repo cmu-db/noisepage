@@ -123,19 +123,19 @@ SELECT x, proc_while() FROM integers;
 -- ----------------------------------------------------------------------------
 -- proc_fors()
 
--- CREATE TABLE temp(z INT);
--- INSERT INTO temp(z) VALUES (0), (1);
+CREATE TABLE temp(z INT);
+INSERT INTO temp(z) VALUES (0), (1);
 
--- CREATE FUNCTION proc_fors() RETURNS INT AS $$ \
--- DECLARE                                       \ 
---   x INT := 0;                                 \
--- BEGIN                                         \
---   FOR v IN SELECT z FROM temp                 \
---   LOOP                                        \
---     x = x + 1;                                \
---   END LOOP;                                   \
---   RETURN x;                                   \
--- END                                           \
--- $$ LANGUAGE PLPGSQL;
+CREATE FUNCTION proc_fors() RETURNS INT AS $$ \
+DECLARE                                       \ 
+  x INT := 0;                                 \
+  v RECORD;                                   \
+BEGIN                                         \
+  FOR v IN (SELECT z FROM temp) LOOP          \
+    x = x + 1;                                \
+  END LOOP;                                   \
+  RETURN x;                                   \
+END                                           \
+$$ LANGUAGE PLPGSQL;
 
--- SELECT x, proc_fors() FROM integers;
+SELECT x, proc_fors() FROM integers;

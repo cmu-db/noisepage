@@ -700,10 +700,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
     std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
 
     // Table name not specified in the expression; loop through all the tables in the binder context
-    type::TypeId the_type{};
     if (table_name.empty()) {
-      if (udf_ast_context_ != nullptr && udf_ast_context_->GetVariableType(expr->GetColumnName(), &the_type)) {
-        expr->SetReturnValueType(the_type);
+      if (BindingForUDF() && udf_ast_context_->HasVariable(expr->GetColumnName())) {
+        const type::TypeId type = udf_ast_context_->GetVariableTypeFailFast(expr->GetColumnName());
+        expr->SetReturnValueType(type);
         std::size_t idx = 0;
         if (udf_params_.count(expr->GetColumnName()) == 0) {
           udf_params_[expr->GetColumnName()] = std::make_pair("", udf_params_.size());
@@ -722,12 +722,15 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
                                  common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
         }
         BinderContext::SetColumnPosTuple(col_name, tuple, expr);
-      } else if (udf_ast_context_ != nullptr && udf_ast_context_->GetVariableType(expr->GetTableName(), &the_type)) {
-        NOISEPAGE_ASSERT(the_type == type::TypeId::INVALID, "unknown type");
-        auto &fields = udf_ast_context_->GetRecordType(expr->GetTableName());
-        auto it = std::find_if(fields.begin(), fields.end(), [=](auto p) { return p.first == expr->GetColumnName(); });
+      } else if (BindingForUDF() && udf_ast_context_->HasVariable(expr->GetTableName())) {
+        const type::TypeId type = udf_ast_context_->GetVariableTypeFailFast(expr->GetTableName());
+        NOISEPAGE_ASSERT(type == type::TypeId::INVALID, "Must be a RECORD type");
+
+        const auto fields = udf_ast_context_->GetRecordTypeFailFast(expr->GetTableName());
+        auto it =
+            std::find_if(fields.cbegin(), fields.cend(), [=](auto p) { return p.first == expr->GetColumnName(); });
         std::size_t idx = 0;
-        if (it != fields.end()) {
+        if (it != fields.cend()) {
           if (udf_params_.count(expr->GetColumnName()) == 0) {
             udf_params_[expr->GetColumnName()] = std::make_pair(expr->GetTableName(), udf_params_.size());
             idx = udf_params_.size() - 1;
@@ -758,7 +761,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression>
   SqlNodeVisitor::Visit(expr);
 
   // If any of the operands are typecasts, the typecast children should have been casted by now. Pull the children up.
-  for (size_t i = 0; i < expr->GetChildrenSize(); ++i) {
+  for (std::size_t i = 0; i < expr->GetChildrenSize(); ++i) {
     auto child = expr->GetChild(i);
     if (parser::ExpressionType::OPERATOR_CAST == child->GetExpressionType()) {
       NOISEPAGE_ASSERT(parser::ExpressionType::VALUE_CONSTANT == child->GetChild(0)->GetExpressionType(),
@@ -1137,5 +1140,7 @@ void BindNodeVisitor::ValidateAndCorrectInsertValues(
     (*values)[i] = ins_val;
   }
 }
+
+bool BindNodeVisitor::BindingForUDF() const { return udf_ast_context_ != nullptr; }
 
 }  // namespace noisepage::binder

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -14,11 +15,31 @@ namespace noisepage::execution::ast::udf {
  * throughout construction of the UDF abstract syntax tree.
  */
 class UdfAstContext {
+  /** An invidual entry for a record type, (name, type ID) */
+  using RecordTypeEntry = std::pair<std::string, type::TypeId>;
+
+  /** A full description of a record type */
+  using RecordType = std::vector<RecordTypeEntry>;
+
  public:
   /**
    * Construct a new AstContext instance.
    */
   UdfAstContext() = default;
+
+  /**
+   * Add a new variable to the symbol table.
+   * @param name The name of the variable
+   */
+  void AddVariable(const std::string &name) { local_variables_.push_back(name); }
+
+  /**
+   * Determine if a variable with name `name` is present in the UDF AST.
+   * @param name The name of the variable
+   * @return `true` if the UDF AST context contains a variable
+   * identified by `name`, `false` otherwise
+   */
+  bool HasVariable(const std::string &name) const { return (symbol_table_.find(name) != symbol_table_.cend()); }
 
   /**
    * Set the type of the variabel identifed by `name`.
@@ -30,56 +51,86 @@ class UdfAstContext {
   /**
    * Get the type of the variable identified by `name`.
    * @param name The name of the variable
-   * @param type The out-parameter used to store the result
-   * @return `true` if the variable is present in the symbol
-   * table and the Get() succeeds, `false` otherwise
+   * @return The type ID for the specified variable if present,
+   * empty optional value otherwise
    */
-  bool GetVariableType(const std::string &name, type::TypeId *type) {
+  std::optional<type::TypeId> GetVariableType(const std::string &name) const {
     auto it = symbol_table_.find(name);
-    if (it == symbol_table_.end()) {
-      return false;
-    }
-    if (type != nullptr) {
-      *type = it->second;
-    }
-    return true;
+    return (it == symbol_table_.cend()) ? std::nullopt : std::make_optional(it->second);
   }
 
   /**
-   * Add a new variable to the symbol table.
+   * Get the type of the variable identified by `name`.
    * @param name The name of the variable
+   * @return The type ID for the specified variable
+   *
+   * NOTE: This function terminates the program in the event
+   * that the variable is not present; for variable queries
+   * that may fail, use UdfAstContext::GetVariableType().
    */
-  void AddVariable(const std::string &name) { local_variables_.push_back(name); }
+  type::TypeId GetVariableTypeFailFast(const std::string &name) const {
+    auto it = symbol_table_.find(name);
+    NOISEPAGE_ASSERT(it != symbol_table_.cend(), "Required variable is not present in UDF AST");
+    return it->second;
+  }
+
+  /**
+   * Determine if a record variable with name `name` is present in the UDF AST.
+   * @param name The name of the variable
+   * @return `true` if the UDF AST context contains a record variable
+   * identified by `name`, `false` otherwise
+   */
+  bool HasRecord(const std::string &name) const { return (record_types_.find(name) != record_types_.cend()); }
+
+  /**
+   * Set the record type for the variable identified by `name`.
+   * @param name The name of the variable
+   * @param elems The record
+   */
+  void SetRecordType(const std::string &name, std::vector<std::pair<std::string, type::TypeId>> &&elems) {
+    record_types_[name] = std::move(elems);
+  }
+
+  /**
+   * Get the record type for the variable identified by `name`.
+   * @param name The name of the variable
+   * @return The type of the record variable if present,
+   * empty optional value otherwise
+   */
+  std::optional<RecordType> GetRecordType(const std::string &name) const {
+    auto it = record_types_.find(name);
+    // TODO(Kyle): I updated the API for this function to use std::optional,
+    // I like this more, but it makes it impossible to return a reference to
+    // the underlying data so this now materializes a copy every time
+    return (it == record_types_.cend()) ? std::nullopt : std::make_optional(it->second);
+  }
+
+  /**
+   * Get the record type for the variable identified by `name`.
+   * @param name The name of the variable
+   * @return The type of the record variable
+   *
+   * NOTE: This function terminates the program in the event
+   * that the variable is not present; for variable queries
+   * that may fail, use UdfAstContext::GetRecordType().
+   */
+  RecordType GetRecordTypeFailFast(const std::string &name) const {
+    auto it = record_types_.find(name);
+    NOISEPAGE_ASSERT(it != record_types_.cend(), "Required record variable is not present in UDF AST");
+    return it->second;
+  }
 
   /**
    * Get the local variable at index `index`.
    * @param index The index of interest
    * @return The name of the variable at the specified index
    */
-  const std::string &GetLocalVariableAtIndex(const std::size_t index) {
+  const std::string &GetLocalVariableAtIndex(const std::size_t index) const {
     NOISEPAGE_ASSERT(local_variables_.size() >= index, "Index out of range");
     // TODO(Kyle): I moved the subtraction to the call site because
     // it seems misleading to have a getter for an index but deliver
     // a local that does not actually appear at that index...
     return local_variables_.at(index);
-  }
-
-  /**
-   * Get the record type for the specified variable.
-   * @param name The name of the variable
-   * @return The record
-   */
-  const std::vector<std::pair<std::string, type::TypeId>> &GetRecordType(const std::string &name) const {
-    return record_types_.find(name)->second;
-  }
-
-  /**
-   * Set the record type for the specified variable.
-   * @param name The name of the variable
-   * @param elems The record
-   */
-  void SetRecordType(const std::string &name, std::vector<std::pair<std::string, type::TypeId>> &&elems) {
-    record_types_[name] = std::move(elems);
   }
 
  private:
@@ -88,7 +139,7 @@ class UdfAstContext {
   /** Collection of local variable names for the UDF. */
   std::vector<std::string> local_variables_;
   /** Collection of record types for the UDF. */
-  std::unordered_map<std::string, std::vector<std::pair<std::string, type::TypeId>>> record_types_;
+  std::unordered_map<std::string, RecordType> record_types_;
 };
 
 }  // namespace noisepage::execution::ast::udf
