@@ -14,20 +14,21 @@
 namespace noisepage::binder {
 
 void BinderUtil::ValidateWhereClause(const common::ManagedPointer<parser::AbstractExpression> value) {
-  if (value->GetReturnValueType() != type::TypeId::BOOLEAN) {
-    // TODO(Matt): NULL literal (type::TypeId::INVALID and cve->IsNull()) should be allowed but breaks stuff downstream
+  if (value->GetReturnValueType() != execution::sql::SqlTypeId::Boolean) {
+    // TODO(Matt): NULL literal (execution::sql::SqlTypeId::Invalid and cve->IsNull()) should be allowed but breaks
+    // stuff downstream
     throw BINDER_EXCEPTION("argument of WHERE must be type boolean", common::ErrorCode::ERRCODE_DATATYPE_MISMATCH);
   }
 }
 
 void BinderUtil::PromoteParameters(
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
-    const std::vector<type::TypeId> &desired_parameter_types) {
+    const std::vector<execution::sql::SqlTypeId> &desired_parameter_types) {
   NOISEPAGE_ASSERT(parameters->size() == desired_parameter_types.size(), "They have to be equal in size.");
   for (uint32_t parameter_index = 0; parameter_index < desired_parameter_types.size(); parameter_index++) {
     const auto desired_type = desired_parameter_types[parameter_index];
 
-    if (desired_type != type::TypeId::INVALID) {
+    if (desired_type != execution::sql::SqlTypeId::Invalid) {
       const auto param = common::ManagedPointer(&(*parameters)[parameter_index]);
       BinderUtil::CheckAndTryPromoteType(param, desired_type);
     }
@@ -35,50 +36,50 @@ void BinderUtil::PromoteParameters(
 }
 
 void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                        const type::TypeId desired_type) {
+                                        const execution::sql::SqlTypeId desired_type) {
   const auto curr_type = value->GetReturnValueType();
 
   // Check if types are mismatched, and convert them if possible.
   if (curr_type != desired_type) {
     switch (curr_type) {
       // NULL conversion.
-      case type::TypeId::INVALID: {
+      case execution::sql::SqlTypeId::Invalid: {
         value->SetValue(desired_type, execution::sql::Val(true));
         break;
       }
 
         // INTEGER casting (upwards and downwards).
-      case type::TypeId::TINYINT: {
+      case execution::sql::SqlTypeId::TinyInt: {
         const auto int_val = value->Peek<int8_t>();
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }
-      case type::TypeId::SMALLINT: {
+      case execution::sql::SqlTypeId::SmallInt: {
         const auto int_val = value->Peek<int16_t>();
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }
-      case type::TypeId::INTEGER: {
+      case execution::sql::SqlTypeId::Integer: {
         const auto int_val = value->Peek<int32_t>();
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }
-      case type::TypeId::BIGINT: {
+      case execution::sql::SqlTypeId::BigInt: {
         const auto int_val = value->Peek<int64_t>();
         TryCastNumericAll(value, int_val, desired_type);
         break;
       }
 
         // DATE and TIMESTAMP conversion. String to boolean conversion. String to numeric type conversion.
-      case type::TypeId::VARCHAR: {
+      case execution::sql::SqlTypeId::Varchar: {
         const auto str_view = value->Peek<std::string_view>();
 
         // TODO(Matt): see issue #977
         switch (desired_type) {
-          case type::TypeId::DATE: {
+          case execution::sql::SqlTypeId::Date: {
             try {
               auto parsed_date = execution::sql::Date::FromString(str_view);
-              value->SetValue(type::TypeId::DATE, execution::sql::DateVal(parsed_date));
+              value->SetValue(execution::sql::SqlTypeId::Date, execution::sql::DateVal(parsed_date));
               break;
             } catch (ConversionException &exception) {
               // For now, treat all conversion errors as 22007.
@@ -86,10 +87,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT);
             }
           }
-          case type::TypeId::TIMESTAMP: {
+          case execution::sql::SqlTypeId::Timestamp: {
             try {
               auto parsed_timestamp = execution::sql::Timestamp::FromString(str_view);
-              value->SetValue(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(parsed_timestamp));
+              value->SetValue(execution::sql::SqlTypeId::Timestamp, execution::sql::TimestampVal(parsed_timestamp));
               break;
             } catch (ConversionException &exception) {
               // For now, treat all conversion errors as 22007.
@@ -97,21 +98,21 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               throw BINDER_EXCEPTION(exception.what(), common::ErrorCode::ERRCODE_INVALID_DATETIME_FORMAT);
             }
           }
-          case type::TypeId::BOOLEAN: {
+          case execution::sql::SqlTypeId::Boolean: {
             if (std::find(network::POSTGRES_BOOLEAN_STR_TRUES.cbegin(), network::POSTGRES_BOOLEAN_STR_TRUES.cend(),
                           str_view) != network::POSTGRES_BOOLEAN_STR_TRUES.cend()) {
-              value->SetValue(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+              value->SetValue(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
             } else if (std::find(network::POSTGRES_BOOLEAN_STR_FALSES.cbegin(),
                                  network::POSTGRES_BOOLEAN_STR_FALSES.cend(),
                                  str_view) != network::POSTGRES_BOOLEAN_STR_FALSES.cend()) {
-              value->SetValue(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+              value->SetValue(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
             } else {
               throw BINDER_EXCEPTION(fmt::format("invalid input syntax for type boolean: \"{}\"", str_view),
                                      common::ErrorCode::ERRCODE_INVALID_TEXT_REPRESENTATION);
             }
             break;
           }
-          case type::TypeId::TINYINT: {
+          case execution::sql::SqlTypeId::TinyInt: {
             size_t size;
             int64_t int_val;
             try {
@@ -130,10 +131,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               throw BINDER_EXCEPTION(fmt::format("tinyint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
-            value->SetValue(type::TypeId::TINYINT, execution::sql::Integer(int_val));
+            value->SetValue(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(int_val));
             break;
           }
-          case type::TypeId::SMALLINT: {
+          case execution::sql::SqlTypeId::SmallInt: {
             size_t size;
             int64_t int_val;
             try {
@@ -152,10 +153,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               throw BINDER_EXCEPTION(fmt::format("smallint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
-            value->SetValue(type::TypeId::SMALLINT, execution::sql::Integer(int_val));
+            value->SetValue(execution::sql::SqlTypeId::SmallInt, execution::sql::Integer(int_val));
             break;
           }
-          case type::TypeId::INTEGER: {
+          case execution::sql::SqlTypeId::Integer: {
             size_t size;
             int64_t int_val;
             try {
@@ -174,10 +175,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               throw BINDER_EXCEPTION(fmt::format("integer out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
-            value->SetValue(type::TypeId::INTEGER, execution::sql::Integer(int_val));
+            value->SetValue(execution::sql::SqlTypeId::Integer, execution::sql::Integer(int_val));
             break;
           }
-          case type::TypeId::BIGINT: {
+          case execution::sql::SqlTypeId::BigInt: {
             size_t size;
             int64_t int_val;
             try {
@@ -196,10 +197,10 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
               throw BINDER_EXCEPTION(fmt::format("bigint out of range, string to convert was {}", str_view),
                                      common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
             }
-            value->SetValue(type::TypeId::BIGINT, execution::sql::Integer(int_val));
+            value->SetValue(execution::sql::SqlTypeId::BigInt, execution::sql::Integer(int_val));
             break;
           }
-          case type::TypeId::REAL: {
+          case execution::sql::SqlTypeId::Double: {
             {
               double double_val;
               try {
@@ -208,7 +209,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
                 throw BINDER_EXCEPTION(fmt::format("real out of range, string to convert was {}", str_view),
                                        common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
               }
-              value->SetValue(type::TypeId::REAL, execution::sql::Real(double_val));
+              value->SetValue(execution::sql::SqlTypeId::Double, execution::sql::Real(double_val));
               break;
             }
           }
@@ -224,7 +225,7 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
       default: {
         throw BINDER_EXCEPTION(
             fmt::format("Binder conversion of expression failed. Desired type is {}, expression type is {}",
-                        type::TypeUtil::TypeIdToString(desired_type), type::TypeUtil::TypeIdToString(curr_type)),
+                        execution::sql::SqlTypeIdToString(desired_type), execution::sql::SqlTypeIdToString(curr_type)),
             common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
       }
     }
@@ -247,9 +248,9 @@ bool BinderUtil::IsRepresentable(const Input int_val) {
  */
 template <typename Input>
 void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                   const Input int_val, const type::TypeId desired_type) {
+                                   const Input int_val, const execution::sql::SqlTypeId desired_type) {
   switch (desired_type) {
-    case type::TypeId::TINYINT: {
+    case execution::sql::SqlTypeId::TinyInt: {
       if (IsRepresentable<int8_t>(int_val)) {
         value->SetReturnValueType(desired_type);
         return;
@@ -257,7 +258,7 @@ void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::Constant
       throw BINDER_EXCEPTION(fmt::format("tinyint out of range. number to convert was {}", int_val),
                              common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
-    case type::TypeId::SMALLINT: {
+    case execution::sql::SqlTypeId::SmallInt: {
       if (IsRepresentable<int16_t>(int_val)) {
         value->SetReturnValueType(desired_type);
         return;
@@ -265,7 +266,7 @@ void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::Constant
       throw BINDER_EXCEPTION(fmt::format("smallint out of range. number to convert was {}", int_val),
                              common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
-    case type::TypeId::INTEGER: {
+    case execution::sql::SqlTypeId::Integer: {
       if (IsRepresentable<int32_t>(int_val)) {
         value->SetReturnValueType(desired_type);
         return;
@@ -273,7 +274,7 @@ void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::Constant
       throw BINDER_EXCEPTION(fmt::format("integer out of range. number to convert was {}", int_val),
                              common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
-    case type::TypeId::BIGINT: {
+    case execution::sql::SqlTypeId::BigInt: {
       if (IsRepresentable<int64_t>(int_val)) {
         value->SetReturnValueType(desired_type);
         return;
@@ -281,7 +282,7 @@ void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::Constant
       throw BINDER_EXCEPTION(fmt::format("bigint out of range. number to convert was {}", int_val),
                              common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
-    case type::TypeId::REAL: {
+    case execution::sql::SqlTypeId::Double: {
       if (IsRepresentable<double>(int_val)) {
         value->SetValue(desired_type, execution::sql::Real(static_cast<double>(int_val)));
         return;
@@ -292,19 +293,19 @@ void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::Constant
     default:
       throw BINDER_EXCEPTION(
           fmt::format("TryCastNumericAll not a numeric type! Desired type was {}, number to convert was {}",
-                      type::TypeUtil::TypeIdToString(desired_type), int_val),
+                      execution::sql::SqlTypeIdToString(desired_type), int_val),
           common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 }
 
 template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                            const int8_t int_val, const type::TypeId desired_type);
+                                            const int8_t int_val, const execution::sql::SqlTypeId desired_type);
 template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                            const int16_t int_val, const type::TypeId desired_type);
+                                            const int16_t int_val, const execution::sql::SqlTypeId desired_type);
 template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                            const int32_t int_val, const type::TypeId desired_type);
+                                            const int32_t int_val, const execution::sql::SqlTypeId desired_type);
 template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                            const int64_t int_val, const type::TypeId desired_type);
+                                            const int64_t int_val, const execution::sql::SqlTypeId desired_type);
 
 template bool BinderUtil::IsRepresentable<int8_t>(const int8_t int_val);
 template bool BinderUtil::IsRepresentable<int16_t>(const int8_t int_val);

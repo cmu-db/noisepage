@@ -67,7 +67,7 @@ class PostgresPacketWriter : public PacketWriter {
    * Writes parameter description (used in Describe command)
    * @param param_types The types of the parameters in the statement
    */
-  void WriteParameterDescription(const std::vector<type::TypeId> &param_types);
+  void WriteParameterDescription(const std::vector<execution::sql::SqlTypeId> &param_types);
 
   /**
    * Writes row description, as the first packet of sending query results
@@ -179,12 +179,12 @@ class PostgresPacketWriter : public PacketWriter {
 
  private:
   template <class native_type, class val_type>
-  void WriteBinaryVal(const execution::sql::Val *val, type::TypeId type);
+  void WriteBinaryVal(const execution::sql::Val *val, execution::sql::SqlTypeId type);
 
   template <class native_type, class val_type>
-  void WriteBinaryValNeedsToNative(const execution::sql::Val *val, type::TypeId type);
+  void WriteBinaryValNeedsToNative(const execution::sql::Val *val, execution::sql::SqlTypeId type);
 
-  uint32_t WriteBinaryAttribute(const execution::sql::Val *val, type::TypeId type);
+  uint32_t WriteBinaryAttribute(const execution::sql::Val *val, execution::sql::SqlTypeId type);
 
   /**
    * Write a data row in Postgres' text format coming from an OutputBuffer in the execution engine. Simple Query
@@ -192,7 +192,7 @@ class PostgresPacketWriter : public PacketWriter {
    * @param tuple pointer to the start of the row
    * @param columns OutputSchema describing the tuple
    */
-  uint32_t WriteTextAttribute(const execution::sql::Val *val, type::TypeId type);
+  uint32_t WriteTextAttribute(const execution::sql::Val *val, execution::sql::SqlTypeId type);
 };
 
 }  // namespace noisepage::network

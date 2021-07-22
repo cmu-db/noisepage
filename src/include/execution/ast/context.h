@@ -8,7 +8,6 @@
 #include "execution/ast/identifier.h"
 #include "execution/ast/type.h"
 #include "execution/util/region.h"
-#include "type/type_id.h"
 
 namespace noisepage::execution {
 

@@ -8,6 +8,7 @@
 
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
+#include "execution/sql/sql.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 
@@ -29,7 +30,7 @@ class BinderSherpa {
    */
   explicit BinderSherpa(const common::ManagedPointer<parser::ParseResult> parse_result,
                         const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
-                        const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types)
+                        const common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> desired_parameter_types)
       : parse_result_(parse_result),
         parameters_(parameters),
         desired_parameter_types_(desired_parameter_types),
@@ -55,7 +56,7 @@ class BinderSherpa {
    * @param expr The expression whose type constraints we want to look up.
    * @return The previously recorded type constraints, or the expression's current return value type if none exist.
    */
-  type::TypeId GetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
+  execution::sql::SqlTypeId GetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr) const {
     const auto it = desired_expr_types_.find(reinterpret_cast<uintptr_t>(expr.Get()));
     if (it != desired_expr_types_.end()) return it->second;
     return expr->GetReturnValueType();
@@ -66,7 +67,8 @@ class BinderSherpa {
    * @param expr The expression whose type we want to constrain.
    * @param type The desired type.
    */
-  void SetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr, const type::TypeId type) {
+  void SetDesiredType(const common::ManagedPointer<parser::AbstractExpression> expr,
+                      const execution::sql::SqlTypeId type) {
     desired_expr_types_[reinterpret_cast<uintptr_t>(expr.Get())] = type;
   }
 
@@ -75,7 +77,7 @@ class BinderSherpa {
    * @param parameter_index offset of the parameter in the statement
    * @param type desired type to cast to on future bindings
    */
-  void SetDesiredParameterType(const uint32_t parameter_index, const type::TypeId type) {
+  void SetDesiredParameterType(const uint32_t parameter_index, const execution::sql::SqlTypeId type) {
     (*desired_parameter_types_)[parameter_index] = type;
   }
 
@@ -132,8 +134,8 @@ class BinderSherpa {
  private:
   const common::ManagedPointer<parser::ParseResult> parse_result_ = nullptr;
   const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters_ = nullptr;
-  const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types_ = nullptr;
-  std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
+  const common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> desired_parameter_types_ = nullptr;
+  std::unordered_map<uintptr_t, execution::sql::SqlTypeId> desired_expr_types_;
   std::unordered_set<std::string> cte_table_names_;
   parser::alias_oid_t unique_table_alias_serial_num_;
 };

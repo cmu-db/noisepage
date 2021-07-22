@@ -18,8 +18,6 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/index/index_defs.h"
-#include "type/type_id.h"
-#include "type/type_util.h"
 
 namespace noisepage {
 class StorageTestUtil;
@@ -102,17 +100,17 @@ class IndexOptions {
    * @param val knob to heck
    * @return type of the knob's value
    */
-  static type::TypeId ExpectedTypeForKnob(Knob val) {
+  static execution::sql::SqlTypeId ExpectedTypeForKnob(Knob val) {
     switch (val) {
       case BUILD_THREADS:
-        return type::TypeId::INTEGER;
+        return execution::sql::SqlTypeId::Integer;
       case BPLUSTREE_INNER_NODE_UPPER_THRESHOLD:
-        return type::TypeId::INTEGER;
+        return execution::sql::SqlTypeId::Integer;
       case BPLUSTREE_INNER_NODE_LOWER_THRESHOLD:
-        return type::TypeId::INTEGER;
+        return execution::sql::SqlTypeId::Integer;
       case UNKNOWN:
       default:
-        return type::TypeId::INVALID;
+        return execution::sql::SqlTypeId::Invalid;
     }
   }
 
@@ -276,10 +274,11 @@ class IndexSchema {
      * @param nullable whether the column is nullable
      * @param definition definition of this attribute
      */
-    Column(std::string name, const type::TypeId type, const bool nullable, const parser::AbstractExpression &definition)
+    Column(std::string name, const execution::sql::SqlTypeId type, const bool nullable,
+           const parser::AbstractExpression &definition)
         : name_(std::move(name)),
           type_(type),
-          attr_length_(type::TypeUtil::GetTypeSize(type_)),
+          attr_length_(execution::sql::GetSqlTypeIdSize(type_)),
           nullable_(nullable),
           oid_(INVALID_INDEXKEYCOL_OID),
           definition_(definition.Copy()) {
@@ -294,11 +293,11 @@ class IndexSchema {
      * @param nullable whether the column is nullable
      * @param definition definition of this attribute
      */
-    Column(std::string name, const type::TypeId type, const int32_t type_modifier, const bool nullable,
+    Column(std::string name, const execution::sql::SqlTypeId type, const int32_t type_modifier, const bool nullable,
            const parser::AbstractExpression &definition)
         : name_(std::move(name)),
           type_(type),
-          attr_length_(type::TypeUtil::GetTypeSize(type_)),
+          attr_length_(execution::sql::GetSqlTypeIdSize(type_)),
           type_modifier_(type_modifier == -1 ? 0 : type_modifier),  // TODO(Matt): this is a hack around unlimited
                                                                     // length varlens and is likely busted elsewhere
           nullable_(nullable),
@@ -373,7 +372,7 @@ class IndexSchema {
     /**
      * @return SQL type for this column
      */
-    type::TypeId Type() const { return type_; }
+    execution::sql::SqlTypeId Type() const { return type_; }
 
     /**
      * Default constructor for deserialization
@@ -432,20 +431,21 @@ class IndexSchema {
 
    private:
     bool ShouldHaveTypeModifier() const {
-      return type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY || type_ == type::TypeId::DECIMAL;
+      return type_ == execution::sql::SqlTypeId::Varchar || type_ == execution::sql::SqlTypeId::Varbinary ||
+             type_ == execution::sql::SqlTypeId::Decimal;
     }
 
     void Validate() const {
-      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      NOISEPAGE_ASSERT(type_ != execution::sql::SqlTypeId::Invalid, "Attribute type cannot be INVALID.");
       NOISEPAGE_ASSERT(definition_ != nullptr, "Definition cannot be nullptr.");
 
-      if (type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY) {
+      if (type_ == execution::sql::SqlTypeId::Varchar || type_ == execution::sql::SqlTypeId::Varbinary) {
         NOISEPAGE_ASSERT(attr_length_ == storage::VARLEN_COLUMN, "Invalid attribute length.");
         // TODO(Matt): uncomment this assertion once we decide what a reasonable default is for unlimited varlens
 
         //        NOISEPAGE_ASSERT(type_modifier_ == -1 || type_modifier_ > 0,
         //                         "Type modifier should be -1 (no limit), or a positive integer.");
-      } else if (type_ == type::TypeId::DECIMAL) {
+      } else if (type_ == execution::sql::SqlTypeId::Decimal) {
         NOISEPAGE_ASSERT(attr_length_ == 16, "Invalid attribute length.");
         NOISEPAGE_ASSERT(type_modifier_ > 0, "Type modifier should be a  positive integer.");
       } else {
@@ -456,7 +456,7 @@ class IndexSchema {
     }
 
     std::string name_;
-    type::TypeId type_;
+    execution::sql::SqlTypeId type_;
     uint16_t attr_length_;
     int32_t type_modifier_ = -1;  // corresponds to Postgres' atttypmod int4: atttypmod records type-specific data
     // supplied at table creation time (for example, the maximum length of a varchar
@@ -472,7 +472,7 @@ class IndexSchema {
 
     void SetTypeModifier(const int32_t type_modifier) { type_modifier_ = type_modifier; }
 
-    void SetTypeId(const type::TypeId type) { type_ = type; }
+    void SetTypeId(const execution::sql::SqlTypeId type) { type_ = type; }
 
     void SetNullable(const bool nullable) { nullable_ = nullable; }
 

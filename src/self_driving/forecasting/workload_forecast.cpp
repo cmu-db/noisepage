@@ -112,7 +112,7 @@ void WorkloadForecast::LoadQueryText() {
 
   // Read data, line by line
   while (std::getline(query_text_file, line)) {
-    std::vector<type::TypeId> param_types;
+    std::vector<execution::sql::SqlTypeId> param_types;
     colnum = 0;
     parse_succ = true;
     val_vec.assign(num_cols, "");
@@ -149,7 +149,7 @@ void WorkloadForecast::LoadQueryText() {
 
     // extract each type in the type_string
     while ((pos = type_string.find(';')) != std::string::npos) {
-      param_types.push_back(type::TypeUtil::TypeIdFromString(type_string.substr(0, pos)));
+      param_types.push_back(execution::sql::SqlTypeIdFromString(type_string.substr(0, pos)));
       type_string.erase(0, pos + 1);
     }
 

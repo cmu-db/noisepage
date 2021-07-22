@@ -82,7 +82,7 @@ void BinderContext::AddNewTable(const std::string &new_table_name,
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
-  std::unordered_map<parser::AliasType, type::TypeId> column_alias_map;
+  std::unordered_map<parser::AliasType, execution::sql::SqlTypeId> column_alias_map;
 
   for (auto &col : new_columns) {
     column_alias_map[parser::AliasType(col->GetColumnName())] = col->GetValueType();
@@ -99,7 +99,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
 
-  std::unordered_map<parser::AliasType, type::TypeId> column_alias_map{};
+  std::unordered_map<parser::AliasType, execution::sql::SqlTypeId> column_alias_map{};
   auto cols = col_aliases.size();
   for (std::size_t i = 0; i < select_list.size(); i++) {
     auto &expr = select_list[i];
@@ -126,9 +126,10 @@ void BinderContext::AddCTETable(const std::string &table_name,
   if (nested_table_alias_map_.find(table_name) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION("Duplicate CTE table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
   }
-  std::unordered_map<parser::AliasType, type::TypeId> nested_column_mappings{};
+  std::unordered_map<parser::AliasType, execution::sql::SqlTypeId> nested_column_mappings{};
   for (std::size_t i = 0; i < col_aliases.size(); i++) {
-    NOISEPAGE_ASSERT(select_list[i]->GetReturnValueType() != type::TypeId::INVALID, "CTE column type not resolved");
+    NOISEPAGE_ASSERT(select_list[i]->GetReturnValueType() != execution::sql::SqlTypeId::Invalid,
+                     "CTE column type not resolved");
     nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();
   }
 
@@ -342,11 +343,11 @@ void BinderContext::GenerateAllColumnExpressions(
       // TODO(tanujnay112) make the nested_table_alias_map hold ordered maps
       // this is to order the generated columns in the same order that they appear
       // in the nested table; the serial number of their aliases signifies this ordering
-      std::vector<std::pair<parser::AliasType, type::TypeId>> cols_vector{cols.begin(), cols.end()};
-      std::sort(
-          cols_vector.begin(), cols_vector.end(),
-          [](const std::pair<parser::AliasType, type::TypeId> &A, const std::pair<parser::AliasType, type::TypeId> &B) {
-            return A.first.GetSerialNo() < B.first.GetSerialNo();
+      std::vector<std::pair<parser::AliasType, execution::sql::SqlTypeId>> cols_vector{cols.begin(), cols.end()};
+      std::sort(cols_vector.begin(), cols_vector.end(),
+                [](const std::pair<parser::AliasType, execution::sql::SqlTypeId> &A,
+                   const std::pair<parser::AliasType, execution::sql::SqlTypeId> &B) {
+                  return A.first.GetSerialNo() < B.first.GetSerialNo();
           });
       const auto table_alias = GetOrCreateTableAlias(table_alias_name);
       for (const auto &col_entry : cols_vector) {

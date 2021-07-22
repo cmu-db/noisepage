@@ -1,4 +1,5 @@
 #include "util/self_driving_recording_util.h"
+
 #include "catalog/catalog_defs.h"
 #include "execution/sql/value_util.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -10,27 +11,29 @@ namespace noisepage::util {
 void SelfDrivingRecordingUtil::RecordQueryMetadata(
     const std::unordered_map<execution::query_id_t, metrics::QueryTraceMetadata::QueryMetadata> &qmetadata,
     common::ManagedPointer<task::TaskManager> task_manager) {
-  std::vector<type::TypeId> param_types = {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::VARCHAR,
-                                           type::TypeId::VARCHAR};
+  std::vector<execution::sql::SqlTypeId> param_types = {
+      execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Varchar,
+      execution::sql::SqlTypeId::Varchar};
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (auto &data : qmetadata) {
     std::vector<parser::ConstantValueExpression> params(4);
     params[0] = parser::ConstantValueExpression(
-        type::TypeId::INTEGER, execution::sql::Integer(static_cast<int64_t>(data.second.db_oid_.UnderlyingValue())));
-    params[1] =
-        parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(data.first.UnderlyingValue()));
+        execution::sql::SqlTypeId::Integer,
+        execution::sql::Integer(static_cast<int64_t>(data.second.db_oid_.UnderlyingValue())));
+    params[1] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
+                                                execution::sql::Integer(data.first.UnderlyingValue()));
     {
       const auto string = std::string_view(data.second.text_);
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      params[2] =
-          parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+      params[2] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar, string_val.first,
+                                                  std::move(string_val.second));
     }
 
     {
       const auto string = std::string_view(data.second.param_type_);
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      params[3] =
-          parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+      params[3] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar, string_val.first,
+                                                  std::move(string_val.second));
     }
     params_vec.emplace_back(std::move(params));
   }
@@ -48,21 +51,22 @@ void SelfDrivingRecordingUtil::RecordQueryParameters(
     std::unordered_map<execution::query_id_t, common::ReservoirSampling<std::string>> *params,
     common::ManagedPointer<task::TaskManager> task_manager,
     std::unordered_map<execution::query_id_t, std::vector<std::string>> *out_params) {
-  std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::VARCHAR};
+  std::vector<execution::sql::SqlTypeId> param_types = {
+      execution::sql::SqlTypeId::BigInt, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Varchar};
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (auto &data : (*params)) {
     std::vector<std::string> samples = data.second.TakeSamples();
     for (auto &sample : samples) {
       std::vector<parser::ConstantValueExpression> param_vec(3);
-      param_vec[0] =
-          parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
-      param_vec[1] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(data.first.UnderlyingValue()));
+      param_vec[0] = parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt,
+                                                     execution::sql::Integer(timestamp_to_record));
+      param_vec[1] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
+                                                     execution::sql::Integer(data.first.UnderlyingValue()));
 
       const auto string = std::string_view(sample);
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      param_vec[2] =
-          parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+      param_vec[2] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar, string_val.first,
+                                                     std::move(string_val.second));
       params_vec.emplace_back(std::move(param_vec));
     }
 
@@ -95,20 +99,20 @@ void SelfDrivingRecordingUtil::RecordForecastClusters(uint64_t timestamp_to_reco
       std::vector<parser::ConstantValueExpression> clusters_params(4);
 
       // Timestamp of forecast
-      clusters_params[0] =
-          parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
+      clusters_params[0] = parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt,
+                                                           execution::sql::Integer(timestamp_to_record));
 
       // Cluster ID
       clusters_params[1] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(cluster.first));
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(cluster.first));
 
       // Query ID
       clusters_params[2] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(qid_info.first));
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(qid_info.first));
 
       // DB OID
       clusters_params[3] = parser::ConstantValueExpression(
-          type::TypeId::INTEGER,
+          execution::sql::SqlTypeId::Integer,
           execution::sql::Integer(metadata.query_id_to_dboid_.find(qid)->second.UnderlyingValue()));
       clusters_params_vec.emplace_back(std::move(clusters_params));
     }
@@ -116,8 +120,9 @@ void SelfDrivingRecordingUtil::RecordForecastClusters(uint64_t timestamp_to_reco
 
   if (!clusters_params_vec.empty()) {
     // Clusters
-    std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                             type::TypeId::INTEGER};
+    std::vector<execution::sql::SqlTypeId> param_types = {
+        execution::sql::SqlTypeId::BigInt, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Integer,
+        execution::sql::SqlTypeId::Integer};
     std::string query_text = SelfDrivingRecordingUtil::FORECAST_CLUSTERS_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
                                                           std::make_unique<optimizer::TrivialCostModel>(), false,
@@ -141,19 +146,20 @@ void SelfDrivingRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp
         std::vector<parser::ConstantValueExpression> forecasts_params(4);
 
         // Timestamp of the forecast
-        forecasts_params[0] =
-            parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
+        forecasts_params[0] = parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt,
+                                                              execution::sql::Integer(timestamp_to_record));
 
         // Query ID
-        forecasts_params[1] =
-            parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(qid_info.first));
+        forecasts_params[1] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
+                                                              execution::sql::Integer(qid_info.first));
 
         // Segment number within forecast interval
-        forecasts_params[2] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(interval));
+        forecasts_params[2] =
+            parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(interval));
 
         // Estimated number of queries
-        forecasts_params[3] =
-            parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(qid_info.second[interval]));
+        forecasts_params[3] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Double,
+                                                              execution::sql::Real(qid_info.second[interval]));
 
         forecast_params_vec.emplace_back(std::move(forecasts_params));
       }
@@ -162,8 +168,9 @@ void SelfDrivingRecordingUtil::RecordForecastQueryFrequencies(uint64_t timestamp
 
   if (!forecast_params_vec.empty()) {
     // Forecasts
-    std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                             type::TypeId::REAL};
+    std::vector<execution::sql::SqlTypeId> param_types = {
+        execution::sql::SqlTypeId::BigInt, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Integer,
+        execution::sql::SqlTypeId::Double};
     std::string query_text = SelfDrivingRecordingUtil::FORECAST_FORECASTS_INSERT_STMT;
     task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
                                                           std::make_unique<optimizer::TrivialCostModel>(), false,
@@ -176,22 +183,26 @@ void SelfDrivingRecordingUtil::RecordAppliedAction(uint64_t timestamp_to_record,
                                                    catalog::db_oid_t db_id, const std::string &action_text,
                                                    common::ManagedPointer<task::TaskManager> task_manager) {
   std::vector<parser::ConstantValueExpression> param(5);
-  param[0] = parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
-  param[1] =
-      parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(action_id.UnderlyingValue()));
-  param[2] = parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(cost));
-  param[3] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(db_id.UnderlyingValue()));
+  param[0] =
+      parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt, execution::sql::Integer(timestamp_to_record));
+  param[1] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
+                                             execution::sql::Integer(action_id.UnderlyingValue()));
+  param[2] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Double, execution::sql::Real(cost));
+  param[3] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
+                                             execution::sql::Integer(db_id.UnderlyingValue()));
 
   {
     const auto string = std::string_view(action_text);
     auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-    param[4] = parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+    param[4] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar, string_val.first,
+                                               std::move(string_val.second));
   }
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   params_vec.emplace_back(std::move(param));
 
-  std::vector<type::TypeId> param_types = {type::TypeId::BIGINT, type::TypeId::INTEGER, type::TypeId::REAL,
-                                           type::TypeId::INTEGER, type::TypeId::VARCHAR};
+  std::vector<execution::sql::SqlTypeId> param_types = {
+      execution::sql::SqlTypeId::BigInt, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double,
+      execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Varchar};
   std::string query_text = SelfDrivingRecordingUtil::APPLIED_ACTIONS_INSERT_STMT;
   task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
                                                         std::make_unique<optimizer::TrivialCostModel>(), false,
@@ -205,34 +216,38 @@ void SelfDrivingRecordingUtil::RecordBestActions(
   for (size_t i = 0; i < actions.size(); i++) {
     for (const selfdriving::pilot::ActionTreeNode &node : actions[i]) {
       std::vector<parser::ConstantValueExpression> param(10);
-      param[0] = parser::ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(timestamp_to_record));
-      param[1] = parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(i));
-      param[2] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+      param[0] = parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt,
+                                                 execution::sql::Integer(timestamp_to_record));
+      param[1] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(i));
+      param[2] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
                                                  execution::sql::Integer(node.GetTreeNodeId().UnderlyingValue()));
-      param[3] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+      param[3] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
                                                  execution::sql::Integer(node.GetParentNodeId().UnderlyingValue()));
-      param[4] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+      param[4] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
                                                  execution::sql::Integer(node.GetActionStartSegmentIndex()));
-      param[5] =
-          parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(node.GetActionPlanEndIndex()));
-      param[6] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+      param[5] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
+                                                 execution::sql::Integer(node.GetActionPlanEndIndex()));
+      param[6] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
                                                  execution::sql::Integer(node.GetActionId().UnderlyingValue()));
-      param[7] = parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(node.GetCost()));
-      param[8] = parser::ConstantValueExpression(type::TypeId::INTEGER,
+      param[7] =
+          parser::ConstantValueExpression(execution::sql::SqlTypeId::Double, execution::sql::Real(node.GetCost()));
+      param[8] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer,
                                                  execution::sql::Integer(node.GetDbOid().UnderlyingValue()));
 
       const auto string = std::string_view(node.GetActionText());
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      param[9] = parser::ConstantValueExpression(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+      param[9] = parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar, string_val.first,
+                                                 std::move(string_val.second));
 
       params_vec.emplace_back(std::move(param));
     }
   }
 
-  std::vector<type::TypeId> param_types = {type::TypeId::BIGINT,  type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                           type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER,
-                                           type::TypeId::INTEGER, type::TypeId::REAL,    type::TypeId::INTEGER,
-                                           type::TypeId::VARCHAR};
+  std::vector<execution::sql::SqlTypeId> param_types = {
+      execution::sql::SqlTypeId::BigInt,  execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Integer,
+      execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Integer,
+      execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double,  execution::sql::SqlTypeId::Integer,
+      execution::sql::SqlTypeId::Varchar};
   std::string query_text = SelfDrivingRecordingUtil::BEST_ACTIONS_INSERT_STMT;
   task_manager->AddTask(std::make_unique<task::TaskDML>(catalog::INVALID_DATABASE_OID, query_text,
                                                         std::make_unique<optimizer::TrivialCostModel>(), false,

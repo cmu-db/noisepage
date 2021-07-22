@@ -887,7 +887,7 @@ void LogicalCreateIndexToPhysicalCreateIndex::Transform(
     // Information should already be derived
     auto name = attr->GetExpressionName();
     auto type = attr->GetReturnValueType();
-    auto is_var = (type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY);
+    auto is_var = (type == execution::sql::SqlTypeId::Varchar || type == execution::sql::SqlTypeId::Varbinary);
 
     // Need a catalog lookup to see if nullable
     bool nullable = false;

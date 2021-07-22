@@ -269,7 +269,8 @@ class BinderContext {
   /**
    * Map the table alias to maps which is from table alias to the value type
    */
-  std::unordered_map<std::string, std::unordered_map<parser::AliasType, type::TypeId>> nested_table_alias_map_;
+  std::unordered_map<std::string, std::unordered_map<parser::AliasType, execution::sql::SqlTypeId>>
+      nested_table_alias_map_;
 
   /**
    * Map the table alias name to table AliasType

@@ -10,7 +10,6 @@
 #include "common/hash_util.h"
 #include "execution/sql/value.h"
 #include "parser/expression/abstract_expression.h"
-#include "type/type_util.h"
 
 namespace noisepage::binder {
 class BindNodeVisitor;
@@ -27,8 +26,10 @@ class ConstantValueExpression : public AbstractExpression {
    * Construct a NULL CVE of provided type
    * @param type SQL type for NULL, apparently can be INVALID coming out of the parser for NULLs
    */
-  explicit ConstantValueExpression(const type::TypeId type)
-      : ConstantValueExpression(type, execution::sql::Val(true)) {}
+  explicit ConstantValueExpression(const execution::sql::SqlTypeId type)
+      : ConstantValueExpression(type, execution::sql::Val(true)) {
+    Validate();
+  }
 
   /**
    * Construct a CVE of provided type and value
@@ -37,7 +38,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value underlying value to copy
    */
   template <typename T>
-  ConstantValueExpression(type::TypeId type, T value);
+  ConstantValueExpression(execution::sql::SqlTypeId type, T value);
 
   /**
    * Construct a CVE of provided type and value
@@ -45,7 +46,8 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value underlying value to copy
    * @param buffer StringVal might not be inlined, so take ownership of that buffer
    */
-  ConstantValueExpression(type::TypeId type, execution::sql::StringVal value, std::unique_ptr<byte[]> buffer);
+  ConstantValueExpression(execution::sql::SqlTypeId type, execution::sql::StringVal value,
+                          std::unique_ptr<byte[]> buffer);
 
   /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
@@ -170,7 +172,8 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value underlying value to copy
    * @param buffer StringVal might not be inlined, so take ownership of that buffer
    */
-  void SetValue(const type::TypeId type, const execution::sql::StringVal value, std::unique_ptr<byte[]> buffer) {
+  void SetValue(const execution::sql::SqlTypeId type, const execution::sql::StringVal value,
+                std::unique_ptr<byte[]> buffer) {
     return_value_type_ = type;
     value_ = value;
     buffer_ = std::move(buffer);
@@ -184,7 +187,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @param value underlying value to copy
    */
   template <typename T>
-  void SetValue(type::TypeId type, T value) {
+  void SetValue(execution::sql::SqlTypeId type, T value) {
     return_value_type_ = type;
     value_ = value;
     buffer_ = nullptr;
@@ -198,26 +201,26 @@ class ConstantValueExpression : public AbstractExpression {
     if (std::holds_alternative<execution::sql::Val>(value_) && std::get<execution::sql::Val>(value_).is_null_)
       return true;
     switch (return_value_type_) {
-      case type::TypeId::BOOLEAN: {
+      case execution::sql::SqlTypeId::Boolean: {
         return GetBoolVal().is_null_;
       }
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT: {
+      case execution::sql::SqlTypeId::TinyInt:
+      case execution::sql::SqlTypeId::SmallInt:
+      case execution::sql::SqlTypeId::Integer:
+      case execution::sql::SqlTypeId::BigInt: {
         return GetInteger().is_null_;
       }
-      case type::TypeId::REAL: {
+      case execution::sql::SqlTypeId::Double: {
         return GetReal().is_null_;
       }
-      case type::TypeId::TIMESTAMP: {
+      case execution::sql::SqlTypeId::Timestamp: {
         return GetTimestampVal().is_null_;
       }
-      case type::TypeId::DATE: {
+      case execution::sql::SqlTypeId::Date: {
         return GetDateVal().is_null_;
       }
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
+      case execution::sql::SqlTypeId::Varchar:
+      case execution::sql::SqlTypeId::Varbinary: {
         return GetStringVal().is_null_;
       }
       default:
@@ -241,7 +244,7 @@ class ConstantValueExpression : public AbstractExpression {
   std::string ToString() const;
 
   /** @return A ConstantValueExpression from input string and type. */
-  static ConstantValueExpression FromString(const std::string &val_string, type::TypeId type_id);
+  static ConstantValueExpression FromString(const std::string &val_string, execution::sql::SqlTypeId type_id);
 
   /**
    * @return expression serialized to json
@@ -266,31 +269,38 @@ class ConstantValueExpression : public AbstractExpression {
 DEFINE_JSON_HEADER_DECLARATIONS(ConstantValueExpression);
 
 /// @cond DOXYGEN_IGNORE
-extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+extern template ConstantValueExpression::ConstantValueExpression(const execution::sql::SqlTypeId type,
                                                                  const execution::sql::Val value);
-extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+extern template ConstantValueExpression::ConstantValueExpression(const execution::sql::SqlTypeId type,
                                                                  const execution::sql::BoolVal value);
-extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+extern template ConstantValueExpression::ConstantValueExpression(const execution::sql::SqlTypeId type,
                                                                  const execution::sql::Integer value);
-extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+extern template ConstantValueExpression::ConstantValueExpression(const execution::sql::SqlTypeId type,
                                                                  const execution::sql::Real value);
-extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+extern template ConstantValueExpression::ConstantValueExpression(const execution::sql::SqlTypeId type,
                                                                  const execution::sql::DecimalVal value);
-extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+extern template ConstantValueExpression::ConstantValueExpression(const execution::sql::SqlTypeId type,
                                                                  const execution::sql::StringVal value);
-extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+extern template ConstantValueExpression::ConstantValueExpression(const execution::sql::SqlTypeId type,
                                                                  const execution::sql::DateVal value);
-extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+extern template ConstantValueExpression::ConstantValueExpression(const execution::sql::SqlTypeId type,
                                                                  const execution::sql::TimestampVal value);
 
-extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Val value);
-extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::BoolVal value);
-extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Integer value);
-extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Real value);
-extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DecimalVal value);
-extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::StringVal value);
-extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DateVal value);
-extern template void ConstantValueExpression::SetValue(const type::TypeId type,
+extern template void ConstantValueExpression::SetValue(const execution::sql::SqlTypeId type,
+                                                       const execution::sql::Val value);
+extern template void ConstantValueExpression::SetValue(const execution::sql::SqlTypeId type,
+                                                       const execution::sql::BoolVal value);
+extern template void ConstantValueExpression::SetValue(const execution::sql::SqlTypeId type,
+                                                       const execution::sql::Integer value);
+extern template void ConstantValueExpression::SetValue(const execution::sql::SqlTypeId type,
+                                                       const execution::sql::Real value);
+extern template void ConstantValueExpression::SetValue(const execution::sql::SqlTypeId type,
+                                                       const execution::sql::DecimalVal value);
+extern template void ConstantValueExpression::SetValue(const execution::sql::SqlTypeId type,
+                                                       const execution::sql::StringVal value);
+extern template void ConstantValueExpression::SetValue(const execution::sql::SqlTypeId type,
+                                                       const execution::sql::DateVal value);
+extern template void ConstantValueExpression::SetValue(const execution::sql::SqlTypeId type,
                                                        const execution::sql::TimestampVal value);
 
 extern template bool ConstantValueExpression::Peek() const;

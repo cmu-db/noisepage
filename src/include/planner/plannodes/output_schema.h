@@ -13,8 +13,6 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"
-#include "type/type_id.h"
-#include "type/type_util.h"
 
 namespace noisepage::planner {
 
@@ -36,9 +34,9 @@ class OutputSchema {
      * @param type SQL type for this column
      * @param expr Expression
      */
-    Column(std::string name, const type::TypeId type, std::unique_ptr<parser::AbstractExpression> expr)
+    Column(std::string name, const execution::sql::SqlTypeId type, std::unique_ptr<parser::AbstractExpression> expr)
         : name_(std::move(name)), type_(type), expr_(std::move(expr)) {
-      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      NOISEPAGE_ASSERT(type_ != execution::sql::SqlTypeId::Invalid, "Attribute type cannot be INVALID.");
     }
 
     /**
@@ -59,7 +57,7 @@ class OutputSchema {
     /**
      * @return SQL type for this column
      */
-    type::TypeId GetType() const { return type_; }
+    execution::sql::SqlTypeId GetType() const { return type_; }
 
     /**
      * @return expr
@@ -108,7 +106,7 @@ class OutputSchema {
 
    private:
     std::string name_;
-    type::TypeId type_;
+    execution::sql::SqlTypeId type_;
     std::unique_ptr<parser::AbstractExpression> expr_;
   };
 

@@ -61,7 +61,7 @@ class ColumnStatsBase {
    * Gets the type id of the column
    * @return type id of the column
    */
-  virtual type::TypeId GetTypeId() = 0;
+  virtual execution::sql::SqlTypeId GetTypeId() = 0;
   /**
    * Returns whether or not this stat is stale
    * @return true if stale false otherwise
@@ -100,7 +100,7 @@ class ColumnStats : public ColumnStatsBase {
   ColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
               size_t num_rows, size_t non_null_rows, size_t distinct_values,
               std::unique_ptr<TopKElements<CppType>> top_k, std::unique_ptr<Histogram<CppType>> histogram,
-              type::TypeId type_id)
+              execution::sql::SqlTypeId type_id)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
@@ -233,7 +233,7 @@ class ColumnStats : public ColumnStatsBase {
    * Gets the type id of the column
    * @return type id of the column
    */
-  type::TypeId GetTypeId() override { return type_id_; }
+  execution::sql::SqlTypeId GetTypeId() override { return type_id_; }
 
   /**
    * Returns whether or not this stat is stale
@@ -295,7 +295,7 @@ class ColumnStats : public ColumnStatsBase {
   /**
    * Type Id of underlying column.
    */
-  type::TypeId type_id_;
+  execution::sql::SqlTypeId type_id_;
 
   /**
    * Whether these statistics are stale, i.e. pg_statistic has been updated for this column with newer statistics

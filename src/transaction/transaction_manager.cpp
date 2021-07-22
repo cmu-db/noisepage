@@ -6,6 +6,7 @@
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
+#include "storage/storage_defs.h"
 
 namespace noisepage::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {

@@ -34,8 +34,8 @@ class BinderCorrectnessTest : public TerrierTest {
     BINDER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
     // Get default values of the columns
-    auto int_default = parser::ConstantValueExpression(type::TypeId::INTEGER);
-    auto varchar_default = parser::ConstantValueExpression(type::TypeId::VARCHAR);
+    auto int_default = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer);
+    auto varchar_default = parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar);
 
     // TODO(Ling): use mixed case in table name and schema name
     // for testcases to see if the binder does not differentiate
@@ -45,8 +45,8 @@ class BinderCorrectnessTest : public TerrierTest {
 
     // Create the column definition (no OIDs) for CREATE TABLE A(A1 int, a2 varchar)
     std::vector<catalog::Schema::Column> cols_a{};
-    cols_a.emplace_back("a1", type::TypeId::INTEGER, true, int_default);
-    cols_a.emplace_back("a2", type::TypeId::VARCHAR, 20, true, varchar_default);
+    cols_a.emplace_back("a1", execution::sql::SqlTypeId::Integer, true, int_default);
+    cols_a.emplace_back("a2", execution::sql::SqlTypeId::Varchar, 20, true, varchar_default);
     auto schema_a = catalog::Schema(cols_a);
 
     table_a_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "a", schema_a);
@@ -62,8 +62,8 @@ class BinderCorrectnessTest : public TerrierTest {
 
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b{};
-    cols_b.emplace_back("b1", type::TypeId::INTEGER, true, int_default);
-    cols_b.emplace_back("b2", type::TypeId::VARCHAR, 20, true, varchar_default);
+    cols_b.emplace_back("b1", execution::sql::SqlTypeId::Integer, true, int_default);
+    cols_b.emplace_back("b2", execution::sql::SqlTypeId::Varchar, 20, true, varchar_default);
     auto schema_b = catalog::Schema(cols_b);
 
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
@@ -169,14 +169,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = select_stmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check join condition
@@ -189,7 +189,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = select_stmt->GetSelectTable()
@@ -201,7 +201,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check Where clause
@@ -210,7 +210,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check Group By and Having
@@ -219,14 +219,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = select_stmt->GetSelectGroupBy()->GetColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr =
@@ -234,7 +234,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check Order By
@@ -244,7 +244,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 }
 
@@ -282,12 +282,12 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
       if (col_expr->GetColumnName() == "a1") {
         a1_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
-        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
       }
       if (col_expr->GetColumnName() == "a2") {
         a2_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
-        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
       }
     }
     if (col_expr->GetTableOid() == table_b_oid_) {
@@ -295,12 +295,12 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
       if (col_expr->GetColumnName() == "b1") {
         b1_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
-        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
       }
       if (col_expr->GetColumnName() == "b2") {
         b2_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
-        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
       }
     }
   }
@@ -346,13 +346,13 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
       EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("a"));
 
       if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
-          type::TypeId::INTEGER == col_expr->GetReturnValueType()) {
+          execution::sql::SqlTypeId::Integer == col_expr->GetReturnValueType()) {
         EXPECT_EQ(col_expr->GetColumnName(), "a1");
 
         a1_exists = true;
       }
       if (col_expr->GetColumnOid() == catalog::col_oid_t(2) &&
-          type::TypeId::VARCHAR == col_expr->GetReturnValueType()) {
+          execution::sql::SqlTypeId::Varchar == col_expr->GetReturnValueType()) {
         a2_exists = true;
         EXPECT_EQ(col_expr->GetColumnName(), "a2");
       }
@@ -364,19 +364,19 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
 
       if (col_expr->GetColumnName() == "a1") {
         c_a1_exists = true;
-        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
       }
       if (col_expr->GetColumnName() == "a2") {
         c_a2_exists = true;
-        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
       }
       if (col_expr->GetColumnName() == "b1") {
         c_b1_exists = true;
-        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
       }
       if (col_expr->GetColumnName() == "b2") {
         c_b2_exists = true;
-        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
       }
     }
   }
@@ -400,7 +400,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::INVALID_DATABASE_OID);
   EXPECT_EQ(col_expr->GetTableOid(), catalog::INVALID_TABLE_OID);
   EXPECT_TRUE(catalog::IsTempOid(col_expr->GetColumnOid()));
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
   col_expr = select_stmt->GetSelectTable()
@@ -413,7 +413,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);                // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));    // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
   // check right table
@@ -444,12 +444,12 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
       if (col_expr->GetColumnName() == "a1") {
         a1_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
-        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
       }
       if (col_expr->GetColumnName() == "a2") {
         a2_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
-        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
       }
     }
     if (col_expr->GetTableOid() == table_b_oid_) {
@@ -457,12 +457,12 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
       if (col_expr->GetColumnName() == "b1") {
         b1_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
-        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
       }
       if (col_expr->GetColumnName() == "b2") {
         b2_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
-        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+        EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
       }
     }
   }
@@ -481,14 +481,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(1, col_expr->GetDepth());
 
   col_expr = join->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(1, col_expr->GetDepth());
 }
 
@@ -510,7 +510,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   BINDER_LOG_DEBUG("Checking nested select in select list");
@@ -525,7 +525,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
   EXPECT_EQ(1, col_expr->GetDepth());
 
   BINDER_LOG_DEBUG("Checking where clause in nested select in select list");
@@ -536,7 +536,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
   EXPECT_EQ(1, col_expr->GetDepth());
 }
 
@@ -603,7 +603,7 @@ TEST_F(BinderCorrectnessTest, UpdateStatementSimpleTest) {
   auto update_clause = update_stmt->GetUpdateClauses()[0].Get();
   EXPECT_EQ("a1", update_clause->GetColumnName());
   auto constant = update_clause->GetUpdateValue().CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(constant->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(constant->GetReturnValueType(), execution::sql::SqlTypeId::Integer);
   EXPECT_EQ(constant->Peek<int64_t>(), 999);
 
   BINDER_LOG_DEBUG("Checking update condition");
@@ -653,7 +653,7 @@ TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
   EXPECT_EQ(0, select_stmt->GetDepth());
 
   auto agg_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::AggregateExpression>();
-  EXPECT_EQ(type::TypeId::INTEGER, agg_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, agg_expr->GetReturnValueType());
   EXPECT_EQ(0, agg_expr->GetDepth());
 
   auto col_expr = agg_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -661,7 +661,7 @@ TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
 }
 
 // NOLINTNEXTLINE
@@ -680,7 +680,7 @@ TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
   auto subselect = subquery->GetSubselect().CastManagedPointerTo<parser::SelectStatement>();
 
   auto agg_expr = subselect->GetSelectColumns()[0].CastManagedPointerTo<parser::AggregateExpression>();
-  EXPECT_EQ(type::TypeId::INTEGER, agg_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, agg_expr->GetReturnValueType());
   EXPECT_EQ(1, agg_expr->GetDepth());
 
   auto col_expr = agg_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -688,7 +688,7 @@ TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
   EXPECT_EQ(1, col_expr->GetDepth());
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
 }
 
 // ----------------------------------------------------------------------------
@@ -708,7 +708,7 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
   EXPECT_EQ(0, select_stmt->GetDepth());
 
   auto op_expr = select_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::OperatorExpression>();
-  EXPECT_EQ(type::TypeId::INTEGER, op_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, op_expr->GetReturnValueType());
   EXPECT_EQ(0, op_expr->GetDepth());
 
   auto col_expr = op_expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -716,13 +716,13 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // a.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // a.a1; columns are indexed from 1
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
 
   auto subquery = select_stmt->GetSelectCondition()->GetChild(1).CastManagedPointerTo<parser::SubqueryExpression>();
   auto subselect = subquery->GetSubselect().CastManagedPointerTo<parser::SelectStatement>();
 
   op_expr = subselect->GetSelectColumns()[0].CastManagedPointerTo<parser::OperatorExpression>();
-  EXPECT_EQ(type::TypeId::INTEGER, op_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, op_expr->GetReturnValueType());
   EXPECT_EQ(1, op_expr->GetDepth());
 
   col_expr = op_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -730,7 +730,7 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
   EXPECT_EQ(1, col_expr->GetDepth());
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
 }
 
 // NOLINTNEXTLINE
@@ -945,13 +945,13 @@ TEST_F(BinderCorrectnessTest, CreateViewTest) {
   EXPECT_EQ(view_query->GetSelectTable()->GetTableName(), "a");
   auto cond_expr = view_query->GetSelectCondition().CastManagedPointerTo<parser::ComparisonExpression>();
   EXPECT_EQ(cond_expr->GetChildrenSize(), 2);
-  EXPECT_EQ(cond_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  EXPECT_EQ(cond_expr->GetReturnValueType(), execution::sql::SqlTypeId::Boolean);
   EXPECT_EQ(cond_expr->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
   EXPECT_EQ(cond_expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
   auto const_expr = cond_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-  EXPECT_EQ(const_expr->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(const_expr->GetReturnValueType(), execution::sql::SqlTypeId::Integer);
   auto col_expr = cond_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(col_expr->GetReturnValueType(), execution::sql::SqlTypeId::Integer);
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
 }
@@ -972,7 +972,8 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
 
   auto fun_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::FunctionExpression>();
   auto proc_oid = fun_expr->GetProcOid();
-  EXPECT_EQ(proc_oid, accessor_->GetProcOid("cot", {accessor_->GetTypeOidFromTypeId(type::TypeId::REAL)}));
+  EXPECT_EQ(proc_oid,
+            accessor_->GetProcOid("cot", {accessor_->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double)}));
 
   // Make a query with wrong argument types to check correct overloading
   query = "SELECT cot(1.0, 2.0) FROM a;";
@@ -1140,14 +1141,14 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(1, col_expr->GetDepth());
 
   // Check select_list
   col_expr = cte_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
@@ -1156,7 +1157,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check join condition
@@ -1168,7 +1169,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
                  .CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
@@ -1181,14 +1182,14 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
 
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);    // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);  // B.b1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check Where clause
   col_expr = cte_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
@@ -1197,7 +1198,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   col_expr = cte_stmt->GetSelectGroupBy()->GetColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
@@ -1206,14 +1207,14 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Varchar, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr =
       cte_stmt->GetSelectGroupBy()->GetHaving()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
@@ -1223,7 +1224,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
       cte_stmt->GetSelectOrderBy()->GetOrderByExpressions()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::db_oid_t(0));  // c.a3
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");

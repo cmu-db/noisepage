@@ -35,13 +35,13 @@ class DDLExecutorsTests : public TerrierTest {
     db_ = catalog_->GetDatabaseOid(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
-                                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+    auto col = catalog::Schema::Column("attribute", execution::sql::SqlTypeId::Integer, false,
+                                       parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
     table_schema_ = std::make_unique<catalog::Schema>(std::vector<catalog::Schema::Column>{col});
 
     std::vector<catalog::IndexSchema::Column> keycols;
-    keycols.emplace_back("", type::TypeId::INTEGER, false,
+    keycols.emplace_back("", execution::sql::SqlTypeId::Integer, false,
                          parser::ColumnValueExpression(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID,
                                                        catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));

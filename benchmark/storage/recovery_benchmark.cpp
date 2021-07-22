@@ -166,9 +166,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     auto namespace_oid = catalog_accessor->CreateNamespace(namespace_name);
 
     // Create random table
-    auto col =
-        catalog::Schema::Column("col1", type::TypeId::INTEGER, false,
-                                parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0)));
+    auto col = catalog::Schema::Column(
+        "col1", execution::sql::SqlTypeId::Integer, false,
+        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(0)));
     catalog::Schema schema({col});
     auto table_oid = catalog_accessor->CreateTable(namespace_oid, table_name, schema);
     schema = catalog_accessor->GetSchema(table_oid);
@@ -179,7 +179,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     auto cols = schema.GetColumns();
     for (uint16_t i = 0; i < num_indexes_; i++) {
       auto index_col =
-          catalog::IndexSchema::Column("index_col", type::TypeId::INTEGER, false,
+          catalog::IndexSchema::Column("index_col", execution::sql::SqlTypeId::Integer, false,
                                        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
       catalog::IndexOptions options;

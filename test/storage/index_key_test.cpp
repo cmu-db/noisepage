@@ -23,8 +23,6 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
-#include "type/type_id.h"
-#include "type/type_util.h"
 
 namespace noisepage::storage::index {
 
@@ -41,25 +39,25 @@ class IndexKeyTests : public TerrierTest {
     std::uniform_int_distribution<int64_t> rng(std::numeric_limits<int64_t>::min(),
                                                std::numeric_limits<int64_t>::max());
     const auto type = col.Type();
-    const auto type_size = type::TypeUtil::GetTypeSize(type);
+    const auto type_size = execution::sql::GetSqlTypeIdSize(type);
 
     // note that for memcmp to work, signed integers must have their sign flipped and converted to big endian
 
     switch (type) {
-      case type::TypeId::BOOLEAN: {
+      case execution::sql::SqlTypeId::Boolean: {
         auto boolean = static_cast<uint8_t>(rng(*generator)) % 2;
         std::memcpy(attr, &boolean, type_size);
         std::memcpy(reference, &boolean, type_size);
         break;
       }
-      case type::TypeId::TINYINT: {
+      case execution::sql::SqlTypeId::TinyInt: {
         auto tinyint = static_cast<int8_t>(rng(*generator));
         std::memcpy(attr, &tinyint, type_size);
         tinyint ^= static_cast<int8_t>(static_cast<int8_t>(0x1) << (sizeof(int8_t) * 8UL - 1));
         std::memcpy(reference, &tinyint, type_size);
         break;
       }
-      case type::TypeId::SMALLINT: {
+      case execution::sql::SqlTypeId::SmallInt: {
         auto smallint = static_cast<int16_t>(rng(*generator));
         std::memcpy(attr, &smallint, type_size);
         smallint ^= static_cast<int16_t>(static_cast<int16_t>(0x1) << (sizeof(int16_t) * 8UL - 1));
@@ -67,7 +65,7 @@ class IndexKeyTests : public TerrierTest {
         std::memcpy(reference, &smallint, type_size);
         break;
       }
-      case type::TypeId::INTEGER: {
+      case execution::sql::SqlTypeId::Integer: {
         auto integer = static_cast<int32_t>(rng(*generator));
         std::memcpy(attr, &integer, type_size);
         integer ^= static_cast<int32_t>(static_cast<int32_t>(0x1) << (sizeof(int32_t) * 8UL - 1));
@@ -75,14 +73,14 @@ class IndexKeyTests : public TerrierTest {
         std::memcpy(reference, &integer, type_size);
         break;
       }
-      case type::TypeId::DATE: {
+      case execution::sql::SqlTypeId::Date: {
         auto date = static_cast<uint32_t>(rng(*generator));
         std::memcpy(attr, &date, type_size);
         date = htobe32(date);
         std::memcpy(reference, &date, type_size);
         break;
       }
-      case type::TypeId::BIGINT: {
+      case execution::sql::SqlTypeId::BigInt: {
         auto bigint = static_cast<int64_t>(rng(*generator));
         std::memcpy(attr, &bigint, type_size);
         bigint ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
@@ -90,7 +88,7 @@ class IndexKeyTests : public TerrierTest {
         std::memcpy(reference, &bigint, type_size);
         break;
       }
-      case type::TypeId::REAL: {
+      case execution::sql::SqlTypeId::Double: {
         auto decimal = static_cast<int64_t>(rng(*generator));
         std::memcpy(attr, &decimal, type_size);
         decimal ^= static_cast<int64_t>(static_cast<int64_t>(0x1) << (sizeof(int64_t) * 8UL - 1));
@@ -98,15 +96,15 @@ class IndexKeyTests : public TerrierTest {
         std::memcpy(reference, &decimal, type_size);
         break;
       }
-      case type::TypeId::TIMESTAMP: {
+      case execution::sql::SqlTypeId::Timestamp: {
         auto timestamp = static_cast<uint64_t>(rng(*generator));
         std::memcpy(attr, &timestamp, type_size);
         timestamp = htobe64(timestamp);
         std::memcpy(reference, &timestamp, type_size);
         break;
       }
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY: {
+      case execution::sql::SqlTypeId::Varchar:
+      case execution::sql::SqlTypeId::Varbinary: {
         // pick a random varlen size, meant to hit the {inline (prefix), inline (prefix+content), content} cases
         auto varlen_size = col.TypeModifier();
 
@@ -159,7 +157,7 @@ class IndexKeyTests : public TerrierTest {
       auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
       auto attr = pr->AccessForceNotNull(pr_offset);
       WriteRandomAttribute(key, attr, reference + offset, generator);
-      offset += AttrSizeBytes(type::TypeUtil::GetTypeSize(key_type));
+      offset += AttrSizeBytes(execution::sql::GetSqlTypeIdSize(key_type));
     }
     return reference;
   }
@@ -180,20 +178,20 @@ class IndexKeyTests : public TerrierTest {
     data.reserve(key_schema.GetColumns().size());
     for (const auto &key : key_schema.GetColumns()) {
       auto key_type = key.Type();
-      const auto type_size = type::TypeUtil::GetTypeSize(key_type);
+      const auto type_size = execution::sql::GetSqlTypeIdSize(key_type);
       int64_t rand_int;
 
       switch (key_type) {
-        case type::TypeId::TINYINT:
+        case execution::sql::SqlTypeId::TinyInt:
           rand_int = static_cast<int64_t>(static_cast<int8_t>(rng(*generator)));
           break;
-        case type::TypeId::SMALLINT:
+        case execution::sql::SqlTypeId::SmallInt:
           rand_int = static_cast<int64_t>(static_cast<int16_t>(rng(*generator)));
           break;
-        case type::TypeId::INTEGER:
+        case execution::sql::SqlTypeId::Integer:
           rand_int = static_cast<int64_t>(static_cast<int32_t>(rng(*generator)));
           break;
-        case type::TypeId::BIGINT:
+        case execution::sql::SqlTypeId::BigInt:
           rand_int = static_cast<int64_t>(static_cast<int64_t>(rng(*generator)));
           break;
         default:
@@ -222,8 +220,8 @@ class IndexKeyTests : public TerrierTest {
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
 
     std::vector<catalog::Schema::Column> columns;
-    columns.emplace_back("attribute", type::TypeId ::INTEGER, false,
-                         parser::ConstantValueExpression(type::TypeId::INTEGER));
+    columns.emplace_back("attribute", execution::sql::SqlTypeId::Integer, false,
+                         parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
     catalog::Schema schema{columns};
     auto *sql_table = new storage::SqlTable(db_main->GetStorageLayer()->GetBlockStore(), schema);
     const auto &tuple_initializer = sql_table->InitializerForProjectedRow({catalog::col_oid_t(0)});
@@ -290,11 +288,11 @@ class IndexKeyTests : public TerrierTest {
 
       uint16_t offset = 0;
       for (uint32_t i = 0; i < column; i++) {
-        offset = static_cast<uint16_t>(offset + type::TypeUtil::GetTypeSize(key_schema.GetColumns()[i].Type()));
+        offset = static_cast<uint16_t>(offset + execution::sql::GetSqlTypeIdSize(key_schema.GetColumns()[i].Type()));
       }
 
       const auto type = key_schema.GetColumns()[column].Type();
-      const auto type_size = type::TypeUtil::GetTypeSize(type);
+      const auto type_size = execution::sql::GetSqlTypeIdSize(type);
 
       auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_schema.GetColumns()[column].Oid()));
       auto attr = pr->AccessForceNotNull(pr_offset);
@@ -428,15 +426,20 @@ TEST_F(IndexKeyTests, IndexMetadataCompactIntsKeyTest) {
 
   // key_schema            {INTEGER, INTEGER, BIGINT, TINYINT, SMALLINT}
   // oids                  {20, 21, 22, 23, 24}
-  key_cols.emplace_back("", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Integer, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Integer, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::BigInt, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::BigInt));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::TinyInt, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::SMALLINT, false, parser::ConstantValueExpression(type::TypeId::SMALLINT));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::SmallInt, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::SmallInt));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
   catalog::IndexOptions options;
@@ -446,11 +449,11 @@ TEST_F(IndexKeyTests, IndexMetadataCompactIntsKeyTest) {
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
-  EXPECT_EQ(metadata_key_schema[0].Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(metadata_key_schema[1].Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::BIGINT);
-  EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
-  EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::SMALLINT);
+  EXPECT_EQ(metadata_key_schema[0].Type(), execution::sql::SqlTypeId::Integer);
+  EXPECT_EQ(metadata_key_schema[1].Type(), execution::sql::SqlTypeId::Integer);
+  EXPECT_EQ(metadata_key_schema[2].Type(), execution::sql::SqlTypeId::BigInt);
+  EXPECT_EQ(metadata_key_schema[3].Type(), execution::sql::SqlTypeId::TinyInt);
+  EXPECT_EQ(metadata_key_schema[4].Type(), execution::sql::SqlTypeId::SmallInt);
   EXPECT_EQ(metadata_key_schema[0].Oid().UnderlyingValue(), 20);
   EXPECT_EQ(metadata_key_schema[1].Oid().UnderlyingValue(), 21);
   EXPECT_EQ(metadata_key_schema[2].Oid().UnderlyingValue(), 22);
@@ -525,15 +528,20 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
 
   // key_schema            {INTEGER, VARCHAR(8), VARCHAR(0), TINYINT, VARCHAR(12)}
   // oids                  {20, 21, 22, 23, 24}
-  key_cols.emplace_back("", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Integer, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 8, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 8, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 1, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 1, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::TinyInt, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 12, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 12, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
   catalog::IndexOptions options;
@@ -543,11 +551,11 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
-  EXPECT_EQ(metadata_key_schema[0].Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(metadata_key_schema[1].Type(), type::TypeId::VARCHAR);
-  EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::VARCHAR);
-  EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
-  EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(metadata_key_schema[0].Type(), execution::sql::SqlTypeId::Integer);
+  EXPECT_EQ(metadata_key_schema[1].Type(), execution::sql::SqlTypeId::Varchar);
+  EXPECT_EQ(metadata_key_schema[2].Type(), execution::sql::SqlTypeId::Varchar);
+  EXPECT_EQ(metadata_key_schema[3].Type(), execution::sql::SqlTypeId::TinyInt);
+  EXPECT_EQ(metadata_key_schema[4].Type(), execution::sql::SqlTypeId::Varchar);
   EXPECT_EQ(metadata_key_schema[0].Oid().UnderlyingValue(), 20);
   EXPECT_EQ(metadata_key_schema[1].Oid().UnderlyingValue(), 21);
   EXPECT_EQ(metadata_key_schema[2].Oid().UnderlyingValue(), 22);
@@ -617,15 +625,20 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
 
   // key_schema            {INTEGER, VARCHAR(50), VARCHAR(8), TINYINT, VARCHAR(90)}
   // oids                  {20, 21, 22, 23, 24}
-  key_cols.emplace_back("", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Integer, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 50, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 50, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 8, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 8, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::TinyInt, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 90, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 90, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), oid++);
 
   catalog::IndexOptions options;
@@ -635,11 +648,11 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   // identical key schema
   const auto &metadata_key_schema = metadata.GetSchema().GetColumns();
   EXPECT_EQ(metadata_key_schema.size(), 5);
-  EXPECT_EQ(metadata_key_schema[0].Type(), type::TypeId::INTEGER);
-  EXPECT_EQ(metadata_key_schema[1].Type(), type::TypeId::VARCHAR);
-  EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::VARCHAR);
-  EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
-  EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::VARCHAR);
+  EXPECT_EQ(metadata_key_schema[0].Type(), execution::sql::SqlTypeId::Integer);
+  EXPECT_EQ(metadata_key_schema[1].Type(), execution::sql::SqlTypeId::Varchar);
+  EXPECT_EQ(metadata_key_schema[2].Type(), execution::sql::SqlTypeId::Varchar);
+  EXPECT_EQ(metadata_key_schema[3].Type(), execution::sql::SqlTypeId::TinyInt);
+  EXPECT_EQ(metadata_key_schema[4].Type(), execution::sql::SqlTypeId::Varchar);
   EXPECT_EQ(metadata_key_schema[0].Oid().UnderlyingValue(), 20);
   EXPECT_EQ(metadata_key_schema[1].Oid().UnderlyingValue(), 21);
   EXPECT_EQ(metadata_key_schema[2].Oid().UnderlyingValue(), 22);
@@ -711,7 +724,7 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
     // this is unpleasant, but seems to be the cleanest way
     uint16_t key_size = 0;
     for (const auto &key : key_schema.GetColumns()) {
-      key_size = static_cast<uint16_t>(key_size + type::TypeUtil::GetTypeSize(key.Type()));
+      key_size = static_cast<uint16_t>(key_size + execution::sql::GetSqlTypeIdSize(key.Type()));
     }
     uint8_t key_type = 0;
     for (uint8_t j = 1; j <= 4; j++) {
@@ -811,7 +824,7 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
 }
 
 template <uint8_t KeySize, typename CType, typename Random>
-void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
+void CompactIntsKeyBasicTest(execution::sql::SqlTypeId type_id, Random *const generator) {
   catalog::IndexSchema key_schema;
 
   std::vector<catalog::IndexSchema::Column> key_cols;
@@ -856,29 +869,29 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
 // Verify basic key construction and value setting and comparator, equality, and hash operations for various key sizes.
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, CompactIntsKeyBasicTest) {
-  CompactIntsKeyBasicTest<8, int8_t>(type::TypeId::TINYINT, &generator_);
-  CompactIntsKeyBasicTest<8, int16_t>(type::TypeId::SMALLINT, &generator_);
-  CompactIntsKeyBasicTest<8, int32_t>(type::TypeId::INTEGER, &generator_);
-  CompactIntsKeyBasicTest<8, int64_t>(type::TypeId::BIGINT, &generator_);
+  CompactIntsKeyBasicTest<8, int8_t>(execution::sql::SqlTypeId::TinyInt, &generator_);
+  CompactIntsKeyBasicTest<8, int16_t>(execution::sql::SqlTypeId::SmallInt, &generator_);
+  CompactIntsKeyBasicTest<8, int32_t>(execution::sql::SqlTypeId::Integer, &generator_);
+  CompactIntsKeyBasicTest<8, int64_t>(execution::sql::SqlTypeId::BigInt, &generator_);
 
-  CompactIntsKeyBasicTest<16, int8_t>(type::TypeId::TINYINT, &generator_);
-  CompactIntsKeyBasicTest<16, int16_t>(type::TypeId::SMALLINT, &generator_);
-  CompactIntsKeyBasicTest<16, int32_t>(type::TypeId::INTEGER, &generator_);
-  CompactIntsKeyBasicTest<16, int64_t>(type::TypeId::BIGINT, &generator_);
+  CompactIntsKeyBasicTest<16, int8_t>(execution::sql::SqlTypeId::TinyInt, &generator_);
+  CompactIntsKeyBasicTest<16, int16_t>(execution::sql::SqlTypeId::SmallInt, &generator_);
+  CompactIntsKeyBasicTest<16, int32_t>(execution::sql::SqlTypeId::Integer, &generator_);
+  CompactIntsKeyBasicTest<16, int64_t>(execution::sql::SqlTypeId::BigInt, &generator_);
 
-  CompactIntsKeyBasicTest<24, int8_t>(type::TypeId::TINYINT, &generator_);
-  CompactIntsKeyBasicTest<24, int16_t>(type::TypeId::SMALLINT, &generator_);
-  CompactIntsKeyBasicTest<24, int32_t>(type::TypeId::INTEGER, &generator_);
-  CompactIntsKeyBasicTest<24, int64_t>(type::TypeId::BIGINT, &generator_);
+  CompactIntsKeyBasicTest<24, int8_t>(execution::sql::SqlTypeId::TinyInt, &generator_);
+  CompactIntsKeyBasicTest<24, int16_t>(execution::sql::SqlTypeId::SmallInt, &generator_);
+  CompactIntsKeyBasicTest<24, int32_t>(execution::sql::SqlTypeId::Integer, &generator_);
+  CompactIntsKeyBasicTest<24, int64_t>(execution::sql::SqlTypeId::BigInt, &generator_);
 
-  CompactIntsKeyBasicTest<32, int8_t>(type::TypeId::TINYINT, &generator_);
-  CompactIntsKeyBasicTest<32, int16_t>(type::TypeId::SMALLINT, &generator_);
-  CompactIntsKeyBasicTest<32, int32_t>(type::TypeId::INTEGER, &generator_);
-  CompactIntsKeyBasicTest<32, int64_t>(type::TypeId::BIGINT, &generator_);
+  CompactIntsKeyBasicTest<32, int8_t>(execution::sql::SqlTypeId::TinyInt, &generator_);
+  CompactIntsKeyBasicTest<32, int16_t>(execution::sql::SqlTypeId::SmallInt, &generator_);
+  CompactIntsKeyBasicTest<32, int32_t>(execution::sql::SqlTypeId::Integer, &generator_);
+  CompactIntsKeyBasicTest<32, int64_t>(execution::sql::SqlTypeId::BigInt, &generator_);
 }
 
 template <typename KeyType, typename CType>
-void NumericComparisons(const type::TypeId type_id, const bool nullable) {
+void NumericComparisons(const execution::sql::SqlTypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
   key_cols.emplace_back("", type_id, nullable, parser::ConstantValueExpression(type_id));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
@@ -952,25 +965,25 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
 
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, CompactIntsKeyNumericComparisons) {
-  NumericComparisons<CompactIntsKey<8>, int8_t>(type::TypeId::TINYINT, false);
-  NumericComparisons<CompactIntsKey<8>, int16_t>(type::TypeId::SMALLINT, false);
-  NumericComparisons<CompactIntsKey<8>, int32_t>(type::TypeId::INTEGER, false);
-  NumericComparisons<CompactIntsKey<8>, int64_t>(type::TypeId::BIGINT, false);
+  NumericComparisons<CompactIntsKey<8>, int8_t>(execution::sql::SqlTypeId::TinyInt, false);
+  NumericComparisons<CompactIntsKey<8>, int16_t>(execution::sql::SqlTypeId::SmallInt, false);
+  NumericComparisons<CompactIntsKey<8>, int32_t>(execution::sql::SqlTypeId::Integer, false);
+  NumericComparisons<CompactIntsKey<8>, int64_t>(execution::sql::SqlTypeId::BigInt, false);
 }
 
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, GenericKeyNumericComparisons) {
-  NumericComparisons<GenericKey<64>, int8_t>(type::TypeId::TINYINT, true);
-  NumericComparisons<GenericKey<64>, int16_t>(type::TypeId::SMALLINT, true);
-  NumericComparisons<GenericKey<64>, int32_t>(type::TypeId::INTEGER, true);
-  NumericComparisons<GenericKey<64>, uint32_t>(type::TypeId::DATE, true);
-  NumericComparisons<GenericKey<64>, int64_t>(type::TypeId::BIGINT, true);
-  NumericComparisons<GenericKey<64>, double>(type::TypeId::REAL, true);
-  NumericComparisons<GenericKey<64>, uint64_t>(type::TypeId::TIMESTAMP, true);
+  NumericComparisons<GenericKey<64>, int8_t>(execution::sql::SqlTypeId::TinyInt, true);
+  NumericComparisons<GenericKey<64>, int16_t>(execution::sql::SqlTypeId::SmallInt, true);
+  NumericComparisons<GenericKey<64>, int32_t>(execution::sql::SqlTypeId::Integer, true);
+  NumericComparisons<GenericKey<64>, uint32_t>(execution::sql::SqlTypeId::Date, true);
+  NumericComparisons<GenericKey<64>, int64_t>(execution::sql::SqlTypeId::BigInt, true);
+  NumericComparisons<GenericKey<64>, double>(execution::sql::SqlTypeId::Double, true);
+  NumericComparisons<GenericKey<64>, uint64_t>(execution::sql::SqlTypeId::Timestamp, true);
 }
 
 template <typename KeyType, typename CType>
-void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable) {
+void UnorderedNumericComparisons(const execution::sql::SqlTypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
   key_cols.emplace_back("", type_id, nullable, parser::ConstantValueExpression(type_id));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
@@ -1038,19 +1051,20 @@ void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable
 
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, HashKeyNumericComparisons) {
-  UnorderedNumericComparisons<HashKey<8>, int8_t>(type::TypeId::TINYINT, false);
-  UnorderedNumericComparisons<HashKey<8>, int16_t>(type::TypeId::SMALLINT, false);
-  UnorderedNumericComparisons<HashKey<8>, int32_t>(type::TypeId::INTEGER, false);
-  UnorderedNumericComparisons<HashKey<8>, uint32_t>(type::TypeId::DATE, false);
-  UnorderedNumericComparisons<HashKey<8>, int64_t>(type::TypeId::BIGINT, false);
-  UnorderedNumericComparisons<HashKey<8>, double>(type::TypeId::REAL, false);
-  UnorderedNumericComparisons<HashKey<8>, uint64_t>(type::TypeId::TIMESTAMP, false);
+  UnorderedNumericComparisons<HashKey<8>, int8_t>(execution::sql::SqlTypeId::TinyInt, false);
+  UnorderedNumericComparisons<HashKey<8>, int16_t>(execution::sql::SqlTypeId::SmallInt, false);
+  UnorderedNumericComparisons<HashKey<8>, int32_t>(execution::sql::SqlTypeId::Integer, false);
+  UnorderedNumericComparisons<HashKey<8>, uint32_t>(execution::sql::SqlTypeId::Date, false);
+  UnorderedNumericComparisons<HashKey<8>, int64_t>(execution::sql::SqlTypeId::BigInt, false);
+  UnorderedNumericComparisons<HashKey<8>, double>(execution::sql::SqlTypeId::Double, false);
+  UnorderedNumericComparisons<HashKey<8>, uint64_t>(execution::sql::SqlTypeId::Timestamp, false);
 }
 
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 12, true, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 12, true,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   catalog::IndexOptions options;
@@ -1159,7 +1173,8 @@ TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, GenericKeyNonInlineVarlenComparisons) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 20, true, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 20, true,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
   catalog::IndexOptions options;
@@ -1229,10 +1244,11 @@ TEST_F(IndexKeyTests, CompactIntsKeyBuilderTest) {
 TEST_F(IndexKeyTests, GenericKeyBuilderTest) {
   const uint32_t num_iters = 100;
 
-  const std::vector<type::TypeId> generic_key_types{
-      type::TypeId::BOOLEAN, type::TypeId::TINYINT,  type::TypeId::SMALLINT,  type::TypeId::INTEGER,
-      type::TypeId::BIGINT,  type::TypeId::REAL,     type::TypeId::TIMESTAMP, type::TypeId::DATE,
-      type::TypeId::VARCHAR, type::TypeId::VARBINARY};
+  const std::vector<execution::sql::SqlTypeId> generic_key_types{
+      execution::sql::SqlTypeId::Boolean,   execution::sql::SqlTypeId::TinyInt, execution::sql::SqlTypeId::SmallInt,
+      execution::sql::SqlTypeId::Integer,   execution::sql::SqlTypeId::BigInt,  execution::sql::SqlTypeId::Double,
+      execution::sql::SqlTypeId::Timestamp, execution::sql::SqlTypeId::Date,    execution::sql::SqlTypeId::Varchar,
+      execution::sql::SqlTypeId::Varbinary};
 
   for (uint32_t i = 0; i < num_iters; i++) {
     const auto key_schema = StorageTestUtil::RandomGenericKeySchema(10, generic_key_types, &generator_);
@@ -1276,7 +1292,8 @@ TEST_F(IndexKeyTests, HashKeyBuilderTest) {
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back("", type::TypeId::VARCHAR, 64, false, parser::ConstantValueExpression(type::TypeId::VARCHAR));
+  key_cols.emplace_back("", execution::sql::SqlTypeId::Varchar, 64, false,
+                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varchar));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(15445));
   catalog::IndexOptions options;
   const auto key_schema =

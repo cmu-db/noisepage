@@ -243,16 +243,16 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   // Manually populate the block header's arrow metadata for test initialization
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
 
-  std::vector<type::TypeId> column_types;
+  std::vector<execution::sql::SqlTypeId> column_types;
   column_types.resize(layout.NumColumns());
 
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::DICTIONARY_COMPRESSED;
-      column_types[col_id.UnderlyingValue()] = type::TypeId::VARCHAR;
+      column_types[col_id.UnderlyingValue()] = execution::sql::SqlTypeId::Varchar;
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      column_types[col_id.UnderlyingValue()] = type::TypeId::INTEGER;
+      column_types[col_id.UnderlyingValue()] = execution::sql::SqlTypeId::Integer;
     }
   }
 
@@ -324,16 +324,16 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   // Manually populate the block header's arrow metadata for test initialization
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
 
-  std::vector<type::TypeId> column_types;
+  std::vector<execution::sql::SqlTypeId> column_types;
   column_types.resize(layout.NumColumns());
 
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
-      column_types[col_id.UnderlyingValue()] = type::TypeId::VARCHAR;
+      column_types[col_id.UnderlyingValue()] = execution::sql::SqlTypeId::Varchar;
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      column_types[col_id.UnderlyingValue()] = type::TypeId::INTEGER;
+      column_types[col_id.UnderlyingValue()] = execution::sql::SqlTypeId::Integer;
     }
   }
 

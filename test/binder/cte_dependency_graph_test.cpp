@@ -38,7 +38,7 @@ class BinderCteDepdendencyGraphTest : public TerrierTest {
     txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Get default values of the columns
-    auto int_default = parser::ConstantValueExpression(type::TypeId::INTEGER);
+    auto int_default = parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer);
 
     // Create table
     txn_ = txn_manager_->BeginTransaction();
@@ -46,8 +46,8 @@ class BinderCteDepdendencyGraphTest : public TerrierTest {
 
     // CREATE TABLE TEST(x INT, y INT)
     std::vector<catalog::Schema::Column> cols{};
-    cols.emplace_back("x", type::TypeId::INTEGER, true, int_default);
-    cols.emplace_back("y", type::TypeId::INTEGER, true, int_default);
+    cols.emplace_back("x", execution::sql::SqlTypeId::Integer, true, int_default);
+    cols.emplace_back("y", execution::sql::SqlTypeId::Integer, true, int_default);
     catalog::Schema schema{cols};
 
     table_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), table_name_, schema);

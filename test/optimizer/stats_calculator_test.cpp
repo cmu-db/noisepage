@@ -66,7 +66,7 @@ TEST_F(StatsCalculatorTests, TestLogicalGet) {
 
   // CVE for column 1
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
@@ -88,7 +88,7 @@ TEST_F(StatsCalculatorTests, TestInvalidLogicalGet) {
 
   // CVE for column 1
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
@@ -108,15 +108,16 @@ TEST_F(StatsCalculatorTests, TestNotPredicate) {
 
   // Constructing Logical Get with NOT EQUALS predicate "NOT colA = 1" from "empty_nullable_table"
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
-  auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
+  auto one =
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
   equal_child_exprs.emplace_back(std::move(one));
   parser::ComparisonExpression equals(parser::ExpressionType::COMPARE_EQUAL, std::move(equal_child_exprs));
   std::vector<std::unique_ptr<parser::AbstractExpression>> not_child_exprs;
   not_child_exprs.emplace_back(equals.Copy());
-  parser::OperatorExpression not_op(parser::ExpressionType::OPERATOR_NOT, type::TypeId::BOOLEAN,
+  parser::OperatorExpression not_op(parser::ExpressionType::OPERATOR_NOT, execution::sql::SqlTypeId::Boolean,
                                     std::move(not_child_exprs));
   common::ManagedPointer<parser::AbstractExpression> not_expr(&not_op);
   AnnotatedExpression annotated_not(not_expr, {});
@@ -147,11 +148,11 @@ TEST_F(StatsCalculatorTests, TestUnaryOperatorPredicate) {
 
   // Constructing Logical Get with IS NOT NULL predicate "colA IS NOT NULL" from "empty_nullable_table"
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
   std::vector<std::unique_ptr<parser::AbstractExpression>> not_null_child_exprs;
   not_null_child_exprs.emplace_back(col_a.Copy());
-  parser::OperatorExpression not_null_op(parser::ExpressionType::OPERATOR_IS_NOT_NULL, type::TypeId::BOOLEAN,
-                                         std::move(not_null_child_exprs));
+  parser::OperatorExpression not_null_op(parser::ExpressionType::OPERATOR_IS_NOT_NULL,
+                                         execution::sql::SqlTypeId::Boolean, std::move(not_null_child_exprs));
   common::ManagedPointer<parser::AbstractExpression> not_null_expr(&not_null_op);
   AnnotatedExpression annotated_not_null(not_null_expr, {});
 
@@ -182,8 +183,8 @@ TEST_F(StatsCalculatorTests, TestLeftSidePredicate) {
   // Constructing Logical Get with predicate with column value on the left side of predicate "colA = 1" from
   // "empty_nullable_table"
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
-  auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
+  auto one = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
   equal_child_exprs.emplace_back(std::move(one));
@@ -218,8 +219,8 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
   // Constructing Logical Get with predicate with column value on the left side of predicate and param on the right side
   // of predicate "colA = param" from "empty_nullable_table". (param is 1)
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
-  auto param = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
+  auto param = std::make_unique<parser::ParameterValueExpression>(0, execution::sql::SqlTypeId::Integer);
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
   equal_child_exprs.emplace_back(std::move(param));
@@ -234,7 +235,7 @@ TEST_F(StatsCalculatorTests, TestLeftSideParamPredicate) {
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
 
-  parser::ConstantValueExpression one(type::TypeId::INTEGER, execution::sql::Integer(1));
+  parser::ConstantValueExpression one(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(one);
   context_.SetParams(common::ManagedPointer(&params));
@@ -259,8 +260,9 @@ TEST_F(StatsCalculatorTests, TestRightSidePredicate) {
   // Constructing Logical Get with predicate with column value on the right side of predicate "3 = colA" from
   // "empty_nullable_table"
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
-  auto three = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
+  auto three =
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(3));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(std::move(three));
   equal_child_exprs.emplace_back(col_a.Copy());
@@ -295,8 +297,8 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
   // Constructing Logical Get with predicate with column value on the right side of predicate and param on the left side
   // of predicate "param = colA" from "empty_nullable_table". (param is 3)
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
-  auto param = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
+  auto param = std::make_unique<parser::ParameterValueExpression>(0, execution::sql::SqlTypeId::Integer);
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(std::move(param));
   equal_child_exprs.emplace_back(col_a.Copy());
@@ -311,7 +313,7 @@ TEST_F(StatsCalculatorTests, TestRightSideParamPredicate) {
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
 
-  parser::ConstantValueExpression three(type::TypeId::INTEGER, execution::sql::Integer(3));
+  parser::ConstantValueExpression three(execution::sql::SqlTypeId::Integer, execution::sql::Integer(3));
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(three);
   context_.SetParams(common::ManagedPointer(&params));
@@ -336,11 +338,11 @@ TEST_F(StatsCalculatorTests, TestMultipleParamPredicate) {
   // Constructing Logical Get with two param predicates "calA = param1 AND colB = param2" from "empty_table2".
   // (param1 is 1, param2 is true)
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_2_), table_2_col_1_name_, test_db_oid_, table_oid_2_,
-                                      table_2_col_1_oid_, type::TypeId::INTEGER);
+                                      table_2_col_1_oid_, execution::sql::SqlTypeId::Integer);
   parser::ColumnValueExpression col_b(parser::AliasType(table_name_2_), table_2_col_2_name_, test_db_oid_, table_oid_2_,
-                                      table_2_col_2_oid_, type::TypeId::INTEGER);
-  auto param1 = std::make_unique<parser::ParameterValueExpression>(0, type::TypeId::INTEGER);
-  auto param2 = std::make_unique<parser::ParameterValueExpression>(1, type::TypeId::BOOLEAN);
+                                      table_2_col_2_oid_, execution::sql::SqlTypeId::Integer);
+  auto param1 = std::make_unique<parser::ParameterValueExpression>(0, execution::sql::SqlTypeId::Integer);
+  auto param2 = std::make_unique<parser::ParameterValueExpression>(1, execution::sql::SqlTypeId::Boolean);
 
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal1_child_exprs;
   equal1_child_exprs.emplace_back(col_a.Copy());
@@ -363,8 +365,8 @@ TEST_F(StatsCalculatorTests, TestMultipleParamPredicate) {
   gexpr->SetGroupID(group_id_t(1));
   context_.GetMemo().InsertExpression(gexpr, false);
 
-  parser::ConstantValueExpression one(type::TypeId::INTEGER, execution::sql::Integer(1));
-  parser::ConstantValueExpression true_val(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+  parser::ConstantValueExpression one(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
+  parser::ConstantValueExpression true_val(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(one);
   params.emplace_back(true_val);
@@ -392,15 +394,17 @@ TEST_F(StatsCalculatorTests, TestAndPredicate) {
   // Constructing Logical Get with AND predicate consisting of two EQUALS predicates "colA = 3 AND colA = 1"
   // from "empty_nullable_table".
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
 
-  auto three = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
+  auto three =
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(3));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_three_child_exprs;
   equal_three_child_exprs.emplace_back(std::move(three));
   equal_three_child_exprs.emplace_back(col_a.Copy());
   parser::ComparisonExpression equals_three(parser::ExpressionType::COMPARE_EQUAL, std::move(equal_three_child_exprs));
 
-  auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
+  auto one =
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
   equal_child_exprs.emplace_back(std::move(one));
@@ -441,15 +445,17 @@ TEST_F(StatsCalculatorTests, TestOrPredicate) {
   // Constructing Logical Get with OR predicate consisting of two EQUALS predicates "colA = 3 OR colA = 1"
   // from "empty_nullable_table"
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
 
-  auto three = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
+  auto three =
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(3));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_three_child_exprs;
   equal_three_child_exprs.emplace_back(std::move(three));
   equal_three_child_exprs.emplace_back(col_a.Copy());
   parser::ComparisonExpression equals_three(parser::ExpressionType::COMPARE_EQUAL, std::move(equal_three_child_exprs));
 
-  auto one = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
+  auto one =
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
   equal_child_exprs.emplace_back(std::move(one));
@@ -501,7 +507,7 @@ TEST_F(StatsCalculatorTests, TestLogicalLimit) {
   context_.GetMemo().InsertExpression(limit_gexpr, false);
 
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
-                                      table_1_col_oid_, type::TypeId::INTEGER);
+                                      table_1_col_oid_, execution::sql::SqlTypeId::Integer);
   ExprSet required_cols;
   required_cols.emplace(&col_a);
 
@@ -541,11 +547,11 @@ TEST_F(StatsCalculatorTests, TestLogicalSemiJoin) {
   context_.GetMemo().InsertExpression(get_gexpr2, true);
 
   parser::ColumnValueExpression col_a1(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_,
-                                       table_oid_1_, table_1_col_oid_, type::TypeId::INTEGER);
+                                       table_oid_1_, table_1_col_oid_, execution::sql::SqlTypeId::Integer);
   parser::ColumnValueExpression col_a2(parser::AliasType(table_name_2_), table_2_col_1_name_, test_db_oid_,
-                                       table_oid_2_, table_2_col_1_oid_, type::TypeId::INTEGER);
+                                       table_oid_2_, table_2_col_1_oid_, execution::sql::SqlTypeId::Integer);
   parser::ColumnValueExpression col_b(parser::AliasType(table_name_2_), table_2_col_2_name_, test_db_oid_, table_oid_2_,
-                                      table_2_col_2_oid_, type::TypeId::INTEGER);
+                                      table_2_col_2_oid_, execution::sql::SqlTypeId::Integer);
 
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a1.Copy());
@@ -608,11 +614,11 @@ TEST_F(StatsCalculatorTests, TestLogicalInnerJoin) {
   context_.GetMemo().InsertExpression(get_gexpr2, true);
 
   parser::ColumnValueExpression col_a1(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_,
-                                       table_oid_1_, table_1_col_oid_, type::TypeId::INTEGER);
+                                       table_oid_1_, table_1_col_oid_, execution::sql::SqlTypeId::Integer);
   parser::ColumnValueExpression col_a2(parser::AliasType(table_name_2_), table_2_col_1_name_, test_db_oid_,
-                                       table_oid_2_, table_2_col_1_oid_, type::TypeId::INTEGER);
+                                       table_oid_2_, table_2_col_1_oid_, execution::sql::SqlTypeId::Integer);
   parser::ColumnValueExpression col_b(parser::AliasType(table_name_2_), table_2_col_2_name_, test_db_oid_, table_oid_2_,
-                                      table_2_col_2_oid_, type::TypeId::INTEGER);
+                                      table_2_col_2_oid_, execution::sql::SqlTypeId::Integer);
 
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a1.Copy());

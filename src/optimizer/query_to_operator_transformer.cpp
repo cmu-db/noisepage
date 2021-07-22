@@ -81,7 +81,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       auto oid = catalog::MakeTempOid<catalog::table_oid_t>(accessor_->GetNewTempOid());
       cte_oids_.push_back(oid);
 
-      std::vector<type::TypeId> col_types{};
+      std::vector<execution::sql::SqlTypeId> col_types{};
       col_types.reserve(with->GetCteColumnAliases().size());
       for (auto i = 0UL; i < with->GetCteColumnAliases().size(); ++i) {
         col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
@@ -394,7 +394,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
     if (it != cte_table_name_.end()) {
       // CTE table referred
       const auto index = std::distance(cte_table_name_.begin(), it);
-      std::vector<type::TypeId> col_types{};
+      std::vector<execution::sql::SqlTypeId> col_types{};
       auto cte_scan_expr = std::make_unique<OperatorNode>(
           LogicalCteScan::Make(node->GetAlias().GetName(), node->GetTableName(), cte_oids_[index], cte_schemas_[index],
                                cte_expressions_[index], cte_type_[index], {})
