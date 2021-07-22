@@ -86,28 +86,35 @@ class PLpgSQLParser {
   std::unique_ptr<execution::ast::udf::StmtAST> ParseWhile(const nlohmann::json &loop);
 
   /**
-   * Parse a for-statement.
-   * @param block The input JSON object
+   * Parse a for-statement (integer variant).
+   * @param loop The input JSON object
    * @return The AST for the for-statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseFor(const nlohmann::json &loop);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseForI(const nlohmann::json &loop);
+
+  /**
+   * Parse a for-statement (query variant).
+   * @param loop The input JSON object
+   * @return The AST for the for-statement
+   */
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseForS(const nlohmann::json &loop);
 
   /**
    * Parse a SQL statement.
-   * @param sql_stmt The input JSON object
+   * @param sql The input JSON object
    * @return The AST for the SQL statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseSQL(const nlohmann::json &sql_stmt);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseSQL(const nlohmann::json &sql);
 
   /**
    * Parse a dynamic SQL statement.
-   * @param block The input JSON object
+   * @param sql The input JSON object
    * @return The AST for the dynamic SQL statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseDynamicSQL(const nlohmann::json &sql_stmt);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseDynamicSQL(const nlohmann::json &sql);
 
   /**
-   * Parse a SQL expression.
+   * Parse a SQL expression to an expression AST.
    * @param sql The SQL expression string
    * @return The AST for the SQL expression
    */

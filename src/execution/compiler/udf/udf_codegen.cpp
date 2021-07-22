@@ -334,8 +334,11 @@ void UdfCodegen::Visit(ast::udf::WhileStmtAST *ast) {
   loop.EndLoop();
 }
 
-void UdfCodegen::Visit(ast::udf::ForStmtAST *ast) {
-  // Once we encounter a For-statement we know we need an execution context
+void UdfCodegen::Visit(ast::udf::ForIStmtAST *ast) { throw NOT_IMPLEMENTED_EXCEPTION("ForIStmtAST Not Implemented"); }
+
+void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
+  // Once we encounter a for-statement we know we need an execution
+  // context because the loop always draws values from a query
   needs_exec_ctx_ = true;
 
   const auto query = common::ManagedPointer(ast->Query());
@@ -352,7 +355,7 @@ void UdfCodegen::Visit(ast::udf::ForStmtAST *ast) {
   auto plan = optimizer_result->GetPlanNode();
 
   // Make a lambda that just writes into this
-  std::vector<execution::ast::Identifier> var_idents;
+  std::vector<execution::ast::Identifier> var_idents{};
   auto lam_var = codegen_->MakeFreshIdentifier("looplamb");
   execution::util::RegionVector<execution::ast::FieldDecl *> params(codegen_->GetAstContext()->GetRegion());
   params.push_back(codegen_->MakeField(
@@ -420,7 +423,7 @@ void UdfCodegen::Visit(ast::udf::ForStmtAST *ast) {
 
   // Set its execution context to whatever exec context was passed in here
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
-  std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec;
+  std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec{};
   for (auto it = query_params.begin(); it != query_params.end(); it++) {
     sorted_vec.push_back(it);
   }

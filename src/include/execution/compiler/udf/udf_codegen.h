@@ -38,7 +38,7 @@ class SQLStmtAST;
 class FunctionAST;
 class IsNullExprAST;
 class DynamicSQLStmtAST;
-class ForStmtAST;
+class ForSStmtAST;
 }  // namespace ast::udf
 
 namespace compiler::udf {
@@ -189,10 +189,16 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   void Visit(ast::udf::DynamicSQLStmtAST *ast) override;
 
   /**
-   * Visit a ForStmtAST node.
+   * Visit a ForIStmtAST node.
    * @param ast The AST node to visit
    */
-  void Visit(ast::udf::ForStmtAST *ast) override;
+  void Visit(ast::udf::ForIStmtAST *ast) override;
+
+  /**
+   * Visit a ForSStmtAST node.
+   * @param ast The AST node to visit
+   */
+  void Visit(ast::udf::ForSStmtAST *ast) override;
 
   /**
    * Visit a MemberExprAST node.

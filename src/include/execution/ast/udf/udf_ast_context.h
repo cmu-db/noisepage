@@ -28,10 +28,23 @@ class UdfAstContext {
   UdfAstContext() = default;
 
   /**
-   * Add a new variable to the symbol table.
+   * Push a new local variable.
    * @param name The name of the variable
    */
-  void AddVariable(const std::string &name) { local_variables_.push_back(name); }
+  void AddLocal(const std::string &name) { locals_.push_back(name); }
+
+  /**
+   * Get the local variable at index `index`.
+   * @param index The index of interest
+   * @return The name of the variable at the specified index
+   */
+  const std::string &GetLocalAtIndex(const std::size_t index) const {
+    NOISEPAGE_ASSERT(locals_.size() >= index, "Index out of range");
+    // TODO(Kyle): I moved the subtraction to the call site because
+    // it seems misleading to have a getter for an index but deliver
+    // a local that does not actually appear at that index...
+    return locals_.at(index);
+  }
 
   /**
    * Determine if a variable with name `name` is present in the UDF AST.
@@ -120,24 +133,11 @@ class UdfAstContext {
     return it->second;
   }
 
-  /**
-   * Get the local variable at index `index`.
-   * @param index The index of interest
-   * @return The name of the variable at the specified index
-   */
-  const std::string &GetLocalVariableAtIndex(const std::size_t index) const {
-    NOISEPAGE_ASSERT(local_variables_.size() >= index, "Index out of range");
-    // TODO(Kyle): I moved the subtraction to the call site because
-    // it seems misleading to have a getter for an index but deliver
-    // a local that does not actually appear at that index...
-    return local_variables_.at(index);
-  }
-
  private:
+  /** Collection of local variable names for the UDF. */
+  std::vector<std::string> locals_;
   /** The symbol table for the UDF. */
   std::unordered_map<std::string, type::TypeId> symbol_table_;
-  /** Collection of local variable names for the UDF. */
-  std::vector<std::string> local_variables_;
   /** Collection of record types for the UDF. */
   std::unordered_map<std::string, RecordType> record_types_;
 };

@@ -1,9 +1,6 @@
 #pragma once
 
-namespace noisepage {
-namespace execution {
-namespace ast {
-namespace udf {
+namespace noisepage::execution::ast::udf {
 
 class AbstractAST;
 class StmtAST;
@@ -22,7 +19,8 @@ class RetStmtAST;
 class AssignStmtAST;
 class SQLStmtAST;
 class DynamicSQLStmtAST;
-class ForStmtAST;
+class ForIStmtAST;
+class ForSStmtAST;
 class FunctionAST;
 
 /**
@@ -133,10 +131,16 @@ class ASTNodeVisitor {
   virtual void Visit(AssignStmtAST *ast) = 0;
 
   /**
-   * Visit an ForStmtAST node.
+   * Visit a ForIStmtAST node.
    * @param ast The node to visit
    */
-  virtual void Visit(ForStmtAST *ast) = 0;
+  virtual void Visit(ForIStmtAST *ast) = 0;
+
+  /**
+   * Visit an ForSStmtAST node.
+   * @param ast The node to visit
+   */
+  virtual void Visit(ForSStmtAST *ast) = 0;
 
   /**
    * Visit an SQLStmtAST node.
@@ -151,7 +155,4 @@ class ASTNodeVisitor {
   virtual void Visit(DynamicSQLStmtAST *ast) = 0;
 };
 
-}  // namespace udf
-}  // namespace ast
-}  // namespace execution
-}  // namespace noisepage
+}  // namespace noisepage::execution::ast::udf

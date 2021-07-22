@@ -13,10 +13,7 @@
 #include "execution/ast/udf/udf_ast_node_visitor.h"
 #include "execution/sql/value.h"
 
-namespace noisepage {
-namespace execution {
-namespace ast {
-namespace udf {
+namespace noisepage::execution::ast::udf {
 
 /**
  * The AbstractAST class serves as a base class for all AST nodes.
@@ -399,18 +396,93 @@ class IfStmtAST : public StmtAST {
 };
 
 /**
- * The ForStmtAST class represents a `for`-loop construct.
+ * The ForIStmtAST class represents a `for`-loop construct.
+ *
+ * Ex: FOR i IN 1..10 LOOP...
  */
-class ForStmtAST : public StmtAST {
+class ForIStmtAST : public StmtAST {
  public:
   /**
-   * Construct a new ForStmtAST instance.
+   * The default query that defines the "step" expression.
+   *
+   * The PLpgSQL documentation specifies this behavior.
+   */
+  constexpr static const char DEFAULT_STEP_EXPR[] = "SELECT 1";
+
+  /**
+   * Construct a new ForIStmtAST instance.
+   * @param variables The collection of variables in the loop
+   * @param body The body of the loop
+   */
+  ForIStmtAST(std::string variable, std::unique_ptr<ExprAST> lower, std::unique_ptr<ExprAST> upper,
+              std::unique_ptr<ExprAST> step, std::unique_ptr<StmtAST> body)
+      : variable_{std::move(variable)},
+        lower_{std::move(lower)},
+        upper_{std::move(upper)},
+        step_{std::move(step)},
+        body_{std::move(body)} {}
+
+  /**
+   * AST visitor pattern.
+   * @param visitor The visitor
+   */
+  void Accept(ASTNodeVisitor *visitor) override { visitor->Visit(this); };
+
+  /** @return The loop variable */
+  const std::string &Variable() const { return variable_; }
+
+  /** @return A mutable pointer to the loop lower-bound expression */
+  ExprAST *Lower() { return lower_.get(); }
+
+  /** @return An immutable pointer to the loop lower-bound expression */
+  const ExprAST *Lower() const { return lower_.get(); }
+
+  /** @return A mutable pointer to the loop upper-bound expression */
+  ExprAST *Upper() { return upper_.get(); }
+
+  /** @return An immutable pointer to the loop upper-bound expression */
+  const ExprAST *Upper() const { return upper_.get(); }
+
+  /** @return A mutable pointer to the loop step expression */
+  ExprAST *Step() { return step_.get(); }
+
+  /** @return An immutable pointer to the loop step expression */
+  const ExprAST *Step() const { return step_.get(); }
+
+  /** @return A mutable pointer to the loop body statement */
+  StmtAST *Body() { return body_.get(); }
+
+  /** @return An immutable pointer to the loop body statement */
+  const StmtAST *Body() const { return body_.get(); }
+
+ private:
+  /** The identifier for the loop variable */
+  const std::string variable_;
+  /** The expression that defines the loop lower-bound */
+  std::unique_ptr<ExprAST> lower_;
+  /** The expression that defines the loop upper-bound */
+  std::unique_ptr<ExprAST> upper_;
+  /** The expression that defines the loop step */
+  std::unique_ptr<ExprAST> step_;
+  /** The loop body  */
+  std::unique_ptr<StmtAST> body_;
+};
+
+/**
+ * The ForSStmtAST class represents a `for`-loop construct.
+ *
+ * Ex: FOR record IN (SELECT * FROM tmp) LOOP ...
+ */
+class ForSStmtAST : public StmtAST {
+ public:
+  /**
+   * Construct a new ForSStmtAST instance.
    * @param variables The collection of variables in the loop
    * @param query The associated query
    * @param body The body of the loop
    */
-  ForStmtAST(std::vector<std::string> &&variables, std::unique_ptr<parser::ParseResult> &&query,
-             std::unique_ptr<StmtAST> body)
+  ForSStmtAST(std::vector<std::string> &&variables, std::unique_ptr<parser::ParseResult> &&query,
+              std::unique_ptr<StmtAST> body)
       : variables_{std::move(variables)}, query_{std::move(query)}, body_{std::move(body)} {}
 
   /**
@@ -684,7 +756,4 @@ class FunctionAST : public AbstractAST {
 
 std::unique_ptr<ExprAST> LogError(const char *str);
 
-}  // namespace udf
-}  // namespace ast
-}  // namespace execution
-}  // namespace noisepage
+}  // namespace noisepage::execution::ast::udf

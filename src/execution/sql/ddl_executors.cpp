@@ -77,7 +77,8 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
     ast = udf_parser.Parse(node->GetFunctionParameterNames(), param_type_ids, body);
-  } catch (Exception &e) {
+  } catch (const ParserException &e) {
+    PARSER_LOG_ERROR(e.what());
     return false;
   }
 
