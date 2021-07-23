@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
@@ -127,6 +128,14 @@ class PLpgSQLParser {
    */
   std::unique_ptr<execution::ast::udf::ExprAST> ParseExprFromAbstract(
       common::ManagedPointer<parser::AbstractExpression> expr);
+
+ private:
+  /**
+   * Resolve a PL/pgSQL RECORD type from a SELECT statement.
+   * @param parse_result The result of parsing the SQL query
+   * @return The resolved record type
+   */
+  std::vector<std::pair<std::string, type::TypeId>> ResolveRecordType(const ParseResult *parse_result);
 
  private:
   /** The UDF AST context */

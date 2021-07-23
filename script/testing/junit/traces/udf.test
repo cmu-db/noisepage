@@ -292,23 +292,41 @@ statement ok
 
 
 statement ok
--- CREATE TABLE temp(z INT);
+-- CREATE TABLE tmp(z INT);
 
 statement ok
--- INSERT INTO temp(z) VALUES (0), (1);
-
-statement ok
-
-
-statement ok
--- CREATE FUNCTION proc_fors() RETURNS INT AS $$ -- DECLARE                                       \
-
-statement ok
---   x INT := 0; -- BEGIN --   FOR v IN SELECT z FROM temp --   LOOP --     x = x + 1; --   END LOOP; --   RETURN x; -- END -- $$ LANGUAGE PLPGSQL;
+-- INSERT INTO tmp(z) VALUES (0), (1);
 
 statement ok
 
 
 statement ok
--- SELECT x, proc_fors() FROM integers;
+-- -- Bind query result to a RECORD type
+
+statement ok
+-- CREATE FUNCTION proc_fors_rec() RETURNS INT AS $$ -- DECLARE                                           \
+
+statement ok
+--   x INT := 0; --   v RECORD; -- BEGIN --   FOR v IN (SELECT z FROM temp) LOOP --     x = x + 1; --   END LOOP; --   RETURN x; -- END -- $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- SELECT x, proc_fors_rec() FROM integers;
+
+statement ok
+
+
+statement ok
+-- -- Bind query result directly to INT type
+
+statement ok
+-- CREATE FUNCTION proc_fors_var() RETURNS INT AS $$ -- DECLARE --   x INT := 0; --   v INT; -- BEGIN --   FOR v IN (SELECT z FROM tmp) LOOP --     x = x + 1; --   END LOOP; --   RETURN x; -- END -- $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- SELECT x, proc_fors_var() FROM integers;
 

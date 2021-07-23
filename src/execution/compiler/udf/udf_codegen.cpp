@@ -353,6 +353,7 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
       accessor_->GetTxn(), common::ManagedPointer(accessor_), query, db_oid_, common::ManagedPointer(&stats),
       std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout, nullptr);
   auto plan = optimizer_result->GetPlanNode();
+  NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1, "UDF support for non-scalars is not implemented");
 
   // Make a lambda that just writes into this
   std::vector<execution::ast::Identifier> var_idents{};
@@ -361,14 +362,11 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   params.push_back(codegen_->MakeField(
       exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
       codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
-  std::size_t i{0};
+  std::size_t i = 0;
   for (const auto &var : ast->Variables()) {
     var_idents.push_back(SymbolTable().find(var)->second);
     auto var_ident = var_idents.back();
-    NOISEPAGE_ASSERT(plan->GetOutputSchema()->GetColumns().size() == 1,
-                     "UDF support for non-scalars is not implemented");
     auto type = codegen_->TplType(execution::sql::GetTypeId(plan->GetOutputSchema()->GetColumn(i).GetType()));
-
     fb_->Append(codegen_->Assign(codegen_->MakeExpr(var_ident),
                                  codegen_->ConstNull(plan->GetOutputSchema()->GetColumn(i).GetType())));
     auto input = codegen_->MakeFreshIdentifier(var);
@@ -379,7 +377,7 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   execution::ast::LambdaExpr *lambda_expr{};
   FunctionBuilder fn{codegen_, std::move(params), codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
   {
-    std::size_t j{1};
+    std::size_t j = 1;
     for (auto var : var_idents) {
       fn.Append(codegen_->Assign(codegen_->MakeExpr(var), fn.GetParameterByPosition(j)));
       j++;
@@ -392,7 +390,6 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
 
   execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
   for (const auto &[name, identifier] : SymbolTable()) {
-    // TODO(Kyle): Why do we skip this particular identifier?
     if (name == "executionCtx") {
       continue;
     }

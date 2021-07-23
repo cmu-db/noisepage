@@ -355,7 +355,7 @@ class SelectStatement : public SQLStatement {
   std::unique_ptr<SelectStatement> Copy();
 
   /** @return The columns targeted by SELECT */
-  const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() { return select_; }
+  const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() const { return select_; }
 
   /** @return `true` if "SELECT DISTINCT", `false` otherwise */
   bool IsSelectDistinct() const { return select_distinct_; }

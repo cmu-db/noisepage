@@ -123,19 +123,35 @@ SELECT x, proc_while() FROM integers;
 -- ----------------------------------------------------------------------------
 -- proc_fors()
 
-CREATE TABLE temp(z INT);
-INSERT INTO temp(z) VALUES (0), (1);
+-- CREATE TABLE tmp(z INT);
+-- INSERT INTO tmp(z) VALUES (0), (1);
 
-CREATE FUNCTION proc_fors() RETURNS INT AS $$ \
-DECLARE                                       \ 
-  x INT := 0;                                 \
-  v RECORD;                                   \
-BEGIN                                         \
-  FOR v IN (SELECT z FROM temp) LOOP          \
-    x = x + 1;                                \
-  END LOOP;                                   \
-  RETURN x;                                   \
-END                                           \
-$$ LANGUAGE PLPGSQL;
+-- -- Bind query result to a RECORD type
+-- CREATE FUNCTION proc_fors_rec() RETURNS INT AS $$ \
+-- DECLARE                                           \ 
+--   x INT := 0;                                     \
+--   v RECORD;                                       \
+-- BEGIN                                             \
+--   FOR v IN (SELECT z FROM temp) LOOP              \
+--     x = x + 1;                                    \
+--   END LOOP;                                       \
+--   RETURN x;                                       \
+-- END                                               \
+-- $$ LANGUAGE PLPGSQL;
 
-SELECT x, proc_fors() FROM integers;
+-- SELECT x, proc_fors_rec() FROM integers;
+
+-- -- Bind query result directly to INT type
+-- CREATE FUNCTION proc_fors_var() RETURNS INT AS $$ \
+-- DECLARE                                           \
+--   x INT := 0;                                     \
+--   v INT;                                          \
+-- BEGIN                                             \
+--   FOR v IN (SELECT z FROM tmp) LOOP               \
+--     x = x + 1;                                    \
+--   END LOOP;                                       \
+--   RETURN x;                                       \
+-- END                                               \
+-- $$ LANGUAGE PLPGSQL;
+
+-- SELECT x, proc_fors_var() FROM integers;

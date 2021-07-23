@@ -2,6 +2,7 @@
 
 #include "binder/bind_node_visitor.h"
 #include "execution/ast/udf/udf_ast_nodes.h"
+#include "parser/udf/plpgsql_parse_result.h"
 #include "parser/udf/plpgsql_parser.h"
 #include "parser/udf/string_utils.h"
 
@@ -60,14 +61,12 @@ static constexpr const char DECL_TYPE_ID_RECORD[] = "record";
 std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(const std::vector<std::string> &param_names,
                                                                        const std::vector<type::TypeId> &param_types,
                                                                        const std::string &func_body) {
-  auto result = pg_query_parse_plpgsql(func_body.c_str());
-  if (result.error != nullptr) {
-    pg_query_free_plpgsql_parse_result(result);
+  auto result = PLpgSQLParseResult{pg_query_parse_plpgsql(func_body.c_str())};
+  if ((*result).error != nullptr) {
     throw PARSER_EXCEPTION("PL/pgSQL parsing error");
   }
   // The result is a list, we need to wrap it
-  const auto ast_json_str = fmt::format("{{ \"{}\" : {} }}", K_FUNCTION_LIST, result.plpgsql_funcs);
-  pg_query_free_plpgsql_parse_result(result);
+  const auto ast_json_str = fmt::format("{{ \"{}\" : {} }}", K_FUNCTION_LIST, (*result).plpgsql_funcs);
 
   std::istringstream ss{ast_json_str};
   nlohmann::json ast_json{};
@@ -114,12 +113,11 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
 
   std::vector<std::unique_ptr<execution::ast::udf::StmtAST>> statements{};
   for (const auto &statement : json) {
-    std::cout << statement << std::endl;
     const std::string &statement_type = statement.items().begin().key();
     if (statement_type == K_PLPGSQL_STMT_RETURN) {
       // TODO(Kyle): Handle RETURN without expression
       if (statement[K_PLPGSQL_STMT_RETURN].empty()) {
-        throw NOT_IMPLEMENTED_EXCEPTION("RETURN without expression not implemented.");
+        throw NOT_IMPLEMENTED_EXCEPTION("PL/pgSQL Parser : RETURN without expression not implemented.");
       }
       auto expr =
           ParseExprFromSQL(statement[K_PLPGSQL_STMT_RETURN][K_EXPR][K_PLPGSQL_EXPR][K_QUERY].get<std::string>());
@@ -146,7 +144,7 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
     } else if (statement_type == K_PLPGSQL_STMT_DYNEXECUTE) {
       statements.push_back(ParseDynamicSQL(statement[K_PLPGSQL_STMT_DYNEXECUTE]));
     } else {
-      throw PARSER_EXCEPTION(fmt::format("Statement type '{}' not supported", statement_type));
+      throw PARSER_EXCEPTION(fmt::format("PL/pgSQL Parser : statement type '{}' not supported", statement_type));
     }
   }
 
@@ -203,20 +201,19 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INVALID, std::move(initial));
     }
 
-    throw PARSER_EXCEPTION(fmt::format("Unsupported type '{}' for variable '{}'", type, var_name));
+    throw PARSER_EXCEPTION(fmt::format("PL/pgSQL Parser : unsupported type '{}' for variable '{}'", type, var_name));
   }
 
+  // TODO(Kyle): Support row types later
   if (declaration_type == K_PLPGSQL_ROW) {
     const auto var_name = json[K_PLPGSQL_ROW][K_REFNAME].get<std::string>();
     NOISEPAGE_ASSERT(var_name == "*internal*", "Unexpected refname");
-
-    // TODO(Kyle): Support row types later
     udf_ast_context_->SetVariableType(var_name, type::TypeId::INVALID);
     return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INVALID, nullptr);
   }
 
   // TODO(Kyle): Need to handle other types like row, table etc;
-  throw PARSER_EXCEPTION(fmt::format("Declaration type '{}' not supported", declaration_type));
+  throw PARSER_EXCEPTION(fmt::format("PL/pgSQL Parser : declaration type '{}' not supported", declaration_type));
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseIf(const nlohmann::json &json) {
@@ -272,32 +269,21 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseSQL(const nloh
     return nullptr;
   }
 
+  // Bind the query within the UDF body; if binding
+  // fails, we allow the BinderException to propogate
   binder::BindNodeVisitor visitor{accessor_, db_oid_};
-  std::unordered_map<std::string, std::pair<std::string, size_t>> query_params{};
-  try {
-    // TODO(Matt): I don't think the binder should need the database name.
-    // It's already bound in the ConnectionContext binder::BindNodeVisitor visitor(accessor_, db_oid_);
-    query_params = visitor.BindAndGetUDFParams(common::ManagedPointer{parse_result}, udf_ast_context_);
-  } catch (BinderException &b) {
-    return nullptr;
-  }
+  auto query_params = visitor.BindAndGetUDFParams(common::ManagedPointer{parse_result}, udf_ast_context_);
 
   // Check to see if a record type can be bound to this
   const auto type = udf_ast_context_->GetVariableType(var_name);
   if (!type.has_value()) {
-    throw PARSER_EXCEPTION("PL/pgSQL parser: variable was not declared");
+    throw PARSER_EXCEPTION("PL/pgSQL parser : variable was not declared");
   }
 
   if (type.value() == type::TypeId::INVALID) {
-    std::vector<std::pair<std::string, type::TypeId>> elems{};
-    const auto &select_columns =
-        parse_result->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>()->GetSelectColumns();
-    elems.reserve(select_columns.size());
-    std::transform(select_columns.cbegin(), select_columns.cend(), std::back_inserter(elems),
-                   [](const common::ManagedPointer<AbstractExpression> &column) {
-                     return std::make_pair(column->GetAlias().GetName(), column->GetReturnValueType());
-                   });
-    udf_ast_context_->SetRecordType(var_name, std::move(elems));
+    // If the type is a RECORD type, derive the structure of
+    // the type from the columns of the SELECT statement
+    udf_ast_context_->SetRecordType(var_name, ResolveRecordType(parse_result.get()));
   }
 
   return std::make_unique<execution::ast::udf::SQLStmtAST>(std::move(parse_result), std::move(var_name),
@@ -362,8 +348,20 @@ std::unique_ptr<execution::ast::udf::ExprAST> PLpgSQLParser::ParseExprFromAbstra
     case parser::ExpressionType::OPERATOR_IS_NULL:
       return std::make_unique<execution::ast::udf::IsNullExprAST>(true, ParseExprFromAbstract(expr->GetChild(0)));
     default:
-      throw PARSER_EXCEPTION("PL/pgSQL parser : Expression type not supported");
+      throw PARSER_EXCEPTION("PL/pgSQL parser : expression type not supported");
   }
+}
+
+std::vector<std::pair<std::string, type::TypeId>> PLpgSQLParser::ResolveRecordType(const ParseResult *parse_result) {
+  std::vector<std::pair<std::string, type::TypeId>> fields{};
+  const auto &select_columns =
+      parse_result->GetStatement(0).CastManagedPointerTo<const parser::SelectStatement>()->GetSelectColumns();
+  fields.reserve(select_columns.size());
+  std::transform(select_columns.cbegin(), select_columns.cend(), std::back_inserter(fields),
+                 [](const common::ManagedPointer<AbstractExpression> &column) {
+                   return std::make_pair(column->GetAlias().GetName(), column->GetReturnValueType());
+                 });
+  return fields;
 }
 
 }  // namespace noisepage::parser::udf

@@ -58,6 +58,7 @@ class BindNodeVisitor final : public SqlNodeVisitor {
    * @param udf_ast_context The AST context for the UDF.
    * @return The map of UDF parameters:
    *    Column Name -> (Parameter Name, Parameter Index)
+   * @throws BinderException on failure to bind query
    */
   std::unordered_map<std::string, std::pair<std::string, std::size_t>> BindAndGetUDFParams(
       common::ManagedPointer<parser::ParseResult> parse_result,

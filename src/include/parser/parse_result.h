@@ -52,10 +52,15 @@ class ParseResult {
    */
   uint32_t NumStatements() const { return statements_.size(); }
 
-  /**
-   * @return the statement at a particular index
-   */
-  common::ManagedPointer<SQLStatement> GetStatement(size_t idx) { return common::ManagedPointer(statements_[idx]); }
+  /** @return The statement at index `index`*/
+  common::ManagedPointer<SQLStatement> GetStatement(std::size_t idx) {
+    return common::ManagedPointer(statements_[idx]);
+  }
+
+  /** @return The statement at a index `index` */
+  common::ManagedPointer<const SQLStatement> GetStatement(std::size_t idx) const {
+    return common::ManagedPointer<const SQLStatement>(statements_.at(idx).get());
+  }
 
   /**
    * @return non-owning list of all the expressions contained in this parse result
