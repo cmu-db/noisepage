@@ -184,7 +184,8 @@ TEST_F(StatsCalculatorTests, TestLeftSidePredicate) {
   // "empty_nullable_table"
   parser::ColumnValueExpression col_a(parser::AliasType(table_name_1_), table_1_col_1_name_, test_db_oid_, table_oid_1_,
                                       table_1_col_oid_, execution::sql::SqlTypeId::Integer);
-  auto one = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
+  auto one =
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
   std::vector<std::unique_ptr<parser::AbstractExpression>> equal_child_exprs;
   equal_child_exprs.emplace_back(col_a.Copy());
   equal_child_exprs.emplace_back(std::move(one));

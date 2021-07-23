@@ -348,7 +348,7 @@ void BinderContext::GenerateAllColumnExpressions(
                 [](const std::pair<parser::AliasType, execution::sql::SqlTypeId> &A,
                    const std::pair<parser::AliasType, execution::sql::SqlTypeId> &B) {
                   return A.first.GetSerialNo() < B.first.GetSerialNo();
-          });
+                });
       const auto table_alias = GetOrCreateTableAlias(table_alias_name);
       for (const auto &col_entry : cols_vector) {
         auto tv_expr = new parser::ColumnValueExpression{table_alias, col_entry.first.GetName()};
