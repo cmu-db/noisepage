@@ -507,6 +507,8 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
   }
   const proc_oid_t proc_oid =
       GetProcOid(txn, dbc, PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, func_name, arg_type_oids);
+  NOISEPAGE_ASSERT(proc_oid != INVALID_PROC_OID,
+                   "GetProcOid returned no results during bootstrap. Something failed earlier.");
   const auto *const func_context = new execution::functions::FunctionContext(
       std::move(func_name), func_ret_type, std::move(arg_types), builtin, is_exec_ctx_required);
   const auto retval UNUSED_ATTRIBUTE = dbc->SetFunctionContextPointer(txn, proc_oid, func_context);
