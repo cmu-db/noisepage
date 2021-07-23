@@ -353,9 +353,10 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
         if (arg_types.empty()) {
           // both had an empty argument list
           match = true;
+        } else {
+          // result has no args, but input arg list is non-empty
+          continue;
         }
-        // result has no args, but input arg list is non-empty
-        continue;
       } else {
         const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
         if (*result_arg_types == arg_types_varlen) {
