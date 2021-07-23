@@ -74,7 +74,7 @@ pipeline {
                     environment { CODECOV_TOKEN=credentials('codecov-token') }
                     steps       { script { utils = utils ?: load(utilsFileName) ; utils.stageTest(false, [cmake:
                         // Note that unity builds mess with coverage.
-                        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_BUILD_TESTS=ON -DNOISEPAGE_GENERATE_COVERAGE=ON'
+                        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_BUILD_TESTS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON'
                     ] ) } }
                     post        { always { script { utils = utils ?: load(utilsFileName) ; utils.stageArchive() } } ; cleanup { deleteDir() } }
                 }
