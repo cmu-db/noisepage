@@ -81,18 +81,53 @@ void stageTest(Boolean runPipelineMetrics, Map args = [:]) {
     sh script: "cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended", label: 'UnitTest (Extended)'
     sh script: "cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'compiled_query_execution=True' -a 'bytecode_handlers_path=./bytecode_handlers_ir.bc'", label: 'UnitTest (Extended, Compiled Execution)'
 
-    if (runPipelineMetrics) {
-        sh script: "cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'pipeline_metrics_enable=True' -a 'pipeline_metrics_sample_rate=100' -a 'counters_enable=True' -a 'query_trace_metrics_enable=True'", label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
-        sh script: "cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'pipeline_metrics_enable=True' -a 'pipeline_metrics_sample_rate=100' -a 'counters_enable=True' -a 'query_trace_metrics_enable=True' -a 'compiled_query_execution=True' -a 'bytecode_handlers_path=./bytecode_handlers_ir.bc'", label: 'UnitTest (Extended, Compiled Execution with pipeline metrics, counters, and query trace metrics)'
-    }
+//     if (runPipelineMetrics) {
+//         sh script: "cd build && PYTHONPATH=.. timeout 20m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'pipeline_metrics_enable=True' -a 'pipeline_metrics_sample_rate=100' -a 'counters_enable=True' -a 'query_trace_metrics_enable=True'", label: 'UnitTest (Extended with pipeline metrics, counters, and query trace metrics)'
+//         sh script: "cd build && PYTHONPATH=.. timeout 60m python3 -m script.testing.junit --build-type=$buildType --query-mode=extended -a 'pipeline_metrics_enable=True' -a 'pipeline_metrics_sample_rate=100' -a 'counters_enable=True' -a 'query_trace_metrics_enable=True' -a 'compiled_query_execution=True' -a 'bytecode_handlers_path=./bytecode_handlers_ir.bc'", label: 'UnitTest (Extended, Compiled Execution with pipeline metrics, counters, and query trace metrics)'
+//     }
+//
+//     sh 'cd build && timeout 1h ninja check-tpl'
+//
+//     if (args.cmake.toUpperCase().contains("NOISEPAGE_USE_JUMBOTESTS=ON")) {
+//         sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja jumbotests'
+//     } else {
+//         sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja unittest'
+//     }
 
-    sh 'cd build && timeout 1h ninja check-tpl'
+    sh script: '''
+    cd build
+    PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug
+    ''', label:'OLTPBench (TATP)'
 
-    if (args.cmake.toUpperCase().contains("NOISEPAGE_USE_JUMBOTESTS=ON")) {
-        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja jumbotests'
-    } else {
-        sh 'cd build && export BUILD_ABS_PATH=`pwd` && timeout 1h ninja unittest'
-    }
+    sh script: '''
+    cd build
+    PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
+    ''', label: 'OLTPBench (No WAL)'
+
+    sh script: '''
+    cd build
+    PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug
+    ''', label:'OLTPBench (Smallbank)'
+
+    sh script: '''
+    cd build
+    PYTHONPATH=.. timeout 10m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug
+    ''', label: 'OLTPBench (YCSB)'
+
+    sh script: '''
+    cd build
+    PYTHONPATH=.. timeout 5m python3 -m script.testing.oltpbench  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug
+    ''', label: 'OLTPBench (NOOP)'
+
+    sh script: '''
+    cd build
+    PYTHONPATH=.. timeout 30m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug
+    ''', label: 'OLTPBench (TPCC)'
+
+    sh script: '''
+    cd build
+    PYTHONPATH=.. timeout 30m python3 -m script.testing.oltpbench --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug
+    ''', label: 'OLTPBench (No Parallel)'
 
     if (args.cmake.toUpperCase().contains("NOISEPAGE_GENERATE_COVERAGE=ON")) {
         uploadCoverage()
