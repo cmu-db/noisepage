@@ -52,80 +52,81 @@ class PLpgSQLParser {
  private:
   /**
    * Parse a block statement.
-   * @param block The input JSON object
+   * @param json The input JSON object
    * @return The AST for the block
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseBlock(const nlohmann::json &block);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseBlock(const nlohmann::json &json);
 
   /**
    * Parse a function statement.
-   * @param block The input JSON object
-   * @return The AST for the function
+   * @param json The input JSON object
+   * @return json AST for the function
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseFunction(const nlohmann::json &function);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseFunction(const nlohmann::json &json);
 
   /**
    * Parse a declaration statement.
-   * @param decl The input JSON object
+   * @param json The input JSON object
    * @return The AST for the declaration
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseDecl(const nlohmann::json &decl);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseDecl(const nlohmann::json &json);
 
   /**
    * Parse an if-statement.
-   * @param block The input JSON object
+   * @param json The input JSON object
    * @return The AST for the if-statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseIf(const nlohmann::json &branch);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseIf(const nlohmann::json &json);
 
   /**
    * Parse a while-statement.
-   * @param block The input JSON object
+   * @param json The input JSON object
    * @return The AST for the while-statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseWhile(const nlohmann::json &loop);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseWhile(const nlohmann::json &json);
 
   /**
    * Parse a for-statement (integer variant).
-   * @param loop The input JSON object
+   * @param json The input JSON object
    * @return The AST for the for-statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseForI(const nlohmann::json &loop);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseForI(const nlohmann::json &json);
 
   /**
    * Parse a for-statement (query variant).
-   * @param loop The input JSON object
+   * @param json The input JSON object
    * @return The AST for the for-statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseForS(const nlohmann::json &loop);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseForS(const nlohmann::json &json);
 
   /**
    * Parse a SQL statement.
-   * @param sql The input JSON object
+   * @param json The input JSON object
    * @return The AST for the SQL statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseSQL(const nlohmann::json &sql);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseSQL(const nlohmann::json &json);
 
   /**
    * Parse a dynamic SQL statement.
-   * @param sql The input JSON object
+   * @param json The input JSON object
    * @return The AST for the dynamic SQL statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseDynamicSQL(const nlohmann::json &sql);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseDynamicSQL(const nlohmann::json &json);
 
   /**
    * Parse a SQL expression to an expression AST.
    * @param sql The SQL expression string
    * @return The AST for the SQL expression
    */
-  std::unique_ptr<execution::ast::udf::ExprAST> ParseExprSQL(const std::string &sql);
+  std::unique_ptr<execution::ast::udf::ExprAST> ParseExprFromSQL(const std::string &sql);
 
   /**
-   * Parse an expression.
-   * @param expr The expression
+   * Parse an abstract expression to an expression AST.
+   * @param expr The abstract expression
    * @return The AST for the expression
    */
-  std::unique_ptr<execution::ast::udf::ExprAST> ParseExpr(common::ManagedPointer<parser::AbstractExpression> expr);
+  std::unique_ptr<execution::ast::udf::ExprAST> ParseExprFromAbstract(
+      common::ManagedPointer<parser::AbstractExpression> expr);
 
  private:
   /** The UDF AST context */
