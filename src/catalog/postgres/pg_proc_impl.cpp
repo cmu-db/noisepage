@@ -336,25 +336,40 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
   if (!results.empty()) {
     const auto &pm = pg_proc_all_cols_prm_;
     auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
-    const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
 
     // Search through the results and check if any match the parsed function by argument types.
-    for (auto &tuple : results) {
+    for (const auto &tuple : results) {
       bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
       NOISEPAGE_ASSERT(visible, "Index scan should have already verified visibility.");
 
       // "PROARGTYPES ... represents the call signature of the function". Check only input arguments.
       // https://www.postgresql.org/docs/12/catalog-pg-proc.html
-      auto result_arg_types = *table_pr->Get<storage::VarlenEntry, false>(pm.at(PgProc::PROARGTYPES.oid_), nullptr);
+      bool arg_types_null = false;
+      const auto *result_arg_types =
+          table_pr->Get<storage::VarlenEntry, true>(pm.at(PgProc::PROARGTYPES.oid_), &arg_types_null);
 
-      if (result_arg_types == arg_types_varlen) {
+      bool match = false;
+      if (arg_types_null) {
+        if (arg_types.empty()) {
+          // both had an empty argument list
+          match = true;
+        }
+        // result has no args, but input arg list is non-empty
+        continue;
+      } else {
+        const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
+        if (*result_arg_types == arg_types_varlen) {
+          match = true;
+        }
+        if (arg_types_varlen.NeedReclaim()) {
+          delete[] arg_types_varlen.Content();
+        }
+      }
+
+      if (match) {
         const auto proc_oid = *table_pr->Get<proc_oid_t, false>(pm.at(PgProc::PROOID.oid_), nullptr);
         matching_functions.push_back(proc_oid);
       }
-    }
-
-    if (arg_types_varlen.NeedReclaim()) {
-      delete[] arg_types_varlen.Content();
     }
   }
 
@@ -461,7 +476,7 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   create_fn("replication_get_last_txn_id", INVALID_TYPE_OID, {}, {}, INT);
 
   // Other functions.
-  create_fn("date_part", INVALID_TYPE_OID, {"date, date_part_type"}, {DATE, INT}, INT);
+  create_fn("date_part", INVALID_TYPE_OID, {"date", "date_part_type"}, {DATE, INT}, INT);
   create_fn("version", INVALID_TYPE_OID, {}, {}, STR);
 
   CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersemitint", PgLanguage::INTERNAL_LANGUAGE_OID,
