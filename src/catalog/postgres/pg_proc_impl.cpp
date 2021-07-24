@@ -81,13 +81,15 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
                                  const std::vector<PgProc::ArgModes> &arg_modes, const type_oid_t rettype,
                                  const std::string &src, const bool is_aggregate) {
   NOISEPAGE_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
-  NOISEPAGE_ASSERT(args.size() == arg_types.size(), "Every arg needs a type.");
+  NOISEPAGE_ASSERT(args.size() == arg_types.size(), "Every input arg needs a type.");
+  NOISEPAGE_ASSERT(arg_modes.empty() || (!std::all_of(arg_modes.cbegin(), arg_modes.cend(),
+                                                      [](PgProc::ArgModes mode) {
+                                                        return mode == PgProc::ArgModes::IN;
+                                                      } && arg_modes.size() >= args.size())),
+                   "argmodes should be empty unless there are modes other than IN, in which case arg_modes must be at "
+                   "least equal to the size of args.");
   NOISEPAGE_ASSERT(all_arg_types.size() == arg_modes.size(),
-                   "If everything isn't IN, then we need to know their types and modes.");
-  NOISEPAGE_ASSERT(
-      arg_modes.size() == 0 || !std::all_of(arg_modes.cbegin(), arg_modes.cend(),
-                                            [](PgProc::ArgModes mode) { return mode == PgProc::ArgModes::IN; }),
-      "argmodes should be empty if they're all IN.");
+                   "If a mode is defined for each arg, then a type must be defined for each arg as well.");
 
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
 
