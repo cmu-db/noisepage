@@ -80,18 +80,20 @@ class PgProcImpl {
   std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
-   * @brief Create a procedure in the pg_proc table.
+   * @brief Create a procedure in the pg_proc table. See postgres' documentation for that the constraints are, or the
+   * assertions in pg_proc_impl.cpp.
    *
    * @param txn             The transaction to use.
    * @param oid             The OID to assign to the procedure.
    * @param procname        The name of the procedure.
    * @param language_oid    The OID for the language that this procedure is written in.
    * @param procns          The namespace that the procedure should be added to.
+   * @param variadic_type   type of the variadic arg (if any)
    * @param args            The names of the arguments to this procedure.
-   * @param arg_types       The types of the arguments to this procedure. Must be in the same order as in args.
-   *                        (only for in and inout arguments)
-   * @param all_arg_types   The types of all the arguments.
-   * @param arg_modes       The modes of the arguments. Must be in the same order as in args.
+   * @param arg_types       types of arguments to this proc in the same order as in args (only for in and inout
+   *        arguments)
+   * @param all_arg_types   types of all arguments only if there are args that are not IN
+   * @param arg_modes       modes of arguments in the same order as in args, only if they aren't all IN
    * @param rettype         The OID of the type of return value.
    * @param src             The source code of the procedure.
    * @param is_aggregate    True iff this is an aggregate procedure.
