@@ -259,6 +259,8 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseForS(const nlo
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &json) {
+  std::cout << json << std::endl;
+
   // The query text
   const auto sql_query = json[K_SQLSTMT][K_PLPGSQL_EXPR][K_QUERY].get<std::string>();
   // The variable name (non-const for later std::move)
@@ -331,12 +333,14 @@ std::unique_ptr<execution::ast::udf::ExprAST> PLpgSQLParser::ParseExprFromAbstra
   // TODO(Kyle): I am not a fan of non-exhaustive switch statements;
   // is there a way that we can refactor this logic to make it better?
 
+  std::cout << parser::ExpressionTypeToShortString(expr->GetExpressionType()) << std::endl;
+
   switch (expr->GetExpressionType()) {
     case parser::ExpressionType::FUNCTION: {
       auto func_expr = expr.CastManagedPointerTo<parser::FunctionExpression>();
       std::vector<std::unique_ptr<execution::ast::udf::ExprAST>> args{};
       auto num_args = func_expr->GetChildrenSize();
-      for (size_t idx = 0; idx < num_args; ++idx) {
+      for (std::size_t idx = 0; idx < num_args; ++idx) {
         args.push_back(ParseExprFromAbstract(func_expr->GetChild(idx)));
       }
       return std::make_unique<execution::ast::udf::CallExprAST>(func_expr->GetFuncName(), std::move(args));

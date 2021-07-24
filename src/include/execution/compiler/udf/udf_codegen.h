@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -14,7 +15,11 @@
 
 namespace noisepage::catalog {
 class CatalogAccessor;
-}
+}  // namespace noisepage::catalog
+
+namespace noisepage::optimizer {
+class OptimizeResult;
+}  // namespace noisepage::optimizer
 
 namespace noisepage::execution {
 
@@ -247,6 +252,40 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    * @throw EXECUTION_EXCEPTION on failure to resolve type
    */
   std::vector<std::pair<std::string, type::TypeId>> GetRecordType(const std::string &name) const;
+
+  /**
+   * Run the optimizer on an embedded SQL query.
+   * @param parsed_query The result of parsing the query
+   * @return The optimized result
+   */
+  std::unique_ptr<optimizer::OptimizeResult> OptimizeEmbeddedQuery(parser::ParseResult *parsed_query);
+
+  /**
+   * Determine the function identified by `name` is a top-level run function.
+   * @param function_name The name of the function
+   * @return `true` if the function is a top-level run
+   * function, `false` otherwise
+   */
+  static bool IsRunFunction(const std::string &function_name);
+
+  /**
+   * Get the builtin parameter-add function for the specified parameter type.
+   * @param parameter_type The parameter type
+   * @return The builtin function to add this parameter
+   */
+  static ast::Builtin AddParamBuiltinForParameterType(type::TypeId parameter_type);
+
+  /**
+   * Sort the query
+   */
+  static std::vector<std::string> ParametersSortedByIndex(
+      const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &parameter_map);
+
+  /**
+   *
+   */
+  static std::vector<std::string> ColumnsSortedByIndex(
+      const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &parameter_map);
 
  private:
   /** The string identifier for internal declarations */

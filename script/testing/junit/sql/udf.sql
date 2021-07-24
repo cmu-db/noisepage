@@ -106,6 +106,8 @@ SELECT x, proc_while() FROM integers;
 
 -- ----------------------------------------------------------------------------
 -- proc_fori()
+--
+-- TODO(Kyle): for-loop control flow (integer variant) is not supported
 
 -- CREATE FUNCTION proc_fori() RETURNS INT AS $$ \
 -- DECLARE                                       \
@@ -122,6 +124,8 @@ SELECT x, proc_while() FROM integers;
 
 -- ----------------------------------------------------------------------------
 -- proc_fors()
+--
+-- TODO(Kyle): for-loop control flow (query variant) is not supported
 
 -- CREATE TABLE tmp(z INT);
 -- INSERT INTO tmp(z) VALUES (0), (1);
@@ -155,3 +159,7 @@ SELECT x, proc_while() FROM integers;
 -- $$ LANGUAGE PLPGSQL;
 
 -- SELECT x, proc_fors_var() FROM integers;
+
+CREATE FUNCTION agg_count() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT COUNT(z) INTO v FROM tmp; RETURN v; END $$ LANGUAGE PLPGSQL;
+CREATE FUNCTION fun() RETURNS INT AS $$ DECLARE a INT; b INT; BEGIN SELECT COUNT(z), COUNT(z) INTO a, b FROM tmp; RETURN a + b; END $$ LANGUAGE PLPGSQL;
+
