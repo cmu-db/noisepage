@@ -106,6 +106,14 @@ class Module {
   /** @return The non-essential metadata for this module. */
   const ModuleMetadata &GetMetadata() const { return metadata_; }
 
+  /**
+   * Resets the compilation module. This will effectively force the module to be
+   * recompiled the next time it is required. @note that this function is not
+   * thread-safe. It is the caller's responsibility to ensure that only 1 thread
+   * is invoking this function and the module is not in use by any other thread.
+   */
+  void ResetCompiledModule();
+
  private:
   friend class VM;                            // For the VM to access raw bytecode.
   friend class test::BytecodeTrampolineTest;  // For the tests to check private methods.
@@ -174,7 +182,7 @@ class Module {
   std::unique_ptr<Trampoline[]> bytecode_trampolines_;
 
   // Flag to indicate if the JIT compilation has occurred.
-  std::once_flag compiled_flag_;
+  std::unique_ptr<std::once_flag> compiled_flag_;
 
   ModuleMetadata metadata_;  ///< Non-essential metadata about the TPL module.
 };

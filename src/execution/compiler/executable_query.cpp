@@ -27,6 +27,8 @@ ExecutableQuery::Fragment::Fragment(std::vector<std::string> &&functions, std::v
 
 ExecutableQuery::Fragment::~Fragment() = default;
 
+void ExecutableQuery::Fragment::ResetCompiledModule() { module_->ResetCompiledModule(); }
+
 void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) const {
   using Function = std::function<void(void *)>;
 
@@ -166,6 +168,19 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
   exec_ctx->SetPipelineOperatingUnits(GetPipelineOperatingUnits());
   exec_ctx->SetQueryId(query_id_);
+
+  if (!exec_ctx->GetExecutionSettings().GetIsCompilationCacheEnabled()) {
+    // This model assumes that an ExecutableQuery is tied to the lifetime of a specific
+    // connection (via the ProtocolInterpreter). If at any point in the future, this
+    // assumption proves to be incorrect, this would need to be revisited.
+    //
+    // Particularly, to reliably bypass the compilation cache, module and/or invocation
+    // state (i.e., CompiledModule) would need to be moved to thread-local or
+    // per-execution state (i.e., into the ExecutionContext).
+    for (const auto &fragment : fragments_) {
+      fragment->ResetCompiledModule();
+    }
+  }
 
   // Now run through fragments.
   for (const auto &fragment : fragments_) {

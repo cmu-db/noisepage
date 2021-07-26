@@ -96,6 +96,14 @@ class ExecutableQuery {
     /** @return The metadata of this module. */
     const vm::ModuleMetadata &GetModuleMetadata() const;
 
+    /**
+     * Resets the compilation module. This will effectively force the module to be
+     * recompiled the next time it is required. @note that this function is not
+     * thread-safe. It is the caller's responsibility to ensure that only 1 thread
+     * is invoking this function and the module is not in use by any other thread.
+     */
+    void ResetCompiledModule();
+
    private:
     // The functions that must be run (in the provided order) to execute this
     // query fragment.

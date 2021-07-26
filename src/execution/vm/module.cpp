@@ -49,6 +49,7 @@ Module::Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<
       jit_module_(std::move(llvm_module)),
       functions_(std::make_unique<std::atomic<void *>[]>(bytecode_module_->GetFunctionCount())),
       bytecode_trampolines_(std::make_unique<Trampoline[]>(bytecode_module_->GetFunctionCount())),
+      compiled_flag_(std::make_unique<std::once_flag>()),
       metadata_(std::move(metadata)) {
   // Create the trampolines for all bytecode functions
   for (const auto &func : bytecode_module_->GetFunctionsInfo()) {
@@ -266,7 +267,7 @@ void Module::CreateFunctionTrampoline(FunctionId func_id) {
 }
 
 void Module::CompileToMachineCode() {
-  std::call_once(compiled_flag_, [this]() {
+  std::call_once(*compiled_flag_, [this]() {
     // Exit if the module has already been compiled. This might happen if
     // requested to execute in adaptive mode by concurrent threads.
     if (jit_module_ != nullptr) {
@@ -291,6 +292,16 @@ void Module::CompileToMachineCode() {
 void Module::CompileToMachineCodeAsync() {
   auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(this);
   tbb::task::enqueue(*compile_task);
+}
+
+void Module::ResetCompiledModule() {
+  compiled_flag_ = std::make_unique<std::once_flag>();
+  jit_module_ = nullptr;
+
+  const auto num_functions = bytecode_module_->GetFunctionCount();
+  for (uint32_t idx = 0; idx < num_functions; idx++) {
+    functions_[idx] = bytecode_trampolines_[idx].GetCode();
+  }
 }
 
 }  // namespace noisepage::execution::vm
