@@ -222,10 +222,9 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
   return {ResultType::COMPLETE, 0u};
 }
 
-TrafficCopResult TrafficCop::ExecuteShowStatement(
-    common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    common::ManagedPointer<network::PostgresPacketWriter> out,
-    common::ManagedPointer<network::Statement> statement) const {
+TrafficCopResult TrafficCop::ExecuteShowStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                                  common::ManagedPointer<network::PostgresPacketWriter> out,
+                                                  common::ManagedPointer<network::Statement> statement) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
                    "This is a non-transactional operation and we should not be in a transaction.");
   NOISEPAGE_ASSERT(statement->GetQueryType() == network::QueryType::QUERY_SHOW,
