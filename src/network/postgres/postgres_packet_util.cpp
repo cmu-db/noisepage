@@ -99,7 +99,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     }
     default:
       // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
-      UNREACHABLE("Unsupported type for parameter.");
+      UNREACHABLE(fmt::format("Unsupported type for parameter {}.", type).c_str());
   }
 }
 

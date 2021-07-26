@@ -224,8 +224,8 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
 
 TrafficCopResult TrafficCop::ExecuteShowStatement(
     common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    common::ManagedPointer<network::Statement> statement,
-    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+    common::ManagedPointer<network::PostgresPacketWriter> out,
+    common::ManagedPointer<network::Statement> statement) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
                    "This is a non-transactional operation and we should not be in a transaction.");
   NOISEPAGE_ASSERT(statement->GetQueryType() == network::QueryType::QUERY_SHOW,
@@ -245,7 +245,6 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
   cols.emplace_back(param_name, execution::sql::SqlTypeId::Varchar, std::move(expr));
   execution::sql::StringVal result{param_val.c_str()};
 
-  out->WriteRowDescription(cols, {network::FieldFormat::text});
   out->WriteDataRow(reinterpret_cast<const byte *>(&result), cols, {network::FieldFormat::text});
   return {ResultType::COMPLETE, 0u};
 }

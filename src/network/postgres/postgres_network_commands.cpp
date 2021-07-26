@@ -10,7 +10,33 @@
 #include "network/postgres/postgres_packet_util.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
+#include "parser/variable_show_statement.h"
 #include "traffic_cop/traffic_cop.h"
+
+namespace noisepage::network {
+/**
+ * Write the row description for a SHOW statement.
+ *
+ * @param out       Packet writer for writing results.
+ * @param statement The SHOW statement to be described.
+ */
+static void WriteShowRowDescription(const common::ManagedPointer<PostgresPacketWriter> out,
+                                    const common::ManagedPointer<network::Statement> statement) {
+  // TODO(WAN): This code exists because the SHOW statement does not go through the optimizer and therefore does not
+  //  have a corresponding OutputSchema to go through the usual (SELECT) code path in DescribeCommand.
+  const auto &show_stmt UNUSED_ATTRIBUTE =
+      statement->RootStatement().CastManagedPointerTo<parser::VariableShowStatement>();
+
+  const std::string &param_name = show_stmt->GetName();
+  auto expr = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Varchar);
+  expr->SetAlias(parser::AliasType(param_name));
+  std::vector<noisepage::planner::OutputSchema::Column> cols;
+  cols.emplace_back(param_name, execution::sql::SqlTypeId::Varchar, std::move(expr));
+
+  out->WriteRowDescription(cols, {network::FieldFormat::text});
+}
+
+}  // namespace noisepage::network
 
 namespace noisepage::network {
 
@@ -64,6 +90,8 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
     result = t_cop->ExecuteDropStatement(connection_ctx, physical_plan, query_type);
   } else if (query_type == network::QueryType::QUERY_EXPLAIN) {
     result = t_cop->ExecuteExplainStatement(connection_ctx, out, portal);
+  } else if (query_type == network::QueryType::QUERY_SHOW) {
+    result = t_cop->ExecuteShowStatement(connection_ctx, out, portal->GetStatement());
   }
 
   if (result.type_ == trafficcop::ResultType::COMPLETE) {
@@ -148,7 +176,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   // TODO(WAN): this is a temporary hack to unblock Ziqi's oltpbench work. #1188
   if (UNLIKELY(query_type == network::QueryType::QUERY_SHOW)) {
-    auto show_result = t_cop->ExecuteShowStatement(connection, common::ManagedPointer(statement), out);
+    auto show_result = t_cop->ExecuteShowStatement(connection, out, common::ManagedPointer(statement));
     NOISEPAGE_ASSERT(show_result.type_ == trafficcop::ResultType::COMPLETE,
                      "TODO this should be fixed to handle failure.");
     out->WriteCommandComplete(network::QueryType::QUERY_SHOW, 0);
@@ -195,6 +223,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
                                  portal->ResultFormats());
       } else if (query_type == network::QueryType::QUERY_EXPLAIN) {
         out->WriteExplainRowDescription();
+      } else if (query_type == network::QueryType::QUERY_SHOW) {
+        WriteShowRowDescription(out, portal->GetStatement());
       }
 
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
@@ -468,6 +498,8 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
                                portal->ResultFormats());
     } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_EXPLAIN) {
       out->WriteExplainRowDescription();
+    } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_SHOW) {
+      WriteShowRowDescription(out, portal->GetStatement());
     } else {
       out->WriteNoData();
     }
@@ -547,7 +579,11 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
 
   // Show statements are manually handled here.
   if (UNLIKELY(query_type == network::QueryType::QUERY_SHOW)) {
-    NOISEPAGE_ASSERT(false, "SHOW not yet implemented.");
+    auto show_result = t_cop->ExecuteShowStatement(connection, out, portal->GetStatement());
+    NOISEPAGE_ASSERT(show_result.type_ == trafficcop::ResultType::COMPLETE,
+                     "TODO(WAN) this should be fixed to handle failure.");
+    out->WriteCommandComplete(query_type, std::get<uint32_t>(show_result.extra_));
+    return Transition::PROCEED;
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
