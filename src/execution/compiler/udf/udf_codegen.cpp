@@ -341,11 +341,6 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   needs_exec_ctx_ = true;
   execution::ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
 
-  // Bind the embedded query
-  binder::BindNodeVisitor visitor{common::ManagedPointer<catalog::CatalogAccessor>{accessor_}, db_oid_};
-  auto query_params =
-      visitor.BindAndGetUDFParams(common::ManagedPointer{ast->Query()}, common::ManagedPointer{udf_ast_context_});
-
   // Optimize the embedded query
   auto optimize_result = OptimizeEmbeddedQuery(ast->Query());
   auto plan = optimize_result->GetPlanNode();
@@ -363,14 +358,13 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
       exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
       codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
   std::size_t i = 0;
-  for (const auto &var : ast->Variables()) {
-    variable_identifiers.push_back(SymbolTable().find(var)->second);
-    auto var_ident = variable_identifiers.back();
-    auto type = codegen_->TplType(execution::sql::GetTypeId(plan->GetOutputSchema()->GetColumn(i).GetType()));
-    fb_->Append(codegen_->Assign(codegen_->MakeExpr(var_ident),
+  for (const auto &variable_name : ast->Variables()) {
+    const ast::Identifier variable_identifier = SymbolTable().find(variable_name)->second;
+    variable_identifiers.push_back(variable_identifier);
+    ast::Expr *type = codegen_->TplType(execution::sql::GetTypeId(plan->GetOutputSchema()->GetColumn(i).GetType()));
+    fb_->Append(codegen_->Assign(codegen_->MakeExpr(variable_identifier),
                                  codegen_->ConstNull(plan->GetOutputSchema()->GetColumn(i).GetType())));
-    auto input = codegen_->MakeFreshIdentifier(var);
-    params.push_back(codegen_->MakeField(input, type));
+    params.push_back(codegen_->MakeField(codegen_->MakeFreshIdentifier(variable_name), type));
     i++;
   }
 
@@ -378,8 +372,7 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   {
     std::size_t j = 1;
     for (auto var : variable_identifiers) {
-      fn.Append(codegen_->Assign(codegen_->MakeExpr(var), fn.GetParameterByPosition(j)));
-      j++;
+      fn.Append(codegen_->Assign(codegen_->MakeExpr(var), fn.GetParameterByPosition(j++)));
     }
     auto prev_fb = fb_;
     fb_ = &fn;
@@ -387,6 +380,9 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
     fb_ = prev_fb;
   }
 
+  // Define the captures for the closure
+  // TODO(Kyle): We are capturing every variable in the symbol table,
+  // this seems like overkill and may lead to incorrect semantics?
   execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
   for (const auto &[name, identifier] : SymbolTable()) {
     if (name == "executionCtx") {
@@ -396,12 +392,10 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   }
 
   ast::LambdaExpr *lambda_expr = fn.FinishLambda(std::move(captures));
-  const ast::Identifier lambda_identifier = codegen_->MakeFreshIdentifier("looplamb");
+  const ast::Identifier lambda_identifier = codegen_->MakeFreshIdentifier("udfLambda");
   lambda_expr->SetName(lambda_identifier);
 
-  // We want to pass something down that will materialize the lambda
-  // function into lambda_expr and will also feed in a lambda_expr to the compiler
-  // TODO(Kyle): Using a NULL plan metatdata here...
+  // Materialize the lambda into the lambda expression
   execution::exec::ExecutionSettings exec_settings{};
   const std::string dummy_query{};
   auto exec_query = execution::compiler::CompilationContext::Compile(
@@ -409,28 +403,27 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
       common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>{&dummy_query},
       lambda_expr, codegen_->GetAstContext());
 
-  auto decls = exec_query->GetDecls();
-  aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
+  // Append all of the declarations from the compiled query
 
+  aux_decls_.insert(aux_decls_.end(), exec_query->GetDecls().cbegin(), exec_query->GetDecls().cend());
+
+  // Add the closure and query state to the current function
+  auto query_state = codegen_->MakeFreshIdentifier("query_state");
   fb_->Append(codegen_->DeclareVar(
       lambda_identifier, codegen_->LambdaType(lambda_expr->GetFunctionLiteralExpr()->TypeRepr()), lambda_expr));
-
-  auto query_state = codegen_->MakeFreshIdentifier("query_state");
   fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
 
-  // Set its execution context to whatever exec context was passed in here
+  // Set its execution context to whatever execution context was passed in here
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
 
-  std::vector<std::unordered_map<std::string, std::pair<std::string, size_t>>::iterator> sorted_vec{};
-  for (auto it = query_params.begin(); it != query_params.end(); it++) {
-    sorted_vec.push_back(it);
-  }
-
-  std::sort(sorted_vec.begin(), sorted_vec.end(), [](auto x, auto y) { return x->second < y->second; });
-  for (auto entry : sorted_vec) {
-    const type::TypeId type = GetVariableType(entry->first);
+  // Derive the columns and parameter names from the query
+  binder::BindNodeVisitor visitor{common::ManagedPointer<catalog::CatalogAccessor>{accessor_}, db_oid_};
+  auto query_params =
+      visitor.BindAndGetUDFParams(common::ManagedPointer{ast->Query()}, common::ManagedPointer{udf_ast_context_});
+  for (const auto &column_name : ColumnsSortedByIndex(query_params)) {
+    const type::TypeId type = GetVariableType(column_name);
     const ast::Builtin builtin = AddParamBuiltinForParameterType(type);
-    fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, codegen_->MakeExpr(SymbolTable().at(entry->first))}));
+    fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, codegen_->MakeExpr(SymbolTable().at(column_name))}));
   }
 
   fb_->Append(codegen_->Assign(
@@ -438,7 +431,7 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
 
   auto function_names = exec_query->GetFunctionNames();
   for (auto &function_name : function_names) {
-    if (function_name.find("Run") != std::string::npos) {
+    if (IsRunFunction(function_name)) {
       fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(function_name),
                                  {codegen_->AddressOf(query_state), codegen_->MakeExpr(lambda_identifier)}));
     } else {
@@ -494,9 +487,8 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
       assignees.push_back(capture_var);
       captures.push_back(capture_var);
     }
-    auto *tpl_type = codegen_->TplType(execution::sql::GetTypeId(col.GetType()));
-    auto input_param = codegen_->MakeFreshIdentifier("input");
-    lambda_parameters.push_back(codegen_->MakeField(input_param, tpl_type));
+    lambda_parameters.push_back(codegen_->MakeField(codegen_->MakeFreshIdentifier("input"),
+                                                    codegen_->TplType(execution::sql::GetTypeId(col.GetType()))));
     i++;
   }
 
@@ -507,7 +499,7 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
     fn.Append(codegen_->Assign(capture_var, input_param));
   }
 
-  const ast::Identifier lambda_identifier = codegen_->MakeFreshIdentifier("lamb");
+  const ast::Identifier lambda_identifier = codegen_->MakeFreshIdentifier("udfLambda");
   ast::LambdaExpr *lambda_expr = fn.FinishLambda(std::move(captures));
   lambda_expr->SetName(lambda_identifier);
 

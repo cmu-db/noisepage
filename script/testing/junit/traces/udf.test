@@ -55,14 +55,9 @@ CREATE FUNCTION return_constant() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGU
 statement ok
 
 
-query II rowsort
-SELECT x, return_constant() FROM integers;
+query I rowsort
+SELECT return_constant();
 ----
-1
-1
-2
-1
-3
 1
 
 
@@ -177,17 +172,9 @@ CREATE FUNCTION integer_decl() RETURNS INT AS $$ DECLARE x INT := 0; BEGIN RETUR
 statement ok
 
 
-query III rowsort
-SELECT x, y, integer_decl() FROM integers;
+query I rowsort
+SELECT integer_decl();
 ----
-1
-1
-0
-2
-2
-0
-3
-3
 0
 
 
@@ -247,14 +234,9 @@ CREATE FUNCTION proc_while() RETURNS INT AS $$ DECLARE x INT := 0; BEGIN WHILE x
 statement ok
 
 
-query II rowsort
-SELECT x, proc_while() FROM integers;
+query I rowsort
+SELECT proc_while();
 ----
-1
-10
-2
-10
-3
 10
 
 
@@ -266,6 +248,12 @@ statement ok
 
 statement ok
 -- proc_fori()
+
+statement ok
+--
+
+statement ok
+-- TODO(Kyle): for-loop control flow (integer variant) is not supported
 
 statement ok
 
@@ -286,7 +274,37 @@ statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
+-- sql_select_single_constant()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_select_single_constant() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT 1 INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_select_single_constant();
+----
+1
+
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
 -- proc_fors()
+
+statement ok
+--
+
+statement ok
+-- TODO(Kyle): for-loop control flow (query variant) is not supported
 
 statement ok
 

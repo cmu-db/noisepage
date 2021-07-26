@@ -26,7 +26,6 @@ OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, Co
   pipeline->RegisterStep(this);
   // Prepare all output expressions.
   for (const auto &output_column : plan.GetOutputSchema()->GetColumns()) {
-    compilation_context->SetCurrentOp(this);
     compilation_context->Prepare(*output_column.GetExpr());
   }
 }

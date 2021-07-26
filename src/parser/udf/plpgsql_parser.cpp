@@ -259,8 +259,6 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseForS(const nlo
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &json) {
-  std::cout << json << std::endl;
-
   // The query text
   const auto sql_query = json[K_SQLSTMT][K_PLPGSQL_EXPR][K_QUERY].get<std::string>();
   // The variable name (non-const for later std::move)
@@ -332,8 +330,6 @@ std::unique_ptr<execution::ast::udf::ExprAST> PLpgSQLParser::ParseExprFromAbstra
 
   // TODO(Kyle): I am not a fan of non-exhaustive switch statements;
   // is there a way that we can refactor this logic to make it better?
-
-  std::cout << parser::ExpressionTypeToShortString(expr->GetExpressionType()) << std::endl;
 
   switch (expr->GetExpressionType()) {
     case parser::ExpressionType::FUNCTION: {

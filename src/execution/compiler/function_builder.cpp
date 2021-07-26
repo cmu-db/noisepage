@@ -5,6 +5,9 @@
 
 namespace noisepage::execution::compiler {
 
+// TODO(Kyle): We should refactor this two 2 distinct types:
+// the regular old FunctionBuilder and a ClosureBuilder
+
 FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier name, util::RegionVector<ast::FieldDecl *> &&params,
                                  ast::Expr *ret_type)
     : codegen_{codegen},
@@ -25,7 +28,11 @@ FunctionBuilder::FunctionBuilder(CodeGen *codegen, util::RegionVector<ast::Field
       is_lambda_{true},
       decl_{std::in_place_type<ast::LambdaExpr *>, nullptr} {}
 
-FunctionBuilder::~FunctionBuilder() { Finish(); }
+FunctionBuilder::~FunctionBuilder() {
+  if (!IsLambda()) {
+    Finish();
+  }
+}
 
 ast::Expr *FunctionBuilder::GetParameterByPosition(const std::size_t param_idx) {
   if (param_idx < params_.size()) {

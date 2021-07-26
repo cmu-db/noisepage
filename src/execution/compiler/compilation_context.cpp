@@ -442,8 +442,12 @@ ExpressionTranslator *CompilationContext::LookupTranslator(const parser::Abstrac
 }
 
 std::string CompilationContext::GetFunctionPrefix() const {
-  return output_callback_ == nullptr ? "Query" + std::to_string(unique_id_)
-                                     : output_callback_->GetName().GetString() + "Query" + std::to_string(unique_id_);
+  // If an output callback is present, we prefix
+  // each function with the callback name
+  if (output_callback_ != nullptr) {
+    return fmt::format("{}Query{}", output_callback_->GetName().GetString(), std::to_string(unique_id_));
+  }
+  return fmt::format("Query{}", std::to_string(unique_id_));
 }
 
 util::RegionVector<ast::FieldDecl *> CompilationContext::QueryParams() const {

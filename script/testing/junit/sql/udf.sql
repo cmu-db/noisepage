@@ -21,7 +21,7 @@ BEGIN                                               \
 END                                                 \
 $$ LANGUAGE PLPGSQL;                              
 
-SELECT x, return_constant() FROM integers;
+SELECT return_constant();
 
 -- ----------------------------------------------------------------------------
 -- return_input()
@@ -67,7 +67,7 @@ BEGIN                                            \
 END                                              \
 $$ LANGUAGE PLPGSQL;
 
-SELECT x, y, integer_decl() FROM integers; 
+SELECT integer_decl(); 
 
 -- ----------------------------------------------------------------------------
 -- conditional()
@@ -102,7 +102,7 @@ BEGIN                                          \
 END                                            \
 $$ LANGUAGE PLPGSQL;
 
-SELECT x, proc_while() FROM integers;
+SELECT proc_while();
 
 -- ----------------------------------------------------------------------------
 -- proc_fori()
@@ -121,6 +121,20 @@ SELECT x, proc_while() FROM integers;
 -- $$ LANGUAGE PLPGSQL;
 
 -- SELECT x, proc_fori() FROM integers;
+
+-- ----------------------------------------------------------------------------
+-- sql_select_single_constant()
+
+CREATE FUNCTION sql_select_single_constant() RETURNS INT AS $$ \
+DECLARE                                                        \
+  v INT;                                                       \
+BEGIN                                                          \
+  SELECT 1 INTO v;                                             \
+  RETURN v;                                                    \
+END                                                            \
+$$ LANGUAGE PLPGSQL;
+
+SELECT sql_select_single_constant();
 
 -- ----------------------------------------------------------------------------
 -- proc_fors()
@@ -159,7 +173,3 @@ SELECT x, proc_while() FROM integers;
 -- $$ LANGUAGE PLPGSQL;
 
 -- SELECT x, proc_fors_var() FROM integers;
-
-CREATE FUNCTION agg_count() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT COUNT(z) INTO v FROM tmp; RETURN v; END $$ LANGUAGE PLPGSQL;
-CREATE FUNCTION fun() RETURNS INT AS $$ DECLARE a INT; b INT; BEGIN SELECT COUNT(z), COUNT(z) INTO a, b FROM tmp; RETURN a + b; END $$ LANGUAGE PLPGSQL;
-

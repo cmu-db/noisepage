@@ -143,16 +143,6 @@ class CompilationContext {
   /** @return Query Id associated with the query */
   query_id_t GetQueryId() const { return query_id_; }
 
-  /**
-   * @brief Set the current op.
-   */
-  void SetCurrentOp(OperatorTranslator *current_op) { current_op_ = current_op; }
-
-  /**
-   * @return The current op.
-   */
-  OperatorTranslator *GetCurrentOp() const { return current_op_; }
-
  private:
   // Private to force use of static Compile() function.
   explicit CompilationContext(ExecutableQuery *query, query_id_t query_id_, catalog::CatalogAccessor *accessor,
