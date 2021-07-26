@@ -190,15 +190,15 @@ class TrafficCop {
                                        common::ManagedPointer<network::Statement> statement) const;
 
   /**
-   * Contains the logic to handle SHOW statements. Currently a hack to only support SHOW TRANSACTION ISOLATION LEVEL
-   * @param connection_ctx The context to be used to access the internal txn.
-   * @param statement The show statement to be executed.
-   * @param out Packet writer for writing results.
-   * @return The result of the operation.
+   * Contains the logic to handle SHOW statements.
+   * @param connection_ctx  The context to be used to access the internal txn.
+   * @param out             The packet writer to return results.
+   * @param statement       The statement to be executed.
+   * @return                The result of the operation.
    */
   TrafficCopResult ExecuteShowStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                        common::ManagedPointer<network::Statement> statement,
-                                        common::ManagedPointer<network::PostgresPacketWriter> out) const;
+                                        common::ManagedPointer<network::PostgresPacketWriter> out,
+                                        common::ManagedPointer<network::Statement> statement) const;
 
   /**
    * Contains the logic to reason about CREATE execution.

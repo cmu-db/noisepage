@@ -10,6 +10,7 @@
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_protocol_util.h"
 #include "parser/expression/constant_value_expression.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace noisepage::network {
 
@@ -99,7 +100,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
     }
     default:
       // TODO(Matt): Note that not all types are handled yet. Add them as we support them.
-      UNREACHABLE("Unsupported type for parameter.");
+      UNREACHABLE(fmt::format("Unsupported type for parameter {}.", type).c_str());
   }
 }
 
