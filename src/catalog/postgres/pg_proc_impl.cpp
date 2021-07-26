@@ -346,26 +346,75 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
 
       // "PROARGTYPES ... represents the call signature of the function". Check only input arguments.
       // https://www.postgresql.org/docs/12/catalog-pg-proc.html
-      bool arg_types_null = false;
-      const auto *result_arg_types =
-          table_pr->Get<storage::VarlenEntry, true>(pm.at(PgProc::PROARGTYPES.oid_), &arg_types_null);
 
       bool match = false;
-      if (arg_types_null) {
-        if (arg_types.empty()) {
-          // both had an empty argument list
-          match = true;
+
+      const auto num_function_args = *(table_pr->Get<uint16_t, false>(pm.at(PgProc::PRONARGS.oid_), nullptr));
+      if (num_function_args <= arg_types.size()) {
+        // input has enough arguments to try to match types
+        if (num_function_args == 0) {
+          // function has no args, check the length of the input args
+          if (arg_types.empty()) {
+            // both had an empty argument list
+            match = true;
+          } else {
+            // function has no args, but input arg list is non-empty. Cannot be a match.
+            continue;
+          }
         } else {
-          // result has no args, but input arg list is non-empty
-          continue;
-        }
-      } else {
-        const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
-        if (*result_arg_types == arg_types_varlen) {
-          match = true;
-        }
-        if (arg_types_varlen.NeedReclaim()) {
-          delete[] arg_types_varlen.Content();
+          // Right now we know that both arg lists (function's and input) are non-empty, and that the input args is at
+          // least as long as the function's args. Start trying to match types
+
+          // Read the arg types out of the table
+          bool null_arg = false;
+          const auto *result_arg_types =
+              table_pr->Get<storage::VarlenEntry, true>(pm.at(PgProc::PROARGTYPES.oid_), &null_arg);
+          NOISEPAGE_ASSERT(!null_arg, "This shouldn't be NULL if nargs > 0.");
+
+          // Create a varlen from the input args to compare against
+          const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(
+              arg_types);  // TODO(Matt); not sure I need this, move deserializearray up
+          if (*result_arg_types == arg_types_varlen) {
+            // argument signature matches exactly
+            match = true;
+          } else {
+            // not an exact signature match, check if the function is variadic
+            const auto variadic = *(table_pr->Get<type_oid_t, false>(pm.at(PgProc::PROVARIADIC.oid_), nullptr));
+            if (variadic != INVALID_TYPE_OID) {
+              // it's variadic. match if:
+              // 1) function's args are a prefix of input args
+              // 2) remaining input args are all the same, and same type as variadic in function signature
+
+              const auto result_arg_array =
+                  result_arg_types->DeserializeArray<type_oid_t>();  // TODO(Matt): could probably elide this copy with
+                                                                     // VarlenEntry.Content() shenanigans directly
+              bool prefix_match = true;
+              for (uint16_t i = 0; i < num_function_args && prefix_match; i++) {
+                if (result_arg_array[i] != arg_types[i]) {
+                  // type mismatch, bail out
+                  prefix_match = false;
+                }
+              }
+              if (prefix_match) {
+                // check if the remaining args of the input are all the same, and the variadic type of the function
+                NOISEPAGE_ASSERT(variadic == result_arg_array[num_function_args - 1],
+                                 "Last argument of function signature should be the variadic.");
+                bool variadic_args_match = true;
+                for (uint16_t i = num_function_args; i < arg_types.size() && variadic_args_match; i++) {
+                  if (arg_types[i] != variadic) {
+                    variadic_args_match = false;
+                  }
+                }
+                if (variadic_args_match) {
+                  // we satisfied both conditions described above, this function can match the input arguments
+                  match = true;
+                }
+              }
+            }
+          }
+          if (arg_types_varlen.NeedReclaim()) {
+            delete[] arg_types_varlen.Content();
+          }
         }
       }
 
