@@ -371,37 +371,35 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
               table_pr->Get<storage::VarlenEntry, true>(pm.at(PgProc::PROARGTYPES.oid_), &null_arg);
           NOISEPAGE_ASSERT(!null_arg, "This shouldn't be NULL if nargs > 0.");
 
-          // Create a varlen from the input args to compare against
-          const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(
-              arg_types);  // TODO(Matt); not sure I need this, move deserializearray up
-          if (*result_arg_types == arg_types_varlen) {
+          const auto result_arg_types_vector =
+              result_arg_types->DeserializeArray<type_oid_t>();  // TODO(Matt): could probably elide this copy with
+                                                                 // VarlenEntry.Content() shenanigans directly
+          if (result_arg_types_vector == arg_types) {
             // argument signature matches exactly
             match = true;
           } else {
             // not an exact signature match, check if the function is variadic
-            const auto variadic = *(table_pr->Get<type_oid_t, false>(pm.at(PgProc::PROVARIADIC.oid_), nullptr));
-            if (variadic != INVALID_TYPE_OID) {
+            const auto variadic_type = *(table_pr->Get<type_oid_t, false>(pm.at(PgProc::PROVARIADIC.oid_), nullptr));
+            if (variadic_type != INVALID_TYPE_OID) {
               // it's variadic. match if:
               // 1) function's args are a prefix of input args
               // 2) remaining input args are all the same, and same type as variadic in function signature
 
-              const auto result_arg_array =
-                  result_arg_types->DeserializeArray<type_oid_t>();  // TODO(Matt): could probably elide this copy with
-                                                                     // VarlenEntry.Content() shenanigans directly
+              // check condition 1
               bool prefix_match = true;
               for (uint16_t i = 0; i < num_function_args && prefix_match; i++) {
-                if (result_arg_array[i] != arg_types[i]) {
+                if (result_arg_types_vector[i] != arg_types[i]) {
                   // type mismatch, bail out
                   prefix_match = false;
                 }
               }
               if (prefix_match) {
-                // check if the remaining args of the input are all the same, and the variadic type of the function
-                NOISEPAGE_ASSERT(variadic == result_arg_array[num_function_args - 1],
+                // condition 1 satisfied, check condition 2
+                NOISEPAGE_ASSERT(variadic_type == result_arg_types_vector.back(),
                                  "Last argument of function signature should be the variadic.");
                 bool variadic_args_match = true;
                 for (uint16_t i = num_function_args; i < arg_types.size() && variadic_args_match; i++) {
-                  if (arg_types[i] != variadic) {
+                  if (arg_types[i] != variadic_type) {
                     variadic_args_match = false;
                   }
                 }
@@ -411,9 +409,6 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
                 }
               }
             }
-          }
-          if (arg_types_varlen.NeedReclaim()) {
-            delete[] arg_types_varlen.Content();
           }
         }
       }
