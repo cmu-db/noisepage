@@ -686,11 +686,13 @@ select replication_get_last_txn_id('foo')
 ----
 
 # should fail to signature match in the branch of matching function has variadic args, but input doesn't match (case 2 of variadic matching)
+# note that Postgres supports this, but I don't think we implicitly cast the number to a string
 statement error
 select concat('foo','bar',3)
 ----
 
 # should fail to signature match in the branch of matching function has variadic args, but input doesn't match (case 1 of variadic matching)
+# note that Postgres supports this, but I don't think we implicitly cast the number to a string
 statement error
 select concat(3,'foo','bar')
 ----
