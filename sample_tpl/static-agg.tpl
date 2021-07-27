@@ -40,14 +40,12 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
-  var output_buffer = @resultBufferNew(execCtx)
-  var out = @ptrCast(*Values, @resultBufferAllocRow(output_buffer))
+  var out = @ptrCast(*Values, @resultBufferAllocRow(execCtx))
   out.sum = @aggResult(&state.sum)
   for (var i : int64 = 0; @sqlToBool(i < out.sum); i = i + 1) {
     state.count = state.count + 1
   }
-  @resultBufferFinalize(output_buffer)
-  @resultBufferFree(output_buffer)
+  @resultBufferFinalize(execCtx)
 }
 
 fun main(execCtx: *ExecutionContext) -> int32 {
