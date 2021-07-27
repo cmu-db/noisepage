@@ -41,11 +41,25 @@ def get_ou_runner_data(filename, model_results_path, txn_sample_rate, model_map=
     if "execution" in filename:
         # Handle the execution data
         return _execution_get_ou_runner_data(filename, model_map, predict_cache, trim)
+    if "compilation" in filename:
+        return _compilation_get_data(filename)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_ou_runner_data(filename, model_results_path)
 
     return _default_get_ou_runner_data(filename)
+
+
+def _compilation_get_data(filename):
+    df = pd.read_csv(filename, skipinitialspace=True)
+    headers = list(df.columns.values)
+    data_info.instance.parse_csv_header(headers, False)
+    file_name = os.path.splitext(os.path.basename(filename))[0]
+
+    # Remove the first two (query_id and the name)
+    x = df.iloc[:, 2:-data_info.instance.METRICS_OUTPUT_NUM].values
+    y = df.iloc[:, -data_info.instance.OU_MODEL_TARGET_NUM:].values
+    return [OpUnitData(OpUnit[file_name.upper()], x, y)]
 
 
 def _default_get_ou_runner_data(filename):

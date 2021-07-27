@@ -128,6 +128,7 @@ OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.DISK_LOG_CONSUMER_TASK: None,
     OpUnit.TXN_BEGIN: None,
     OpUnit.TXN_COMMIT: None,
+    OpUnit.COMPILATION: None,
 
     # Execution engine opunits
     OpUnit.SEQ_SCAN: _num_rows_linear_transformer,
@@ -184,6 +185,7 @@ OPUNIT_X_TRANSFORMER_MAP = {
     OpUnit.DISK_LOG_CONSUMER_TASK: None,
     OpUnit.TXN_BEGIN: None,
     OpUnit.TXN_COMMIT: None,
+    OpUnit.COMPILATION: None,
 
     # Execution engine opunits
     OpUnit.SEQ_SCAN: None,

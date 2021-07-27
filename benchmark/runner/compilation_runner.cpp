@@ -1,4 +1,3 @@
-#include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -31,13 +30,20 @@ BENCHMARK_DEFINE_F(CompilationRunner, Compilation)(benchmark::State &state) {
   metrics_manager->EnableMetric(metrics::MetricsComponent::COMPILATION);
   metrics_manager->RegisterThread();
 
-  const std::string &path = "../sample_tpl/";
+  const std::string &path = "../sample_tpl/tpl_tests.txt";
+  std::ifstream tpl_tests(path);
+
+  std::string input_line;
   size_t identifier = 0;
-  for (const auto &entry : std::filesystem::directory_iterator(path)) {
-    if (entry.path().extension() == ".tpl") {
-      std::ifstream input(entry.path().string());
+  while (std::getline(tpl_tests, input_line)) {
+    if (input_line.find(".tpl") != std::string::npos && input_line[0] != '#') {
+      // We have found a valid test
+      std::string tpl = input_line.substr(0, input_line.find(","));
+      std::string target = "../sample_tpl/" + tpl;
+
+      std::ifstream input(target);
       std::string contents((std::istreambuf_iterator<char>(input)), (std::istreambuf_iterator<char>()));
-      EXECUTION_LOG_INFO("Running compilation on {}", entry.path().string());
+      EXECUTION_LOG_INFO("Running compilation on {}", target);
 
       execution::exec::ExecutionSettings exec_settings;
       auto exec_query = execution::compiler::ExecutableQuery(contents, nullptr, false, 16, exec_settings,
