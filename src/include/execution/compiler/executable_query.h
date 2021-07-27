@@ -15,6 +15,7 @@
 namespace noisepage {
 namespace selfdriving {
 class PipelineOperatingUnits;
+class CompilationOperatingUnits;
 namespace pilot {
 class PilotUtil;
 }  // namespace pilot
@@ -48,6 +49,7 @@ namespace runner {
 class ExecutionRunners;
 class ExecutionRunners_SEQ0_OutputRunners_Benchmark;
 class ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
+class CompilationRunner_Compilation_Benchmark;
 }  // namespace runner
 
 }  // namespace noisepage
@@ -83,10 +85,11 @@ class ExecutableQuery {
 
     /**
      * Run this fragment using the provided opaque query state object.
+     * @param query_id Query identifier
      * @param query_state The query state.
      * @param mode The execution mode to run the query with.
      */
-    void Run(std::byte query_state[], vm::ExecutionMode mode) const;
+    void Run(execution::query_id_t query_id, std::byte query_state[], vm::ExecutionMode mode) const;
 
     /**
      * @return True if this fragment is compiled and executable.
@@ -95,6 +98,9 @@ class ExecutableQuery {
 
     /** @return The metadata of this module. */
     const vm::ModuleMetadata &GetModuleMetadata() const;
+
+    /** @return module */
+    common::ManagedPointer<vm::Module> GetModule() const { return common::ManagedPointer(module_); }
 
     /**
      * Resets the compilation module. This will effectively force the module to be
@@ -141,9 +147,11 @@ class ExecutableQuery {
    * @param query_state_size The size of the state structure this query needs. This value is
    *                         represented in bytes.
    * @param pipeline_operating_units The pipeline operating units that were generated with the fragments.
+   * @param compilation_operating_units The compilation operating units generated from fragments.
    */
   void Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, std::size_t query_state_size,
-             std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units);
+             std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units,
+             std::unique_ptr<selfdriving::CompilationOperatingUnits> compilation_operating_units);
 
   /**
    * Execute the query.
@@ -201,6 +209,9 @@ class ExecutableQuery {
   // The pipeline operating units that were generated as part of this query.
   std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units_;
 
+  // The compilation operating units that were generated as part of this query.
+  std::unique_ptr<selfdriving::CompilationOperatingUnits> compilation_operating_units_;
+
   // For mini_runners.cpp
 
   /** Legacy constructor that creates a hardcoded fragment with main(ExecutionContext*)->int32. */
@@ -229,6 +240,7 @@ class ExecutableQuery {
   friend class noisepage::selfdriving::pilot::PilotUtil;
   friend class noisepage::execution::compiler::CompilationContext;  // SetQueryId
   friend class noisepage::runner::ExecutionRunners_SEQ10_0_IndexInsertRunners_Benchmark;
+  friend class noisepage::runner::CompilationRunner_Compilation_Benchmark;
 };
 
 }  // namespace noisepage::execution::compiler

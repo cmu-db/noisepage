@@ -14,6 +14,7 @@ enum class MetricsComponent : uint8_t {
   BIND_COMMAND,
   EXECUTE_COMMAND,
   QUERY_TRACE,
+  COMPILATION
 };
 
 /**
@@ -28,6 +29,6 @@ enum class MetricsOutput : uint8_t {
   CSV_AND_DB,
 };
 
-constexpr uint8_t NUM_COMPONENTS = 8;
+constexpr uint8_t NUM_COMPONENTS = 9;
 
 }  // namespace noisepage::metrics

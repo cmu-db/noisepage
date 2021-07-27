@@ -13,7 +13,7 @@
 #include "common/resource_tracker.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
-#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/execution_operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
 #include "transaction/transaction_defs.h"
 

@@ -21,6 +21,7 @@ MetricsStore::MetricsStore(const common::ManagedPointer<metrics::MetricsManager>
   bind_command_metric_ = std::make_unique<BindCommandMetric>();
   execute_command_metric_ = std::make_unique<ExecuteCommandMetric>();
   query_trace_metric_ = std::make_unique<QueryTraceMetric>();
+  compilation_metric_ = std::make_unique<CompilationMetric>();
 }
 
 std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDataToAggregate() {
@@ -62,6 +63,13 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
               pipeline_metric_ != nullptr,
               "PipelineMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
           result[component] = pipeline_metric_->Swap();
+          break;
+        }
+        case MetricsComponent::COMPILATION: {
+          NOISEPAGE_ASSERT(
+              compilation_metric_ != nullptr,
+              "CompilationMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
+          result[component] = compilation_metric_->Swap();
           break;
         }
         case MetricsComponent::BIND_COMMAND: {

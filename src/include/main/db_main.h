@@ -963,6 +963,7 @@ class DBMain {
     metrics::MetricsOutput query_trace_metrics_output_ = metrics::MetricsOutput::CSV;
     bool pipeline_metrics_ = false;
     uint8_t pipeline_metrics_sample_rate_ = 10;
+    bool compilation_metrics_ = false;
     bool transaction_metrics_ = false;
     bool logging_metrics_ = false;
     uint8_t logging_metrics_sample_rate_ = 100;
@@ -1065,6 +1066,7 @@ class DBMain {
       forecast_sample_limit_ = settings_manager->GetInt(settings::Param::forecast_sample_limit);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
       pipeline_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::pipeline_metrics_sample_rate);
+      compilation_metrics_ = settings_manager->GetBool(settings::Param::compilation_metrics_enable);
       logging_metrics_sample_rate_ = settings_manager->GetInt(settings::Param::logging_metrics_sample_rate);
       transaction_metrics_ = settings_manager->GetBool(settings::Param::transaction_metrics_enable);
       logging_metrics_ = settings_manager->GetBool(settings::Param::logging_metrics_enable);
@@ -1100,6 +1102,7 @@ class DBMain {
       metrics_manager->SetMetricOutput(metrics::MetricsComponent::QUERY_TRACE, query_trace_metrics_output_);
 
       if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+      if (compilation_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::COMPILATION);
       if (transaction_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
       if (logging_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
       if (gc_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);

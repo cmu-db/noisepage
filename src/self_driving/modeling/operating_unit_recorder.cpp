@@ -50,7 +50,7 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/execution_operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
 #include "storage/block_layout.h"
 #include "storage/index/bplustree.h"

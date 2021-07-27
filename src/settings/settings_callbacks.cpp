@@ -133,6 +133,17 @@ void Callbacks::MetricsPipelineSampleRate(void *old_value, void *new_value, DBMa
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::MetricsCompilation(void *const old_value, void *const new_value, DBMain *const db_main,
+                                   common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  bool new_status = *static_cast<bool *>(new_value);
+  if (new_status)
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::COMPILATION);
+  else
+    db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::COMPILATION);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 void Callbacks::MetricsLoggingSampleRate(void *old_value, void *new_value, DBMain *db_main,
                                          common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);

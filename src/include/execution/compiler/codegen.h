@@ -18,7 +18,7 @@
 #include "execution/sql/sql.h"
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
-#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/execution_operating_unit.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;

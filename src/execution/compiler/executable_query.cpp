@@ -10,7 +10,8 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
-#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/compilation_operating_unit.h"
+#include "self_driving/modeling/execution_operating_unit.h"
 #include "transaction/transaction_context.h"
 
 namespace noisepage::execution::compiler {
@@ -29,7 +30,7 @@ ExecutableQuery::Fragment::~Fragment() = default;
 
 void ExecutableQuery::Fragment::ResetCompiledModule() { module_->ResetCompiledModule(); }
 
-void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) const {
+void ExecutableQuery::Fragment::Run(execution::query_id_t query_id, byte query_state[], vm::ExecutionMode mode) const {
   using Function = std::function<void(void *)>;
 
   auto exec_ctx = *reinterpret_cast<exec::ExecutionContext **>(query_state);
@@ -38,7 +39,7 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
   }
   for (const auto &func_name : functions_) {
     Function func;
-    if (!module_->GetFunction(func_name, mode, &func)) {
+    if (!module_->GetFunction(query_id, func_name, mode, &func)) {
       throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name),
                                 common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
@@ -46,7 +47,7 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
       func(query_state);
     } catch (const AbortException &e) {
       for (const auto &teardown_name : teardown_fn_) {
-        if (!module_->GetFunction(teardown_name, mode, &func)) {
+        if (!module_->GetFunction(query_id, teardown_name, mode, &func)) {
           throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name),
                                     common::ErrorCode::ERRCODE_INTERNAL_ERROR);
         }
@@ -132,7 +133,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
   std::vector<std::unique_ptr<Fragment>> fragments;
   fragments.emplace_back(std::move(fragment));
 
-  Setup(std::move(fragments), query_state_size, nullptr);
+  Setup(std::move(fragments), query_state_size, nullptr, nullptr);
 
   if (is_file) {
     // acquire the output format
@@ -144,7 +145,8 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
 ExecutableQuery::~ExecutableQuery() = default;
 
 void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, const std::size_t query_state_size,
-                            std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units) {
+                            std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units,
+                            std::unique_ptr<selfdriving::CompilationOperatingUnits> compilation_operating_units) {
   NOISEPAGE_ASSERT(
       std::all_of(fragments.begin(), fragments.end(), [](const auto &fragment) { return fragment->IsCompiled(); }),
       "All query fragments are not compiled!");
@@ -154,6 +156,7 @@ void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, 
   fragments_ = std::move(fragments);
   query_state_size_ = query_state_size;
   pipeline_operating_units_ = std::move(pipeline_operating_units);
+  compilation_operating_units_ = std::move(compilation_operating_units);
 
   EXECUTION_LOG_TRACE("Query has {} fragment{} with {}-byte query state.", fragments_.size(),
                       fragments_.size() > 1 ? "s" : "", query_state_size_);
@@ -184,7 +187,7 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
 
   // Now run through fragments.
   for (const auto &fragment : fragments_) {
-    fragment->Run(query_state.get(), mode);
+    fragment->Run(query_id_, query_state.get(), mode);
   }
 
   // We do not currently re-use ExecutionContexts. However, this is unset to help ensure

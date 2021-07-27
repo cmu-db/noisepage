@@ -100,6 +100,11 @@ class BytecodeModule {
   const std::vector<LocalInfo> &GetStaticLocalsInfo() const { return static_locals_; }
 
   /**
+   * @return Size of the data section
+   */
+  size_t GetDataSize() const { return data_.size(); }
+
+  /**
    * @return The number of functions defined in this module.
    */
   std::size_t GetFunctionCount() const { return functions_.size(); }
