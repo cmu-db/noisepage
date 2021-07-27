@@ -161,6 +161,14 @@ class BindNodeVisitor final : public SqlNodeVisitor {
 
   /** @return `true` if we are binding within the context of a UDF, `false` otherwise */
   bool BindingForUDF() const;
+
+  /**
+   * Determine if the given identifier names a UDF variable.
+   * @param identifier The variable identifier
+   * @return `true` if the variable is declared in the UDF
+   * for which binding is performed, `false` otherwise
+   */
+  bool IsUDFVariable(const std::string &identifier) const;
 };
 
 }  // namespace binder
