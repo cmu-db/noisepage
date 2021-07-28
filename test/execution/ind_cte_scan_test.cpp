@@ -32,7 +32,7 @@ TEST_F(IndCteScanTest, IndCTEEmptyAccumulateTest) {
 
   // Create cte_table
   uint32_t col_oids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
-  uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
 
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
@@ -44,7 +44,7 @@ TEST_F(IndCteScanTest, IndCTEEmptyAccumulateTest) {
   EXPECT_FALSE(cte_scan.Accumulate());
 
   TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(), col_oids, 1};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()), cte_scan.GetReadCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;  // The number of records found
 
@@ -79,7 +79,7 @@ TEST_F(IndCteScanTest, IndCTESingleInsertTest) {
   index_iter.Init();
 
   // Create cte_table
-  uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
 
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
@@ -114,7 +114,7 @@ TEST_F(IndCteScanTest, IndCTESingleInsertTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
                                col_oids.data(), static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()), cte_scan.GetReadCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
@@ -151,7 +151,7 @@ TEST_F(IndCteScanTest, IndCTEWriteTableTest) {
   index_iter.Init();
 
   // Create cte_table
-  uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
 
   noisepage::execution::sql::IndCteScanIterator cte_scan{
@@ -186,7 +186,8 @@ TEST_F(IndCteScanTest, IndCTEWriteTableTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), cte_scan.GetReadTableOid().UnderlyingValue(), cte_table_col_ids,
                                static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteCte()->GetTable()),
+                         cte_scan.GetWriteCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
@@ -223,7 +224,7 @@ TEST_F(IndCteScanTest, IndCTEDoubleAccumulateTest) {
   index_iter.Init();
 
   // Create cte_table
-  uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
 
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
@@ -259,7 +260,7 @@ TEST_F(IndCteScanTest, IndCTEDoubleAccumulateTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
                                col_oids.data(), static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()), cte_scan.GetReadCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 
@@ -301,7 +302,7 @@ TEST_F(IndCteScanTest, IndCTEMultipleInsertTest) {
   index_iter.Init();
 
   // Create cte_table
-  uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
 
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
@@ -357,7 +358,7 @@ TEST_F(IndCteScanTest, IndCTEMultipleInsertTest) {
 
   TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
                                col_oids.data(), static_cast<uint32_t>(col_oids.size())};
-  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
+  seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()), cte_scan.GetReadCte()->GetSchema());
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
 

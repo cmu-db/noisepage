@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "execution/util/string_heap.h"
-#include "storage/storage_defs.h"
+#include "storage/varlen_entry.h"
 
 namespace noisepage::execution::sql {
 

@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-#include "type/type_id.h"
+#include "execution/sql/sql.h"
 
 namespace noisepage::runner {
 
@@ -14,12 +14,12 @@ namespace noisepage::runner {
 class ExecutionRunnersDataConfig {
  public:
   /** Distribution of table column types */
-  std::vector<std::vector<type::TypeId>> table_type_dists_ = {
-      {type::TypeId::INTEGER},
-      {type::TypeId::BIGINT},
-      {type::TypeId::VARCHAR},
-      {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::BIGINT},
-      {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
+  std::vector<std::vector<execution::sql::SqlTypeId>> table_type_dists_ = {
+      {execution::sql::SqlTypeId::Integer},
+      {execution::sql::SqlTypeId::BigInt},
+      {execution::sql::SqlTypeId::Varchar},
+      {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double, execution::sql::SqlTypeId::BigInt},
+      {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Varchar}};
 
   /**
    * Distribution of table columns

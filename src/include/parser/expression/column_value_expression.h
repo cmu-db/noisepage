@@ -44,7 +44,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param alias alias of the expression
    */
   ColumnValueExpression(std::string table_name, std::string col_name, AliasType alias)
-      : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, std::move(alias), {}),
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, execution::sql::SqlTypeId::Invalid, std::move(alias), {}),
         table_name_(std::move(table_name)),
         column_name_(std::move(col_name)) {}
 
@@ -53,7 +53,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param col_name column name
    */
   ColumnValueExpression(std::string table_name, std::string col_name)
-      : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, execution::sql::SqlTypeId::Invalid, {}),
         table_name_(std::move(table_name)),
         column_name_(std::move(col_name)) {}
 
@@ -63,7 +63,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param column_oid column OID
    */
   ColumnValueExpression(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, catalog::col_oid_t column_oid)
-      : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, {}),
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, execution::sql::SqlTypeId::Invalid, {}),
         database_oid_(database_oid),
         table_oid_(table_oid),
         column_oid_(column_oid) {}
@@ -73,7 +73,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param column_oid OID of the column.
    * @param type Type of the column.
    */
-  ColumnValueExpression(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, type::TypeId type)
+  ColumnValueExpression(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, execution::sql::SqlTypeId type)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}), table_oid_(table_oid), column_oid_(column_oid) {}
 
   /**
@@ -85,7 +85,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param alias Alias of the column this is referencing
    * @param column_oid Oid of the column (it should be a temp oid in this case)
    */
-  ColumnValueExpression(std::string table_name, std::string col_name, type::TypeId type, AliasType alias,
+  ColumnValueExpression(std::string table_name, std::string col_name, execution::sql::SqlTypeId type, AliasType alias,
                         catalog::col_oid_t column_oid)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, std::move(alias), {}),
         table_name_(std::move(table_name)),
@@ -101,7 +101,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param type Type of the column.
    */
   ColumnValueExpression(std::string table_name, std::string col_name, catalog::db_oid_t database_oid,
-                        catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, type::TypeId type)
+                        catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, execution::sql::SqlTypeId type)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}),
         table_name_(std::move(table_name)),
         column_name_(std::move(col_name)),

@@ -222,10 +222,9 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
   return {ResultType::COMPLETE, 0u};
 }
 
-TrafficCopResult TrafficCop::ExecuteShowStatement(
-    common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    common::ManagedPointer<network::Statement> statement,
-    const common::ManagedPointer<network::PostgresPacketWriter> out) const {
+TrafficCopResult TrafficCop::ExecuteShowStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                                  common::ManagedPointer<network::PostgresPacketWriter> out,
+                                                  common::ManagedPointer<network::Statement> statement) const {
   NOISEPAGE_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
                    "This is a non-transactional operation and we should not be in a transaction.");
   NOISEPAGE_ASSERT(statement->GetQueryType() == network::QueryType::QUERY_SHOW,
@@ -239,13 +238,12 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(
   const settings::ParamInfo &param_info = settings_manager_->GetParamInfo(param);
   std::string param_val = param_info.GetValue().ToString();
 
-  auto expr = std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR);
+  auto expr = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Varchar);
   expr->SetAlias(parser::AliasType(param_name));
   std::vector<noisepage::planner::OutputSchema::Column> cols;
-  cols.emplace_back(param_name, type::TypeId::VARCHAR, std::move(expr));
+  cols.emplace_back(param_name, execution::sql::SqlTypeId::Varchar, std::move(expr));
   execution::sql::StringVal result{param_val.c_str()};
 
-  out->WriteRowDescription(cols, {network::FieldFormat::text});
   out->WriteDataRow(reinterpret_cast<const byte *>(&result), cols, {network::FieldFormat::text});
   return {ResultType::COMPLETE, 0u};
 }
@@ -368,7 +366,7 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   // Dump to JSON string, wrap in StringVal, write the data row to the client
   // Create dummy column output scheme for writing data row
   std::vector<planner::OutputSchema::Column> output_columns;
-  output_columns.emplace_back("QUERY PLAN", type::TypeId::VARCHAR, nullptr);
+  output_columns.emplace_back("QUERY PLAN", execution::sql::SqlTypeId::Varchar, nullptr);
 
   const auto format =
       portal->GetStatement()->RootStatement().CastManagedPointerTo<parser::ExplainStatement>()->GetFormat();
@@ -431,7 +429,7 @@ TrafficCopResult TrafficCop::BindQuery(
       // it's not cached, bind it
       binder::BindNodeVisitor visitor(connection_ctx->Accessor(), connection_ctx->GetDatabaseOid());
       if (parameters != nullptr && !parameters->empty()) {
-        std::vector<type::TypeId> desired_param_types(
+        std::vector<execution::sql::SqlTypeId> desired_param_types(
             parameters->size());  // default construction of values is fine, Binding will overwrite it
         visitor.BindNameToNode(statement->ParseResult(), parameters, common::ManagedPointer(&desired_param_types));
         statement->SetDesiredParamTypes(std::move(desired_param_types));

@@ -138,25 +138,25 @@ class GenericKey {
 
 #define COMPARE_FUNC(OP)                                                                                              \
   switch (type_id) {                                                                                                  \
-    case type::TypeId::BOOLEAN:                                                                                       \
-    case type::TypeId::TINYINT:                                                                                       \
+    case execution::sql::SqlTypeId::Boolean:                                                                          \
+    case execution::sql::SqlTypeId::TinyInt:                                                                          \
       return *reinterpret_cast<const int8_t *const>(lhs_attr) OP * reinterpret_cast<const int8_t *const>(rhs_attr);   \
-    case type::TypeId::SMALLINT:                                                                                      \
+    case execution::sql::SqlTypeId::SmallInt:                                                                         \
       return *reinterpret_cast<const int16_t *const>(lhs_attr) OP * reinterpret_cast<const int16_t *const>(rhs_attr); \
-    case type::TypeId::INTEGER:                                                                                       \
+    case execution::sql::SqlTypeId::Integer:                                                                          \
       return *reinterpret_cast<const int32_t *const>(lhs_attr) OP * reinterpret_cast<const int32_t *const>(rhs_attr); \
-    case type::TypeId::DATE:                                                                                          \
+    case execution::sql::SqlTypeId::Date:                                                                             \
       return *reinterpret_cast<const uint32_t *const>(lhs_attr) OP *                                                  \
              reinterpret_cast<const uint32_t *const>(rhs_attr);                                                       \
-    case type::TypeId::BIGINT:                                                                                        \
+    case execution::sql::SqlTypeId::BigInt:                                                                           \
       return *reinterpret_cast<const int64_t *const>(lhs_attr) OP * reinterpret_cast<const int64_t *const>(rhs_attr); \
-    case type::TypeId::REAL:                                                                                          \
+    case execution::sql::SqlTypeId::Double:                                                                           \
       return *reinterpret_cast<const double *const>(lhs_attr) OP * reinterpret_cast<const double *const>(rhs_attr);   \
-    case type::TypeId::TIMESTAMP:                                                                                     \
+    case execution::sql::SqlTypeId::Timestamp:                                                                        \
       return *reinterpret_cast<const uint64_t *const>(lhs_attr) OP *                                                  \
              reinterpret_cast<const uint64_t *const>(rhs_attr);                                                       \
-    case type::TypeId::VARCHAR:                                                                                       \
-    case type::TypeId::VARBINARY: {                                                                                   \
+    case execution::sql::SqlTypeId::Varchar:                                                                          \
+    case execution::sql::SqlTypeId::Varbinary: {                                                                      \
       return CompareVarlens(lhs_attr, rhs_attr) OP 0;                                                                 \
     }                                                                                                                 \
     default:                                                                                                          \
@@ -169,7 +169,8 @@ class GenericKey {
      * @param rhs_attr second value to be compared
      * @return true if first is less than second
      */
-    static bool CompareLessThan(const type::TypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
+    static bool CompareLessThan(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr,
+                                const byte *const rhs_attr) {
       COMPARE_FUNC(<)  // NOLINT
     }
 
@@ -179,7 +180,8 @@ class GenericKey {
      * @param rhs_attr second value to be compared
      * @return true if first is greater than second
      */
-    static bool CompareGreaterThan(const type::TypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
+    static bool CompareGreaterThan(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr,
+                                   const byte *const rhs_attr) {
       COMPARE_FUNC(>)  // NOLINT
     }
 
@@ -189,7 +191,8 @@ class GenericKey {
      * @param rhs_attr second value to be compared
      * @return true if first is equal to second
      */
-    static bool CompareEquals(const type::TypeId type_id, const byte *const lhs_attr, const byte *const rhs_attr) {
+    static bool CompareEquals(const execution::sql::SqlTypeId type_id, const byte *const lhs_attr,
+                              const byte *const rhs_attr) {
       COMPARE_FUNC(==)
     }
   };
@@ -231,7 +234,7 @@ class GenericKey {
         return false;
       }
 
-      const noisepage::type::TypeId type_id = key_schema.GetColumns()[i].Type();
+      const noisepage::execution::sql::SqlTypeId type_id = key_schema.GetColumns()[i].Type();
 
       if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;
@@ -344,7 +347,7 @@ struct equal_to<noisepage::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const noisepage::type::TypeId type_id = key_schema.GetColumns()[i].Type();
+      const noisepage::execution::sql::SqlTypeId type_id = key_schema.GetColumns()[i].Type();
 
       if (!noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareEquals(type_id, lhs_attr,
                                                                                           rhs_attr)) {
@@ -400,7 +403,7 @@ struct less<noisepage::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const noisepage::type::TypeId type_id = key_schema.GetColumns()[i].Type();
+      const noisepage::execution::sql::SqlTypeId type_id = key_schema.GetColumns()[i].Type();
 
       if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;

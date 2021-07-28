@@ -205,7 +205,7 @@ void IndexJoinTranslator::FillKey(
   for (const auto &key : index_exprs) {
     // @prSet(pr, type, nullable, attr, expr, true)
     uint16_t attr_offset = index_pm_.at(key.first);
-    type::TypeId attr_type = index_schema_.GetColumn(key.first.UnderlyingValue() - 1).Type();
+    execution::sql::SqlTypeId attr_type = index_schema_.GetColumn(key.first.UnderlyingValue() - 1).Type();
     bool nullable = index_schema_.GetColumn(key.first.UnderlyingValue() - 1).Nullable();
     auto *set_key_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(pr), attr_type, nullable, attr_offset,
                                              context->DeriveValue(*key.second.Get(), this), true);

@@ -19,7 +19,7 @@ class TaskManagerTests : public TerrierTest {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
     param_map.find(settings::Param::task_pool_size)->second.value_ =
-        parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1));
+        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(1));
 
     db_main_ = noisepage::DBMain::Builder()
                    .SetSettingsParameterMap(std::move(param_map))
@@ -41,9 +41,9 @@ class TaskManagerTests : public TerrierTest {
 
   void LoadInsert() {
     for (size_t i = 0; i < NUM_VALUE; i++) {
-      std::vector<type::TypeId> types{type::TypeId::INTEGER};
+      std::vector<execution::sql::SqlTypeId> types{execution::sql::SqlTypeId::Integer};
       std::vector<parser::ConstantValueExpression> params;
-      params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(i));
+      params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(i));
 
       std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
       params_vec.emplace_back(std::move(params));
@@ -111,11 +111,11 @@ TEST_F(TaskManagerTests, WorkerShrinkInsert) {
 
 // NOLINTNEXTLINE
 TEST_F(TaskManagerTests, BulkInsert) {
-  std::vector<type::TypeId> types{type::TypeId::INTEGER};
+  std::vector<execution::sql::SqlTypeId> types{execution::sql::SqlTypeId::Integer};
   std::vector<std::vector<parser::ConstantValueExpression>> params_vec;
   for (size_t i = 0; i < NUM_VALUE; i++) {
     std::vector<parser::ConstantValueExpression> params;
-    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(i));
+    params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(i));
     params_vec.emplace_back(std::move(params));
   }
   task_manager_->AddTask(std::make_unique<task::TaskDML>(catalog::db_oid_t(0), "INSERT INTO t VALUES ($1)",

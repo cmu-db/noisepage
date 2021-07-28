@@ -968,7 +968,6 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/task/*.cpp"
         "test/traffic_cop/*.cpp"
         "test/transaction/*.cpp"
-        "test/type/*.cpp"
         )
 
 # The individual tests that require bytecode_handlers_ir.bc present in the test directory.
@@ -1096,7 +1095,6 @@ add_jumbotest("test/storage" "block_access_controller_test;block_compactor_test;
 add_jumbotest("test/task" "")
 add_jumbotest("test/traffic_cop" "traffic_cop_test;")
 add_jumbotest("test/transaction" "large_transaction_test;")
-add_jumbotest("test/type" "")
 
 # Read up on CTest resource groups: https://cmake.org/cmake/help/latest/manual/ctest.1.html#resource-allocation
 # All tests that try to launch the server on port 15721 must declare that here.

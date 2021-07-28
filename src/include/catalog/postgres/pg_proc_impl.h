@@ -173,7 +173,7 @@ class PgProcImpl {
    */
   void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn,
                             common::ManagedPointer<DatabaseCatalog> dbc, std::string &&func_name,
-                            type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
+                            execution::sql::SqlTypeId func_ret_type, std::vector<execution::sql::SqlTypeId> &&arg_types,
                             execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   const db_oid_t db_oid_;

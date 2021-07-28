@@ -10,7 +10,6 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "test_util/test_harness.h"
-#include "type/type_id.h"
 
 namespace noisepage::planner {
 
@@ -21,7 +20,8 @@ class OutputSchemaTests : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+    return std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                             execution::sql::BoolVal(true));
   }
 };
 
@@ -30,12 +30,12 @@ TEST(OutputSchemaTests, OutputSchemaTest) {
   // Create two OutputSchema objects with the same info.
   // They should hash to the same values and be equivalent
 
-  OutputSchema::Column col0("dummy_col", type::TypeId::INTEGER, OutputSchemaTests::BuildDummyPredicate());
+  OutputSchema::Column col0("dummy_col", execution::sql::SqlTypeId::Integer, OutputSchemaTests::BuildDummyPredicate());
   std::vector<OutputSchema::Column> cols0;
   cols0.emplace_back(col0.Copy());
   auto schema0 = std::make_unique<OutputSchema>(std::move(cols0));
 
-  OutputSchema::Column col1("dummy_col", type::TypeId::INTEGER, OutputSchemaTests::BuildDummyPredicate());
+  OutputSchema::Column col1("dummy_col", execution::sql::SqlTypeId::Integer, OutputSchemaTests::BuildDummyPredicate());
   std::vector<OutputSchema::Column> cols1;
   cols1.emplace_back(col1.Copy());
   auto schema1 = std::make_unique<OutputSchema>(std::move(cols1));
@@ -45,7 +45,7 @@ TEST(OutputSchemaTests, OutputSchemaTest) {
 
   // Now make a different schema and check to make sure that it is not
   // equivalent and the hash is different
-  OutputSchema::Column col2("XXX", type::TypeId::BOOLEAN, OutputSchemaTests::BuildDummyPredicate());
+  OutputSchema::Column col2("XXX", execution::sql::SqlTypeId::Boolean, OutputSchemaTests::BuildDummyPredicate());
   std::vector<OutputSchema::Column> cols2;
   cols2.emplace_back(col2.Copy());
   auto schema2 = std::make_unique<OutputSchema>(std::move(cols2));
@@ -66,10 +66,10 @@ TEST(OutputSchemaTests, OutputSchemaTest) {
 // NOLINTNEXTLINE
 TEST(OutputSchemaTests, ColumnTest) {
   std::string name = "xxx";
-  type::TypeId type_id = type::TypeId::INTEGER;
+  execution::sql::SqlTypeId type_id = execution::sql::SqlTypeId::Integer;
 
   OutputSchema::Column col0(name, type_id, OutputSchemaTests::BuildDummyPredicate());
-  OutputSchema::Column col1("xxx", type::TypeId::INTEGER, OutputSchemaTests::BuildDummyPredicate());
+  OutputSchema::Column col1("xxx", execution::sql::SqlTypeId::Integer, OutputSchemaTests::BuildDummyPredicate());
   EXPECT_EQ(col0, col1);
   EXPECT_EQ(col0.Hash(), col1.Hash());
 
@@ -77,14 +77,14 @@ TEST(OutputSchemaTests, ColumnTest) {
   // it is never equal to or have the same hash as the original column
   for (int i = 0; i < 2; i++) {
     std::string other_name = name;
-    type::TypeId other_type_id = type_id;
+    execution::sql::SqlTypeId other_type_id = type_id;
 
     switch (i) {
       case 0:
         other_name = "YYY";
         break;
       case 1:
-        other_type_id = type::TypeId::BOOLEAN;
+        other_type_id = execution::sql::SqlTypeId::Boolean;
         break;
     }
     OutputSchema::Column other_col(other_name, other_type_id, OutputSchemaTests::BuildDummyPredicate());

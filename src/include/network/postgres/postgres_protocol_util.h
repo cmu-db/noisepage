@@ -4,9 +4,9 @@
 #include <utility>
 
 #include "common/error/exception.h"
+#include "execution/sql/sql.h"
 #include "network/network_defs.h"
 #include "network/postgres/postgres_defs.h"
-#include "type/type_id.h"
 
 namespace noisepage::network {
 
@@ -23,7 +23,7 @@ class PostgresProtocolUtil {
    * @param type the input type
    * @return output type
    */
-  static type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type);
+  static execution::sql::SqlTypeId PostgresValueTypeToInternalValueType(PostgresValueType type);
 
   /**
    * Convert our internal TypeId to a PostgresValueType.
@@ -31,7 +31,7 @@ class PostgresProtocolUtil {
    * @param type the input type
    * @return output type
    */
-  static PostgresValueType InternalValueTypeToPostgresValueType(type::TypeId type);
+  static PostgresValueType InternalValueTypeToPostgresValueType(execution::sql::SqlTypeId type);
 };
 
 }  // namespace noisepage::network

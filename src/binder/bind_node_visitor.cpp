@@ -54,7 +54,7 @@ BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAc
 void BindNodeVisitor::BindNameToNode(
     common::ManagedPointer<parser::ParseResult> parse_result,
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
-    const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types) {
+    const common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> desired_parameter_types) {
   NOISEPAGE_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
   sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters, desired_parameter_types);
   NOISEPAGE_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
@@ -540,8 +540,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     // If NULL was provided as a select column, in postgres the default type is "text". See #1020.
     if (select_element->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
       auto cve = select_element.CastManagedPointerTo<parser::ConstantValueExpression>();
-      if (cve->IsNull() && sherpa_->GetDesiredType(select_element) == type::TypeId::INVALID) {
-        sherpa_->SetDesiredType(select_element, type::TypeId::VARCHAR);
+      if (cve->IsNull() && sherpa_->GetDesiredType(select_element) == execution::sql::SqlTypeId::Invalid) {
+        sherpa_->SetDesiredType(select_element, execution::sql::SqlTypeId::Varchar);
       }
     }
 
@@ -709,7 +709,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
 
   // The schema is authoritative on what the type of this ColumnValueExpression should be, UNLESS
   // some specific type was already requested.
-  desired_type = desired_type == type::TypeId::INVALID ? expr->GetReturnValueType() : desired_type;
+  desired_type = desired_type == execution::sql::SqlTypeId::Invalid ? expr->GetReturnValueType() : desired_type;
   sherpa_->SetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>(), desired_type);
   sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 }
@@ -738,7 +738,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConjunctionExpression
   sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
   for (const auto child : expr->GetChildren()) {
-    sherpa_->SetDesiredType(child, type::TypeId::BOOLEAN);
+    sherpa_->SetDesiredType(child, execution::sql::SqlTypeId::Boolean);
   }
   SqlNodeVisitor::Visit(expr);
 }
@@ -797,7 +797,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValueExpress
       common::ManagedPointer(&((*(sherpa_->GetParameters()))[expr->GetValueIdx()]));
   const auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
-  if (desired_type != type::TypeId::INVALID) BinderUtil::CheckAndTryPromoteType(param, desired_type);
+  if (desired_type != execution::sql::SqlTypeId::Invalid) BinderUtil::CheckAndTryPromoteType(param, desired_type);
 
   expr->return_value_type_ = param->GetReturnValueType();
   sherpa_->SetDesiredParameterType(expr->GetValueIdx(), param->GetReturnValueType());
@@ -915,16 +915,16 @@ void BindNodeVisitor::UnifyOrderByExpression(
   for (size_t idx = 0; idx < size; idx++) {
     if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::VALUE_CONSTANT) {
       auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
-      type::TypeId type = constant_value_expression->GetReturnValueType();
+      execution::sql::SqlTypeId type = constant_value_expression->GetReturnValueType();
       int64_t column_id = 0;
       switch (type) {
-        case type::TypeId::TINYINT:
-        case type::TypeId::SMALLINT:
-        case type::TypeId::INTEGER:
-        case type::TypeId::BIGINT:
+        case execution::sql::SqlTypeId::TinyInt:
+        case execution::sql::SqlTypeId::SmallInt:
+        case execution::sql::SqlTypeId::Integer:
+        case execution::sql::SqlTypeId::BigInt:
           column_id = constant_value_expression->GetInteger().val_;
           break;
-        case type::TypeId::REAL:
+        case execution::sql::SqlTypeId::Double:
           column_id = constant_value_expression->GetReal().val_;
           break;
         default:

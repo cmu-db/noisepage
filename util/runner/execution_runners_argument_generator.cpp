@@ -34,13 +34,13 @@ void ExecutionRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const 
                                                            const ExecutionRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER, type::TypeId::REAL};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
-        if (type == type::TypeId::INTEGER)
+        if (type == execution::sql::SqlTypeId::Integer)
           b->push_back({col, 0, row});
-        else if (type == type::TypeId::REAL)
+        else if (type == execution::sql::SqlTypeId::Double)
           b->push_back({0, col, row});
       }
     }
@@ -53,10 +53,11 @@ void ExecutionRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const 
 void ExecutionRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
                                                          const ExecutionRunnersDataConfig &config) {
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER, type::TypeId::REAL, type::TypeId::VARCHAR};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double,
+                execution::sql::SqlTypeId::Varchar};
   const std::vector<uint32_t> *num_cols;
   for (auto type : types) {
-    if (type == type::TypeId::VARCHAR)
+    if (type == execution::sql::SqlTypeId::Varchar)
       num_cols = &config.sweep_varchar_col_nums_;
     else
       num_cols = &config.sweep_col_nums_;
@@ -65,20 +66,20 @@ void ExecutionRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const Ex
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
-          if (type == type::TypeId::INTEGER)
+          if (type == execution::sql::SqlTypeId::Integer)
             b->push_back({col, 0, 15, 0, row, car, 0});
-          else if (type == type::TypeId::REAL)
+          else if (type == execution::sql::SqlTypeId::Double)
             b->push_back({0, col, 0, 15, row, car, 0});
-          else if (type == type::TypeId::VARCHAR)
+          else if (type == execution::sql::SqlTypeId::Varchar)
             b->push_back({0, col, 0, 5, row, car, 1});
           car *= 2;
         }
 
-        if (type == type::TypeId::INTEGER)
+        if (type == execution::sql::SqlTypeId::Integer)
           b->push_back({col, 0, 15, 0, row, row, 0});
-        else if (type == type::TypeId::REAL)
+        else if (type == execution::sql::SqlTypeId::Double)
           b->push_back({0, col, 0, 15, row, row, 0});
-        else if (type == type::TypeId::VARCHAR)
+        else if (type == execution::sql::SqlTypeId::Varchar)
           b->push_back({0, col, 0, 5, row, row, 1});
       }
     }
@@ -101,23 +102,23 @@ void ExecutionRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const Ex
   auto is_topks = {0, 1};
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER};
+  auto types = {execution::sql::SqlTypeId::Integer};
   for (auto is_topk : is_topks) {
     for (auto type : types) {
       for (auto col : num_cols) {
         for (auto row : row_nums) {
           int64_t car = 1;
           while (car < row) {
-            if (type == type::TypeId::INTEGER)
+            if (type == execution::sql::SqlTypeId::Integer)
               b->push_back({col, 0, 15, 0, row, car, is_topk});
-            else if (type == type::TypeId::REAL)
+            else if (type == execution::sql::SqlTypeId::Double)
               b->push_back({0, col, 0, 15, row, car, is_topk});
             car *= 2;
           }
 
-          if (type == type::TypeId::INTEGER)
+          if (type == execution::sql::SqlTypeId::Integer)
             b->push_back({col, 0, 15, 0, row, row, is_topk});
-          else if (type == type::TypeId::REAL)
+          else if (type == execution::sql::SqlTypeId::Double)
             b->push_back({0, col, 0, 15, row, row, is_topk});
         }
       }
@@ -128,10 +129,10 @@ void ExecutionRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const Ex
 void ExecutionRunnersArgumentGenerator::GenAggregateArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
                                                               const ExecutionRunnersDataConfig &config) {
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER, type::TypeId::VARCHAR};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Varchar};
   const std::vector<uint32_t> *num_cols;
   for (auto type : types) {
-    if (type == type::TypeId::VARCHAR)
+    if (type == execution::sql::SqlTypeId::Varchar)
       num_cols = &config.sweep_varchar_col_nums_;
     else
       num_cols = &config.sweep_col_nums_;
@@ -140,14 +141,14 @@ void ExecutionRunnersArgumentGenerator::GenAggregateArguments(OutputArgs *b, con
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
-          if (type != type::TypeId::VARCHAR)
+          if (type != execution::sql::SqlTypeId::Varchar)
             b->push_back({col, 0, 15, 0, row, car});
           else
             b->push_back({0, col, 0, 5, row, car});
           car *= 2;
         }
 
-        if (type != type::TypeId::VARCHAR)
+        if (type != execution::sql::SqlTypeId::Varchar)
           b->push_back({col, 0, 15, 0, row, row});
         else
           b->push_back({0, col, 0, 5, row, row});
@@ -178,7 +179,7 @@ void ExecutionRunnersArgumentGenerator::GenJoinSelfArguments(OutputArgs *b, cons
                                                              const ExecutionRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER};
+  auto types = {execution::sql::SqlTypeId::Integer};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -186,18 +187,18 @@ void ExecutionRunnersArgumentGenerator::GenJoinSelfArguments(OutputArgs *b, cons
         std::vector<int64_t> cars;
         while (car < row) {
           if (row * row / car <= settings.data_rows_limit_) {
-            if (type == type::TypeId::INTEGER)
+            if (type == execution::sql::SqlTypeId::Integer)
               b->push_back({col, 0, 15, 0, row, car});
-            else if (type == type::TypeId::BIGINT)
+            else if (type == execution::sql::SqlTypeId::BigInt)
               b->push_back({0, col, 0, 15, row, car});
           }
 
           car *= 2;
         }
 
-        if (type == type::TypeId::INTEGER)
+        if (type == execution::sql::SqlTypeId::Integer)
           b->push_back({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::BIGINT)
+        else if (type == execution::sql::SqlTypeId::BigInt)
           b->push_back({0, col, 0, 15, row, row});
       }
     }
@@ -208,7 +209,7 @@ void ExecutionRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, c
                                                                 const ExecutionRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER};
+  auto types = {execution::sql::SqlTypeId::Integer};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (size_t i = 0; i < row_nums.size(); i++) {
@@ -219,9 +220,9 @@ void ExecutionRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, c
           auto probe_car = row_nums[j];
 
           auto matched_car = row_nums[i];
-          if (type == type::TypeId::INTEGER)
+          if (type == execution::sql::SqlTypeId::Integer)
             b->push_back({col, 0, 15, 0, build_rows, build_car, probe_rows, probe_car, matched_car});
-          else if (type == type::TypeId::BIGINT)
+          else if (type == execution::sql::SqlTypeId::BigInt)
             b->push_back({0, col, 0, 15, build_rows, build_car, probe_rows, probe_car, matched_car});
         }
       }
@@ -231,13 +232,14 @@ void ExecutionRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, c
 
 void ExecutionRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
                                                             const ExecutionRunnersDataConfig &config) {
-  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt,
+                execution::sql::SqlTypeId::Varchar};
   auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto &lookup_sizes = config.sweep_index_lookup_sizes_;
   const std::vector<uint32_t> *key_sizes;
   for (auto type : types) {
-    int64_t tbl_cols = (type == type::TypeId::VARCHAR) ? 5 : 15;
-    if (type == type::TypeId::VARCHAR)
+    int64_t tbl_cols = (type == execution::sql::SqlTypeId::Varchar) ? 5 : 15;
+    if (type == execution::sql::SqlTypeId::Varchar)
       key_sizes = &config.sweep_varchar_index_col_nums_;
     else
       key_sizes = &config.sweep_index_col_nums_;
@@ -278,15 +280,15 @@ void ExecutionRunnersArgumentGenerator::GenIdxJoinArguments(OutputArgs *b, const
 
 void ExecutionRunnersArgumentGenerator::GenInsertArguments(OutputArgs *b, const ExecutionRunnersSettings &settings,
                                                            const ExecutionRunnersDataConfig &config) {
-  auto types = {type::TypeId::INTEGER, type::TypeId::REAL};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double};
   auto &num_rows = config.sweep_insert_row_nums_;
   auto &num_cols = config.sweep_col_nums_;
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : num_rows) {
-        if (type == type::TypeId::INTEGER)
+        if (type == execution::sql::SqlTypeId::Integer)
           b->push_back({col, 0, col, row});
-        else if (type == type::TypeId::REAL)
+        else if (type == execution::sql::SqlTypeId::Double)
           b->push_back({0, col, col, row});
       }
     }
@@ -309,7 +311,8 @@ void ExecutionRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, c
   auto &idx_key = config.sweep_update_index_col_nums_;
   auto &update_keys = config.sweep_update_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer,
+                                                  execution::sql::SqlTypeId::BigInt};
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
       for (auto update_key : update_keys) {
@@ -322,9 +325,9 @@ void ExecutionRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, c
           // We need to do this to prevent update/delete from unintentionally
           // updating multiple indexes. This way, there will only be 1 index
           // on the table at a given time.
-          if (type == type::TypeId::INTEGER)
+          if (type == execution::sql::SqlTypeId::Integer)
             b->push_back({idx_key_size, 0, update_key, 15, 0, row_num, 0, 1});
-          else if (type == type::TypeId::BIGINT)
+          else if (type == execution::sql::SqlTypeId::BigInt)
             b->push_back({0, idx_key_size, update_key, 0, 15, row_num, 0, 1});
 
           int64_t lookup_size = 1;
@@ -335,16 +338,16 @@ void ExecutionRunnersArgumentGenerator::GenUpdateIndexArguments(OutputArgs *b, c
           }
 
           for (auto lookup : lookups) {
-            if (type == type::TypeId::INTEGER)
+            if (type == execution::sql::SqlTypeId::Integer)
               b->push_back({idx_key_size, 0, update_key, 15, 0, row_num, lookup, -1});
-            else if (type == type::TypeId::BIGINT)
+            else if (type == execution::sql::SqlTypeId::BigInt)
               b->push_back({0, idx_key_size, update_key, 0, 15, row_num, lookup, -1});
           }
 
           // Special argument used to indicate a drop index
-          if (type == type::TypeId::INTEGER)
+          if (type == execution::sql::SqlTypeId::Integer)
             b->push_back({idx_key_size, 0, update_key, 15, 0, row_num, 0, 0});
-          else if (type == type::TypeId::BIGINT)
+          else if (type == execution::sql::SqlTypeId::BigInt)
             b->push_back({0, idx_key_size, update_key, 0, 15, row_num, 0, 0});
         }
       }
@@ -356,7 +359,8 @@ void ExecutionRunnersArgumentGenerator::GenDeleteIndexArguments(OutputArgs *b, c
                                                                 const ExecutionRunnersDataConfig &config) {
   auto &idx_key = config.sweep_index_col_nums_;
   auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer,
+                                                  execution::sql::SqlTypeId::BigInt};
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
       for (auto row_num : row_nums) {
@@ -366,9 +370,9 @@ void ExecutionRunnersArgumentGenerator::GenDeleteIndexArguments(OutputArgs *b, c
         // We need to do this to prevent update/delete from unintentionally
         // updating multiple indexes. This way, there will only be 1 index
         // on the table at a given time.
-        if (type == type::TypeId::INTEGER)
+        if (type == execution::sql::SqlTypeId::Integer)
           b->push_back({idx_key_size, 0, 15, 0, row_num, 0, 1});
-        else if (type == type::TypeId::BIGINT)
+        else if (type == execution::sql::SqlTypeId::BigInt)
           b->push_back({0, idx_key_size, 0, 15, row_num, 0, 1});
 
         int64_t lookup_size = 1;
@@ -379,16 +383,16 @@ void ExecutionRunnersArgumentGenerator::GenDeleteIndexArguments(OutputArgs *b, c
         }
 
         for (auto lookup : lookups) {
-          if (type == type::TypeId::INTEGER)
+          if (type == execution::sql::SqlTypeId::Integer)
             b->push_back({idx_key_size, 0, 15, 0, row_num, lookup, -1});
-          else if (type == type::TypeId::BIGINT)
+          else if (type == execution::sql::SqlTypeId::BigInt)
             b->push_back({0, idx_key_size, 0, 15, row_num, lookup, -1});
         }
 
         // Special argument used to indicate a drop index
-        if (type == type::TypeId::INTEGER)
+        if (type == execution::sql::SqlTypeId::Integer)
           b->push_back({idx_key_size, 0, 15, 0, row_num, 0, 0});
-        else if (type == type::TypeId::BIGINT)
+        else if (type == execution::sql::SqlTypeId::BigInt)
           b->push_back({0, idx_key_size, 0, 15, row_num, 0, 0});
       }
     }
@@ -412,7 +416,7 @@ void ExecutionRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, c
   }
   std::sort(num_cols.begin(), num_cols.end(), std::less<>());
 
-  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt};
   for (auto thread : num_threads) {
     for (auto type : types) {
       for (auto col : num_cols) {
@@ -429,9 +433,9 @@ void ExecutionRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, c
             car = car / (pow(2, settings.create_index_large_cardinality_num_));
           }
 
-          if (type == type::TypeId::INTEGER)
+          if (type == execution::sql::SqlTypeId::Integer)
             b->push_back({col, 0, 15, 0, row, car, 0, thread});
-          else if (type == type::TypeId::BIGINT)
+          else if (type == execution::sql::SqlTypeId::BigInt)
             b->push_back({0, col, 0, 15, row, car, 0, thread});
         }
       }
@@ -479,7 +483,7 @@ void ExecutionRunnersArgumentGenerator::GenIndexInsertDeleteArguments(OutputArgs
                                                                       const ExecutionRunnersDataConfig &config) {
   auto num_indexes = {settings.index_model_batch_size_};
   const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
-  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt};
   auto num_cols = config.sweep_index_col_nums_;
 
   for (auto num_index : num_indexes) {

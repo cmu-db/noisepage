@@ -21,7 +21,7 @@ CSVScanPlanNode::CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> 
                                  std::unique_ptr<OutputSchema> output_schema,
                                  common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                                  catalog::db_oid_t database_oid, std::string file_name, char delimiter, char quote,
-                                 char escape, std::vector<type::TypeId> value_types, uint32_t scan_limit,
+                                 char escape, std::vector<execution::sql::SqlTypeId> value_types, uint32_t scan_limit,
                                  bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset,
                                  plan_node_id_t plan_node_id)
     : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
@@ -90,7 +90,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CSVScanPlanNode::FromJs
   delimiter_ = j.at("delimiter").get<char>();
   quote_ = j.at("quote").get<char>();
   escape_ = j.at("escape").get<char>();
-  value_types_ = j.at("value_types").get<std::vector<type::TypeId>>();
+  value_types_ = j.at("value_types").get<std::vector<execution::sql::SqlTypeId>>();
   return exprs;
 }
 

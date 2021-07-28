@@ -15,7 +15,7 @@ class StarExpression : public AbstractExpression {
   /**
    * Instantiates a new star expression, e.g. as in COUNT(*).
    */
-  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) {}
+  StarExpression() : AbstractExpression(ExpressionType::STAR, execution::sql::SqlTypeId::Integer, {}) {}
 
   /**
    * Copies this StarExpression

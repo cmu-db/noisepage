@@ -493,7 +493,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
       auto check_cols = std::vector<std::string>();
 
       // TODO(Gus,Wen) more expression types need to be supported
-      if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
+      if (col->GetCheckExpression()->GetReturnValueType() == execution::sql::SqlTypeId::Boolean) {
         check_cols.push_back(col->GetColumnName());
 
         common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
