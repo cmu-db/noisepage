@@ -147,12 +147,12 @@ class PgProcImpl {
    * @param dbc             The catalog that pg_proc is in.
    * @param procns          The namespace of the procedure to look in.
    * @param procname        The name of the procedure to look for.
-   * @param arg_types       The types of all arguments in this function.
+   * @param input_arg_types       The types of all arguments in this function.
    * @return                The OID of the procedure if found. Else INVALID_PROC_OID.
    */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                         common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t procns,
-                        const std::string &procname, const std::vector<type_oid_t> &arg_types);
+                        const std::string &procname, const std::vector<type_oid_t> &input_arg_types);
 
   /** @brief Bootstrap all the builtin procedures in pg_proc. This assumes exclusive use of dbc->next_oid_. */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn,

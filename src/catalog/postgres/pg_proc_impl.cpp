@@ -312,7 +312,7 @@ common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetPro
 
 proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const common::ManagedPointer<DatabaseCatalog> dbc, const namespace_oid_t procns,
-                                  const std::string &procname, const std::vector<type_oid_t> &arg_types) {
+                                  const std::string &procname, const std::vector<type_oid_t> &input_arg_types) {
   const auto &name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
@@ -340,8 +340,8 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
     auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
 
     // Search through the results and check if any match the parsed function by argument types.
-    for (const auto &tuple : results) {
-      bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
+    for (const auto &candidate_proc_slot : results) {
+      bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, candidate_proc_slot, table_pr);
       NOISEPAGE_ASSERT(visible, "Index scan should have already verified visibility.");
 
       // "PROARGTYPES ... represents the call signature of the function". Check only input arguments.
@@ -349,12 +349,12 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
 
       bool match = false;
 
-      const auto num_function_args = *(table_pr->Get<uint16_t, false>(pm.at(PgProc::PRONARGS.oid_), nullptr));
-      if (num_function_args <= arg_types.size()) {
+      const auto candidate_proc_nargs = *(table_pr->Get<uint16_t, false>(pm.at(PgProc::PRONARGS.oid_), nullptr));
+      if (candidate_proc_nargs <= input_arg_types.size()) {
         // input has enough arguments to try to match types
-        if (num_function_args == 0) {
+        if (candidate_proc_nargs == 0) {
           // function has no args, check the length of the input args
-          if (arg_types.empty()) {
+          if (input_arg_types.empty()) {
             // both had an empty argument list
             match = true;
           } else {
@@ -367,39 +367,42 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
 
           // Read the arg types out of the table
           bool null_arg = false;
-          const auto *result_arg_types =
+          const auto *candidate_proc_args =
               table_pr->Get<storage::VarlenEntry, true>(pm.at(PgProc::PROARGTYPES.oid_), &null_arg);
           NOISEPAGE_ASSERT(!null_arg, "This shouldn't be NULL if nargs > 0.");
 
-          const auto result_arg_types_vector =
-              result_arg_types->DeserializeArray<type_oid_t>();  // TODO(Matt): could probably elide this copy with
-                                                                 // VarlenEntry.Content() shenanigans directly
-          if (result_arg_types_vector == arg_types) {
+          const auto candidate_proc_args_vector = candidate_proc_args->DeserializeArray<
+              type_oid_t>();  // TODO(Matt): could maybe elide this copy with
+                              // VarlenEntry.Content() shenanigans, but then need a bespoke way to compare against input
+                              // args in their vector. Previous version of this function constructed a VarlenEntry of
+                              // input args to compare, which seems worse.
+          if (candidate_proc_args_vector == input_arg_types) {
             // argument signature matches exactly
             match = true;
           } else {
             // not an exact signature match, check if the function is variadic
-            const auto variadic_type = *(table_pr->Get<type_oid_t, false>(pm.at(PgProc::PROVARIADIC.oid_), nullptr));
-            if (variadic_type != INVALID_TYPE_OID) {
+            const auto candidate_proc_variadic =
+                *(table_pr->Get<type_oid_t, false>(pm.at(PgProc::PROVARIADIC.oid_), nullptr));
+            if (candidate_proc_variadic != INVALID_TYPE_OID) {
               // it's variadic. match if:
               // 1) function's args are a prefix of input args
               // 2) remaining input args are all the same, and same type as variadic in function signature
 
               // check condition 1
               bool prefix_match = true;
-              for (uint16_t i = 0; i < num_function_args && prefix_match; i++) {
-                if (result_arg_types_vector[i] != arg_types[i]) {
+              for (uint16_t i = 0; i < candidate_proc_nargs && prefix_match; i++) {
+                if (candidate_proc_args_vector[i] != input_arg_types[i]) {
                   // type mismatch, bail out
                   prefix_match = false;
                 }
               }
               if (prefix_match) {
                 // condition 1 satisfied, check condition 2
-                NOISEPAGE_ASSERT(variadic_type == result_arg_types_vector.back(),
+                NOISEPAGE_ASSERT(candidate_proc_variadic == candidate_proc_args_vector.back(),
                                  "Last argument of function signature should be the variadic.");
                 bool variadic_args_match = true;
-                for (uint16_t i = num_function_args; i < arg_types.size() && variadic_args_match; i++) {
-                  if (arg_types[i] != variadic_type) {
+                for (uint16_t i = candidate_proc_nargs; i < input_arg_types.size() && variadic_args_match; i++) {
+                  if (input_arg_types[i] != candidate_proc_variadic) {
                     variadic_args_match = false;
                   }
                 }
