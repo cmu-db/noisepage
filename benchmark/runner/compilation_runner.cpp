@@ -30,7 +30,7 @@ BENCHMARK_DEFINE_F(CompilationRunner, Compilation)(benchmark::State &state) {
   metrics_manager->EnableMetric(metrics::MetricsComponent::COMPILATION);
   metrics_manager->RegisterThread();
 
-  const std::string &path = "../sample_tpl/tpl_tests.txt";
+  const std::string &path = "../../sample_tpl/tpl_tests.txt";
   std::ifstream tpl_tests(path);
 
   std::string input_line;

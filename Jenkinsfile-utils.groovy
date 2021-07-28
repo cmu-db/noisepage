@@ -258,9 +258,8 @@ void stageModeling() {
     ''', label: 'OU model training data generation'
 
     sh script :'''
-    cd build
-    ./benchmark/compilation_runner
-    mv compilation.csv bin/
+    cd build/bin
+    ../benchmark/compilation_runner
     ''', label: 'Compilation model training data generation'
 
     // Recompile the noisepage DBMS in Debug mode with code coverage.
