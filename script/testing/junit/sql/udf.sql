@@ -137,6 +137,21 @@ $$ LANGUAGE PLPGSQL;
 SELECT sql_select_single_constant();
 
 -- ----------------------------------------------------------------------------
+-- sql_select_mutliple_constants()
+
+CREATE FUNCTION sql_select_mutliple_constants() RETURNS INT AS $$ \
+DECLARE                                                           \
+  x INT;                                                          \
+  y INT;                                                          \
+BEGIN                                                             \
+  SELECT 1, 2 INTO x, y;                                          \
+  RETURN x + y;                                                   \
+END                                                               \
+$$ LANGUAGE PLPGSQL;
+
+SELECT sql_select_mutliple_constants();
+
+-- ----------------------------------------------------------------------------
 -- proc_fors()
 --
 -- TODO(Kyle): for-loop control flow (query variant) is not supported
@@ -173,5 +188,3 @@ SELECT sql_select_single_constant();
 -- $$ LANGUAGE PLPGSQL;
 
 -- SELECT x, proc_fors_var() FROM integers;
-
-CREATE FUNCTION fun() RETURNS INT AS $$ DECLARE x INT; y INT; BEGIN SELECT 1, 2 INTO x, y; RETURN x + y; END $$ LANGUAGE PLPGSQL;
