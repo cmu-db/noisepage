@@ -187,22 +187,10 @@ def _parse_db_metadata():
 
     Warnings
     --------
-    Giant hack that parses a hardcoded constant NOISEPAGE_VERSION
-    in src/include/common/version.h.
+    Giant hack that hardcodes version number.
 
     If the hack is unsuccessful, it defaults to UNKNOWN_RESULT.
     """
-    regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
-    curr_dir = os.path.dirname(os.path.realpath(__file__))
-    # TODO(WAN): Don't do this. We support SELECT VERSION(), do that instead.
-    version_file_relative = '../../../../src/include/common/version.h'
-    version_file = os.path.join(curr_dir, version_file_relative)
-    db_metadata = {'noisepage': {'db_version': UNKNOWN_RESULT}}
-    try:
-        with open(version_file) as f:
-            match = re.search(regex, f.read())
-            db_metadata['noisepage']['db_version'] = match.group(1)
-    except Exception as err:
-        LOG.error(err)
+    return {'noisepage': {'db_version': '1.0.0'}}
 
-    return db_metadata
+
