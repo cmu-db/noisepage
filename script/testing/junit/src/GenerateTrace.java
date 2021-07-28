@@ -161,6 +161,8 @@ public class GenerateTrace {
                 expected_result_num = -1;
             }
         }
+        // Prevents tests from erroring out when trace file ends with a comment
+        writeToFile(writer, Constants.STATEMENT_OK);
         writer.close();
         br.close();
     }
