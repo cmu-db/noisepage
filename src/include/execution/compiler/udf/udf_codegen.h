@@ -12,6 +12,7 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/functions/function_context.h"
+#include "planner/plannodes/abstract_join_plan_node.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;
@@ -20,6 +21,10 @@ class CatalogAccessor;
 namespace noisepage::optimizer {
 class OptimizeResult;
 }  // namespace noisepage::optimizer
+
+namespace noisepage::parser::udf {
+class VariableRef;
+}  // namespace noisepage::parser::udf
 
 namespace noisepage::execution {
 
@@ -224,6 +229,81 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   static const char *GetReturnParamString();
 
  private:
+  /**
+   * Construct a lambda expression that writes the output of the query
+   * represented by `plan` into the variables identified by `variables`.
+   * @param plan The query plan
+   * @param variables The names of the variables to which results are bound
+   * @return The lambda expression
+   */
+  ast::LambdaExpr *MakeLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                              const std::vector<std::string> &variables);
+
+  /**
+   * Construct a lambda expression that writes the output of the query
+   * represented by `plan` into a single RECORD-type variable.
+   * @param plan The query plan
+   * @param variables The names of the variables to which results are bound
+   * @return The lambda expression
+   */
+  ast::LambdaExpr *MakeLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                             const std::vector<std::string> &variables);
+
+  /**
+   * Construct a lambda expression that writes the output of the query
+   * represented by `plan` into one or more non-RECORD variables.
+   * @param plan The query plan
+   * @param variables The names of the variables to which results are bound
+   * @return The lambda expression
+   */
+  ast::LambdaExpr *MakeLambdaBindingToNonRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                const std::vector<std::string> &variables);
+
+  /**
+   * Generate code to add query parameters to the execution context.
+   * @param exec_ctx The execution context expression
+   * @param variable_refs The collection of variable references
+   */
+  void CodegenAddParameters(ast::Expr *exec_ctx, const std::vector<parser::udf::VariableRef> &variable_refs);
+
+  /**
+   * Generate code to add a scalar parameter to the execution context.
+   * @param exec_ctx The execution context
+   * @param variable_ref The variable reference
+   */
+  void CodegenAddScalarParameter(ast::Expr *exec_ctx, const parser::udf::VariableRef &variable_ref);
+
+  /**
+   * Generate code to add a non-scalar parameter to the execution context.
+   * @param exec_ctx The execution context
+   * @param variable_ref The variable reference
+   */
+  void CodegenAddTableParameter(ast::Expr *exec_ctx, const parser::udf::VariableRef &variable_ref);
+
+  /**
+   * Generate code to perform assignment to captured variables.
+   * @param plan The query plan
+   * @param bound_variables The variables to which results of the query are bound
+   */
+  void CodegenCaptureAssignments(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                 const std::vector<std::string> &bound_variables);
+
+  /**
+   * Generate code to perform assignment to captured variables.
+   * @param plan The query plan
+   * @param bound_variables The name(s) of the scalar variables to which results of the query are bound
+   */
+  void CodegenCaptureAssignmentToScalars(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                         const std::vector<std::string> &bound_variables);
+
+  /**
+   * Generate code to perform assignment to captured variables.
+   * @param plan The query plan
+   * @param record_name The name of the record variable to which results of the query are bound
+   */
+  void CodegenCaptureAssignmentToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                        const std::string &record_name);
+
   /**
    * Translate a SQL type to its corresponding catalog type.
    * @param type The SQL type of interest

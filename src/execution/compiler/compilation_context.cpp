@@ -206,8 +206,8 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
 std::unique_ptr<ExecutableQuery> CompilationContext::Compile(
     const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
     catalog::CatalogAccessor *accessor, CompilationMode mode, std::optional<execution::query_id_t> override_qid,
-    common::ManagedPointer<planner::PlanMetaData> plan_meta_data, common::ManagedPointer<const std::string> query_text,
-    ast::LambdaExpr *output_callback, common::ManagedPointer<ast::Context> context) {
+    common::ManagedPointer<planner::PlanMetaData> plan_meta_data, ast::LambdaExpr *output_callback,
+    common::ManagedPointer<ast::Context> context) {
   // The query for which we're generating code
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings, accessor->GetTxn()->StartTime(), context.Get());
   if (override_qid.has_value()) {

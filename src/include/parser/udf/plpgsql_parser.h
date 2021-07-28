@@ -131,6 +131,21 @@ class PLpgSQLParser {
 
  private:
   /**
+   * Determine if all variables in `names` are declared in the function.
+   * @param names The collection of variable identifiers
+   * @return `true` if all variables are declared, `false` otherwise
+   */
+  bool AllVariablesDeclared(const std::vector<std::string> &names) const;
+
+  /**
+   * Determine if any of the variables in `names` refer to a RECORD type.
+   * @param names The collection of variable identifiers
+   * @return `true` if any of the variables in `names` refer
+   * to a RECORD type previously declared, `false` otherwise
+   */
+  bool ContainsRecordType(const std::vector<std::string> &names) const;
+
+  /**
    * Resolve a PL/pgSQL RECORD type from a SELECT statement.
    * @param parse_result The result of parsing the SQL query
    * @return The resolved record type

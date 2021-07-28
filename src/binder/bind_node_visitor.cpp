@@ -64,7 +64,7 @@ void BindNodeVisitor::BindNameToNode(
 
 BindNodeVisitor::~BindNodeVisitor() = default;
 
-std::unordered_map<std::string, std::pair<std::string, std::size_t>> BindNodeVisitor::BindAndGetUDFParams(
+std::vector<parser::udf::VariableRef> BindNodeVisitor::BindAndGetUDFVariableRefs(
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context) {
   NOISEPAGE_ASSERT(parse_result != nullptr, "We shouldn't be trying to bind something without a ParseResult.");
@@ -74,7 +74,7 @@ std::unordered_map<std::string, std::pair<std::string, std::size_t>> BindNodeVis
   sherpa_->GetParseResult()->GetStatement(0)->Accept(
       common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   // TODO(Kyle): This is strange, why are we returning this member by value?
-  return udf_params_;
+  return udf_variable_refs_;
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> node) {
@@ -702,12 +702,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
     // Table name not specified in the expression; loop through all the tables in the binder context
     if (table_name.empty()) {
       if (BindingForUDF() && IsUDFVariable(expr->GetColumnName())) {
-        // If the variable is not present, add it
-        if (udf_params_.count(expr->GetColumnName()) == 0) {
-          udf_params_[expr->GetColumnName()] = std::make_pair("", udf_params_.size());
-          expr->SetReturnValueType(udf_ast_context_->GetVariableTypeFailFast(expr->GetColumnName()));
-          expr->SetParamIdx(udf_params_.size() - 1);
-        }
+        // This expression refers to a PL/pgSQL variable
+        AddUDFVariableReference(expr, expr->GetColumnName());
       } else if (context_ == nullptr || !context_->SetColumnPosTuple(expr)) {
         throw BINDER_EXCEPTION(fmt::format("column \"{}\" does not exist", col_name),
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
@@ -721,23 +717,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
         }
         BinderContext::SetColumnPosTuple(col_name, tuple, expr);
       } else if (BindingForUDF() && IsUDFVariable(expr->GetTableName())) {
-        const type::TypeId type = udf_ast_context_->GetVariableTypeFailFast(expr->GetTableName());
-        NOISEPAGE_ASSERT(type == type::TypeId::INVALID, "Must be a RECORD type");
-
-        const auto fields = udf_ast_context_->GetRecordTypeFailFast(expr->GetTableName());
-        auto field =
-            std::find_if(fields.cbegin(), fields.cend(), [=](auto p) { return p.first == expr->GetColumnName(); });
-        if (field == fields.cend()) {
-          throw BINDER_EXCEPTION(fmt::format("RECORD type field '{}' not found", expr->GetColumnName()),
-                                 common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
-        }
-
-        // If the parameter is not present, add it
-        if (udf_params_.count(expr->GetColumnName()) == 0) {
-          udf_params_[expr->GetColumnName()] = std::make_pair(expr->GetTableName(), udf_params_.size());
-          expr->SetReturnValueType(field->second);
-          expr->SetParamIdx(udf_params_.size() - 1);
-        }
+        // This expression refers to a structural (RECORD) PL/pgSQL variable
+        AddUDFVariableReference(expr, expr->GetTableName(), expr->GetColumnName());
       } else if (context_ == nullptr || !context_->CheckNestedTableColumn(table_name, col_name, expr)) {
         throw BINDER_EXCEPTION(fmt::format("Invalid table reference {}", expr->GetTableName()),
                                common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
@@ -1145,6 +1126,43 @@ bool BindNodeVisitor::BindingForUDF() const { return udf_ast_context_ != nullptr
 
 bool BindNodeVisitor::IsUDFVariable(const std::string &identifier) const {
   return udf_ast_context_->HasVariable(identifier);
+}
+
+bool BindNodeVisitor::HaveUDFVariableRef(const std::string &identifier) const {
+  auto it = std::find_if(udf_variable_refs_.cbegin(), udf_variable_refs_.cend(),
+                         [&identifier](const parser::udf::VariableRef &ref) { return ref.ColumnName() == identifier; });
+  return it != udf_variable_refs_.cend();
+}
+
+void BindNodeVisitor::AddUDFVariableReference(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                                              const std::string &table_name, const std::string &column_name) {
+  const type::TypeId type = udf_ast_context_->GetVariableTypeFailFast(table_name);
+  NOISEPAGE_ASSERT(type == type::TypeId::INVALID, "Must be a RECORD type");
+
+  // Locate the column name in the structure
+  const auto fields = udf_ast_context_->GetRecordTypeFailFast(table_name);
+  auto field = std::find_if(fields.cbegin(), fields.cend(), [=](auto p) { return p.first == expr->GetColumnName(); });
+  if (field == fields.cend()) {
+    throw BINDER_EXCEPTION(fmt::format("RECORD type field '{}' not found", expr->GetColumnName()),
+                           common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+
+  if (!HaveUDFVariableRef(column_name)) {
+    const std::size_t index = udf_variable_refs_.size();
+    udf_variable_refs_.emplace_back(table_name, column_name, index);
+    expr->SetReturnValueType(field->second);
+    expr->SetParamIdx(index);
+  }
+}
+
+void BindNodeVisitor::AddUDFVariableReference(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                                              const std::string &column_name) {
+  if (!HaveUDFVariableRef(column_name)) {
+    const std::size_t index = udf_variable_refs_.size();
+    udf_variable_refs_.emplace_back(column_name, index);
+    expr->SetReturnValueType(udf_ast_context_->GetVariableTypeFailFast(expr->GetColumnName()));
+    expr->SetParamIdx(index);
+  }
 }
 
 }  // namespace noisepage::binder

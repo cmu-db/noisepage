@@ -173,3 +173,5 @@ SELECT sql_select_single_constant();
 -- $$ LANGUAGE PLPGSQL;
 
 -- SELECT x, proc_fors_var() FROM integers;
+
+CREATE FUNCTION fun() RETURNS INT AS $$ DECLARE x INT; y INT; BEGIN SELECT 1, 2 INTO x, y; RETURN x + y; END $$ LANGUAGE PLPGSQL;

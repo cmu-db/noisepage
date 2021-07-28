@@ -249,11 +249,16 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseForS(const nlo
     return nullptr;
   }
   auto body_stmt = ParseBlock(json[K_BODY]);
-  auto var_array = json[K_ROW][K_PLPGSQL_ROW][K_FIELDS];
+  auto variable_array = json[K_ROW][K_PLPGSQL_ROW][K_FIELDS];
   std::vector<std::string> variables{};
-  variables.reserve(var_array.size());
-  std::transform(var_array.cbegin(), var_array.cend(), std::back_inserter(variables),
+  variables.reserve(variable_array.size());
+  std::transform(variable_array.cbegin(), variable_array.cend(), std::back_inserter(variables),
                  [](const nlohmann::json &var) { return var[K_NAME].get<std::string>(); });
+
+  if (!AllVariablesDeclared(variables)) {
+    throw PARSER_EXCEPTION("PLpgSQL parser : variable was not declared");
+  }
+
   return std::make_unique<execution::ast::udf::ForSStmtAST>(std::move(variables), std::move(parse_result),
                                                             std::move(body_stmt));
 }
@@ -261,33 +266,37 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseForS(const nlo
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseSQL(const nlohmann::json &json) {
   // The query text
   const auto sql_query = json[K_SQLSTMT][K_PLPGSQL_EXPR][K_QUERY].get<std::string>();
-  // The variable name (non-const for later std::move)
-  auto var_name = json[K_ROW][K_PLPGSQL_ROW][K_FIELDS][0][K_NAME].get<std::string>();
-
   auto parse_result = PostgresParser::BuildParseTree(sql_query);
   if (parse_result == nullptr) {
     return nullptr;
   }
 
-  // Bind the query within the UDF body; if binding
-  // fails, we allow the BinderException to propogate
-  binder::BindNodeVisitor visitor{accessor_, db_oid_};
-  auto query_params = visitor.BindAndGetUDFParams(common::ManagedPointer{parse_result}, udf_ast_context_);
+  auto variable_array = json[K_ROW][K_PLPGSQL_ROW][K_FIELDS];
+  std::vector<std::string> variables{};
+  variables.reserve(variable_array.size());
+  std::transform(variable_array.cbegin(), variable_array.cend(), std::back_inserter(variables),
+                 [](const nlohmann::json &var) -> std::string { return var[K_NAME].get<std::string>(); });
 
-  // Check to see if a record type can be bound to this
-  const auto type = udf_ast_context_->GetVariableType(var_name);
-  if (!type.has_value()) {
+  // Ensure all variables to which results are bound are declared
+  if (!AllVariablesDeclared(variables)) {
     throw PARSER_EXCEPTION("PL/pgSQL parser : variable was not declared");
   }
 
-  if (type.value() == type::TypeId::INVALID) {
-    // If the type is a RECORD type, derive the structure of
-    // the type from the columns of the SELECT statement
-    udf_ast_context_->SetRecordType(var_name, ResolveRecordType(parse_result.get()));
+  // Two possibilities for binding of results:
+  //  - Exactly one RECORD variable
+  //  - One or more non-RECORD variables
+
+  if (ContainsRecordType(variables)) {
+    if (variables.size() > 1) {
+      throw PARSER_EXCEPTION("Binding of query results is ambiguous");
+    }
+    // There is only a single result variable and it is a RECORD;
+    // derive the structure of the RECORD from the SELECT columns
+    const auto &name = variables.front();
+    udf_ast_context_->SetRecordType(name, ResolveRecordType(parse_result.get()));
   }
 
-  return std::make_unique<execution::ast::udf::SQLStmtAST>(std::move(parse_result), std::move(var_name),
-                                                           std::move(query_params));
+  return std::make_unique<execution::ast::udf::SQLStmtAST>(std::move(parse_result), std::move(variables));
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDynamicSQL(const nlohmann::json &json) {
@@ -350,6 +359,17 @@ std::unique_ptr<execution::ast::udf::ExprAST> PLpgSQLParser::ParseExprFromAbstra
     default:
       throw PARSER_EXCEPTION("PL/pgSQL parser : expression type not supported");
   }
+}
+
+bool PLpgSQLParser::AllVariablesDeclared(const std::vector<std::string> &names) const {
+  return std::all_of(names.cbegin(), names.cend(),
+                     [this](const std::string &name) -> bool { return udf_ast_context_->HasVariable(name); });
+}
+
+bool PLpgSQLParser::ContainsRecordType(const std::vector<std::string> &names) const {
+  return std::any_of(names.cbegin(), names.cend(), [this](const std::string &name) -> bool {
+    return udf_ast_context_->GetVariableType(name) == type::TypeId::INVALID;
+  });
 }
 
 std::vector<std::pair<std::string, type::TypeId>> PLpgSQLParser::ResolveRecordType(const ParseResult *parse_result) {

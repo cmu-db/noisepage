@@ -11,6 +11,7 @@
 #include "execution/ast/udf/udf_ast_context.h"
 #include "parser/postgresparser.h"
 #include "parser/select_statement.h"
+#include "parser/udf/variable_ref.h"
 #include "type/type_id.h"
 
 namespace noisepage {
@@ -60,7 +61,7 @@ class BindNodeVisitor final : public SqlNodeVisitor {
    *    Column Name -> (Parameter Name, Parameter Index)
    * @throws BinderException on failure to bind query
    */
-  std::unordered_map<std::string, std::pair<std::string, std::size_t>> BindAndGetUDFParams(
+  std::vector<parser::udf::VariableRef> BindAndGetUDFVariableRefs(
       common::ManagedPointer<parser::ParseResult> parse_result,
       common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context);
 
@@ -121,7 +122,7 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   /** Context for UDF AST */
   common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context_{};
   /** Parameters for UDF */
-  std::unordered_map<std::string, std::pair<std::string, size_t>> udf_params_;
+  std::vector<parser::udf::VariableRef> udf_variable_refs_;
 
   /** Catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
@@ -169,6 +170,30 @@ class BindNodeVisitor final : public SqlNodeVisitor {
    * for which binding is performed, `false` otherwise
    */
   bool IsUDFVariable(const std::string &identifier) const;
+
+  /**
+   * Determine if the given identifier names a variable
+   * reference that is already tracked.
+   * @param identifier The variable identifier
+   */
+  bool HaveUDFVariableRef(const std::string &identifier) const;
+
+  /**
+   * Add a UDF variable reference to the internal tracker.
+   * @param expr The expression
+   * @param table_name The name of the table associated with the reference
+   * @param column_name The name of the column associated with the reference
+   */
+  void AddUDFVariableReference(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                               const std::string &table_name, const std::string &column_name);
+
+  /**
+   * Add a UDF variable reference to the internal tracker.
+   * @param expr The expression
+   * @param column_name The name of the column associated with the reference
+   */
+  void AddUDFVariableReference(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                               const std::string &column_name);
 };
 
 }  // namespace binder

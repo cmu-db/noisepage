@@ -631,12 +631,11 @@ class SQLStmtAST : public StmtAST {
   /**
    * Construct a new SQLStmtAST instance.
    * @param query The result of parsing the SQL query
-   * @param name The name of the variable to which results of the query are bound
-   * @param parameters The parameters to the query
+   * @param variables The collection of identifiers of variables
+   * to which results of the query are bound
    */
-  SQLStmtAST(std::unique_ptr<parser::ParseResult> &&query, std::string name,
-             std::unordered_map<std::string, std::pair<std::string, size_t>> &&parameters)
-      : query_{std::move(query)}, name_{std::move(name)}, parameters_(std::move(parameters)) {}
+  SQLStmtAST(std::unique_ptr<parser::ParseResult> &&query, std::vector<std::string> &&variables)
+      : query_{std::move(query)}, variables_{std::move(variables)} {}
 
   /**
    * AST visitor pattern.
@@ -650,21 +649,15 @@ class SQLStmtAST : public StmtAST {
   /** @return The result of parsing the SQL query */
   const parser::ParseResult *Query() const { return query_.get(); }
 
-  /** @return The variable name to which results are bound */
-  const std::string &Name() const { return name_; }
-
-  /** @return The parameters to the query */
-  const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &Parameters() const { return parameters_; }
+  /** @return The variable names to which results are bound */
+  const std::vector<std::string> &Variables() const { return variables_; }
 
  private:
   /** The result of parsing the SQL query */
   std::unique_ptr<parser::ParseResult> query_;
 
-  /** The variable name to which results of the query are bound */
-  std::string name_;
-
-  /** The parameters to the query */
-  std::unordered_map<std::string, std::pair<std::string, std::size_t>> parameters_;
+  /** The names of the variables to which results are bound */
+  std::vector<std::string> variables_;
 };
 
 /**

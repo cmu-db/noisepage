@@ -1,33 +1,26 @@
 #include "execution/compiler/udf/udf_codegen.h"
 
+#include "binder/bind_node_visitor.h"
+#include "catalog/catalog_accessor.h"
 #include "common/error/error_code.h"
 #include "common/error/exception.h"
-
-#include "binder/bind_node_visitor.h"
-
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_clone.h"
 #include "execution/ast/context.h"
-#include "planner/plannodes/output_schema.h"
-
+#include "execution/ast/udf/udf_ast_nodes.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
 #include "execution/exec/execution_settings.h"
-
-#include "catalog/catalog_accessor.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
-
-#include "traffic_cop/traffic_cop_util.h"
-
 #include "parser/expression/constant_value_expression.h"
 #include "parser/postgresparser.h"
-
-#include "execution/ast/udf/udf_ast_nodes.h"
-
+#include "parser/udf/variable_ref.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/output_schema.h"
+#include "traffic_cop/traffic_cop_util.h"
 
 namespace noisepage::execution::compiler::udf {
 
@@ -400,14 +393,13 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   const std::string dummy_query{};
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
-      common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>{&dummy_query},
-      lambda_expr, codegen_->GetAstContext());
+      common::ManagedPointer<planner::PlanMetaData>{}, lambda_expr, codegen_->GetAstContext());
 
   // Append all of the declarations from the compiled query
+  auto decls = exec_query->GetDecls();
+  aux_decls_.insert(aux_decls_.end(), decls.cbegin(), decls.cend());
 
-  aux_decls_.insert(aux_decls_.end(), exec_query->GetDecls().cbegin(), exec_query->GetDecls().cend());
-
-  // Add the closure and query state to the current function
+  // Declare the closure and the query state in the current function
   auto query_state = codegen_->MakeFreshIdentifier("query_state");
   fb_->Append(codegen_->DeclareVar(
       lambda_identifier, codegen_->LambdaType(lambda_expr->GetFunctionLiteralExpr()->TypeRepr()), lambda_expr));
@@ -418,13 +410,9 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
 
   // Derive the columns and parameter names from the query
   binder::BindNodeVisitor visitor{common::ManagedPointer<catalog::CatalogAccessor>{accessor_}, db_oid_};
-  auto query_params =
-      visitor.BindAndGetUDFParams(common::ManagedPointer{ast->Query()}, common::ManagedPointer{udf_ast_context_});
-  for (const auto &column_name : ColumnsSortedByIndex(query_params)) {
-    const type::TypeId type = GetVariableType(column_name);
-    const ast::Builtin builtin = AddParamBuiltinForParameterType(type);
-    fb_->Append(codegen_->CallBuiltin(builtin, {exec_ctx, codegen_->MakeExpr(SymbolTable().at(column_name))}));
-  }
+  const auto variable_refs =
+      visitor.BindAndGetUDFVariableRefs(common::ManagedPointer{ast->Query()}, common::ManagedPointer{udf_ast_context_});
+  CodegenAddParameters(exec_ctx, variable_refs);
 
   fb_->Append(codegen_->Assign(
       codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
@@ -458,112 +446,44 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   auto optimize_result = OptimizeEmbeddedQuery(ast->Query());
   auto plan = optimize_result->GetPlanNode();
 
-  // Make a lambda that just writes into this
-
-  // Populate the parameters for the lambda
-  execution::util::RegionVector<execution::ast::FieldDecl *> lambda_parameters{codegen_->GetAstContext()->GetRegion()};
-
-  // The first parameter is always the execution context
-  lambda_parameters.push_back(codegen_->MakeField(
-      exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
-      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
-
-  // Derive the remainder of the closure's signature from
-  // the output schema of the associated query
-  std::size_t i = 0;
-  std::vector<execution::ast::Expr *> assignees{};
-  execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
-  for (const auto &col : plan->GetOutputSchema()->GetColumns()) {
-    execution::ast::Expr *capture_var = codegen_->MakeExpr(SymbolTable().find(ast->Name())->second);
-    if (GetVariableType(ast->Name()) == type::TypeId::INVALID) {
-      // Record type
-      const auto struct_vars = GetRecordType(ast->Name());
-      if (captures.empty()) {
-        captures.push_back(capture_var);
-      }
-      capture_var = codegen_->AccessStructMember(capture_var, codegen_->MakeIdentifier(struct_vars[i].first));
-      assignees.push_back(capture_var);
-    } else {
-      assignees.push_back(capture_var);
-      captures.push_back(capture_var);
-    }
-    lambda_parameters.push_back(codegen_->MakeField(codegen_->MakeFreshIdentifier("input"),
-                                                    codegen_->TplType(execution::sql::GetTypeId(col.GetType()))));
-    i++;
-  }
-
-  FunctionBuilder fn{codegen_, std::move(lambda_parameters), codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
-  for (std::size_t j = 0UL; j < assignees.size(); ++j) {
-    auto capture_var = assignees[j];
-    auto input_param = fn.GetParameterByPosition(j + 1);
-    fn.Append(codegen_->Assign(capture_var, input_param));
-  }
-
+  // Construct a lambda that writes the output of the query
+  // into the bound variables, as defined by the function body
+  ast::LambdaExpr *lambda_expr = MakeLambda(plan, ast->Variables());
   const ast::Identifier lambda_identifier = codegen_->MakeFreshIdentifier("udfLambda");
-  ast::LambdaExpr *lambda_expr = fn.FinishLambda(std::move(captures));
   lambda_expr->SetName(lambda_identifier);
 
-  // We want to pass something down that will materialize the lambda function
-  // into lambda_expr and will also feed in a lambda_expr to the compiler
+  // Generate code for the embedded query, utilizing the generated closure as the output callback
   execution::exec::ExecutionSettings exec_settings{};
-  const std::string dummy_query{};
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
-      common::ManagedPointer<planner::PlanMetaData>{}, common::ManagedPointer<const std::string>(&dummy_query),
-      lambda_expr, codegen_->GetAstContext());
+      common::ManagedPointer<planner::PlanMetaData>{}, lambda_expr, codegen_->GetAstContext());
 
+  // Append all declarations from the compiled query
   auto decls = exec_query->GetDecls();
-  aux_decls_.insert(aux_decls_.end(), decls.begin(), decls.end());
+  aux_decls_.insert(aux_decls_.end(), decls.cbegin(), decls.cend());
 
+  // Declare the closure and the query state in the current function
+  auto query_state = codegen_->MakeFreshIdentifier("query_state");
   fb_->Append(codegen_->DeclareVar(
       lambda_identifier, codegen_->LambdaType(lambda_expr->GetFunctionLiteralExpr()->TypeRepr()), lambda_expr));
-
-  // Make query state
-  auto query_state = codegen_->MakeFreshIdentifier("query_state");
   fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
 
   // Set its execution context to whatever execution context was passed in here
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
 
-  const std::vector<std::string> columns = ColumnsSortedByIndex(ast->Parameters());
-  const std::vector<std::string> parameters = ParametersSortedByIndex(ast->Parameters());
-  for (std::size_t i = 0; i < columns.size(); ++i) {
-    const auto &column = columns[i];
-    const auto &parameter = parameters[i];
-
-    // TODO(Kyle): This IILE is cool and all... but way more
-    // complex than I would like, all of the logic in this
-    // function deserves a second look to refactor
-    auto [type, expr] = [=, &column, &parameter]() {
-      if (parameter.length() > 0) {
-        const auto fields = GetRecordType(parameter);
-        auto it = std::find_if(fields.cbegin(), fields.cend(), [=](auto p) { return p.first == column; });
-        NOISEPAGE_ASSERT(it != fields.cend(), "Broken invariant");
-        return std::pair<type::TypeId, execution::ast::Expr *>{
-            it->second, codegen_->AccessStructMember(codegen_->MakeExpr(SymbolTable().at(parameter)),
-                                                     codegen_->MakeIdentifier(column))};
-      }
-      const type::TypeId type = GetVariableType(column);
-      return std::pair<type::TypeId, execution::ast::Expr *>{type, codegen_->MakeExpr(SymbolTable().at(column))};
-    }();
-
-    fb_->Append(codegen_->CallBuiltin(AddParamBuiltinForParameterType(type), {exec_ctx, expr}));
-  }
+  // Determine the column references in the query (if any)
+  // that depend on variables in the UDF definition
+  binder::BindNodeVisitor visitor{common::ManagedPointer{accessor_}, db_oid_};
+  const auto variable_refs =
+      visitor.BindAndGetUDFVariableRefs(common::ManagedPointer{ast->Query()}, common::ManagedPointer{udf_ast_context_});
+  CodegenAddParameters(exec_ctx, variable_refs);
 
   // Load the execution context member of the query state
   fb_->Append(codegen_->Assign(
       codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
 
-  // Generate code to assign to the closure captures
-  // from the output of the embedded query
-  const std::size_t n_columns = plan->GetOutputSchema()->GetColumns().size();
-  for (const auto &col : plan->GetOutputSchema()->GetColumns()) {
-    execution::ast::Expr *capture_var = codegen_->MakeExpr(SymbolTable().find(ast->Name())->second);
-    execution::ast::Expr *lhs = (n_columns > 1)
-                                    ? codegen_->AccessStructMember(capture_var, codegen_->MakeIdentifier(col.GetName()))
-                                    : capture_var;
-    fb_->Append(codegen_->Assign(lhs, codegen_->ConstNull(col.GetType())));
-  }
+  // Initialize the captures
+  CodegenCaptureAssignments(plan, ast->Variables());
 
   // Manually append calls to each function from the compiled
   // executable query (implementing the closure) to the builder
@@ -586,6 +506,209 @@ void UdfCodegen::Visit(ast::udf::MemberExprAST *ast) {
   auto object = dst_;
   dst_ = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->FieldName()));
 }
+
+/* ----------------------------------------------------------------------------
+  Code Generation Helpers
+---------------------------------------------------------------------------- */
+
+ast::LambdaExpr *UdfCodegen::MakeLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                        const std::vector<std::string> &variables) {
+  return GetVariableType(variables.front()) == type::TypeId::INVALID ? MakeLambdaBindingToRecord(plan, variables)
+                                                                     : MakeLambdaBindingToNonRecord(plan, variables);
+}
+
+ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                       const std::vector<std::string> &variables) {
+  // bind results to a single RECORD variable
+  NOISEPAGE_ASSERT(variables.size() == 1, "Broken invariant");
+
+  const std::string &record_name = variables.front();
+  const auto record_type = GetRecordType(record_name);
+
+  const auto n_fields = record_type.size();
+  const auto n_columns = plan->GetOutputSchema()->GetColumns().size();
+  if (n_fields != n_columns) {
+    throw EXECUTION_EXCEPTION(
+        fmt::format("Attempt to bind {} query outputs to record type with {} fields", n_columns, n_fields),
+        common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+
+  // The lambda accepts all columns of the query output schema as parameters
+  util::RegionVector<execution::ast::FieldDecl *> parameters{codegen_->GetAstContext()->GetRegion()};
+
+  // The first parameter is always the execution context
+  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  parameters.push_back(codegen_->MakeField(
+      exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
+      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
+
+  // The lambda only captures the RECORD variable to which all results are bound
+  ast::Expr *capture = codegen_->MakeExpr(SymbolTable().find(record_name)->second);
+  util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
+
+  // While the closure only captures a single variable, we still need
+  // to generate code for an assignment to each field memeber
+  std::vector<ast::Expr *> assignees{};
+  assignees.reserve(n_columns);
+
+  for (std::size_t i = 0; i < n_columns; ++i) {
+    const auto &column = plan->GetOutputSchema()->GetColumn(i);
+    assignees.push_back(codegen_->AccessStructMember(capture, codegen_->MakeIdentifier(record_type[i].first)));
+    parameters.push_back(codegen_->MakeField(codegen_->MakeFreshIdentifier("input"),
+                                             codegen_->TplType(sql::GetTypeId(column.GetType()))));
+  }
+
+  FunctionBuilder builder{codegen_, std::move(parameters), codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
+  for (std::size_t i = 0UL; i < assignees.size(); ++i) {
+    auto *assignee = assignees.at(i);
+    auto input_parameter = builder.GetParameterByPosition(i + 1);
+    builder.Append(codegen_->Assign(assignee, input_parameter));
+  }
+
+  return builder.FinishLambda(std::move(captures));
+}
+
+ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToNonRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                          const std::vector<std::string> &variables) {
+  // bind results to one or more non-RECORD variables
+  const auto n_variables = variables.size();
+  const auto n_columns = plan->GetOutputSchema()->GetColumns().size();
+  if (n_variables != n_columns) {
+    throw EXECUTION_EXCEPTION(fmt::format("Attempt to bind {} query outputs to {} variables", n_columns, n_variables),
+                              common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+
+  // The lambda accepts all columns of the query output schema as parameters
+  util::RegionVector<execution::ast::FieldDecl *> parameters{codegen_->GetAstContext()->GetRegion()};
+  // The lambda captures the variables to which results are bound from the enclosing scope
+  util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
+
+  // The first parameter is always the execution context
+  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  parameters.push_back(codegen_->MakeField(
+      exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
+      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
+
+  // Populate the remainder of the parameters and captures
+  for (std::size_t i = 0; i < n_columns; ++i) {
+    const auto &variable = variables.at(i);
+    const auto &column = plan->GetOutputSchema()->GetColumn(i);
+    captures.push_back(codegen_->MakeExpr(SymbolTable().find(variable)->second));
+    parameters.push_back(codegen_->MakeField(codegen_->MakeFreshIdentifier("input"),
+                                             codegen_->TplType(sql::GetTypeId(column.GetType()))));
+  }
+
+  // Begin construction of the function that implements the closure
+  FunctionBuilder builder{codegen_, std::move(parameters), codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
+
+  // Generate an assignment from each input parameter to the associated capture
+  for (std::size_t i = 0UL; i < captures.size(); ++i) {
+    auto *capture = captures[i];
+    auto input_parameter = builder.GetParameterByPosition(i + 1);
+    builder.Append(codegen_->Assign(capture, input_parameter));
+  }
+
+  return builder.FinishLambda(std::move(captures));
+}
+
+void UdfCodegen::CodegenAddParameters(ast::Expr *exec_ctx, const std::vector<parser::udf::VariableRef> &variable_refs) {
+  for (const auto &variable_ref : variable_refs) {
+    if (variable_ref.IsScalar()) {
+      CodegenAddScalarParameter(exec_ctx, variable_ref);
+    } else {
+      CodegenAddTableParameter(exec_ctx, variable_ref);
+    }
+  }
+}
+
+void UdfCodegen::CodegenAddScalarParameter(ast::Expr *exec_ctx, const parser::udf::VariableRef &variable_ref) {
+  NOISEPAGE_ASSERT(variable_ref.IsScalar(), "Broken invariant");
+  const auto &name = variable_ref.ColumnName();
+  const type::TypeId type = GetVariableType(name);
+  ast::Expr *expr = codegen_->MakeExpr(SymbolTable().at(name));
+  fb_->Append(codegen_->CallBuiltin(AddParamBuiltinForParameterType(type), {exec_ctx, expr}));
+}
+
+void UdfCodegen::CodegenAddTableParameter(ast::Expr *exec_ctx, const parser::udf::VariableRef &variable_ref) {
+  NOISEPAGE_ASSERT(!variable_ref.IsScalar(), "Broken invariant");
+
+  const auto &record_name = variable_ref.TableName();
+  const auto &field_name = variable_ref.ColumnName();
+
+  const auto fields = GetRecordType(record_name);
+  auto it = std::find_if(
+      fields.cbegin(), fields.cend(),
+      [&field_name](const std::pair<std::string, type::TypeId> &field) -> bool { return field.first == field_name; });
+  if (it == fields.cend()) {
+    throw EXECUTION_EXCEPTION(fmt::format("Field '{}' not found in record '{}'", field_name, record_name),
+                              common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+
+  const type::TypeId type = it->second;
+  ast::Expr *expr = codegen_->AccessStructMember(codegen_->MakeExpr(SymbolTable().at(record_name)),
+                                                 codegen_->MakeIdentifier(field_name));
+  fb_->Append(codegen_->CallBuiltin(AddParamBuiltinForParameterType(type), {exec_ctx, expr}));
+}
+
+void UdfCodegen::CodegenCaptureAssignments(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                           const std::vector<std::string> &bound_variables) {
+  if (bound_variables.empty()) {
+    // Nothing to do
+    return;
+  }
+
+  if (GetVariableType(bound_variables.front()) == type::TypeId::INVALID) {
+    CodegenCaptureAssignmentToRecord(plan, bound_variables.front());
+  } else {
+    CodegenCaptureAssignmentToScalars(plan, bound_variables);
+  }
+}
+
+void UdfCodegen::CodegenCaptureAssignmentToScalars(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                   const std::vector<std::string> &bound_variables) {
+  const auto n_columns = plan->GetOutputSchema()->GetColumns().size();
+  const auto n_variables = bound_variables.size();
+  if (n_columns != n_variables) {
+    throw EXECUTION_EXCEPTION(
+        fmt::format("Attempt to bind {} query results to {} scalar variables", n_columns, n_variables),
+        common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+
+  for (std::size_t i = 0; i < n_columns; ++i) {
+    const auto &column = plan->GetOutputSchema()->GetColumn(i);
+    const auto &variable = bound_variables.at(i);
+    execution::ast::Expr *capture = codegen_->MakeExpr(SymbolTable().find(variable)->second);
+    fb_->Append(codegen_->Assign(capture, codegen_->ConstNull(column.GetType())));
+  }
+}
+
+void UdfCodegen::CodegenCaptureAssignmentToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                  const std::string &record_name) {
+  NOISEPAGE_ASSERT(GetVariableType(record_name) == type::TypeId::INVALID, "Broken invariant");
+  const auto n_columns = plan->GetOutputSchema()->GetColumns().size();
+  const auto fields = GetRecordType(record_name);
+  const auto n_fields = fields.size();
+  if (n_columns != n_fields) {
+    // NOTE(Kyle): This should be impossible, the structure of the
+    // record type is derived from the output schema of the query
+    throw EXECUTION_EXCEPTION(
+        fmt::format("Attempt to bind {} query results to record with {} fields", n_columns, n_fields),
+        common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+
+  ast::Expr *record = codegen_->MakeExpr(SymbolTable().find(record_name)->second);
+  for (std::size_t i = 0; i < n_columns; ++i) {
+    const auto &column = plan->GetOutputSchema()->GetColumn(i);
+    const auto &field = fields.at(i);
+    NOISEPAGE_ASSERT(column.GetName() == field.first, "Broken invariant");
+    ast::Expr *capture = codegen_->AccessStructMember(record, codegen_->MakeIdentifier(field.first));
+    fb_->Append(codegen_->Assign(capture, codegen_->ConstNull(column.GetType())));
+  }
+}
+
+/* ----------------------------------------------------------------------------
+  General Utilities
+---------------------------------------------------------------------------- */
 
 type::TypeId UdfCodegen::GetVariableType(const std::string &name) const {
   auto type = udf_ast_context_->GetVariableType(name);

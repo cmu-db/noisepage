@@ -64,8 +64,7 @@ class CompilationContext {
       catalog::CatalogAccessor *accessor, CompilationMode mode = CompilationMode::Interleaved,
       std::optional<execution::query_id_t> override_qid = std::nullopt,
       common::ManagedPointer<planner::PlanMetaData> plan_meta_data = nullptr,
-      common::ManagedPointer<const std::string> query_text = nullptr, ast::LambdaExpr *output_callback = nullptr,
-      common::ManagedPointer<ast::Context> context = nullptr);
+      ast::LambdaExpr *output_callback = nullptr, common::ManagedPointer<ast::Context> context = nullptr);
 
   /**
    * Register a pipeline in this context.
