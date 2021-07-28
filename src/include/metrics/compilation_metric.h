@@ -81,17 +81,20 @@ class CompilationMetricRawData : public AbstractRawData {
   friend class selfdriving::pilot::Pilot;
   struct CompilationData;
 
-  void RecordCompilationData(execution::query_id_t query_id, std::string module_name,
-                             selfdriving::CompilationOperatingUnit feature,
+  void RecordCompilationData(execution::query_id_t query_id, const std::string &module_name,
+                             const selfdriving::CompilationOperatingUnit &feature,
                              const common::ResourceTracker::Metrics &resource_metrics) {
     compilation_data_.emplace_back(query_id, module_name, feature, resource_metrics);
   }
 
   struct CompilationData {
     CompilationData(execution::query_id_t query_id, std::string module_name,
-                    selfdriving::CompilationOperatingUnit feature,
+                    const selfdriving::CompilationOperatingUnit &feature,
                     const common::ResourceTracker::Metrics &resource_metrics)
-        : query_id_(query_id), module_name_(module_name), feature_(feature), resource_metrics_(resource_metrics) {}
+        : query_id_(query_id),
+          module_name_(std::move(module_name)),
+          feature_(feature),
+          resource_metrics_(resource_metrics) {}
 
     const execution::query_id_t query_id_;
     const std::string module_name_;
@@ -110,7 +113,7 @@ class CompilationMetric : public AbstractMetric<CompilationMetricRawData> {
   friend class MetricsStore;
 
   void RecordCompilationMetric(execution::query_id_t query_id, std::string module_name,
-                               selfdriving::CompilationOperatingUnit feature,
+                               const selfdriving::CompilationOperatingUnit &feature,
                                const common::ResourceTracker::Metrics &resource_metrics) {
     std::replace(module_name.begin(), module_name.end(), ',', '_');
     std::replace(module_name.begin(), module_name.end(), ';', '_');

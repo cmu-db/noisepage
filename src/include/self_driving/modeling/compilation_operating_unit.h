@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -40,17 +41,13 @@ class CompilationOperatingUnit {
    * Constructor for CompilationOperatingUnit from an existing one
    * @param other Existing CompilationOperatingUnit to copy from
    */
-  CompilationOperatingUnit(const CompilationOperatingUnit &other)
-      : code_size_(other.code_size_),
-        data_size_(other.data_size_),
-        functions_size_(other.functions_size_),
-        static_locals_size_(other.static_locals_size_) {}
+  CompilationOperatingUnit(const CompilationOperatingUnit &other) = default;
 
   /**
    * Constructor for CompilationOperatingUnit from a bytecode module
    * @param module bytecode module
    */
-  CompilationOperatingUnit(const execution::vm::BytecodeModule *module)
+  explicit CompilationOperatingUnit(const execution::vm::BytecodeModule *module)
       : code_size_(module->GetInstructionCount()),
         data_size_(module->GetDataSize()),
         functions_size_(module->GetFunctionCount()),

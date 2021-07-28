@@ -233,8 +233,8 @@ class MetricsStore {
    * @param feature CompilationOperatingUnit describing the module
    * @param resource_metrics resource metrics
    */
-  void RecordCompilationData(execution::query_id_t query_id, std::string module_name,
-                             selfdriving::CompilationOperatingUnit feature,
+  void RecordCompilationData(execution::query_id_t query_id, const std::string &module_name,
+                             const selfdriving::CompilationOperatingUnit &feature,
                              const common::ResourceTracker::Metrics &resource_metrics) {
     compilation_metric_->RecordCompilationMetric(query_id, module_name, feature, resource_metrics);
   }

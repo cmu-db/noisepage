@@ -38,7 +38,7 @@ BENCHMARK_DEFINE_F(CompilationRunner, Compilation)(benchmark::State &state) {
   while (std::getline(tpl_tests, input_line)) {
     if (input_line.find(".tpl") != std::string::npos && input_line[0] != '#') {
       // We have found a valid test
-      std::string tpl = input_line.substr(0, input_line.find(","));
+      std::string tpl = input_line.substr(0, input_line.find(','));
       std::string target = "../sample_tpl/" + tpl;
 
       std::ifstream input(target);
