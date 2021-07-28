@@ -1,6 +1,5 @@
 import csv
 
-from ...constants import LATENCY_ATTRIBUTE_MAPPING
 from ...utils import get_value_by_pattern
 
 
@@ -32,7 +31,17 @@ def parse_res_file(path):
                 "time": float(gvbp(row, 'time(sec)', None)),
                 "throughput": float(gvbp(row, 'throughput(req/sec)', None)),
                 "latency": {key: get_latency_val(row, pat)
-                            for key, pat in LATENCY_ATTRIBUTE_MAPPING}
+                            for key, pat in [
+                                ('l_25', '25th_lat(ms)'),
+                                ('l_75', '75th_lat(ms)'),
+                                ('l_90', '90th_lat(ms)'),
+                                ('l_95', '95th_lat(ms)'),
+                                ('l_99', '99th_lat(ms)'),
+                                ('avg', 'avg_lat(ms)'),
+                                ('median', 'median_lat(ms)'),
+                                ('min', 'min_lat(ms)'),
+                                ('max', 'max_lat(ms)')
+                            ]}
             })
 
     return incremental_metrics

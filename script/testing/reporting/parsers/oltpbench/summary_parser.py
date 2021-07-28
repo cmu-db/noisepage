@@ -1,7 +1,7 @@
 import json
 from time import time
 
-from ...constants import LATENCY_ATTRIBUTE_MAPPING, UNKNOWN_RESULT
+from ...constants import UNKNOWN_RESULT
 from ...utils import get_value_by_pattern
 
 
@@ -50,7 +50,17 @@ def parse_summary_file(path):
         metrics = {
             'throughput': get_value_by_pattern(summary, 'Throughput (requests/second)', '-1.0'),
             'latency': {key: get_latency_val(latency_dist, pattern)
-                        for key, pattern in LATENCY_ATTRIBUTE_MAPPING}
+                        for key, pattern in [
+                            ('l_25', '25th Percentile Latency (microseconds)'),
+                            ('l_75', '75th Percentile Latency (microseconds)'),
+                            ('l_90', '90th Percentile Latency (microseconds)'),
+                            ('l_95', '95th Percentile Latency (microseconds)'),
+                            ('l_99', '99th Percentile Latency (microseconds)'),
+                            ('avg', 'Average Latency (microseconds)'),
+                            ('median', 'Median Latency (microseconds)'),
+                            ('min', 'Minimum Latency (microseconds)'),
+                            ('max', 'Maximum Latency (microseconds)')
+                        ]}
         }
 
         return metadata, timestamp, benchmark_type, parameters, metrics
