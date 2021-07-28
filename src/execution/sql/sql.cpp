@@ -279,9 +279,9 @@ std::string SqlTypeIdToString(SqlTypeId type) {
     case SqlTypeId::Timestamp:
       return "Timestamp";
     case SqlTypeId::Varchar:
-      return "VarChar";
+      return "Varchar";
     case SqlTypeId::Varbinary:
-      return "VarBinary";
+      return "Varbinary";
     default:
       // All cases handled
       UNREACHABLE("Impossible type");
@@ -289,10 +289,10 @@ std::string SqlTypeIdToString(SqlTypeId type) {
 }
 
 SqlTypeId SqlTypeIdFromString(const std::string &type_string) {
-  if (type_string == "INVALID") {
+  if (type_string == "Invalid") {
     return SqlTypeId::Invalid;
   }
-  if (type_string == "BOOLEAN") {
+  if (type_string == "Boolean") {
     return SqlTypeId::Boolean;
   }
   if (type_string == "TinyInt") {
