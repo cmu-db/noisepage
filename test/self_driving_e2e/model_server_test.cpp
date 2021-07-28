@@ -169,6 +169,53 @@ TEST_F(ModelServerTest, OUAndInterferenceModelTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ModelServerTest, CompilationModelTest) {
+  messenger::messenger_logger->set_level(spdlog::level::info);
+  model_server_logger->set_level(spdlog::level::info);
+
+  auto primary = BuildDBMain();
+  primary->GetNetworkLayer()->GetServer()->RunServer();
+
+  auto ms_manager = primary->GetModelServerManager();
+
+  // Wait for the model server process to start
+  while (!ms_manager->ModelServerStarted()) {
+  }
+
+  // Send a message
+  std::string msg = "ModelServer Compilation Model Test";
+  ms_manager->PrintMessage(msg);
+
+  std::vector<std::vector<double>> features{
+      {72, 0, 5, 0},
+      {72, 0, 5, 0},
+      {72, 0, 5, 0},
+      {72, 0, 5, 0},
+  };
+
+  // Perform a training of the opunit models with {lr, rf} as training methods.
+  std::vector<std::string> methods{"lr", "rf"};
+  std::string ou_model_save_path = "ou_model_path.pickle";
+
+  ModelServerFuture<std::string> future;
+  const char *env = ::getenv(BUILD_ABS_PATH);
+  std::string project_build_path = std::string(env != nullptr ? env : ".");
+  std::string model_path = project_build_path + "/bin";
+  ms_manager->TrainModel(ModelType::Type::OperatingUnit, methods, &model_path, ou_model_save_path, nullptr,
+                         common::ManagedPointer<ModelServerFuture<std::string>>(&future));
+  auto res = future.DangerousWait();
+  ASSERT_EQ(res.second, true);  // Training succeeds
+
+  // Perform inference on the trained opunit model for various opunits
+  auto result = ms_manager->InferOUModel("COMPILATION", ou_model_save_path, features);
+  ASSERT_TRUE(result.second);
+  ASSERT_EQ(result.first.size(), features.size());
+
+  // Quit
+  ms_manager->StopModelServer();
+}
+
+// NOLINTNEXTLINE
 TEST_F(ModelServerTest, ForecastModelTest) {
   messenger::messenger_logger->set_level(spdlog::level::info);
   model_server_logger->set_level(spdlog::level::info);

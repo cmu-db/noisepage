@@ -226,6 +226,7 @@ void stageModeling() {
         '-DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_USE_JEMALLOC=ON'
     ])
     buildNoisePageTarget("execution_runners")
+    buildNoisePageTarget("compilation_runner")
 
     // The forecaster_standalone script runs TPC-C with query trace enabled.
     // The forecaster_standalone script uses SET to enable query trace.
@@ -255,6 +256,12 @@ void stageModeling() {
     cd build/bin
     ../benchmark/execution_runners --execution_runner_rows_limit=100 --rerun=0 --warm_num=1
     ''', label: 'OU model training data generation'
+
+    sh script :'''
+    cd build
+    ./benchmark/compilation_runner
+    mv compilation.csv bin/
+    ''', label: 'Compilation model training data generation'
 
     // Recompile the noisepage DBMS in Debug mode with code coverage.
     buildNoisePage([buildCommand:'ninja noisepage', cmake:

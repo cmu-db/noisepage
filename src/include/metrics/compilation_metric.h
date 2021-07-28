@@ -79,6 +79,7 @@ class CompilationMetricRawData : public AbstractRawData {
   friend class CompilationMetric;
   friend class selfdriving::pilot::PilotUtil;
   friend class selfdriving::pilot::Pilot;
+  FRIEND_TEST(MetricsTests, CompilationTest);
   struct CompilationData;
 
   void RecordCompilationData(execution::query_id_t query_id, const std::string &module_name,

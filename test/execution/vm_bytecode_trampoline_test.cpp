@@ -245,7 +245,8 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     auto compiler = ModuleCompiler();
     auto module = compiler.CompileToModule(src);
     std::function<int32_t(const int32_t, const int32_t)> compare;
-    EXPECT_TRUE(module->GetFunction("compare", ExecutionMode::Interpret, &compare));
+    execution::query_id_t qid(0);
+    EXPECT_TRUE(module->GetFunction(qid, "compare", ExecutionMode::Interpret, &compare));
 
     util::Timer<std::milli> timer;
     timer.Start();

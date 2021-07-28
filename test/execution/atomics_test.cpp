@@ -48,11 +48,12 @@ class AtomicsTest : public CompiledTplTest {
 
     // The function should exist
     std::function<T(T *, T)> atomic_and;
-    EXPECT_TRUE(module->GetFunction("atomic_and", exec_mode, &atomic_and));
+    execution::query_id_t qid(0);
+    EXPECT_TRUE(module->GetFunction(qid, "atomic_and", exec_mode, &atomic_and));
 
     // The function should exist
     std::function<T(T *, T)> atomic_or;
-    EXPECT_TRUE(module->GetFunction("atomic_or", exec_mode, &atomic_or));
+    EXPECT_TRUE(module->GetFunction(qid, "atomic_or", exec_mode, &atomic_or));
 
     /*=========================
      *= Run correctness tests =
@@ -109,7 +110,8 @@ class AtomicsTest : public CompiledTplTest {
 
     // The function should exist
     std::function<bool(T *, T *, T)> cmpxchg;
-    EXPECT_TRUE(module->GetFunction("cmpxchg", exec_mode, &cmpxchg));
+    execution::query_id_t qid(0);
+    EXPECT_TRUE(module->GetFunction(qid, "cmpxchg", exec_mode, &cmpxchg));
 
     /*=========================
      *= Run correctness tests =
