@@ -30,7 +30,7 @@ def parse_summary_file(path):
     """
     def get_latency_val(latency_dist, pattern):
         value = get_value_by_pattern(latency_dist, pattern, None)
-        return float("{:.4}".format(value)) if value else value
+        return float("{:.4}".format(float(value))) if value else value
 
     with open(path) as summary_file:
         summary = json.load(summary_file)
@@ -41,14 +41,14 @@ def parse_summary_file(path):
                 'db_version': summary.get('DBMS Version', UNKNOWN_RESULT)
             }
         }
-        timestamp = int(get_value_by_pattern(summary, 'timestamp', str(time())))
+        timestamp = int(get_value_by_pattern(summary, 'Current Timestamp (milliseconds)', str(time())))
         benchmark_type = summary.get('Benchmark Type', UNKNOWN_RESULT)
         parameters = {
             'scale_factor': summary.get('scalefactor', '-1.0'),
             'terminals': int(summary.get('terminals', -1))
         }
         metrics = {
-            'throughput': get_value_by_pattern(summary, 'throughput', '-1.0'),
+            'throughput': get_value_by_pattern(summary, 'Throughput (requests/second)', '-1.0'),
             'latency': {key: get_latency_val(latency_dist, pattern)
                         for key, pattern in LATENCY_ATTRIBUTE_MAPPING}
         }

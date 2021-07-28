@@ -1,3 +1,4 @@
+import glob
 import os
 import re
 from decimal import Decimal
@@ -130,6 +131,24 @@ def parse_oltpbench_files(results_dir):
     metrics : dict
         The summary measurements that were gathered from the test.
     """
+
+    def hack_rename(old_glob_target, new_name):
+        """
+        Wan wants to avoid a rabbit hole of refactoring.
+        Therefore the new OLTPBench files are being renamed to match old expectations here.
+        """
+        matches = glob.glob(old_glob_target)
+        assert len(matches) == 1
+        os.rename(matches[0], new_name)
+
+    hack_rename(f'{results_dir}/*.results.csv', f'{results_dir}/oltpbench.res')
+    hack_rename(f'{results_dir}/*.raw.csv', f'{results_dir}/oltpbench.csv')
+    hack_rename(f'{results_dir}/*.samples.csv', f'{results_dir}/oltpbench.samples')
+    hack_rename(f'{results_dir}/*.summary.json', f'{results_dir}/oltpbench.summary')
+    hack_rename(f'{results_dir}/*.params.json', f'{results_dir}/oltpbench.params')
+    hack_rename(f'{results_dir}/*.metrics.json', f'{results_dir}/oltpbench.metrics')
+    hack_rename(f'{results_dir}/*.config.xml', f'{results_dir}/oltpbench.expconfig')
+
     config_parameters = parse_config_file(results_dir + '/oltpbench.expconfig')
     metadata, timestamp, benchmark_type, summary_parameters, metrics = parse_summary_file(
         results_dir + '/oltpbench.summary')

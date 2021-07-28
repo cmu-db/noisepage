@@ -29,8 +29,8 @@ def parse_res_file(path):
         reader = csv.DictReader(csvfile, delimiter=',')
         for row in reader:
             incremental_metrics.append({
-                "time": float(gvbp(row, 'time', None)),
-                "throughput": float(gvbp(row, 'throughput', None)),
+                "time": float(gvbp(row, 'time(sec)', None)),
+                "throughput": float(gvbp(row, 'throughput(req/sec)', None)),
                 "latency": {key: get_latency_val(row, pat)
                             for key, pat in LATENCY_ATTRIBUTE_MAPPING}
             })
