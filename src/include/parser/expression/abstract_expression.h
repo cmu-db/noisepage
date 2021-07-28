@@ -70,7 +70,7 @@ class AliasType {
    * Set the name of this alias
    * @param name name to set alias to
    */
-  void SetName(const std::string &name) { name_ = std::string(name); }
+  void SetName(const std::string &name) { name_ = name; }
 
   /**
    * @return Whether or not the serial number of this alias is valid
