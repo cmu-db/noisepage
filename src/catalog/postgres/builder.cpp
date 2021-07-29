@@ -819,16 +819,15 @@ Schema Builder::GetProcTableSchema() {
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer));
   columns.back().SetOid(PgProc::PRORETTYPE.oid_);
 
-  columns.emplace_back("proargtypes", execution::sql::SqlTypeId::Varbinary, 4096, false,
+  columns.emplace_back("proargtypes", execution::sql::SqlTypeId::Varbinary, 4096, true,
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varbinary));
   columns.back().SetOid(PgProc::PROARGTYPES.oid_);
 
-  // TODO(WAN): PROALLARGTYPES does not follow Postgres semantics, see #1359
-  columns.emplace_back("proallargtypes", execution::sql::SqlTypeId::Varbinary, 4096, false,
+  columns.emplace_back("proallargtypes", execution::sql::SqlTypeId::Varbinary, 4096, true,
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varbinary));
   columns.back().SetOid(PgProc::PROALLARGTYPES.oid_);
 
-  columns.emplace_back("proargmodes", execution::sql::SqlTypeId::Varbinary, 4096, false,
+  columns.emplace_back("proargmodes", execution::sql::SqlTypeId::Varbinary, 4096, true,
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varbinary));
   columns.back().SetOid(PgProc::PROARGMODES.oid_);
 
@@ -836,7 +835,7 @@ Schema Builder::GetProcTableSchema() {
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varbinary));
   columns.back().SetOid(PgProc::PROARGDEFAULTS.oid_);
 
-  columns.emplace_back("proargnames", execution::sql::SqlTypeId::Varbinary, 4096, false,
+  columns.emplace_back("proargnames", execution::sql::SqlTypeId::Varbinary, 4096, true,
                        parser::ConstantValueExpression(execution::sql::SqlTypeId::Varbinary));
   columns.back().SetOid(PgProc::PROARGNAMES.oid_);
 

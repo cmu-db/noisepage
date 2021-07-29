@@ -679,3 +679,20 @@ SELECT CONCAT(str_i_val, str_a_val) AS result FROM functions1 WHERE is_null = 1
 
 statement ok
 DROP TABLE functions1
+
+# should fail to signature match in the branch of matching function has no args, but input has args
+statement error
+select replication_get_last_txn_id('foo')
+----
+
+# should fail to signature match in the branch of matching function has variadic args, but input doesn't match (case 2 of variadic matching)
+# note that Postgres supports this, but I don't think we implicitly cast the number to a string
+statement error
+select concat('foo','bar',3)
+----
+
+# should fail to signature match in the branch of matching function has variadic args, but input doesn't match (case 1 of variadic matching)
+# note that Postgres supports this, but I don't think we implicitly cast the number to a string
+statement error
+select concat(3,'foo','bar')
+----
