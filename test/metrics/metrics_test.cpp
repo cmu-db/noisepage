@@ -353,45 +353,6 @@ TEST_F(MetricsTests, QueryCSVTest) {
                              setter_callback);
 }
 
-// NOLINTNEXTLINE
-TEST_F(MetricsTests, CompilationTest) {
-  for (const auto &file : metrics::QueryTraceMetricRawData::FILES) unlink(std::string(file).c_str());
-  const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
-  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  settings_manager_->SetBool(settings::Param::compilation_metrics_enable, true, common::ManagedPointer(action_context),
-                             setter_callback);
-
-  db_main_->GetNetworkLayer()->GetServer()->RunServer();
-
-  try {
-    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                                            port_, catalog::DEFAULT_DATABASE));
-
-    pqxx::work txn1(connection);
-    txn1.exec("SET compiled_query_execution = True;");
-    txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
-    txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
-    txn1.exec("SELECT * FROM TableA");
-    txn1.commit();
-  } catch (const std::exception &e) {
-    EXPECT_TRUE(false);
-  }
-
-  std::this_thread::sleep_for(std::chrono::seconds(1));
-
-  metrics_manager_->Aggregate();
-  const auto aggregated_data = reinterpret_cast<CompilationMetricRawData *>(
-      metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(MetricsComponent::COMPILATION)).get());
-  EXPECT_NE(aggregated_data, nullptr);
-  EXPECT_EQ(aggregated_data->compilation_data_.size(), 2);  // 2 data point recorded
-  metrics_manager_->ToOutput(DISABLED);
-  EXPECT_EQ(aggregated_data->compilation_data_.size(), 0);
-
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
-  settings_manager_->SetBool(settings::Param::compilation_metrics_enable, false, common::ManagedPointer(action_context),
-                             setter_callback);
-}
-
 /**
  *  Testing that we can enable and disable per-component metrics
  *
