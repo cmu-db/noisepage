@@ -119,6 +119,7 @@ def _send_result(env, path, username, password, result):
     """
     url = f"{PERFORMANCE_STORAGE_SERVICE_API.get(env)}{path}"
     LOG.debug(f"Sending results to: {url}")
+    LOG.info(f"Uploading result: {result}")
 
     try:
         result = requests.post(url, json=result, auth=(username, password))
