@@ -172,6 +172,22 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT proc_fors_constant_var();
 
+-- Select multiple constants in scalar variables
+CREATE FUNCTION proc_fors_constant_vars() RETURNS INT AS $$ \
+DECLARE                                 \
+  x INT;                                \
+  y INT;                                \
+  z INT := 0;                           \
+BEGIN                                   \
+  FOR x, y IN SELECT 1, 2 LOOP          \
+    z = z + 1;                          \
+  END LOOP;                             \
+  RETURN z;                             \
+END                                     \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_fors_constant_vars();
+
 -- -- Bind query result to a RECORD type
 -- CREATE FUNCTION proc_fors_rec() RETURNS INT AS $$ \
 -- DECLARE                                           \ 
@@ -185,7 +201,7 @@ SELECT proc_fors_constant_var();
 -- END                                               \
 -- $$ LANGUAGE PLPGSQL;
 
--- SELECT x, proc_fors_rec() FROM integers;
+-- SELECT proc_fors_rec() FROM integers;
 
 -- -- Bind query result directly to INT type
 -- CREATE FUNCTION proc_fors_var() RETURNS INT AS $$ \
@@ -200,4 +216,4 @@ SELECT proc_fors_constant_var();
 -- END                                               \
 -- $$ LANGUAGE PLPGSQL;
 
--- SELECT x, proc_fors_var() FROM integers;
+-- SELECT proc_fors_var() FROM integers;

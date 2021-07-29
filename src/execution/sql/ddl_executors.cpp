@@ -77,8 +77,8 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
     ast = udf_parser.Parse(node->GetFunctionParameterNames(), param_type_ids, body);
-  } catch (const ParserException &e) {
-    PARSER_LOG_ERROR(e.what());
+  } catch (const ParserException &parser_error) {
+    PARSER_LOG_ERROR(parser_error.what());
     return false;
   }
 
@@ -107,8 +107,17 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
       codegen.TplType(execution::sql::GetTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType())))};
 
   // Run UDF code generation
-  auto *file = compiler::udf::UdfCodegen::Run(accessor.Get(), &fb, &udf_ast_context, &codegen, node->GetDatabaseOid(),
-                                              ast.get());
+  ast::File *file;
+  try {
+    file = compiler::udf::UdfCodegen::Run(accessor.Get(), &fb, &udf_ast_context, &codegen, node->GetDatabaseOid(),
+                                          ast.get());
+  } catch (const BinderException &binder_error) {
+    EXECUTION_LOG_ERROR(binder_error.what());
+    return false;
+  } catch (const ExecutionException &execution_error) {
+    EXECUTION_LOG_ERROR(execution_error.what());
+    return false;
+  }
 
   {
     sema::Sema type_check{codegen.GetAstContext().Get()};
@@ -121,7 +130,7 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
 
   // TODO(Kyle): We are recomputing the types here because we lost
   // them to a std::move() above when we generate the AST, can we
-  // avoid duplicating this work? Would need to change the APIS.
+  // avoid duplicating this work? Would need to change the APIs.
 
   std::vector<type::TypeId> types{};
   types.reserve(node->GetFunctionParameterTypes().size());

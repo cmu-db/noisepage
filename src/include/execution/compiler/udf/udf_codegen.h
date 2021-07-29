@@ -71,9 +71,7 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   UdfCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb, ast::udf::UdfAstContext *udf_ast_context,
              CodeGen *codegen, catalog::db_oid_t db_oid);
 
-  /**
-   * Destroy the UDF code generation context.
-   */
+  /** Destroy the UDF code generation context. */
   ~UdfCodegen() override = default;
 
   /**
@@ -374,6 +372,13 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    * @throw EXECUTION_EXCEPTION on failure to resolve type
    */
   std::vector<std::pair<std::string, type::TypeId>> GetRecordType(const std::string &name) const;
+
+  /**
+   * Bind the query and return the variable references.
+   * @param query The parsed query
+   * @return The collection of variable references
+   */
+  std::vector<parser::udf::VariableRef> BindQueryAndGetVariableRefs(parser::ParseResult *query);
 
   /**
    * Run the optimizer on an embedded SQL query.

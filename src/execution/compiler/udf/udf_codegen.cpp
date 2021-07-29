@@ -358,13 +358,13 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   needs_exec_ctx_ = true;
   execution::ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
 
+  // Bind the embedded query; must do this prior to attempting
+  // to optimize to ensure correctness
+  const auto variable_refs = BindQueryAndGetVariableRefs(ast->Query());
+
   // Optimize the embedded query
   auto optimize_result = OptimizeEmbeddedQuery(ast->Query());
   auto plan = optimize_result->GetPlanNode();
-  if (plan->GetOutputSchema()->GetColumns().size() > 1) {
-    throw EXECUTION_EXCEPTION("PL/pgSQL Codegen : support for non-scalars is not implemented",
-                              common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
-  }
 
   // Start construction of the lambda expression
   auto builder = StartLambda(plan, ast->Variables());
@@ -404,10 +404,6 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   // Set its execution context to whatever execution context was passed in here
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
 
-  // Derive the columns and parameter names from the query
-  binder::BindNodeVisitor visitor{common::ManagedPointer<catalog::CatalogAccessor>{accessor_}, db_oid_};
-  const auto variable_refs =
-      visitor.BindAndGetUDFVariableRefs(common::ManagedPointer{ast->Query()}, common::ManagedPointer{udf_ast_context_});
   CodegenAddParameters(exec_ctx, variable_refs);
 
   fb_->Append(codegen_->Assign(
@@ -553,6 +549,10 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   needs_exec_ctx_ = true;
   ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
 
+  // Bind the embedded query; must do this prior to attempting
+  // to optimize to ensure correctness
+  const auto variable_refs = BindQueryAndGetVariableRefs(ast->Query());
+
   // Optimize the query and generate get a reference to the plan
   auto optimize_result = OptimizeEmbeddedQuery(ast->Query());
   auto plan = optimize_result->GetPlanNode();
@@ -584,9 +584,6 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
 
   // Determine the column references in the query (if any)
   // that depend on variables in the UDF definition
-  binder::BindNodeVisitor visitor{common::ManagedPointer{accessor_}, db_oid_};
-  const auto variable_refs =
-      visitor.BindAndGetUDFVariableRefs(common::ManagedPointer{ast->Query()}, common::ManagedPointer{udf_ast_context_});
   CodegenAddParameters(exec_ctx, variable_refs);
 
   // Load the execution context member of the query state
@@ -835,6 +832,11 @@ std::vector<std::pair<std::string, type::TypeId>> UdfCodegen::GetRecordType(cons
                               common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
   }
   return type.value();
+}
+
+std::vector<parser::udf::VariableRef> UdfCodegen::BindQueryAndGetVariableRefs(parser::ParseResult *query) {
+  binder::BindNodeVisitor visitor{common::ManagedPointer{accessor_}, db_oid_};
+  return visitor.BindAndGetUDFVariableRefs(common::ManagedPointer{query}, common::ManagedPointer{udf_ast_context_});
 }
 
 std::unique_ptr<optimizer::OptimizeResult> UdfCodegen::OptimizeEmbeddedQuery(parser::ParseResult *parsed_query) {

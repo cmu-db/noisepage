@@ -355,6 +355,24 @@ statement ok
 
 
 statement ok
+-- Select multiple constants in scalar variables
+
+statement ok
+CREATE FUNCTION proc_fors_constant_vars() RETURNS INT AS $$ DECLARE x INT; y INT; z INT := 0; BEGIN FOR x, y IN SELECT 1, 2 LOOP z = z + 1; END LOOP; RETURN z; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_fors_constant_vars();
+----
+1
+
+
+statement ok
+
+
+statement ok
 -- -- Bind query result to a RECORD type
 
 statement ok
@@ -367,7 +385,7 @@ statement ok
 
 
 statement ok
--- SELECT x, proc_fors_rec() FROM integers;
+-- SELECT proc_fors_rec() FROM integers;
 
 statement ok
 
@@ -382,5 +400,5 @@ statement ok
 
 
 statement ok
--- SELECT x, proc_fors_var() FROM integers;
+-- SELECT proc_fors_var() FROM integers;
 
