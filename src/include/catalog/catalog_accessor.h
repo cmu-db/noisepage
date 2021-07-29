@@ -312,24 +312,25 @@ class EXPORT CatalogAccessor {
   bool DropLanguage(language_oid_t language_oid);
 
   /**
-   * Creates a procedure for the pg_proc table
+   * Creates a procedure for the pg_proc table. See postgres' documentation for that the constraints are, or the
+   * assertions in pg_proc_impl.cpp.
    * @param procname name of process to add
    * @param language_oid oid of language this process is written in
    * @param procns namespace of process to add
+   * @param variadic_type type of the variadic arg (if any)
    * @param args names of arguments to this proc
    * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
    *        arguments)
-   * @param all_arg_types types of all arguments
-   * @param arg_modes modes of arguments in the same order as in args
+   * @param all_arg_types types of all arguments only if there are args that are not IN
+   * @param arg_modes modes of arguments in the same order as in args, only if they aren't all IN
    * @param rettype oid of the type of return value
    * @param src source code of proc
    * @param is_aggregate true iff this is an aggregate procedure
    * @return oid of created proc entry
-   * @warning does not support variadics yet
    */
   proc_oid_t CreateProcedure(const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
-                             const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
-                             const std::vector<type_oid_t> &all_arg_types,
+                             type_oid_t variadic_type, const std::vector<std::string> &args,
+                             const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
                              const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
