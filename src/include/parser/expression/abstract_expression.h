@@ -45,7 +45,7 @@ class AliasType {
    * @param name Alias name
    * @param serial_no Serial number
    */
-  explicit AliasType(std::string name, size_t serial_no)
+  explicit AliasType(std::string name, alias_oid_t serial_no)
       : name_{std::move(name)}, serial_no_{serial_no}, serial_valid_{true} {}
 
   /**
@@ -67,6 +67,12 @@ class AliasType {
   const std::string &GetName() const { return name_; }
 
   /**
+   * Set the name of this alias
+   * @param name name to set alias to
+   */
+  void SetName(const std::string &name) { name_ = name; }
+
+  /**
    * @return Whether or not the serial number of this alias is valid
    */
   bool IsSerialNoValid() const { return serial_valid_; }
@@ -74,7 +80,16 @@ class AliasType {
   /**
    * @return The serial number of this alias
    */
-  size_t GetSerialNo() const { return serial_no_; }
+  alias_oid_t GetSerialNo() const { return serial_no_; }
+
+  /**
+   * Set the serial number of this alias
+   * @param serial_no serial number to set alias to
+   */
+  void SetSerialNo(alias_oid_t serial_no) {
+    serial_no_ = serial_no;
+    serial_valid_ = true;
+  }
 
   /**
    * Equality function
@@ -88,6 +103,13 @@ class AliasType {
     }
     return names_equal && (serial_no_ == other.serial_no_);
   }
+
+  /**
+   * Not Equals function
+   * @param other The alias we are comparing against
+   * @return Whether or not these two aliases are considered not equal as documented above
+   */
+  bool operator!=(const AliasType &other) const { return !(*this == other); }
 
   /**
    * @return Whether this alias's name is empty
@@ -108,9 +130,21 @@ class AliasType {
     bool operator()(const AliasType &p, const AliasType &q) const { return p.GetSerialNo() < q.GetSerialNo(); }
   };
 
+  /**
+   * Convert AliasType to JSON
+   * @return JSON version of AliasType
+   */
+  nlohmann::json ToJson() const;
+
+  /**
+   * Create AliasType from a JSON
+   * @param j JSON to convert to AliasType
+   */
+  void FromJson(const nlohmann::json &j);
+
  private:
   std::string name_;
-  size_t serial_no_;
+  alias_oid_t serial_no_;
   bool serial_valid_;
 };
 

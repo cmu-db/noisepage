@@ -75,7 +75,7 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                       std::vector<AnnotatedExpression> predicates, std::string table_alias, bool is_for_update);
+                       std::vector<AnnotatedExpression> predicates, parser::AliasType table_alias, bool is_for_update);
 
   /**
    * For select statement without a from table
@@ -111,7 +111,7 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
   /**
    * @return the alias of the table to get from
    */
-  const std::string &GetTableAlias() const { return table_alias_; }
+  const parser::AliasType &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return whether the get operation is used for update
@@ -137,7 +137,7 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
   /**
    * Alias of the table to get from
    */
-  std::string table_alias_;
+  parser::AliasType table_alias_;
 
   /**
    * Whether the scan is used for update
@@ -233,7 +233,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
    * @return a LogicalQueryDerivedGet operator
    */
   static Operator Make(
-      std::string table_alias,
+      parser::AliasType table_alias,
       std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
   /**
@@ -249,7 +249,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
   /**
    * @return Alias of the table to get from
    */
-  const std::string &GetTableAlias() const { return table_alias_; }
+  const parser::AliasType &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return map from table aliases to expressions
@@ -263,7 +263,7 @@ class LogicalQueryDerivedGet : public OperatorNodeContents<LogicalQueryDerivedGe
   /**
    * Table aliases
    */
-  std::string table_alias_;
+  parser::AliasType table_alias_;
 
   /**
    * Map from table aliases to expressions

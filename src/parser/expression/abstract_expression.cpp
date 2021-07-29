@@ -24,6 +24,24 @@
 
 namespace noisepage::parser {
 
+nlohmann::json AliasType::ToJson() const {
+  nlohmann::json j;
+  j["name"] = name_;
+  j["serial_valid"] = serial_valid_;
+  if (serial_valid_) {
+    j["serial_no"] = serial_no_.UnderlyingValue();
+  }
+  return j;
+}
+
+void AliasType::FromJson(const nlohmann::json &j) {
+  name_ = j.at("name").get<std::string>();
+  serial_valid_ = j.at("serial_valid").get<bool>();
+  if (serial_valid_) {
+    serial_no_ = alias_oid_t(j.at("serial_no").get<size_t>());
+  }
+}
+
 void AbstractExpression::SetMutableStateForCopy(const AbstractExpression &copy_expr) {
   SetExpressionName(copy_expr.GetExpressionName());
   SetReturnValueType(copy_expr.GetReturnValueType());

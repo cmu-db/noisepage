@@ -62,9 +62,9 @@ void IndexActionGenerator::FindMissingIndex(const planner::AbstractPlanNode *pla
     if (indexable && (!equality_columns.empty() || !inequality_columns.empty())) {
       std::string table_name;
       if (!equality_columns.empty())
-        table_name = (*equality_columns.begin())->GetTableName();
+        table_name = (*equality_columns.begin())->GetTableAlias().GetName();
       else
-        table_name = (*inequality_columns.begin())->GetTableName();
+        table_name = (*inequality_columns.begin())->GetTableAlias().GetName();
 
       std::vector<IndexColumn> index_columns;
       std::unordered_set<std::string> covered_columns;

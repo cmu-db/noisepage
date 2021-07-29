@@ -425,7 +425,7 @@ TEST_F(ParserTestBase, SelectWithTest) {
 
   auto with_select_stmt = select_stmt->GetSelectWith()[0]->GetSelect();
   EXPECT_EQ(with_select_stmt->GetSelectTable()->GetTableName(), "company");
-  EXPECT_EQ(select_stmt->GetSelectWith()[0]->GetAlias(), "employee");
+  EXPECT_EQ(select_stmt->GetSelectWith()[0]->GetAlias(), parser::AliasType("employee"));
   EXPECT_EQ(with_select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::TABLE_STAR);
 }
 
@@ -913,10 +913,10 @@ TEST_F(ParserTestBase, OldJoinTest) {
     EXPECT_EQ(join_cond->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(join_cond->GetChild(0)->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     auto jcl = join_cond->GetChild(0).CastManagedPointerTo<ColumnValueExpression>();
-    EXPECT_EQ(jcl->GetTableName(), "foo");
+    EXPECT_EQ(jcl->GetTableAlias(), parser::AliasType("foo"));
     EXPECT_EQ(jcl->GetColumnName(), "id2");
     auto jcr = join_cond->GetChild(1).CastManagedPointerTo<ColumnValueExpression>();
-    EXPECT_EQ(jcr->GetTableName(), "baz");
+    EXPECT_EQ(jcr->GetTableAlias(), parser::AliasType("baz"));
     EXPECT_EQ(jcr->GetColumnName(), "id2");
 
     auto l_join = join_table->GetJoin()->GetLeftTable();
@@ -983,7 +983,7 @@ TEST_F(ParserTestBase, OldNestedQueryTest) {
   EXPECT_EQ(1, result->GetStatements().size());
   auto statement = result->GetStatement(0).CastManagedPointerTo<SelectStatement>();
 
-  EXPECT_EQ("t", statement->GetSelectTable()->GetAlias());
+  EXPECT_EQ(parser::AliasType("t"), statement->GetSelectTable()->GetAlias());
   auto nested_statement = statement->GetSelectTable()->GetSelect();
   EXPECT_EQ("foo", nested_statement->GetSelectTable()->GetTableName());
   EXPECT_EQ(ExpressionType::TABLE_STAR, nested_statement->GetSelectColumns()[0]->GetExpressionType());
@@ -998,7 +998,7 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   auto statement = result->GetStatement(0).CastManagedPointerTo<SelectStatement>();
 
   auto select_expression = statement->GetSelectColumns()[0].CastManagedPointerTo<ColumnValueExpression>();
-  EXPECT_EQ("foo", select_expression->GetTableName());
+  EXPECT_EQ(parser::AliasType("foo"), select_expression->GetTableAlias());
   EXPECT_EQ("name", select_expression->GetColumnName());
   EXPECT_EQ(parser::AliasType("name_new"), select_expression->GetAlias());
 
@@ -1007,7 +1007,7 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   EXPECT_EQ(3, from->GetList().size());
 
   auto list = from->GetList();
-  EXPECT_EQ("b", list[0]->GetAlias());
+  EXPECT_EQ(parser::AliasType("b"), list[0]->GetAlias());
   EXPECT_EQ("bar", list[0]->GetSelect()->GetSelectTable()->GetTableName());
 
   EXPECT_EQ("foo", list[1]->GetTableName());
@@ -1019,9 +1019,9 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
 
   auto child_0 = where_expression->GetChild(0).CastManagedPointerTo<ColumnValueExpression>();
   auto child_1 = where_expression->GetChild(1).CastManagedPointerTo<ColumnValueExpression>();
-  EXPECT_EQ("foo", child_0->GetTableName());
+  EXPECT_EQ(parser::AliasType("foo"), child_0->GetTableAlias());
   EXPECT_EQ("id", child_0->GetColumnName());
-  EXPECT_EQ("b", child_1->GetTableName());
+  EXPECT_EQ(parser::AliasType("b"), child_1->GetTableAlias());
   EXPECT_EQ("id", child_1->GetColumnName());
 }
 
@@ -1579,10 +1579,10 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
   auto left = when->GetChild(0).CastManagedPointerTo<ColumnValueExpression>();
   auto right = when->GetChild(1).CastManagedPointerTo<ColumnValueExpression>();
   EXPECT_EQ(left->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-  EXPECT_EQ(left->GetTableName(), "old");
+  EXPECT_EQ(left->GetTableAlias(), parser::AliasType("old"));
   EXPECT_EQ(left->GetColumnName(), "balance");
   EXPECT_EQ(right->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-  EXPECT_EQ(right->GetTableName(), "new");
+  EXPECT_EQ(right->GetTableAlias(), parser::AliasType("new"));
   EXPECT_EQ(right->GetColumnName(), "balance");
 
   EXPECT_TRUE(TRIGGER_FOR_ROW(create_trigger_stmt->GetTriggerType()));

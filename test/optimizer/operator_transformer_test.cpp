@@ -1010,7 +1010,8 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   auto chk_expr = ct->GetColumns()[3]->GetCheckExpression();
   EXPECT_EQ(chk_expr->GetExpressionType(), parser::ExpressionType::COMPARE_LESS_THAN);
   EXPECT_EQ(chk_expr->GetChild(0)->GetExpressionType(), parser::ExpressionType::COLUMN_VALUE);
-  EXPECT_EQ(chk_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName(), "c");
+  EXPECT_EQ(chk_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableAlias(),
+            parser::AliasType("c"));
   EXPECT_EQ(chk_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName(), "c4");
   EXPECT_EQ(chk_expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(*(chk_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>()),
@@ -1106,14 +1107,14 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   EXPECT_EQ(logical_create->GetIndexAttr().size(), 2);
   EXPECT_EQ(logical_create->GetIndexAttr()[0], create_stmt->GetIndexAttributes()[0].GetExpression());
   auto col_attr = logical_create->GetIndexAttr()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_attr->GetTableName(), "a");
+  EXPECT_EQ(col_attr->GetTableAlias(), parser::AliasType("a"));
   EXPECT_EQ(col_attr->GetTableOid(), table_a_oid_);
   EXPECT_EQ(col_attr->GetColumnName(), "a1");
   EXPECT_EQ(col_attr->GetColumnOid(), col_a1_oid);
   EXPECT_EQ(col_attr->GetDatabaseOid(), db_oid_);
 
   col_attr = logical_create->GetIndexAttr()[0]->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_attr->GetTableName(), "a");
+  EXPECT_EQ(col_attr->GetTableAlias(), parser::AliasType("a"));
   EXPECT_EQ(col_attr->GetTableOid(), table_a_oid_);
   EXPECT_EQ(col_attr->GetColumnName(), "a2");
   EXPECT_EQ(col_attr->GetColumnOid(), col_a2_oid);

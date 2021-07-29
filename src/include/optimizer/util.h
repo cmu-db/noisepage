@@ -55,8 +55,8 @@ class OptimizerUtil {
   static void ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
-                                  const std::unordered_set<std::string> &left_alias,
-                                  const std::unordered_set<std::string> &right_alias);
+                                  const std::unordered_set<parser::AliasType> &left_alias,
+                                  const std::unordered_set<parser::AliasType> &right_alias);
 
   /**
    * Generate all tuple value expressions of a base table
@@ -69,7 +69,7 @@ class OptimizerUtil {
    * table column id mapping
    */
   static std::vector<parser::AbstractExpression *> GenerateTableColumnValueExprs(catalog::CatalogAccessor *accessor,
-                                                                                 const std::string &alias,
+                                                                                 const parser::AliasType &alias,
                                                                                  catalog::db_oid_t db_oid,
                                                                                  catalog::table_oid_t tbl_oid);
 
@@ -83,7 +83,7 @@ class OptimizerUtil {
    * @return column value expression for the underlying column
    */
   static parser::AbstractExpression *GenerateColumnValueExpr(const catalog::Schema::Column &column,
-                                                             const std::string &alias, catalog::db_oid_t db_oid,
+                                                             const parser::AliasType &alias, catalog::db_oid_t db_oid,
                                                              catalog::table_oid_t tbl_oid);
 
   /**
@@ -99,7 +99,7 @@ class OptimizerUtil {
    */
   static parser::AbstractExpression *GenerateAggregateExpr(const catalog::Schema::Column &column,
                                                            parser::ExpressionType aggregate_type, bool distinct,
-                                                           const std::string &alias, catalog::db_oid_t db_oid,
+                                                           const parser::AliasType &alias, catalog::db_oid_t db_oid,
                                                            catalog::table_oid_t tbl_oid);
 
   /**
