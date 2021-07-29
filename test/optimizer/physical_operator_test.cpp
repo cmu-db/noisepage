@@ -74,42 +74,46 @@ TEST(OperatorTests, SeqScanTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
-  Operator seq_scan_01 =
-      SeqScan::Make(catalog::db_oid_t(2), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", false)
-          .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_03 =
-      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4), std::vector<AnnotatedExpression>(), "table", false)
-          .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_04 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                       std::vector<AnnotatedExpression>(), "tableTable", false)
+  Operator seq_scan_01 = SeqScan::Make(catalog::db_oid_t(2), catalog::table_oid_t(3),
+                                       std::vector<AnnotatedExpression>(), parser::AliasType("table"), false)
                              .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_05 =
-      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", true)
+  Operator seq_scan_03 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(4),
+                                       std::vector<AnnotatedExpression>(), parser::AliasType("table"), false)
+                             .RegisterWithTxnContext(txn_context);
+  Operator seq_scan_04 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                                       std::vector<AnnotatedExpression>(), parser::AliasType("tableTable"), false)
+                             .RegisterWithTxnContext(txn_context);
+  Operator seq_scan_05 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                                       std::vector<AnnotatedExpression>(), parser::AliasType("table"), true)
+                             .RegisterWithTxnContext(txn_context);
+  Operator seq_scan_1 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(),
+                                      parser::AliasType("table"), false)
+                            .RegisterWithTxnContext(txn_context);
+  Operator seq_scan_2 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(),
+                                      parser::AliasType("table"), false)
+                            .RegisterWithTxnContext(txn_context);
+  Operator seq_scan_3 =
+      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_0},
+                    parser::AliasType("table"), false)
           .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_1 =
-      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", false)
+  Operator seq_scan_4 =
+      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_1},
+                    parser::AliasType("table"), false)
           .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_2 =
-      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", false)
+  Operator seq_scan_5 =
+      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_2},
+                    parser::AliasType("table"), false)
           .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_3 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false)
-                            .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_4 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false)
-                            .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_5 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false)
-                            .RegisterWithTxnContext(txn_context);
-  Operator seq_scan_6 = SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                      std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false)
-                            .RegisterWithTxnContext(txn_context);
+  Operator seq_scan_6 =
+      SeqScan::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>{annotated_expr_3},
+                    parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(seq_scan_1.GetOpType(), OpType::SEQSCAN);
   EXPECT_EQ(seq_scan_1.GetContentsAs<SeqScan>()->GetDatabaseOID(), catalog::db_oid_t(1));
@@ -117,7 +121,7 @@ TEST(OperatorTests, SeqScanTest) {
   EXPECT_EQ(seq_scan_1.GetContentsAs<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(seq_scan_3.GetContentsAs<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(seq_scan_4.GetContentsAs<SeqScan>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(seq_scan_1.GetContentsAs<SeqScan>()->GetTableAlias(), "table");
+  EXPECT_EQ(seq_scan_1.GetContentsAs<SeqScan>()->GetTableAlias(), parser::AliasType("table"));
   EXPECT_EQ(seq_scan_1.GetContentsAs<SeqScan>()->GetIsForUpdate(), false);
   EXPECT_EQ(seq_scan_1.GetName(), "SeqScan");
   EXPECT_TRUE(seq_scan_1 == seq_scan_2);
@@ -172,11 +176,11 @@ TEST(OperatorTests, IndexScanTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
   auto type = planner::IndexScanType::AscendingClosed;
 
   // different from index_scan_1 in dbOID
@@ -347,24 +351,25 @@ TEST(OperatorTests, QueryDerivedScanTest) {
   alias_to_expr_map_5[parser::AliasType("constant expr")] = expr1;
   alias_to_expr_map_5[parser::AliasType("constant expr2")] = expr2;
 
-  Operator query_derived_scan_1 =
-      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_1)).RegisterWithTxnContext(txn_context);
-  Operator query_derived_scan_2 =
-      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_2)).RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_1 = QueryDerivedScan::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_1))
+                                      .RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_2 = QueryDerivedScan::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_2))
+                                      .RegisterWithTxnContext(txn_context);
   Operator query_derived_scan_3 =
       QueryDerivedScan::Make(
-          "alias", std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
+          parser::AliasType("alias"),
+          std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
           .RegisterWithTxnContext(txn_context);
-  Operator query_derived_scan_4 =
-      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_3)).RegisterWithTxnContext(txn_context);
-  Operator query_derived_scan_5 =
-      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_4)).RegisterWithTxnContext(txn_context);
-  Operator query_derived_scan_6 =
-      QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_5)).RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_4 = QueryDerivedScan::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_3))
+                                      .RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_5 = QueryDerivedScan::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_4))
+                                      .RegisterWithTxnContext(txn_context);
+  Operator query_derived_scan_6 = QueryDerivedScan::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_5))
+                                      .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(query_derived_scan_1.GetOpType(), OpType::QUERYDERIVEDSCAN);
   EXPECT_EQ(query_derived_scan_1.GetName(), "QueryDerivedScan");
-  EXPECT_EQ(query_derived_scan_1.GetContentsAs<QueryDerivedScan>()->GetTableAlias(), "alias");
+  EXPECT_EQ(query_derived_scan_1.GetContentsAs<QueryDerivedScan>()->GetTableAlias(), parser::AliasType("alias"));
   EXPECT_EQ(query_derived_scan_1.GetContentsAs<QueryDerivedScan>()->GetAliasToExprMap(), alias_to_expr_map_1_1);
   EXPECT_TRUE(query_derived_scan_1 == query_derived_scan_2);
   EXPECT_FALSE(query_derived_scan_1 == query_derived_scan_3);
@@ -484,11 +489,11 @@ TEST(OperatorTests, InnerNLJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator inner_nl_join_1 = InnerNLJoin::Make(std::vector<AnnotatedExpression>()).RegisterWithTxnContext(txn_context);
   Operator inner_nl_join_2 = InnerNLJoin::Make(std::vector<AnnotatedExpression>()).RegisterWithTxnContext(txn_context);
@@ -703,11 +708,11 @@ TEST(OperatorTests, InnerHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator inner_hash_join_1 =
       InnerHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
@@ -789,11 +794,11 @@ TEST(OperatorTests, LeftSemiHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator semi_hash_join_1 =
       LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
@@ -877,11 +882,11 @@ TEST(OperatorTests, LeftHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator left_hash_join_1 =
       LeftHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
@@ -1321,12 +1326,12 @@ TEST(OperatorTests, HashGroupByTest) {
   auto x_8 = common::ManagedPointer<parser::AbstractExpression>(expr_b_8);
 
   // havings: vector of AnnotatedExpression
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
-  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<parser::AliasType>());
 
   Operator group_by_1_0 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
                                             std::vector<AnnotatedExpression>{annotated_expr_0})
@@ -1426,12 +1431,12 @@ TEST(OperatorTests, SortGroupByTest) {
   auto x_8 = common::ManagedPointer<parser::AbstractExpression>(expr_b_8);
 
   // havings: vector of AnnotatedExpression
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
-  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<parser::AliasType>());
 
   Operator group_by_1_0 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
                                             std::vector<AnnotatedExpression>{annotated_expr_0})

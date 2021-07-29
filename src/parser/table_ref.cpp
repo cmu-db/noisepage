@@ -89,7 +89,7 @@ std::unique_ptr<JoinDefinition> JoinDefinition::Copy() {
 nlohmann::json TableRef::ToJson() const {
   nlohmann::json j;
   j["type"] = type_;
-  j["alias"] = alias_;
+  j["alias"] = alias_.ToJson();
   j["table_info"] = table_info_ == nullptr ? nlohmann::json(nullptr) : table_info_->ToJson();
   j["select"] = select_ == nullptr ? nlohmann::json(nullptr) : select_->ToJson();
   std::vector<nlohmann::json> list;
@@ -108,7 +108,7 @@ std::vector<std::unique_ptr<AbstractExpression>> TableRef::FromJson(const nlohma
   type_ = j.at("type").get<TableReferenceType>();
 
   // Deserialize alias
-  alias_ = j.at("alias").get<std::string>();
+  alias_.FromJson(j.at("alias"));
 
   // Deserialize table info
   if (!j.at("table_info").is_null()) {
@@ -147,7 +147,7 @@ DEFINE_JSON_BODY_DECLARATIONS(TableRef);
 
 common::hash_t TableRef::Hash() const {
   common::hash_t hash = common::HashUtil::Hash(type_);
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<AliasType>{}(alias_));
   if (table_info_ != nullptr) hash = common::HashUtil::CombineHashes(hash, table_info_->Hash());
   if (select_ != nullptr) hash = common::HashUtil::CombineHashes(hash, select_->Hash());
   if (join_ != nullptr) hash = common::HashUtil::CombineHashes(hash, join_->Hash());
@@ -192,21 +192,6 @@ std::unique_ptr<TableRef> TableRef::Copy() const {
     table_ref->list_.emplace_back(item->Copy());
   }
   return table_ref;
-}
-
-void TableRef::GetConstituentTableAliases(std::vector<std::string> *aliases) {
-  if (!alias_.empty()) {
-    aliases->push_back(GetAlias());
-  }
-
-  if (join_ != nullptr) {
-    join_->GetLeftTable()->GetConstituentTableAliases(aliases);
-    join_->GetRightTable()->GetConstituentTableAliases(aliases);
-  }
-
-  for (auto &table : list_) {
-    table->GetConstituentTableAliases(aliases);
-  }
 }
 
 }  // namespace noisepage::parser

@@ -136,6 +136,12 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   void ValidateAndCorrectInsertValues(common::ManagedPointer<parser::InsertStatement> node,
                                       std::vector<common::ManagedPointer<parser::AbstractExpression>> *values,
                                       const catalog::Schema &table_schema);
+
+  /**
+   * Set the serial number of the table alias to a unique number if it isn't already set
+   * @param node Table Ref to set serial number of
+   */
+  void SetUniqueTableAlias(common::ManagedPointer<parser::TableRef> node);
 };
 
 }  // namespace binder

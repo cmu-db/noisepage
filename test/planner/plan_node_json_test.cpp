@@ -606,8 +606,8 @@ TEST(PlanNodeJsonTest, ExportExternalFilePlanNodeJsonTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   // Construct HashJoinPlanNode
-  auto left_hash_key = std::make_unique<parser::ColumnValueExpression>("table1", "col1");
-  auto right_hash_key = std::make_unique<parser::ColumnValueExpression>("table2", "col2");
+  auto left_hash_key = std::make_unique<parser::ColumnValueExpression>(parser::AliasType("table1"), "col1");
+  auto right_hash_key = std::make_unique<parser::ColumnValueExpression>(parser::AliasType("table2"), "col2");
   auto join_pred = PlanNodeJsonTest::BuildDummyPredicate();
   HashJoinPlanNode::Builder builder;
   auto plan_node =

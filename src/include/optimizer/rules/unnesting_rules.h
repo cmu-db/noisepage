@@ -134,7 +134,8 @@ class DependentSingleJoinToInnerJoin : public Rule {
  * will be used as group by columns in the nested aggregate
  */
 void ExtractCorrelatedPredicatesWithAggregate(
-    const std::vector<AnnotatedExpression> &predicates, const std::unordered_set<std::string> &child_group_aliases_set,
+    const std::vector<AnnotatedExpression> &predicates,
+    const std::unordered_set<parser::AliasType> &child_group_aliases_set,
     std::vector<AnnotatedExpression> *correlated_predicates, std::vector<AnnotatedExpression> *normal_predicates,
     std::vector<common::ManagedPointer<parser::AbstractExpression>> *new_groupby_cols);
 

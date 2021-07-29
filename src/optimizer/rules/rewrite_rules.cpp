@@ -390,7 +390,7 @@ void RewriteEmbedFilterIntoGet::Transform(common::ManagedPointer<AbstractOptimiz
                                           std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto get = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalGet>();
-  std::string tbl_alias = std::string(get->GetTableAlias());
+  auto tbl_alias = get->GetTableAlias();
   std::vector<AnnotatedExpression> predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto output = std::make_unique<OperatorNode>(
@@ -423,7 +423,7 @@ void RewriteEmbedFilterIntoChildlessCteScan::Transform(common::ManagedPointer<Ab
                                                        std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                        UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto get = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalCteScan>();
-  std::string tbl_alias = std::string(get->GetTableAlias());
+  auto tbl_alias = get->GetTableAlias();
   std::vector<AnnotatedExpression> predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto output = std::make_unique<OperatorNode>(
@@ -458,7 +458,7 @@ void RewriteEmbedFilterIntoCteScan::Transform(common::ManagedPointer<AbstractOpt
                                               std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                               UNUSED_ATTRIBUTE OptimizationContext *context) const {
   auto get = input->GetChildren()[0]->Contents()->GetContentsAs<LogicalCteScan>();
-  std::string tbl_alias = std::string(get->GetTableAlias());
+  auto tbl_alias = get->GetTableAlias();
   std::vector<AnnotatedExpression> predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   for (auto child : input->GetChildren()[0]->GetChildren()) {

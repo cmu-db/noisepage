@@ -116,7 +116,7 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
   const auto &right_group_aliases_set = memo.GetGroupByID(right_group_id)->GetTableAliases();
 
   // Union Predicates into single alias set for new child join
-  std::unordered_set<std::string> right_join_aliases_set;
+  std::unordered_set<parser::AliasType> right_join_aliases_set;
   right_join_aliases_set.insert(middle_group_aliases_set.begin(), middle_group_aliases_set.end());
   right_join_aliases_set.insert(right_group_aliases_set.begin(), right_group_aliases_set.end());
 

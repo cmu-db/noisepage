@@ -96,7 +96,7 @@ TEST_F(BinderCteStructuredStatementTest, ItWorks) {
   auto [_, select] = BinderTestUtil::ParseToSelectStatement(sql);
   EXPECT_EQ(select->GetDepth(), -1);
   EXPECT_TRUE(select->HasSelectTable());
-  EXPECT_EQ(select->GetSelectTable()->GetAlias(), "testtable");
+  EXPECT_EQ(select->GetSelectTable()->GetAlias().GetName(), "testtable");
 }
 
 TEST_F(BinderCteStructuredStatementTest, BuildStatement0) {
