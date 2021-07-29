@@ -342,49 +342,21 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
                               common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
   }
 
-  // Construct a lambda that writes the output of the query
-  // into the identifiers within the UDF bound to the output
+  // Start construction of the lambda expression
+  auto builder = StartLambda(plan, ast->Variables());
 
-  std::vector<execution::ast::Identifier> variable_identifiers{};
-  execution::util::RegionVector<execution::ast::FieldDecl *> params{codegen_->GetAstContext()->GetRegion()};
-  params.push_back(codegen_->MakeField(
-      exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
-      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
-  std::size_t i = 0;
-  for (const auto &variable_name : ast->Variables()) {
-    const ast::Identifier variable_identifier = SymbolTable().find(variable_name)->second;
-    variable_identifiers.push_back(variable_identifier);
-    ast::Expr *type = codegen_->TplType(execution::sql::GetTypeId(plan->GetOutputSchema()->GetColumn(i).GetType()));
-    fb_->Append(codegen_->Assign(codegen_->MakeExpr(variable_identifier),
-                                 codegen_->ConstNull(plan->GetOutputSchema()->GetColumn(i).GetType())));
-    params.push_back(codegen_->MakeField(codegen_->MakeFreshIdentifier(variable_name), type));
-    i++;
-  }
+  // Generate code for closure capture assignment
+  CodegenCaptureAssignments(plan, ast->Variables());
 
-  FunctionBuilder fn{codegen_, std::move(params), codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
+  // Generate code for the loop body
   {
-    std::size_t j = 1;
-    for (auto var : variable_identifiers) {
-      fn.Append(codegen_->Assign(codegen_->MakeExpr(var), fn.GetParameterByPosition(j++)));
-    }
-    auto prev_fb = fb_;
-    fb_ = &fn;
+    auto cached_builder = fb_;
+    fb_ = builder.get();
     ast->Body()->Accept(this);
-    fb_ = prev_fb;
+    fb_ = cached_builder;
   }
 
-  // Define the captures for the closure
-  // TODO(Kyle): We are capturing every variable in the symbol table,
-  // this seems like overkill and may lead to incorrect semantics?
-  execution::util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
-  for (const auto &[name, identifier] : SymbolTable()) {
-    if (name == "executionCtx") {
-      continue;
-    }
-    captures.push_back(codegen_->MakeExpr(identifier));
-  }
-
-  ast::LambdaExpr *lambda_expr = fn.FinishLambda(std::move(captures));
+  ast::LambdaExpr *lambda_expr = builder->FinishClosure();
   const ast::Identifier lambda_identifier = codegen_->MakeFreshIdentifier("udfLambda");
   lambda_expr->SetName(lambda_identifier);
 
@@ -448,14 +420,15 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
 
   // Construct a lambda that writes the output of the query
   // into the bound variables, as defined by the function body
-  ast::LambdaExpr *lambda_expr = MakeLambda(plan, ast->Variables());
+  auto builder = StartLambda(plan, ast->Variables());
+  ast::LambdaExpr *lambda_expr = builder->FinishClosure();
   const ast::Identifier lambda_identifier = codegen_->MakeFreshIdentifier("udfLambda");
   lambda_expr->SetName(lambda_identifier);
 
   // Generate code for the embedded query, utilizing the generated closure as the output callback
-  execution::exec::ExecutionSettings exec_settings{};
-  auto exec_query = execution::compiler::CompilationContext::Compile(
-      *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
+  exec::ExecutionSettings exec_settings{};
+  auto exec_query = compiler::CompilationContext::Compile(
+      *plan, exec_settings, accessor_, compiler::CompilationMode::OneShot, std::nullopt,
       common::ManagedPointer<planner::PlanMetaData>{}, lambda_expr, codegen_->GetAstContext());
 
   // Append all declarations from the compiled query
@@ -469,7 +442,7 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
 
   // Set its execution context to whatever execution context was passed in here
-  fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
+  fb_->Append(codegen_->CallBuiltin(ast::Builtin::StartNewParams, {exec_ctx}));
 
   // Determine the column references in the query (if any)
   // that depend on variables in the UDF definition
@@ -498,7 +471,7 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
     }
   }
 
-  fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
+  fb_->Append(codegen_->CallBuiltin(ast::Builtin::FinishNewParams, {exec_ctx}));
 }
 
 void UdfCodegen::Visit(ast::udf::MemberExprAST *ast) {
@@ -511,14 +484,14 @@ void UdfCodegen::Visit(ast::udf::MemberExprAST *ast) {
   Code Generation Helpers
 ---------------------------------------------------------------------------- */
 
-ast::LambdaExpr *UdfCodegen::MakeLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                        const std::vector<std::string> &variables) {
-  return GetVariableType(variables.front()) == type::TypeId::INVALID ? MakeLambdaBindingToRecord(plan, variables)
-                                                                     : MakeLambdaBindingToNonRecord(plan, variables);
+std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                         const std::vector<std::string> &variables) {
+  return GetVariableType(variables.front()) == type::TypeId::INVALID ? StartLambdaBindingToRecord(plan, variables)
+                                                                     : StartLambdaBindingToNonRecord(plan, variables);
 }
 
-ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                                       const std::vector<std::string> &variables) {
+std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambdaBindingToRecord(
+    common::ManagedPointer<planner::AbstractPlanNode> plan, const std::vector<std::string> &variables) {
   // bind results to a single RECORD variable
   NOISEPAGE_ASSERT(variables.size() == 1, "Broken invariant");
 
@@ -534,17 +507,17 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToRecord(common::ManagedPointer<pl
   }
 
   // The lambda accepts all columns of the query output schema as parameters
-  util::RegionVector<execution::ast::FieldDecl *> parameters{codegen_->GetAstContext()->GetRegion()};
+  util::RegionVector<ast::FieldDecl *> parameters{codegen_->GetAstContext()->GetRegion()};
 
   // The first parameter is always the execution context
   ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
-  parameters.push_back(codegen_->MakeField(
-      exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
-      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
+  parameters.push_back(
+      codegen_->MakeField(exec_ctx->As<ast::IdentifierExpr>()->Name(),
+                          codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ExecutionContext))));
 
   // The lambda only captures the RECORD variable to which all results are bound
   ast::Expr *capture = codegen_->MakeExpr(SymbolTable().find(record_name)->second);
-  util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
+  util::RegionVector<ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
 
   // While the closure only captures a single variable, we still need
   // to generate code for an assignment to each field memeber
@@ -558,18 +531,18 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToRecord(common::ManagedPointer<pl
                                              codegen_->TplType(sql::GetTypeId(column.GetType()))));
   }
 
-  FunctionBuilder builder{codegen_, std::move(parameters), codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
+  auto builder = std::make_unique<FunctionBuilder>(codegen_, std::move(parameters), std::move(captures),
+                                                   codegen_->BuiltinType(ast::BuiltinType::Nil));
   for (std::size_t i = 0UL; i < assignees.size(); ++i) {
     auto *assignee = assignees.at(i);
-    auto input_parameter = builder.GetParameterByPosition(i + 1);
-    builder.Append(codegen_->Assign(assignee, input_parameter));
+    auto input_parameter = builder->GetParameterByPosition(i + 1);
+    builder->Append(codegen_->Assign(assignee, input_parameter));
   }
-
-  return builder.FinishLambda(std::move(captures));
+  return builder;
 }
 
-ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToNonRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                                          const std::vector<std::string> &variables) {
+std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambdaBindingToNonRecord(
+    common::ManagedPointer<planner::AbstractPlanNode> plan, const std::vector<std::string> &variables) {
   // bind results to one or more non-RECORD variables
   const auto n_variables = variables.size();
   const auto n_columns = plan->GetOutputSchema()->GetColumns().size();
@@ -579,14 +552,14 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToNonRecord(common::ManagedPointer
   }
 
   // The lambda accepts all columns of the query output schema as parameters
-  util::RegionVector<execution::ast::FieldDecl *> parameters{codegen_->GetAstContext()->GetRegion()};
+  util::RegionVector<ast::FieldDecl *> parameters{codegen_->GetAstContext()->GetRegion()};
   // The lambda captures the variables to which results are bound from the enclosing scope
-  util::RegionVector<execution::ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
+  util::RegionVector<ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
 
   // The first parameter is always the execution context
   ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
   parameters.push_back(codegen_->MakeField(
-      exec_ctx->As<execution::ast::IdentifierExpr>()->Name(),
+      exec_ctx->As<ast::IdentifierExpr>()->Name(),
       codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
 
   // Populate the remainder of the parameters and captures
@@ -598,17 +571,20 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToNonRecord(common::ManagedPointer
                                              codegen_->TplType(sql::GetTypeId(column.GetType()))));
   }
 
+  // Clone the captures for assignment within the closure body
+  const std::vector<ast::Expr *> assignees{captures.cbegin(), captures.cend()};
+
   // Begin construction of the function that implements the closure
-  FunctionBuilder builder{codegen_, std::move(parameters), codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
+  auto builder = std::make_unique<FunctionBuilder>(codegen_, std::move(parameters), std::move(captures),
+                                                   codegen_->BuiltinType(execution::ast::BuiltinType::Nil));
 
   // Generate an assignment from each input parameter to the associated capture
-  for (std::size_t i = 0UL; i < captures.size(); ++i) {
-    auto *capture = captures[i];
-    auto input_parameter = builder.GetParameterByPosition(i + 1);
-    builder.Append(codegen_->Assign(capture, input_parameter));
+  for (std::size_t i = 0UL; i < assignees.size(); ++i) {
+    ast::Expr *capture = assignees.at(i);
+    auto input_parameter = builder->GetParameterByPosition(i + 1);
+    builder->Append(codegen_->Assign(capture, input_parameter));
   }
-
-  return builder.FinishLambda(std::move(captures));
+  return builder;
 }
 
 void UdfCodegen::CodegenAddParameters(ast::Expr *exec_ctx, const std::vector<parser::udf::VariableRef> &variable_refs) {

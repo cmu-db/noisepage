@@ -234,30 +234,30 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    * represented by `plan` into the variables identified by `variables`.
    * @param plan The query plan
    * @param variables The names of the variables to which results are bound
-   * @return The lambda expression
+   * @return The builder used to construct the expression (unfinished)
    */
-  ast::LambdaExpr *MakeLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                              const std::vector<std::string> &variables);
+  std::unique_ptr<FunctionBuilder> StartLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                               const std::vector<std::string> &variables);
 
   /**
    * Construct a lambda expression that writes the output of the query
    * represented by `plan` into a single RECORD-type variable.
    * @param plan The query plan
    * @param variables The names of the variables to which results are bound
-   * @return The lambda expression
+   * @return The builder used to construct the expression (unfinished)
    */
-  ast::LambdaExpr *MakeLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                             const std::vector<std::string> &variables);
+  std::unique_ptr<FunctionBuilder> StartLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                              const std::vector<std::string> &variables);
 
   /**
    * Construct a lambda expression that writes the output of the query
    * represented by `plan` into one or more non-RECORD variables.
    * @param plan The query plan
    * @param variables The names of the variables to which results are bound
-   * @return The lambda expression
+   * @return The builder used to construct the expression (unfinished)
    */
-  ast::LambdaExpr *MakeLambdaBindingToNonRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                                const std::vector<std::string> &variables);
+  std::unique_ptr<FunctionBuilder> StartLambdaBindingToNonRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                                 const std::vector<std::string> &variables);
 
   /**
    * Generate code to add query parameters to the execution context.
