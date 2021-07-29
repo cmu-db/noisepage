@@ -31,12 +31,9 @@ class PLpgSQLParser {
   /**
    * Construct a new PLpgSQLParser instance.
    * @param udf_ast_context The AST context
-   * @param accessor The accessor to use during parsing
-   * @param db_oid The database OID
    */
-  PLpgSQLParser(common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context,
-                const common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::db_oid_t db_oid)
-      : udf_ast_context_(udf_ast_context), accessor_(accessor), db_oid_(db_oid) {}
+  explicit PLpgSQLParser(common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context)
+      : udf_ast_context_{udf_ast_context} {}
 
   /**
    * Parse source PL/pgSQL to an abstract syntax tree.
@@ -155,13 +152,6 @@ class PLpgSQLParser {
  private:
   /** The UDF AST context */
   common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context_;
-
-  /** The catalog accessor */
-  const common::ManagedPointer<catalog::CatalogAccessor> accessor_;
-
-  /** The OID for the database with which the function is associated */
-  catalog::db_oid_t db_oid_;
-
   /** The function symbol table */
   std::unordered_map<std::string, type::TypeId> symbol_table_;
 };

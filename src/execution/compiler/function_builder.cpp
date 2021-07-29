@@ -7,13 +7,13 @@
 namespace noisepage::execution::compiler {
 
 FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier name, util::RegionVector<ast::FieldDecl *> &&params,
-                                 ast::Expr *ret_type)
+                                 ast::Expr *return_type)
     : type_{FunctionType::FUNCTION},
       codegen_{codegen},
       name_{name},
       params_{std::move(params)},
       captures_{codegen_->GetAstContext()->GetRegion()},
-      return_type_{ret_type},
+      return_type_{return_type},
       start_{codegen->GetPosition()},
       statements_{codegen->MakeEmptyBlock()},
       decl_{std::in_place_type<ast::FunctionDecl *>, nullptr} {}

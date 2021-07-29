@@ -200,9 +200,6 @@ class CompilationContext {
 
   // Whether pipeline metrics are enabled.
   bool pipeline_metrics_enabled_;
-
-  // The current operator.
-  OperatorTranslator *current_op_;
 };
 
 }  // namespace noisepage::execution::compiler

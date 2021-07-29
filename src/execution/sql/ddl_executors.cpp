@@ -73,7 +73,7 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   // TODO(Kyle): Revisit this after clearing up what the
   // preferred way to report errors is in the system, both
   // within components and between components...
-  parser::udf::PLpgSQLParser udf_parser{common::ManagedPointer{&udf_ast_context}, accessor, node->GetDatabaseOid()};
+  parser::udf::PLpgSQLParser udf_parser{common::ManagedPointer{&udf_ast_context}};
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
     ast = udf_parser.Parse(node->GetFunctionParameterNames(), param_type_ids, body);
