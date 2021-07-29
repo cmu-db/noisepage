@@ -325,12 +325,6 @@ statement ok
 -- proc_fors()
 
 statement ok
---
-
-statement ok
--- TODO(Kyle): for-loop control flow (query variant) is not supported
-
-statement ok
 
 
 statement ok
@@ -338,6 +332,24 @@ statement ok
 
 statement ok
 -- INSERT INTO tmp(z) VALUES (0), (1);
+
+statement ok
+
+
+statement ok
+-- Select constant into a scalar variable
+
+statement ok
+CREATE FUNCTION proc_fors_constant_var() RETURNS INT AS $$ DECLARE v INT; x INT := 0; BEGIN FOR v IN SELECT 1 LOOP x = x + 1; END LOOP; RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_fors_constant_var();
+----
+1
+
 
 statement ok
 

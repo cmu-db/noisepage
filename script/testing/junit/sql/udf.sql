@@ -153,11 +153,24 @@ SELECT sql_select_mutliple_constants();
 
 -- ----------------------------------------------------------------------------
 -- proc_fors()
---
--- TODO(Kyle): for-loop control flow (query variant) is not supported
 
 -- CREATE TABLE tmp(z INT);
 -- INSERT INTO tmp(z) VALUES (0), (1);
+
+-- Select constant into a scalar variable
+CREATE FUNCTION proc_fors_constant_var() RETURNS INT AS $$ \
+DECLARE                                                    \
+  v INT;                                                   \
+  x INT := 0;                                              \
+BEGIN                                                      \
+  FOR v IN SELECT 1 LOOP                                   \
+    x = x + 1;                                             \
+  END LOOP;                                                \
+  RETURN x;                                                \
+END                                                        \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_fors_constant_var();
 
 -- -- Bind query result to a RECORD type
 -- CREATE FUNCTION proc_fors_rec() RETURNS INT AS $$ \

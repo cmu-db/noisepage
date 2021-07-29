@@ -229,35 +229,77 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   static const char *GetReturnParamString();
 
  private:
+  /* --------------------------------------------------------------------------
+    Code Generation: For-S Loops
+  -------------------------------------------------------------------------- */
+
+  /**
+   * Begin construction of a lambda that writes the output of the query
+   * represented by `plan` into the variables identified by `variables`.
+   * @param plan The query plan
+   * @param variables The names of the variables to which results are bound
+   * @return The unfinished function builder for the lambda
+   */
+  std::unique_ptr<FunctionBuilder> StartLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                               const std::vector<std::string> &variables);
+
+  /**
+   * Begin construction of a lambda that writes the output of the query
+   * represented by `plan` into a single RECORD-type variable.
+   * @param plan The query plan
+   * @param variables The names of the variables to which results are bound
+   * @return The unfinished function builder for the lambda
+   */
+  std::unique_ptr<FunctionBuilder> StartLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                              const std::vector<std::string> &variables);
+
+  /**
+   * Begin construction of a lambda that writes the output of the query
+   * represented by `plan` into one or more non-RECORD variables.
+   * @param plan The query plan
+   * @param variables The names of the variables to which results are bound
+   * @return The unfinished function builder for the lambda
+   */
+  std::unique_ptr<FunctionBuilder> StartLambdaBindingToScalars(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                                               const std::vector<std::string> &variables);
+
+  /* --------------------------------------------------------------------------
+    Code Generation: SQL Statements
+  -------------------------------------------------------------------------- */
+
   /**
    * Construct a lambda expression that writes the output of the query
    * represented by `plan` into the variables identified by `variables`.
    * @param plan The query plan
    * @param variables The names of the variables to which results are bound
-   * @return The builder used to construct the expression (unfinished)
+   * @return The finished lambda expression
    */
-  std::unique_ptr<FunctionBuilder> StartLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                               const std::vector<std::string> &variables);
+  ast::LambdaExpr *MakeLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                              const std::vector<std::string> &variables);
 
   /**
    * Construct a lambda expression that writes the output of the query
    * represented by `plan` into a single RECORD-type variable.
    * @param plan The query plan
    * @param variables The names of the variables to which results are bound
-   * @return The builder used to construct the expression (unfinished)
+   * @return The finished lambda expression
    */
-  std::unique_ptr<FunctionBuilder> StartLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                                              const std::vector<std::string> &variables);
+  ast::LambdaExpr *MakeLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                             const std::vector<std::string> &variables);
 
   /**
    * Construct a lambda expression that writes the output of the query
    * represented by `plan` into one or more non-RECORD variables.
    * @param plan The query plan
    * @param variables The names of the variables to which results are bound
-   * @return The builder used to construct the expression (unfinished)
+   * @return The finished lambda expression
    */
-  std::unique_ptr<FunctionBuilder> StartLambdaBindingToNonRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                                                 const std::vector<std::string> &variables);
+  ast::LambdaExpr *MakeLambdaBindingToScalars(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                              const std::vector<std::string> &variables);
+
+  /* --------------------------------------------------------------------------
+    Code Generation: Common
+  -------------------------------------------------------------------------- */
 
   /**
    * Generate code to add query parameters to the execution context.
@@ -281,28 +323,28 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   void CodegenAddTableParameter(ast::Expr *exec_ctx, const parser::udf::VariableRef &variable_ref);
 
   /**
-   * Generate code to perform assignment to captured variables.
+   * Generate code to initialize bound variables.
    * @param plan The query plan
    * @param bound_variables The variables to which results of the query are bound
    */
-  void CodegenCaptureAssignments(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                 const std::vector<std::string> &bound_variables);
+  void CodegenBoundVariableInit(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                const std::vector<std::string> &bound_variables);
 
   /**
-   * Generate code to perform assignment to captured variables.
+   * Generate code to initialize bound scalar variables.
    * @param plan The query plan
    * @param bound_variables The name(s) of the scalar variables to which results of the query are bound
    */
-  void CodegenCaptureAssignmentToScalars(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                         const std::vector<std::string> &bound_variables);
+  void CodegenBoundVariableInitForScalars(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                          const std::vector<std::string> &bound_variables);
 
   /**
-   * Generate code to perform assignment to captured variables.
+   * Generate code to initialize a bound record variable.
    * @param plan The query plan
    * @param record_name The name of the record variable to which results of the query are bound
    */
-  void CodegenCaptureAssignmentToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
-                                        const std::string &record_name);
+  void CodegenBoundVariableInitForRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
+                                         const std::string &record_name);
 
   /**
    * Translate a SQL type to its corresponding catalog type.
