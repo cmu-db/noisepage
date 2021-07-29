@@ -38,7 +38,7 @@ def parse_summary_file(path):
 
         metadata = {
             'noisepage': {
-                'db_version': summary.get('DBMS Version', UNKNOWN_RESULT)
+                'db_version': '1.0.0'
             }
         }
         timestamp = int(get_value_by_pattern(summary, 'Current Timestamp (milliseconds)', str(time())))
