@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "common/macros.h"
 #include "execution/ast/identifier.h"

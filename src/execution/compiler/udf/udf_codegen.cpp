@@ -25,6 +25,9 @@
 
 namespace noisepage::execution::compiler::udf {
 
+/** The identifier for the pipeline `RunAll` function */
+constexpr static const char RUN_ALL_IDENTIFIER[] = "RunAll";
+
 UdfCodegen::UdfCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
                        ast::udf::UdfAstContext *udf_ast_context, CodeGen *codegen, catalog::db_oid_t db_oid)
     : accessor_{accessor},
@@ -870,7 +873,7 @@ std::unique_ptr<optimizer::OptimizeResult> UdfCodegen::OptimizeEmbeddedQuery(par
 
 // Static
 bool UdfCodegen::IsRunAllFunction(const std::string &name) {
-  return name.find("RunAllOutputCallback") != std::string::npos;
+  return name.find(RUN_ALL_IDENTIFIER) != std::string::npos;
 }
 
 // Static

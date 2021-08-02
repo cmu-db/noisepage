@@ -39,9 +39,9 @@ Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : 
 }
 
 void Pipeline::RegisterStep(OperatorTranslator *op) {
-  NOISEPAGE_ASSERT(std::count(steps_.begin(), steps_.end(), op) == 0,
+  NOISEPAGE_ASSERT(std::count(steps_.cbegin(), steps_.cend(), op) == 0,
                    "Duplicate registration of operator in pipeline.");
-  auto num_steps = steps_.size();
+  const auto num_steps = steps_.size();
   if (num_steps > 0) {
     auto last_step = common::ManagedPointer(steps_[num_steps - 1]);
     // TODO(WAN): MAYDAY CHECK WITH LIN AND PRASHANTH, did ordering of these change?
@@ -246,7 +246,7 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
   builder->DeclareFunction(teardown);
 
   if (HasOutputCallback()) {
-    auto run_all = GeneratePipelineRunAllOutputCallbackFunction();
+    auto run_all = GeneratePipelineRunAllFunction();
     builder->DeclareFunction(run_all);
     builder->RegisterStep(run_all);
   } else if (!IsNestedPipeline()) {
@@ -256,6 +256,10 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
     builder->RegisterStep(teardown);
   }
 
+  // For nested pipelines, do not register any of the top-level
+  // pipeline functions as steps in the Fragment builder, and
+  // instead rely on a call to Pipeline::CallNestedRunPipeline
+
   builder->AddTeardownFn(teardown);
 }
 
@@ -264,8 +268,12 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
 ----------------------------------------------------------------------------- */
 
 ast::FunctionDecl *Pipeline::GenerateInitPipelineStateFunction() const {
+  /**
+   * fun QueryX_PipelineY_InitPipelineState(*QueryState, *PipelineState)
+   */
+
   auto name = GetInitPipelineStateFunctionName();
-  FunctionBuilder builder{codegen_, name, GetInitPipelineStateParams(), codegen_->Nil()};
+  FunctionBuilder builder{codegen_, name, PipelineParams(), codegen_->Nil()};
   {
     // Request new scope for the function.
     CodeGen::CodeScope code_scope{codegen_};
@@ -277,8 +285,12 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineStateFunction() const {
 }
 
 ast::FunctionDecl *Pipeline::GenerateTearDownPipelineStateFunction() const {
+  /**
+   * fun QueryX_PipelineY_TeardownPipelineState(*QueryState, *PipelineState)
+   */
+
   auto name = GetTearDownPipelineStateFunctionName();
-  FunctionBuilder builder{codegen_, name, GetTeardownPipelineStateParams(), codegen_->Nil()};
+  FunctionBuilder builder{codegen_, name, PipelineParams(), codegen_->Nil()};
   {
     // Request new scope for the function.
     CodeGen::CodeScope code_scope{codegen_};
@@ -300,35 +312,18 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineStateFunction() const {
   Pipeline Generation: RunAll
 ----------------------------------------------------------------------------- */
 
-ast::FunctionDecl *Pipeline::GeneratePipelineRunAllNestedFunction() const {
-  NOISEPAGE_ASSERT(IsNestedPipeline(), "Should only generate a RunAllNested function in nested pipeline");
+ast::FunctionDecl *Pipeline::GeneratePipelineRunAllFunction() const {
+  NOISEPAGE_ASSERT(HasOutputCallback(), "Should only generate RunAll function for pipeline with output callback");
+  /**
+   * fun QueryX_PipelineY_RunAll(*QueryState, Closure)
+   */
 
-  const ast::Identifier name = GetRunAllNestedPipelineFunctionName();
-  FunctionBuilder builder{codegen_, name, GetRunAllNestedPipelineParams(), codegen_->Nil()};
-  {
-    CodeGen::CodeScope code_scope{codegen_};
+  const ast::Identifier name = GetRunAllPipelineFunctionName();
+  util::RegionVector<ast::FieldDecl *> params{QueryParams()};
+  params.push_back(codegen_->MakeField(
+      GetOutputCallback()->GetName(), codegen_->LambdaType(GetOutputCallback()->GetFunctionLiteralExpr()->TypeRepr())));
 
-    ast::Identifier pipeline_state = codegen_->MakeFreshIdentifier("pipeline_state");
-    builder.Append(codegen_->DeclareVarNoInit(pipeline_state, state_.GetType()->TypeRepr()));
-    auto pipeline_state_ptr = codegen_->AddressOf(pipeline_state);
-
-    NOISEPAGE_ASSERT(builder.GetParameterCount() == 1, "Unexpected parameter count for RunAllNested function");
-    auto *query_state_param = builder.GetParameterByPosition(0);
-
-    builder.Append(codegen_->Call(GetInitPipelineFunctionName(), {query_state_param, pipeline_state_ptr}));
-    builder.Append(codegen_->Call(GetRunPipelineFunctionName(), {query_state_param, pipeline_state_ptr}));
-    builder.Append(codegen_->Call(GetTeardownPipelineFunctionName(), {query_state_param, pipeline_state_ptr}));
-  }
-
-  return builder.Finish();
-}
-
-ast::FunctionDecl *Pipeline::GeneratePipelineRunAllOutputCallbackFunction() const {
-  NOISEPAGE_ASSERT(HasOutputCallback(),
-                   "Should only generate RunAllOutputCallback function for pipeline with output callback");
-
-  const ast::Identifier name = GetRunAllOutputCallbackPipelineFunctionName();
-  FunctionBuilder builder{codegen_, name, GetRunAllOutputCallbackPipelineParams(), codegen_->Nil()};
+  FunctionBuilder builder{codegen_, name, std::move(params), codegen_->Nil()};
 
   {
     CodeGen::CodeScope code_scope{codegen_};
@@ -336,7 +331,7 @@ ast::FunctionDecl *Pipeline::GeneratePipelineRunAllOutputCallbackFunction() cons
     ast::Identifier pipeline_state_id = codegen_->MakeFreshIdentifier("pipelineState");
     builder.Append(codegen_->DeclareVarNoInit(pipeline_state_id, state_.GetType()->TypeRepr()));
 
-    NOISEPAGE_ASSERT(builder.GetParameterCount() == 2, "Unexpected parameter count for RunAllOutputCallback function");
+    NOISEPAGE_ASSERT(builder.GetParameterCount() == 2, "Unexpected parameter count for RunAll function");
     auto *query_state = builder.GetParameterByPosition(0);
     auto *pipeline_state = codegen_->AddressOf(pipeline_state_id);
     auto *callback = builder.GetParameterByPosition(1);
@@ -354,11 +349,30 @@ ast::FunctionDecl *Pipeline::GeneratePipelineRunAllOutputCallbackFunction() cons
 ----------------------------------------------------------------------------- */
 
 ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction() const {
+  /**
+   * Common Case:
+   *  fun QueryX_PipelineY_Init(queryState)
+   *
+   * Nested Pipeline:
+   *  fun QueryX_PipelineY_InitPipeline(queryState, pipelineState)
+   *
+   * Output Callback:
+   *  fun QueryX_PipelineY_InitPipeline(queryState, pipelineState)
+   */
+
   auto query_state = compilation_context_->GetQueryState();
   const ast::Identifier name = GetInitPipelineFunctionName();
 
-  auto parameters = GetInitPipelineParams();
-  FunctionBuilder builder{codegen_, name, std::move(parameters), codegen_->Nil()};
+  util::RegionVector<ast::FieldDecl *> params{QueryParams()};
+  if (IsNestedPipeline() || HasOutputCallback()) {
+    const auto &state = GetPipelineStateDescriptor();
+    ast::FieldDecl *pipeline_state_ptr =
+        codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
+                            codegen_->PointerType(codegen_->MakeExpr(state.GetTypeName())));
+    params.push_back(pipeline_state_ptr);
+  }
+
+  FunctionBuilder builder{codegen_, name, std::move(params), codegen_->Nil()};
   {
     CodeGen::CodeScope code_scope{codegen_};
     ast::Expr *state_ptr = query_state->GetStatePointer(codegen_);
@@ -385,9 +399,34 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction() const {
 }
 
 ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
+  /**
+   * Common Case:
+   *  fun QueryX_PipelineY_Run(queryState)
+   *
+   * Nested Pipeline:
+   *  fun QueryX_PipelineY_Run(queryState, pipelineState)
+   *
+   * Output Callback:
+   *  fun QueryX_PipelineY_Run(queryState, outputCallback)
+   */
+
   bool started_tracker = false;
   const ast::Identifier name = GetRunPipelineFunctionName();
-  FunctionBuilder builder{codegen_, name, GetRunPipelineParams(), codegen_->Nil()};
+
+  util::RegionVector<ast::FieldDecl *> params{QueryParams()};
+  if (IsNestedPipeline() || HasOutputCallback()) {
+    params.push_back(codegen_->MakeField(GetPipelineStateName(), codegen_->PointerType(state_.GetTypeName())));
+  }
+  for (auto *field : extra_pipeline_params_) {
+    params.push_back(field);
+  }
+  if (HasOutputCallback()) {
+    params.push_back(
+        codegen_->MakeField(GetOutputCallback()->GetName(),
+                            codegen_->LambdaType(GetOutputCallback()->GetFunctionLiteralExpr()->TypeRepr())));
+  }
+
+  FunctionBuilder builder{codegen_, name, std::move(params), codegen_->Nil()};
   {
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope{codegen_};
@@ -428,7 +467,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
         params.push_back(codegen_->MakeExpr(GetOutputCallback()->GetName()));
       }
 
-      builder.Append(codegen_->Call(GetPipelineWorkFunctionName(), std::move(params)));
+      builder.Append(codegen_->Call(GetPipelineWorkFunctionName(), params));
     }
 
     // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
@@ -447,7 +486,21 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
 }
 
 ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
-  FunctionBuilder builder{codegen_, GetPipelineWorkFunctionName(), GetPipelineWorkParams(), codegen_->Nil()};
+  util::RegionVector<ast::FieldDecl *> params{PipelineParams()};
+  for (auto *field : extra_pipeline_params_) {
+    params.push_back(field);
+  }
+  if (IsParallel()) {
+    auto additional_params = driver_->GetWorkerParams();
+    params.insert(params.end(), additional_params.cbegin(), additional_params.cend());
+  }
+  if (HasOutputCallback()) {
+    params.push_back(
+        codegen_->MakeField(GetOutputCallback()->GetName(),
+                            codegen_->LambdaType(GetOutputCallback()->GetFunctionLiteralExpr()->TypeRepr())));
+  }
+
+  FunctionBuilder builder{codegen_, GetPipelineWorkFunctionName(), std::move(params), codegen_->Nil()};
   {
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope{codegen_};
@@ -475,8 +528,28 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
 }
 
 ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
+  /**
+   * Common Case:
+   *  QueryX_PipelineY_Teardown(queryState)
+   *
+   * Nested Pipeline:
+   *  QueryX_PipelineY_Teardown(queryState, pipelineState)
+   *
+   * Output Callback:
+   *  QueryX_PipelineY_Teardown(queryState, pipelineState)
+   */
+
   const ast::Identifier name = GetTeardownPipelineFunctionName();
-  FunctionBuilder builder{codegen_, name, GetTeardownPipelineParams(), codegen_->Nil()};
+
+  util::RegionVector<ast::FieldDecl *> params{QueryParams()};
+  if (IsNestedPipeline() || HasOutputCallback()) {
+    ast::FieldDecl *pipeline_state =
+        codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
+                            codegen_->PointerType(codegen_->MakeExpr(GetPipelineStateDescriptor().GetTypeName())));
+    params.push_back(pipeline_state);
+  }
+
+  FunctionBuilder builder{codegen_, name, std::move(params), codegen_->Nil()};
   {
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope{codegen_};
@@ -502,127 +575,6 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
   Pipeline Function Parameter Definition
 ----------------------------------------------------------------------------- */
 
-util::RegionVector<ast::FieldDecl *> Pipeline::GetInitPipelineStateParams() const {
-  // fun QueryX_PipelineY_InitPipelineState(queryState, pipelineState)
-  return PipelineParams();
-}
-
-util::RegionVector<ast::FieldDecl *> Pipeline::GetTeardownPipelineStateParams() const {
-  // fun QueryX_PipelineY_TeardownPipelineState(queryState, pipelineState)
-  return PipelineParams();
-}
-
-util::RegionVector<ast::FieldDecl *> Pipeline::GetRunAllNestedPipelineParams() const {
-  NOISEPAGE_ASSERT(IsNestedPipeline(), "RunAllNested should only be generated for nested pipelines");
-  // fun QueryX_PipelineY_RunAll(queryState)
-  return QueryParams();
-}
-
-util::RegionVector<ast::FieldDecl *> Pipeline::GetRunAllOutputCallbackPipelineParams() const {
-  NOISEPAGE_ASSERT(HasOutputCallback(),
-                   "RunAllOutputCallback should only be generated for pipeline with output callback");
-  // fun QueryX_PipelineY_RunAll(queryState, udfLambda)
-  util::RegionVector<ast::FieldDecl *> params{QueryParams()};
-  params.push_back(codegen_->MakeField(
-      GetOutputCallback()->GetName(), codegen_->LambdaType(GetOutputCallback()->GetFunctionLiteralExpr()->TypeRepr())));
-  return params;
-}
-
-util::RegionVector<ast::FieldDecl *> Pipeline::GetInitPipelineParams() const {
-  /**
-   * Common Case:
-   *  fun QueryX_PipelineY_Init(queryState)
-   *
-   * Nested Pipeline:
-   *  fun QueryX_PipelineY_InitPipeline(queryState, pipelineState)
-   *
-   * Output Callback:
-   *  fun QueryX_PipelineY_InitPipeline(queryState, pipelineState)
-   */
-
-  util::RegionVector<ast::FieldDecl *> params{QueryParams()};
-  if (IsNestedPipeline() || HasOutputCallback()) {
-    const auto &state = GetPipelineStateDescriptor();
-    ast::FieldDecl *pipeline_state_ptr =
-        codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
-                            codegen_->PointerType(codegen_->MakeExpr(state.GetTypeName())));
-    params.push_back(pipeline_state_ptr);
-  }
-  return params;
-}
-
-util::RegionVector<ast::FieldDecl *> Pipeline::GetRunPipelineParams() const {
-  /**
-   * Common Case:
-   *  fun QueryX_PipelineY_Run(queryState)
-   *
-   * Nested Pipeline:
-   *  fun QueryX_PipelineY_Run(queryState, pipelineState)
-   *
-   * Output Callback:
-   *  fun QueryX_PipelineY_Run(queryState, outputCallback)
-   */
-
-  util::RegionVector<ast::FieldDecl *> params{QueryParams()};
-
-  if (IsNestedPipeline() || HasOutputCallback()) {
-    params.push_back(codegen_->MakeField(GetPipelineStateName(), codegen_->PointerType(state_.GetTypeName())));
-  }
-
-  for (auto *field : extra_pipeline_params_) {
-    params.push_back(field);
-  }
-
-  if (HasOutputCallback()) {
-    params.push_back(
-        codegen_->MakeField(GetOutputCallback()->GetName(),
-                            codegen_->LambdaType(GetOutputCallback()->GetFunctionLiteralExpr()->TypeRepr())));
-  }
-
-  return params;
-}
-
-util::RegionVector<ast::FieldDecl *> Pipeline::GetPipelineWorkParams() const {
-  util::RegionVector<ast::FieldDecl *> params{PipelineParams()};
-  for (auto *field : extra_pipeline_params_) {
-    params.push_back(field);
-  }
-
-  if (IsParallel()) {
-    auto additional_params = driver_->GetWorkerParams();
-    params.insert(params.end(), additional_params.cbegin(), additional_params.cend());
-  }
-
-  if (HasOutputCallback()) {
-    params.push_back(
-        codegen_->MakeField(GetOutputCallback()->GetName(),
-                            codegen_->LambdaType(GetOutputCallback()->GetFunctionLiteralExpr()->TypeRepr())));
-  }
-
-  return params;
-}
-
-util::RegionVector<ast::FieldDecl *> Pipeline::GetTeardownPipelineParams() const {
-  /**
-   * Common Case:
-   *  QueryX_PipelineY_Teardown(queryState)
-   *
-   * Nested Pipeline:
-   *  QueryX_PipelineY_Teardown(queryState, pipelineState)
-   *
-   * Output Callback:
-   *  QueryX_PipelineY_Teardown(queryState, pipelineState)
-   */
-  util::RegionVector<ast::FieldDecl *> params{QueryParams()};
-  if (IsNestedPipeline() || HasOutputCallback()) {
-    ast::FieldDecl *pipeline_state =
-        codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
-                            codegen_->PointerType(codegen_->MakeExpr(GetPipelineStateDescriptor().GetTypeName())));
-    params.push_back(pipeline_state);
-  }
-  return params;
-}
-
 util::RegionVector<ast::FieldDecl *> Pipeline::QueryParams() const { return compilation_context_->QueryParams(); }
 
 util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
@@ -636,51 +588,36 @@ util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
 }
 
 /* ----------------------------------------------------------------------------
-  Pipeline Calls
+  Nested Pipelines
 ----------------------------------------------------------------------------- */
-
-std::vector<ast::Expr *> Pipeline::CallSingleRunPipelineFunction() const {
-  NOISEPAGE_ASSERT(!IsNestedPipeline(), "Can't call a nested pipeline like this");
-  return {
-      codegen_->Call(GetInitPipelineFunctionName(), {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
-      codegen_->Call(GetRunPipelineFunctionName(), {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
-      codegen_->Call(GetTeardownPipelineFunctionName(),
-                     {compilation_context_->GetQueryState()->GetStatePointer(codegen_)})};
-}
 
 void Pipeline::CallNestedRunPipelineFunction(WorkContext *ctx, const OperatorTranslator *op,
                                              FunctionBuilder *function) const {
-  std::vector<ast::Expr *> stmts;
-  auto p_state = codegen_->MakeFreshIdentifier("nested_state");
-  auto p_state_ptr = codegen_->AddressOf(p_state);
+  std::vector<ast::Expr *> stmts{};
+  auto pipeline_state = codegen_->MakeFreshIdentifier("nested_state");
+  auto pipeline_state_ptr = codegen_->AddressOf(pipeline_state);
 
-  std::vector<ast::Expr *> params_vec{compilation_context_->GetQueryState()->GetStatePointer(codegen_)};
-  params_vec.push_back(p_state_ptr);
-
+  // Populate the parameters passed to the Run function for the nested pipeline
+  std::vector<ast::Expr *> run_parameters{compilation_context_->GetQueryState()->GetStatePointer(codegen_),
+                                          pipeline_state_ptr};
   for (std::size_t i = 0; i < op->GetPlan().GetOutputSchema()->GetColumns().size(); i++) {
-    params_vec.push_back(codegen_->AddressOf(op->GetOutput(ctx, i)));
+    run_parameters.push_back(codegen_->AddressOf(op->GetOutput(ctx, i)));
   }
 
-  function->Append(codegen_->DeclareVarNoInit(p_state, codegen_->MakeExpr(GetPipelineStateDescriptor().GetTypeName())));
-  function->Append(codegen_->Call(GetInitPipelineFunctionName(),
-                                  {compilation_context_->GetQueryState()->GetStatePointer(codegen_), p_state_ptr}));
-  function->Append(codegen_->Call(GetRunPipelineFunctionName(), params_vec));
-  function->Append(codegen_->Call(GetTeardownPipelineFunctionName(),
-                                  {compilation_context_->GetQueryState()->GetStatePointer(codegen_), p_state_ptr}));
-}
+  // Declare a local pipeline state variable
+  function->Append(
+      codegen_->DeclareVarNoInit(pipeline_state, codegen_->MakeExpr(GetPipelineStateDescriptor().GetTypeName())));
 
-std::vector<ast::Expr *> Pipeline::CallRunPipelineFunction() const {
-  std::vector<ast::Expr *> calls;
-  std::vector<const Pipeline *> pipelines;
-  CollectDependencies(&pipelines);
-  for (auto pipeline : pipelines) {
-    if (!pipeline->IsNestedPipeline() || (pipeline == this)) {
-      for (auto call : CallSingleRunPipelineFunction()) {
-        calls.push_back(call);
-      }
-    }
-  }
-  return calls;
+  // call QueryX_PipelineY_Init(*QueryState, *PipelineState)
+  function->Append(
+      codegen_->Call(GetInitPipelineFunctionName(),
+                     {compilation_context_->GetQueryState()->GetStatePointer(codegen_), pipeline_state_ptr}));
+  // call QueryX_PipelineY_Run(*QueryState, *PipelineState, ...)
+  function->Append(codegen_->Call(GetRunPipelineFunctionName(), run_parameters));
+  // call QueryX_PipelineY_Teardown(*QueryState, *PipelineState)
+  function->Append(
+      codegen_->Call(GetTeardownPipelineFunctionName(),
+                     {compilation_context_->GetQueryState()->GetStatePointer(codegen_), pipeline_state_ptr}));
 }
 
 /* ----------------------------------------------------------------------------
@@ -699,12 +636,8 @@ ast::Identifier Pipeline::GetTearDownPipelineStateFunctionName() const {
   return codegen_->MakeIdentifier(CreatePipelineFunctionName("TearDownPipelineState"));
 }
 
-ast::Identifier Pipeline::GetRunAllNestedPipelineFunctionName() const {
-  return codegen_->MakeIdentifier(CreatePipelineFunctionName("RunAllNested"));
-}
-
-ast::Identifier Pipeline::GetRunAllOutputCallbackPipelineFunctionName() const {
-  return codegen_->MakeIdentifier(CreatePipelineFunctionName("RunAllOutputCallback"));
+ast::Identifier Pipeline::GetRunAllPipelineFunctionName() const {
+  return codegen_->MakeIdentifier(CreatePipelineFunctionName("RunAll"));
 }
 
 ast::Identifier Pipeline::GetInitPipelineFunctionName() const {

@@ -177,15 +177,6 @@ class Pipeline {
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
   /**
-   * @return A vector of expressions that do the work of running
-   * a pipeline function and its associated dependendent operations.
-   */
-  std::vector<ast::Expr *> CallRunPipelineFunction() const;
-
-  /** @return A vector of expressions that initialize, run and teardown a nested pipeline. */
-  std::vector<ast::Expr *> CallSingleRunPipelineFunction() const;
-
-  /**
    * Calls a nested pipeline's execution functions
    * @param ctx Workcontext that we are using to run on
    * @param op Operator translator that is calling this nested pipeline
@@ -241,6 +232,10 @@ class Pipeline {
   bool HasOutputCallback() const { return output_callback_ != nullptr; }
 
  private:
+  // Internals which are exposed for minirunners.
+  friend class compiler::CompilationContext;
+  friend class selfdriving::OperatingUnitRecorder;
+
   /* --------------------------------------------------------------------------
     Pipeline Function Generation
   -------------------------------------------------------------------------- */
@@ -258,16 +253,11 @@ class Pipeline {
   ast::FunctionDecl *GenerateTearDownPipelineStateFunction() const;
 
   /**
-   * Generate code to wrap top-level pipeline calls for nested pipelines.
+   * Generate code to wrap top-level pipeline calls.
+   * NOTE: Currently only used for pipelines with output callback.
    * @return The function declaration for the generated function
    */
-  ast::FunctionDecl *GeneratePipelineRunAllNestedFunction() const;
-
-  /**
-   * Generate code to wrap top-level pipeline calls for pipeline with output callback.
-   * @return The function declaration for the generated function
-   */
-  ast::FunctionDecl *GeneratePipelineRunAllOutputCallbackFunction() const;
+  ast::FunctionDecl *GeneratePipelineRunAllFunction() const;
 
   /**
    * Generate code to initialize the pipeline.
@@ -297,22 +287,6 @@ class Pipeline {
     Pipeline Function Parameter Definition
   -------------------------------------------------------------------------- */
 
-  util::RegionVector<ast::FieldDecl *> GetInitPipelineStateParams() const;
-
-  util::RegionVector<ast::FieldDecl *> GetTeardownPipelineStateParams() const;
-
-  util::RegionVector<ast::FieldDecl *> GetRunAllNestedPipelineParams() const;
-
-  util::RegionVector<ast::FieldDecl *> GetRunAllOutputCallbackPipelineParams() const;
-
-  util::RegionVector<ast::FieldDecl *> GetInitPipelineParams() const;
-
-  util::RegionVector<ast::FieldDecl *> GetRunPipelineParams() const;
-
-  util::RegionVector<ast::FieldDecl *> GetPipelineWorkParams() const;
-
-  util::RegionVector<ast::FieldDecl *> GetTeardownPipelineParams() const;
-
   /** @return The arguments common to all query functions */
   util::RegionVector<ast::FieldDecl *> QueryParams() const;
 
@@ -326,25 +300,21 @@ class Pipeline {
   /** @return `true` if this is a nested pipeline, `false` otherwise */
   bool IsNestedPipeline() const { return nested_; }
 
- private:
-  // Internals which are exposed for minirunners.
-  friend class compiler::CompilationContext;
-  friend class selfdriving::OperatingUnitRecorder;
-
-  /** @return The vector of pipeline operators that make up the pipeline. */
-  const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
+  /* --------------------------------------------------------------------------
+    Pipeline Variable and Function Identifiers
+  -------------------------------------------------------------------------- */
 
   /** @return An identifier for the query state variable */
   ast::Identifier GetQueryStateName() const;
 
+  /** @return An identifier for the `InitPipelineState` function */
   ast::Identifier GetInitPipelineStateFunctionName() const;
+
+  /** @return An identifier for the `TeardownPipelineState` function */
   ast::Identifier GetTearDownPipelineStateFunctionName() const;
 
-  /** @return An identifier for the pipeline `RunAllNested` function */
-  ast::Identifier GetRunAllNestedPipelineFunctionName() const;
-
-  /** @return An identifier for the pipeline `RunAllOutputCallback` function */
-  ast::Identifier GetRunAllOutputCallbackPipelineFunctionName() const;
+  /** @return An identifier for the pipeline `RunAll` function */
+  ast::Identifier GetRunAllPipelineFunctionName() const;
 
   /** @return An identifier for the pipeline `Init` function */
   ast::Identifier GetInitPipelineFunctionName() const;
@@ -355,6 +325,7 @@ class Pipeline {
   /** @return An identifier for the pipeline `Teardown` function */
   ast::Identifier GetTeardownPipelineFunctionName() const;
 
+  /** @return An identifier for the pipeline `Work` function (serial or parallel) */
   ast::Identifier GetPipelineWorkFunctionName() const;
 
   /** @return An immutable reference to the pipeline state descriptor */
@@ -363,41 +334,47 @@ class Pipeline {
   /** @return A mutable reference to the pipeline state descriptor */
   StateDescriptor &GetPipelineStateDescriptor() { return state_; }
 
+  /* --------------------------------------------------------------------------
+    Additional Helpers
+  -------------------------------------------------------------------------- */
+
+  /** @return The vector of pipeline operators that make up the pipeline. */
+  const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
+
  private:
-  // A unique pipeline ID.
+  /** A unique pipeline ID. */
   uint32_t id_;
-  // The compilation context this pipeline is part of.
+  /** The compilation context this pipeline is part of. */
   CompilationContext *compilation_context_;
-  // The code generation instance.
+  /** The code generation instance. */
   CodeGen *codegen_;
-  // The pipeline state.
+  /** The pipeline state. */
   StateDescriptor state_;
-  // The pipeline operating unit feature vector state.
+  /** The pipeline operating unit feature vector state. */
   StateDescriptor::Entry oufeatures_;
-  // Operators making up the pipeline.
+  /** Operators making up the pipeline. */
   std::vector<OperatorTranslator *> steps_;
-  // The driver.
+  /** The driver. */
   PipelineDriver *driver_;
-  // pointer to parent pipeline (only applicable if this is a nested pipeline)
+  /** pointer to parent pipeline (only applicable if this is a nested pipeline) */
   Pipeline *parent_;
-  // Expressions participating in the pipeline.
+  /** Expressions participating in the pipeline. */
   std::vector<ExpressionTranslator *> expressions_;
-  // All unnested pipelines this one depends on completion of.
+  /** All unnested pipelines this one depends on completion of. */
   std::vector<Pipeline *> dependencies_;
-  // Vector of pipelines that are nested under this pipeline
+  /** Vector of pipelines that are nested under this pipeline. */
   std::vector<Pipeline *> nested_pipelines_;
-  // Extra parameters to pass into pipeline;
-  // currently used for nested consumer pipeline work functions
+  /** Extra parameters to passed into pipeline functions; used for nested consumer pipeline work. */
   std::vector<ast::FieldDecl *> extra_pipeline_params_;
-  // Configured parallelism.
+  /** Configured parallelism. */
   Parallelism parallelism_;
-  // Whether to check for parallelism in new pipeline elements.
+  /** Whether to check for parallelism in new pipeline elements. */
   bool check_parallelism_;
-  // Whether or not this is a nested pipeline.
+  /** Whether or not this is a nested pipeline. */
   bool nested_;
-  // The output callback for the pipeline (`nullptr` if not present)
+  /** The output callback for the pipeline (`nullptr` if not present) */
   ast::LambdaExpr *output_callback_{nullptr};
-  // Whether or not this pipeline is prepared.
+  /** Whether or not this pipeline is prepared. */
   bool prepared_{false};
 };
 
