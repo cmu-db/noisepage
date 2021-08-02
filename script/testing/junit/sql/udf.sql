@@ -174,16 +174,16 @@ SELECT proc_fors_constant_var();
 
 -- Select multiple constants in scalar variables
 CREATE FUNCTION proc_fors_constant_vars() RETURNS INT AS $$ \
-DECLARE                                 \
-  x INT;                                \
-  y INT;                                \
-  z INT := 0;                           \
-BEGIN                                   \
-  FOR x, y IN SELECT 1, 2 LOOP          \
-    z = z + 1;                          \
-  END LOOP;                             \
-  RETURN z;                             \
-END                                     \
+DECLARE                                                     \
+  x INT;                                                    \
+  y INT;                                                    \
+  z INT := 0;                                               \
+BEGIN                                                       \
+  FOR x, y IN SELECT 1, 2 LOOP                              \
+    z = z + 1;                                              \
+  END LOOP;                                                 \
+  RETURN z;                                                 \
+END                                                         \
 $$ LANGUAGE PLPGSQL;
 
 SELECT proc_fors_constant_vars();

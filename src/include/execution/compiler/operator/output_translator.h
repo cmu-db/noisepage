@@ -32,13 +32,13 @@ class OutputTranslator : public OperatorTranslator {
    */
   DISALLOW_COPY_AND_MOVE(OutputTranslator);
 
-  /**
-   * Define the output struct.
-   */
+  /** Define the output struct. */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
+  /** Initialize pipeline state for the output translator */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
+  /** Teardown pipeline state for the output translator */
   void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
@@ -46,26 +46,27 @@ class OutputTranslator : public OperatorTranslator {
   void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  /**
-   * Perform the main work of the translator.
-   */
+  /** Perform the main work of the translator. */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  /**
-   * Does not interact with tables.
-   */
+  /** Does not interact with tables. */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("Output does not interact with tables.");
   }
 
+  /** @return `true` if the output translator has an associated output callback, `false` otherwise */
+  bool HasOutputCallback() const;
+
  private:
+  /** The output variable */
   ast::Identifier output_var_;
+  /** The output structure */
   ast::Identifier output_struct_;
 
-  // The number of rows that are output.
+  /** The number of rows that are output */
   StateDescriptor::Entry num_output_;
 
-  // The OutputBuffer to use
+  /** The OutputBuffer to use */
   StateDescriptor::Entry output_buffer_;
 };
 

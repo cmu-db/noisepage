@@ -28,6 +28,14 @@ class VariableRef;
 
 namespace noisepage::execution {
 
+namespace compiler {
+class ExecutableQuery;
+}  // namespace compiler
+
+namespace vm {
+class FunctionInfo;
+}  // namespace vm
+
 // Forward declarations
 namespace ast::udf {
 class AbstractAST;
@@ -345,6 +353,16 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
                                          const std::string &record_name);
 
   /**
+   * Generate code to invoke each top-level function in the executable query.
+   * @param exec_query The executable query for which calls are generated
+   * @param query_state_id The identifier for the query state
+   * @param lambda_id The identifier for the lambda expression that
+   * is used as an output callback in the query
+   */
+  void CodegenTopLevelCalls(const ExecutableQuery *exec_query, ast::Identifier query_state_id,
+                            ast::Identifier lambda_id);
+
+  /**
    * Translate a SQL type to its corresponding catalog type.
    * @param type The SQL type of interest
    * @return The corresponding catalog type
@@ -388,12 +406,12 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   std::unique_ptr<optimizer::OptimizeResult> OptimizeEmbeddedQuery(parser::ParseResult *parsed_query);
 
   /**
-   * Determine the function identified by `name` is a top-level run function.
-   * @param function_name The name of the function
-   * @return `true` if the function is a top-level run
-   * function, `false` otherwise
+   * Determine if the function described by the given metdata is a
+   * top-level run function that accepts an output callback argument.
+   * @param function_metatdata The function metadata
+   * @return `true` if the function meets the above criteria, `false` otherwise
    */
-  static bool IsRunFunction(const std::string &function_name);
+  static bool IsRunAllFunction(const std::string &name);
 
   /**
    * Get the builtin parameter-add function for the specified parameter type.

@@ -188,7 +188,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
       }
       main_builder.DeclareAll(pipeline_decls);
     }
-    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_}, output_callback_);
+    pipeline->GeneratePipeline(&main_builder);
   }
 
   // Register the tear-down function.
