@@ -13,6 +13,7 @@
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
 #include "execution/exec/execution_settings.h"
+#include "execution/vm/bytecode_function_info.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/expression/constant_value_expression.h"
@@ -56,10 +57,10 @@ void UdfCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
 
 catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type) {
   switch (type) {
-    case execution::ast::BuiltinType::Kind::Integer: {
+    case ast::BuiltinType::Kind::Integer: {
       return accessor_->GetTypeOidFromTypeId(type::TypeId::INTEGER);
     }
-    case execution::ast::BuiltinType::Kind::Boolean: {
+    case ast::BuiltinType::Kind::Boolean: {
       return accessor_->GetTypeOidFromTypeId(type::TypeId::BOOLEAN);
     }
     default:
@@ -68,10 +69,10 @@ catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(execution::ast::Bui
   }
 }
 
-execution::ast::File *UdfCodegen::Finish() {
-  auto fn = fb_->Finish();
-  execution::util::RegionVector<execution::ast::Decl *> decls{{fn}, codegen_->GetAstContext()->GetRegion()};
-  decls.insert(decls.begin(), aux_decls_.begin(), aux_decls_.end());
+ast::File *UdfCodegen::Finish() {
+  ast::FunctionDecl *fn = fb_->Finish();
+  util::RegionVector<ast::Decl *> decls{{fn}, codegen_->GetAstContext()->GetRegion()};
+  decls.insert(decls.begin(), aux_decls_.cbegin(), aux_decls_.cend());
   auto file = codegen_->GetAstContext()->GetNodeFactory()->NewFile({0, 0}, std::move(decls));
   return file;
 }
@@ -397,9 +398,9 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
 
   // Declare the closure and the query state in the current function
   auto query_state = codegen_->MakeFreshIdentifier("query_state");
+  fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
   fb_->Append(codegen_->DeclareVar(
       lambda_identifier, codegen_->LambdaType(lambda_expr->GetFunctionLiteralExpr()->TypeRepr()), lambda_expr));
-  fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
 
   // Set its execution context to whatever execution context was passed in here
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
@@ -409,16 +410,9 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   fb_->Append(codegen_->Assign(
       codegen_->AccessStructMember(codegen_->MakeExpr(query_state), codegen_->MakeIdentifier("execCtx")), exec_ctx));
 
-  auto function_names = exec_query->GetFunctionNames();
-  for (const auto &function_name : function_names) {
-    if (IsRunFunction(function_name)) {
-      fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(function_name),
-                                 {codegen_->AddressOf(query_state), codegen_->MakeExpr(lambda_identifier)}));
-    } else {
-      fb_->Append(
-          codegen_->Call(codegen_->GetAstContext()->GetIdentifier(function_name), {codegen_->AddressOf(query_state)}));
-    }
-  }
+  // Manually append calls to each function from the compiled
+  // executable query (implementing the closure) to the builder
+  CodegenTopLevelCalls(exec_query.get(), query_state, lambda_identifier);
 
   fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
 }
@@ -575,9 +569,9 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
 
   // Declare the closure and the query state in the current function
   auto query_state = codegen_->MakeFreshIdentifier("query_state");
+  fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
   fb_->Append(codegen_->DeclareVar(
       lambda_identifier, codegen_->LambdaType(lambda_expr->GetFunctionLiteralExpr()->TypeRepr()), lambda_expr));
-  fb_->Append(codegen_->DeclareVarNoInit(query_state, codegen_->MakeExpr(exec_query->GetQueryStateType()->Name())));
 
   // Set its execution context to whatever execution context was passed in here
   fb_->Append(codegen_->CallBuiltin(ast::Builtin::StartNewParams, {exec_ctx}));
@@ -595,16 +589,7 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
 
   // Manually append calls to each function from the compiled
   // executable query (implementing the closure) to the builder
-  auto function_names = exec_query->GetFunctionNames();
-  for (const auto &function_name : function_names) {
-    if (IsRunFunction(function_name)) {
-      fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(function_name),
-                                 {codegen_->AddressOf(query_state), codegen_->MakeExpr(lambda_identifier)}));
-    } else {
-      fb_->Append(
-          codegen_->Call(codegen_->GetAstContext()->GetIdentifier(function_name), {codegen_->AddressOf(query_state)}));
-    }
-  }
+  CodegenTopLevelCalls(exec_query.get(), query_state, lambda_identifier);
 
   fb_->Append(codegen_->CallBuiltin(ast::Builtin::FinishNewParams, {exec_ctx}));
 }
@@ -812,6 +797,42 @@ void UdfCodegen::CodegenBoundVariableInitForRecord(common::ManagedPointer<planne
   }
 }
 
+void UdfCodegen::CodegenTopLevelCalls(const ExecutableQuery *exec_query, ast::Identifier query_state_id,
+                                      ast::Identifier lambda_id) {
+  /**
+   * We don't inject the lambda parameter into every "Run" function,
+   * and instead only add it as an additional parameter for those
+   * pipelines that require it. This is parsimonious, but makes the
+   * process of injecting calls to each function slightly more complex.
+   *
+   * Pipelines with output callbacks are wrapped in a top-level `RunAll`
+   * function which accepts the lambda as a parameter. This `RunAll` function
+   * then assumes responsibility for calling the other top-level functions
+   * of which the pipeline is composed, in the proper order. In pipelines
+   * with output callbacks, this `RunAll` function is the only one registered
+   * for which a step is registered with the ExecutableQueryFragmentBuilder,
+   * so it is the only function returned by `GetFunctionMetadata()` for this
+   * pipeline.
+   *
+   * Pipelines without output callbacks are generated as normal, without
+   * the output callback added as an additional parameter. Therefore, we
+   * must inject calls to these functions with the regular signature.
+   */
+
+  for (const auto *metadata : exec_query->GetFunctionMetadata()) {
+    const auto &function_name = metadata->GetName();
+    if (IsRunAllFunction(function_name)) {
+      NOISEPAGE_ASSERT(metadata->GetParamsCount() == 2, "Unexpected arity for RunAll function");
+      fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(function_name),
+                                 {codegen_->AddressOf(query_state_id), codegen_->MakeExpr(lambda_id)}));
+    } else {
+      NOISEPAGE_ASSERT(metadata->GetParamsCount() == 1, "Unexpected arity for top-level pipeline function");
+      fb_->Append(codegen_->Call(codegen_->GetAstContext()->GetIdentifier(function_name),
+                                 {codegen_->AddressOf(query_state_id)}));
+    }
+  }
+}
+
 /* ----------------------------------------------------------------------------
   General Utilities
 ---------------------------------------------------------------------------- */
@@ -848,8 +869,8 @@ std::unique_ptr<optimizer::OptimizeResult> UdfCodegen::OptimizeEmbeddedQuery(par
 }
 
 // Static
-bool UdfCodegen::IsRunFunction(const std::string &function_name) {
-  return function_name.find("Run") != std::string::npos;
+bool UdfCodegen::IsRunAllFunction(const std::string &name) {
+  return name.find("RunAllOutputCallback") != std::string::npos;
 }
 
 // Static

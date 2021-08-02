@@ -52,9 +52,7 @@ class Pipeline {
    */
   enum class Parallelism : uint8_t { Serial = 0, Parallel = 2 };
 
-  /**
-   * Enum class representing whether the pipeline is vectorized.
-   */
+  /** Enum class representing whether the pipeline is vectorized. */
   enum class Vectorization : uint8_t { Disabled = 0, Enabled = 1 };
 
   /**
@@ -148,56 +146,43 @@ class Pipeline {
   /**
    * Generate all functions to execute this pipeline in the provided container.
    * @param builder The builder for the executable query container.
-   * @param query_id The ID of the query for which this pipeline is generated.
-   * @param output_callback The lambda expression that represents the
-   * output callback for the pipeline.
    */
-  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id,
-                        ast::LambdaExpr *output_callback = nullptr) const;
+  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const;
 
-  /**
-   * @return True if the pipeline is parallel; false otherwise.
-   */
+  /** @return `true` if the pipeline is parallel, `false` otherwise. */
   bool IsParallel() const { return parallelism_ == Parallelism ::Parallel; }
 
-  /**
-   * @return True if this pipeline is fully vectorized; false otherwise.
-   */
+  /** @return `true` if this pipeline is fully vectorized, `false` otherwise. */
   bool IsVectorized() const { return false; }
 
-  /**
-   * Typedef used to specify an iterator over the steps in a pipeline.
-   */
+  /** Typedef used to specify an iterator over the steps in a pipeline. */
   using StepIterator = std::vector<OperatorTranslator *>::const_reverse_iterator;
 
-  /**
-   * @return An iterator over the operators in the pipeline.
-   */
+  /** @return An iterator over the operators in the pipeline. */
   StepIterator Begin() const { return steps_.rbegin(); }
 
-  /**
-   * @return An iterator positioned at the end of the operators steps in the pipeline.
-   */
+  /** @return An iterator positioned at the end of the operators steps in the pipeline. */
   StepIterator End() const { return steps_.rend(); }
 
-  /**
-   * @return True if the given operator is the driver for this pipeline; false otherwise.
-   */
+  /** @return True if the given operator is the driver for this pipeline; false otherwise. */
   bool IsDriver(const PipelineDriver *driver) const { return driver == driver_; }
 
-  /**
-   * @return Arguments common to all pipeline functions.
-   */
+  /** @return The arguments common to all pipeline functions. */
   util::RegionVector<ast::FieldDecl *> PipelineParams() const;
 
-  /**
-   * @return A unique name for a function local to this pipeline.
-   */
+  /** @return An identifier for the pipeline state variable */
+  ast::Identifier GetPipelineStateName() const;
+
+  /** @return A unique name for a function local to this pipeline. */
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
   /**
-   * @return A vector of expressions that initialize, run and teardown a nested pipeline.
+   * @return A vector of expressions that do the work of running
+   * a pipeline function and its associated dependendent operations.
    */
+  std::vector<ast::Expr *> CallRunPipelineFunction() const;
+
+  /** @return A vector of expressions that initialize, run and teardown a nested pipeline. */
   std::vector<ast::Expr *> CallSingleRunPipelineFunction() const;
 
   /**
@@ -207,16 +192,6 @@ class Pipeline {
    * @param function Function builder that we are building on
    */
   void CallNestedRunPipelineFunction(WorkContext *ctx, const OperatorTranslator *op, FunctionBuilder *function) const;
-
-  /**
-   * @return A vector of expressions that do the work of running a pipeline function and its dependencies
-   */
-  std::vector<ast::Expr *> CallRunPipelineFunction() const;
-
-  /**
-   * @return Pipeline state variable
-   */
-  ast::Identifier GetPipelineStateVar() { return state_var_; }
 
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
@@ -235,20 +210,16 @@ class Pipeline {
    */
   void InjectEndResourceTracker(FunctionBuilder *builder, bool is_hook) const;
 
-  /**
-   * @return Query identifier of the query that we are codegen-ing
-   */
+  /** @return The identifier for the query that we are codegen-ing */
   query_id_t GetQueryId() const;
 
-  /**
-   * @return A pointer to the OUFeatureVector in the pipeline state
-   */
+  /** @return A pointer to the OUFeatureVector in the pipeline state */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
 
   /**
    * Gets an argument from the set of "extra" pipeline arguments given to the current pipeline's function
    * Only applicable if this is a nested pipeline. Extra refers to arguments other than the query state and the
-   * pipeline state
+   * pipeline state.
    * @param index The extra argument index
    * @return An expression representing the requested argument
    */
@@ -257,37 +228,103 @@ class Pipeline {
   /** @return `true` if this pipeline is prepared, `false` otherwise */
   bool IsPrepared() const { return prepared_; }
 
+  /** @return The output callback for the pipeline, `nullptr` if not present */
+  ast::LambdaExpr *GetOutputCallback() const { return output_callback_; }
+
+  /**
+   * Set the output callback for the pipeline.
+   * @param output_callback The lambda expression that implements the output callback
+   */
+  void SetOutputCallback(ast::LambdaExpr *output_callback) { output_callback_ = output_callback; }
+
+  /** @return `true` if this pipeline has an output callback, `false` otherwise */
+  bool HasOutputCallback() const { return output_callback_ != nullptr; }
+
  private:
-  // Return the thread-local state initialization and tear-down function names.
-  // This is needed when we invoke @tlsReset() from the pipeline initialization
-  // function to setup the thread-local state.
-  ast::Identifier GetSetupPipelineStateFunctionName() const;
-  ast::Identifier GetTearDownPipelineStateFunctionName() const;
-  ast::Identifier GetWorkFunctionName() const;
+  /* --------------------------------------------------------------------------
+    Pipeline Function Generation
+  -------------------------------------------------------------------------- */
 
-  // Generate a wrapper function for the current pipeline.
-  ast::FunctionDecl *GeneratePipelineWrapperFunction(ast::LambdaExpr *output_callback) const;
+  /**
+   * Generate code to initialize pipeline state.
+   * @return The function declaration for the generated function
+   */
+  ast::FunctionDecl *GenerateInitPipelineStateFunction() const;
 
-  // Generate the pipeline state initialization logic.
-  ast::FunctionDecl *GenerateSetupPipelineStateFunction() const;
-
-  // Generate the pipeline state cleanup logic.
+  /**
+   * Generate code to teardown pipeline state.
+   * @return The function declaration for the generated function
+   */
   ast::FunctionDecl *GenerateTearDownPipelineStateFunction() const;
 
-  // Generate pipeline initialization logic.
-  ast::FunctionDecl *GenerateInitPipelineFunction(ast::LambdaExpr *output_callback) const;
+  /**
+   * Generate code to wrap top-level pipeline calls for nested pipelines.
+   * @return The function declaration for the generated function
+   */
+  ast::FunctionDecl *GeneratePipelineRunAllNestedFunction() const;
 
-  // Generate the main pipeline work function.
-  ast::FunctionDecl *GeneratePipelineWorkFunction(ast::LambdaExpr *output_callback) const;
+  /**
+   * Generate code to wrap top-level pipeline calls for pipeline with output callback.
+   * @return The function declaration for the generated function
+   */
+  ast::FunctionDecl *GeneratePipelineRunAllOutputCallbackFunction() const;
 
-  // Generate the main pipeline logic.
-  ast::FunctionDecl *GenerateRunPipelineFunction(query_id_t query_id, ast::LambdaExpr *output_callback) const;
+  /**
+   * Generate code to initialize the pipeline.
+   * @return The function declaration for the generated function
+   */
+  ast::FunctionDecl *GenerateInitPipelineFunction() const;
 
-  // Generate pipeline tear-down logic.
-  ast::FunctionDecl *GenerateTearDownPipelineFunction(ast::LambdaExpr *output_callback) const;
+  /**
+   * Generate code to run primary pipeline logic.
+   * @return The function declaration for the generated function
+   */
+  ast::FunctionDecl *GenerateRunPipelineFunction() const;
+
+  /**
+   * Generate code to perform pipeline work.
+   * @return The function declaration for the generated function
+   */
+  ast::FunctionDecl *GeneratePipelineWorkFunction() const;
+
+  /**
+   * Generate code to teardown the pipeline.
+   * @return The function declaration for the generated function
+   */
+  ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
+
+  /* --------------------------------------------------------------------------
+    Pipeline Function Parameter Definition
+  -------------------------------------------------------------------------- */
+
+  util::RegionVector<ast::FieldDecl *> GetInitPipelineStateParams() const;
+
+  util::RegionVector<ast::FieldDecl *> GetTeardownPipelineStateParams() const;
+
+  util::RegionVector<ast::FieldDecl *> GetRunAllNestedPipelineParams() const;
+
+  util::RegionVector<ast::FieldDecl *> GetRunAllOutputCallbackPipelineParams() const;
+
+  util::RegionVector<ast::FieldDecl *> GetInitPipelineParams() const;
+
+  util::RegionVector<ast::FieldDecl *> GetRunPipelineParams() const;
+
+  util::RegionVector<ast::FieldDecl *> GetPipelineWorkParams() const;
+
+  util::RegionVector<ast::FieldDecl *> GetTeardownPipelineParams() const;
+
+  /** @return The arguments common to all query functions */
+  util::RegionVector<ast::FieldDecl *> QueryParams() const;
+
+  /* --------------------------------------------------------------------------
+    Nested Pipelines
+  -------------------------------------------------------------------------- */
 
   /** @brief Indicate that this pipeline is nested. */
   void MarkNested() { nested_ = true; }
+
+  /** @return `true` if this is a nested pipeline, `false` otherwise */
+  bool IsNestedPipeline() const { return nested_; }
 
  private:
   // Internals which are exposed for minirunners.
@@ -296,6 +333,18 @@ class Pipeline {
 
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
+
+  /** @return An identifier for the query state variable */
+  ast::Identifier GetQueryStateName() const;
+
+  ast::Identifier GetInitPipelineStateFunctionName() const;
+  ast::Identifier GetTearDownPipelineStateFunctionName() const;
+
+  /** @return An identifier for the pipeline `RunAllNested` function */
+  ast::Identifier GetRunAllNestedPipelineFunctionName() const;
+
+  /** @return An identifier for the pipeline `RunAllOutputCallback` function */
+  ast::Identifier GetRunAllOutputCallbackPipelineFunctionName() const;
 
   /** @return An identifier for the pipeline `Init` function */
   ast::Identifier GetInitPipelineFunctionName() const;
@@ -306,15 +355,13 @@ class Pipeline {
   /** @return An identifier for the pipeline `Teardown` function */
   ast::Identifier GetTeardownPipelineFunctionName() const;
 
+  ast::Identifier GetPipelineWorkFunctionName() const;
+
   /** @return An immutable reference to the pipeline state descriptor */
   const StateDescriptor &GetPipelineStateDescriptor() const { return state_; }
 
-  StateDescriptor &GetPipelineStateDescriptor() { return state_; }
-
   /** @return A mutable reference to the pipeline state descriptor */
-  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
-
-  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
+  StateDescriptor &GetPipelineStateDescriptor() { return state_; }
 
  private:
   // A unique pipeline ID.
@@ -323,8 +370,6 @@ class Pipeline {
   CompilationContext *compilation_context_;
   // The code generation instance.
   CodeGen *codegen_;
-  // Cache of common identifiers.
-  ast::Identifier state_var_;
   // The pipeline state.
   StateDescriptor state_;
   // The pipeline operating unit feature vector state.
@@ -350,6 +395,8 @@ class Pipeline {
   bool check_parallelism_;
   // Whether or not this is a nested pipeline.
   bool nested_;
+  // The output callback for the pipeline (`nullptr` if not present)
+  ast::LambdaExpr *output_callback_{nullptr};
   // Whether or not this pipeline is prepared.
   bool prepared_{false};
 };

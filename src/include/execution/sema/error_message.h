@@ -74,7 +74,7 @@ namespace sema {
   F(MissingArrayLength, "missing array length (either compile-time number or '*')", ())                               \
   F(NotASQLAggregate, "'%0' is not a SQL aggregator type", (ast::Type *))                                             \
   F(BadParallelScanFunction,                                                                                          \
-    "parallel scan function must have type (*ExecutionContext, *TableVectorIterator)->nil, "                          \
+    "parallel scan function must have type (*QueryState, *PipelineState, *TableVectorIterator)->nil, "                \
     "received '%0'",                                                                                                  \
     (ast::Type *))                                                                                                    \
   F(BadHookFunction,                                                                                                  \

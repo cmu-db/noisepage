@@ -10,6 +10,7 @@
 #include "execution/compiler/compiler.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sema/error_reporter.h"
+#include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
 #include "self_driving/modeling/operating_unit.h"
@@ -62,6 +63,11 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
       return;
     }
   }
+}
+
+std::optional<const vm::FunctionInfo *> ExecutableQuery::Fragment::GetFunctionMetadata(const std::string &name) const {
+  const auto *metadata = module_->GetFuncInfoByName(name);
+  return (metadata == nullptr) ? std::nullopt : std::make_optional(metadata);
 }
 
 const vm::ModuleMetadata &ExecutableQuery::Fragment::GetModuleMetadata() const { return module_->GetMetadata(); }
@@ -204,6 +210,19 @@ std::vector<std::string> ExecutableQuery::GetFunctionNames() const {
     function_names.insert(function_names.end(), frag_functions.cbegin(), frag_functions.cend());
   }
   return function_names;
+}
+
+std::vector<const vm::FunctionInfo *> ExecutableQuery::GetFunctionMetadata() const {
+  std::vector<const vm::FunctionInfo *> function_meta{};
+  for (const auto &f : fragments_) {
+    const auto function_names = f->GetFunctions();
+    for (const auto &function_name : function_names) {
+      auto meta = f->GetFunctionMetadata(function_name);
+      NOISEPAGE_ASSERT(meta.has_value(), "Broken invariant");
+      function_meta.push_back(meta.value());
+    }
+  }
+  return function_meta;
 }
 
 std::vector<ast::Decl *> ExecutableQuery::GetDecls() const {

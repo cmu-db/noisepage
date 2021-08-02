@@ -62,7 +62,7 @@ class Module {
   /**
    * Look up a TPL function in this module by its name
    * @param name The name of the function to lookup
-   * @return A pointer to the function's info if it exists; null otherwise
+   * @return A pointer to the function's info if it exists; `nullptr` otherwise
    */
   const FunctionInfo *GetFuncInfoByName(const std::string &name) const {
     return bytecode_module_->LookupFuncInfoByName(name);

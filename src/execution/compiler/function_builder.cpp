@@ -42,6 +42,14 @@ ast::Expr *FunctionBuilder::GetParameterByPosition(const std::size_t param_idx) 
   return nullptr;
 }
 
+std::vector<ast::Expr *> FunctionBuilder::GetParameters() const {
+  std::vector<ast::Expr *> parameters{};
+  parameters.reserve(params_.size());
+  std::transform(params_.cbegin(), params_.cend(), std::back_inserter(parameters),
+                 [this](const ast::FieldDecl *p) -> ast::Expr * { return codegen_->MakeExpr(p->Name()); });
+  return parameters;
+}
+
 void FunctionBuilder::Append(ast::Stmt *stmt) {
   // Append the statement to the block.
   statements_->AppendStatement(stmt);

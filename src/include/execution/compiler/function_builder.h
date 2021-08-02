@@ -47,8 +47,14 @@ class FunctionBuilder {
   /** Destructor; invokes FunctionBuilder::Finish() */
   ~FunctionBuilder();
 
+  /** @return The arity of the function */
+  std::size_t GetParameterCount() const { return params_.size(); }
+
   /** @return A reference to a function parameter by its ordinal position */
   ast::Expr *GetParameterByPosition(std::size_t param_idx);
+
+  /** @return The expression representation of the parameters to the function */
+  std::vector<ast::Expr *> GetParameters() const;
 
   /**
    * Append a statement to the list of statements in this function.

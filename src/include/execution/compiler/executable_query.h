@@ -2,6 +2,7 @@
 
 #include <iosfwd>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -37,6 +38,7 @@ class Region;
 namespace vm {
 class Module;
 class ModuleMetadata;
+class FunctionInfo;
 }  // namespace vm
 }  // namespace execution
 
@@ -106,10 +108,16 @@ class ExecutableQuery {
      */
     bool IsCompiled() const { return module_ != nullptr; }
 
-    /**
-     * @return The functions in the fragment.
-     */
+    /** @return The functions in the fragment, in program execution order*/
     const std::vector<std::string> &GetFunctions() const { return functions_; }
+
+    /**
+     * Get the metatdata for the bytecode function identified by `name`.
+     * @param name The name of the function to query.
+     * @return The function metadata for the specified function,
+     * or empty optional in the event that the function is not present
+     */
+    std::optional<const vm::FunctionInfo *> GetFunctionMetadata(const std::string &name) const;
 
     /**
      * @return The file.
@@ -210,8 +218,11 @@ class ExecutableQuery {
   /** @return The SQL query string */
   common::ManagedPointer<const std::string> GetQueryText() { return query_text_; }
 
-  /** @return All of the function names in the executable query. */
+  /** @return All of the function names in the executable query, in program execution order. */
   std::vector<std::string> GetFunctionNames() const;
+
+  /** @return The metadata for each TPL function in the executable query, in program execution order. */
+  std::vector<const vm::FunctionInfo *> GetFunctionMetadata() const;
 
   /** @return All of the declarations in the executable query. */
   std::vector<ast::Decl *> GetDecls() const;
