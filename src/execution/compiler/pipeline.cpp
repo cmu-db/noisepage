@@ -31,10 +31,16 @@ Pipeline::Pipeline(CompilationContext *ctx)
       driver_(nullptr),
       parallelism_(Parallelism::Parallel),
       check_parallelism_(true),
-      nested_(false) {}
+      nested_(false) {
+  if (HasOutputCallback()) {
+    UpdateParallelism(Parallelism::Serial);
+  }
+}
 
 Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : Pipeline(op->GetCompilationContext()) {
-  UpdateParallelism(parallelism);
+  if (!HasOutputCallback()) {
+    UpdateParallelism(parallelism);
+  }
   RegisterStep(op);
 }
 
@@ -366,9 +372,8 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction() const {
   util::RegionVector<ast::FieldDecl *> params{QueryParams()};
   if (IsNestedPipeline() || HasOutputCallback()) {
     const auto &state = GetPipelineStateDescriptor();
-    ast::FieldDecl *pipeline_state_ptr =
-        codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
-                            codegen_->PointerType(codegen_->MakeExpr(state.GetTypeName())));
+    ast::FieldDecl *pipeline_state_ptr = codegen_->MakeField(
+        codegen_->MakeFreshIdentifier("pipelineState"), codegen_->PointerType(codegen_->MakeExpr(state.GetTypeName())));
     params.push_back(pipeline_state_ptr);
   }
 
@@ -438,13 +443,16 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
       (*iter)->BeginPipelineWork(*this, &builder);
     }
 
-    // TODO(Kyle): I think this is wrong for nested pipelines / output callbacks
-    // var pipelineState = @tlsGetCurrentThreadState(...)
-    auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
-    auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
-    auto state_type = GetPipelineStateDescriptor().GetTypeName();
-    auto state = codegen_->TLSAccessCurrentThreadState(tls, state_type);
-    builder.Append(codegen_->DeclareVarWithInit(GetPipelineStateName(), state));
+    // Nested pipelines and pipelines with callbacks have their
+    // pipeline state passed as an argument to this function
+    if (!IsNestedPipeline() && !HasOutputCallback()) {
+      // var pipelineState = @tlsGetCurrentThreadState(...)
+      auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
+      auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
+      auto state_type = GetPipelineStateDescriptor().GetTypeName();
+      auto state = codegen_->TLSAccessCurrentThreadState(tls, state_type);
+      builder.Append(codegen_->DeclareVarWithInit(GetPipelineStateName(), state));
+    }
 
     // Launch pipeline work.
     if (IsParallel()) {
@@ -490,11 +498,12 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
   for (auto *field : extra_pipeline_params_) {
     params.push_back(field);
   }
+
+  // NOTE(Kyle): This is hacky...
   if (IsParallel()) {
     auto additional_params = driver_->GetWorkerParams();
     params.insert(params.end(), additional_params.cbegin(), additional_params.cend());
-  }
-  if (HasOutputCallback()) {
+  } else if (HasOutputCallback()) {
     params.push_back(
         codegen_->MakeField(GetOutputCallback()->GetName(),
                             codegen_->LambdaType(GetOutputCallback()->GetFunctionLiteralExpr()->TypeRepr())));
@@ -544,7 +553,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
   util::RegionVector<ast::FieldDecl *> params{QueryParams()};
   if (IsNestedPipeline() || HasOutputCallback()) {
     ast::FieldDecl *pipeline_state =
-        codegen_->MakeField(codegen_->MakeFreshIdentifier("pipeline_state"),
+        codegen_->MakeField(codegen_->MakeFreshIdentifier("pipelineState"),
                             codegen_->PointerType(codegen_->MakeExpr(GetPipelineStateDescriptor().GetTypeName())));
     params.push_back(pipeline_state);
   }
@@ -594,7 +603,7 @@ util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
 void Pipeline::CallNestedRunPipelineFunction(WorkContext *ctx, const OperatorTranslator *op,
                                              FunctionBuilder *function) const {
   std::vector<ast::Expr *> stmts{};
-  auto pipeline_state = codegen_->MakeFreshIdentifier("nested_state");
+  auto pipeline_state = codegen_->MakeFreshIdentifier("nestedPipelineState");
   auto pipeline_state_ptr = codegen_->AddressOf(pipeline_state);
 
   // Populate the parameters passed to the Run function for the nested pipeline
@@ -673,5 +682,12 @@ ast::Expr *Pipeline::GetNestedInputArg(const std::size_t index) const {
   NOISEPAGE_ASSERT(index < extra_pipeline_params_.size(), "Requested nested index argument out of range");
   return codegen_->UnaryOp(parsing::Token::Type::STAR, codegen_->MakeExpr(extra_pipeline_params_[index]->Name()));
 }
+
+ast::LambdaExpr *Pipeline::GetOutputCallback() const {
+  NOISEPAGE_ASSERT(HasOutputCallback(), "Attempt to get nonexistent output callback");
+  return compilation_context_->GetOutputCallback();
+}
+
+bool Pipeline::HasOutputCallback() const { return compilation_context_->HasOutputCallback(); }
 
 }  // namespace noisepage::execution::compiler

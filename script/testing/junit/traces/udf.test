@@ -319,6 +319,81 @@ statement ok
 
 
 statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_embedded_agg_count()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_embedded_agg_count() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT COUNT(*) FROM integers INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_embedded_agg_count();
+----
+3
+
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_embedded_agg_min()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_embedded_agg_min() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT MIN(x) FROM integers INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_embedded_agg_min();
+----
+1
+
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_embedded_agg_max()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_embedded_agg_max() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT MAX(x) FROM integers INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_embedded_agg_max();
+----
+3
+
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok

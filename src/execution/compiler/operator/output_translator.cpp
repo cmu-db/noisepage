@@ -26,12 +26,6 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
   output_buffer_ = pipeline->DeclarePipelineStateEntry(
       "output_buffer", GetCodeGen()->PointerType(GetCodeGen()->BuiltinType(ast::BuiltinType::OutputBuffer)));
   num_output_ = CounterDeclare("num_output", pipeline);
-
-  // If the compilation context contains an output callback,
-  // the output translator injects the callback into its pipeline
-  if (compilation_context->HasOutputCallback()) {
-    pipeline->SetOutputCallback(compilation_context->GetOutputCallback());
-  }
 }
 
 void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {

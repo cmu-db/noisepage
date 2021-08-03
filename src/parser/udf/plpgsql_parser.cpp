@@ -185,6 +185,7 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
     }
     if ((type == DECL_TYPE_ID_DOUBLE) || (type == DECL_TYPE_ID_NUMERIC)) {
       // TODO(Kyle): type.rfind("numeric")
+      // TODO(Kyle): Should this support FLOAT and DECMIAL as well??
       udf_ast_context_->SetVariableType(var_name, type::TypeId::DECIMAL);
       return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::DECIMAL, std::move(initial));
     }

@@ -151,6 +151,49 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT sql_select_mutliple_constants();
 
+
+-- ----------------------------------------------------------------------------
+-- sql_embedded_agg_count()
+
+CREATE FUNCTION sql_embedded_agg_count() RETURNS INT AS $$ \
+DECLARE                                                    \
+  v INT;                                                   \
+BEGIN                                                      \
+  SELECT COUNT(*) FROM integers INTO v;                    \
+  RETURN v;                                                \
+END                                                        \
+$$ LANGUAGE PLPGSQL;
+
+SELECT sql_embedded_agg_count();
+
+-- ----------------------------------------------------------------------------
+-- sql_embedded_agg_min()
+
+CREATE FUNCTION sql_embedded_agg_min() RETURNS INT AS $$   \
+DECLARE                                                    \
+  v INT;                                                   \
+BEGIN                                                      \
+  SELECT MIN(x) FROM integers INTO v;                      \
+  RETURN v;                                                \
+END                                                        \
+$$ LANGUAGE PLPGSQL;
+
+SELECT sql_embedded_agg_min();
+
+-- ----------------------------------------------------------------------------
+-- sql_embedded_agg_max()
+
+CREATE FUNCTION sql_embedded_agg_max() RETURNS INT AS $$   \
+DECLARE                                                    \
+  v INT;                                                   \
+BEGIN                                                      \
+  SELECT MAX(x) FROM integers INTO v;                      \
+  RETURN v;                                                \
+END                                                        \
+$$ LANGUAGE PLPGSQL;
+
+SELECT sql_embedded_agg_max();
+
 -- ----------------------------------------------------------------------------
 -- proc_fors()
 

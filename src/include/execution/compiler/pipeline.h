@@ -219,17 +219,11 @@ class Pipeline {
   /** @return `true` if this pipeline is prepared, `false` otherwise */
   bool IsPrepared() const { return prepared_; }
 
-  /** @return The output callback for the pipeline, `nullptr` if not present */
-  ast::LambdaExpr *GetOutputCallback() const { return output_callback_; }
-
-  /**
-   * Set the output callback for the pipeline.
-   * @param output_callback The lambda expression that implements the output callback
-   */
-  void SetOutputCallback(ast::LambdaExpr *output_callback) { output_callback_ = output_callback; }
+  /** @return The output callback for the pipeline */
+  ast::LambdaExpr *GetOutputCallback() const;
 
   /** @return `true` if this pipeline has an output callback, `false` otherwise */
-  bool HasOutputCallback() const { return output_callback_ != nullptr; }
+  bool HasOutputCallback() const;
 
  private:
   // Internals which are exposed for minirunners.
@@ -372,8 +366,6 @@ class Pipeline {
   bool check_parallelism_;
   /** Whether or not this is a nested pipeline. */
   bool nested_;
-  /** The output callback for the pipeline (`nullptr` if not present) */
-  ast::LambdaExpr *output_callback_{nullptr};
   /** Whether or not this pipeline is prepared. */
   bool prepared_{false};
 };
