@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -12,12 +13,20 @@
 
 #include "parser/expression_util.h"
 #include "parser/postgresparser.h"
+#include "parser/sql_statement.h"
+
+namespace noisepage::parser {
+class SQLStatement;
+}  // namespace noisepage::parser
 
 namespace noisepage::execution::ast::udf {
 class FunctionAST;
 }  // namespace noisepage::execution::ast::udf
 
 namespace noisepage::parser::udf {
+
+/** An enumeration over the supported PL/pgSQL statement types */
+enum class StatementType { UNKNOWN, RETURN, IF, ASSIGN, WHILE, FORI, FORS, EXECSQL, DYNEXECUTE };
 
 /**
  * The PLpgSQLParser class parses source PL/pgSQL to an abstract syntax tree.
@@ -70,6 +79,13 @@ class PLpgSQLParser {
   std::unique_ptr<execution::ast::udf::StmtAST> ParseDecl(const nlohmann::json &json);
 
   /**
+   * Parse an assignment statement.
+   * @param json The input JSON object
+   * @return The AST for the assignment
+   */
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseAssign(const nlohmann::json &json);
+
+  /**
    * Parse an if-statement.
    * @param json The input JSON object
    * @return The AST for the if-statement
@@ -102,7 +118,16 @@ class PLpgSQLParser {
    * @param json The input JSON object
    * @return The AST for the SQL statement
    */
-  std::unique_ptr<execution::ast::udf::StmtAST> ParseSQL(const nlohmann::json &json);
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseExecSQL(const nlohmann::json &json);
+
+  /**
+   * Parse a SQL statement.
+   * @param sql The input SQL query text
+   * @param variables The collection of variables to which results are bound
+   * @return The AST for the SQL statement
+   */
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseExecSQL(const std::string &sql,
+                                                             std::vector<std::string> &&variables);
 
   /**
    * Parse a dynamic SQL statement.
@@ -112,11 +137,37 @@ class PLpgSQLParser {
   std::unique_ptr<execution::ast::udf::StmtAST> ParseDynamicSQL(const nlohmann::json &json);
 
   /**
-   * Parse a SQL expression to an expression AST.
+   * Parse a SQL expression from a query string.
    * @param sql The SQL expression string
    * @return The AST for the SQL expression
    */
-  std::unique_ptr<execution::ast::udf::ExprAST> ParseExprFromSQL(const std::string &sql);
+  std::unique_ptr<execution::ast::udf::ExprAST> ParseExprFromSQLString(const std::string &sql);
+
+  /**
+   * Try to parse a SQL expression from a query string. If the expression
+   * type is not supported, indicate failure with an empty std::optional.
+   * @param sql The SQL expression string
+   * @return The AST for the SQL expression on success, empty std::optional on failure
+   */
+  std::optional<std::unique_ptr<execution::ast::udf::ExprAST>> TryParseExprFromSQLString(
+      const std::string &sql) noexcept;
+
+  /**
+   * Parse a SQL expression from a SQL statement.
+   * @param statement The SQL statement
+   * @return The AST for the SQL statement
+   */
+  std::unique_ptr<execution::ast::udf::ExprAST> ParseExprFromSQLStatement(
+      common::ManagedPointer<SQLStatement> statement);
+
+  /**
+   * Try to parse an abstract expression from a SQL statement. If the statement
+   * type is not supported, indicate failure with an empty std::optional.
+   * @param statement The input SQL statement
+   * @return The AST for the statement on success, empty std::optional on failure
+   */
+  std::optional<std::unique_ptr<execution::ast::udf::ExprAST>> TryParseExprFromSQLStatement(
+      common::ManagedPointer<SQLStatement> statement) noexcept;
 
   /**
    * Parse an abstract expression to an expression AST.
@@ -125,6 +176,15 @@ class PLpgSQLParser {
    */
   std::unique_ptr<execution::ast::udf::ExprAST> ParseExprFromAbstract(
       common::ManagedPointer<parser::AbstractExpression> expr);
+
+  /**
+   * Try to parse an abstract expression to an expression AST. If the expression
+   * type is not supported, indicate failure with an empty std::optional.
+   * @param expr The input expression
+   * @return The AST for the expression on success, empty std::optional on failure
+   */
+  std::optional<std::unique_ptr<execution::ast::udf::ExprAST>> TryParseExprFromAbstract(
+      common::ManagedPointer<parser::AbstractExpression> expr) noexcept;
 
  private:
   /**
@@ -148,6 +208,28 @@ class PLpgSQLParser {
    * @return The resolved record type
    */
   std::vector<std::pair<std::string, type::TypeId>> ResolveRecordType(const ParseResult *parse_result);
+
+  /**
+   * Get the StatementType for the provided statement type identifier.
+   * @param type The identifier for the statement type
+   * @return The corresponding StatementType
+   */
+  static StatementType GetStatementType(const std::string &type);
+
+  /**
+   * Strip an enclosing SELECT query from an existing ParseResult.
+   * @param input The existing ParseResult
+   * @return A new ParseResult with the enclosing query stripped
+   */
+  static std::unique_ptr<parser::ParseResult> StripEnclosingQuery(std::unique_ptr<ParseResult> &&input);
+
+  /**
+   * Determine if the parsed query has an enclosing "wrapper" query
+   * introduced by the PL/pgSQL parser.
+   * @param parse_result The parsed query
+   * @return `true` if the query has an enclosing query, `false` otherwise
+   */
+  static bool HasEnclosingQuery(ParseResult *parse_result);
 
  private:
   /** The UDF AST context */

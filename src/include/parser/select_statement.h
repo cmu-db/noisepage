@@ -462,7 +462,7 @@ class SelectStatement : public SQLStatement {
   // The depth of the SELECT statement
   int depth_{-1};
 
-  // A colletion of the temporary tables (CTEs) available to this SELECT
+  // A collection of the temporary tables (CTEs) available to this SELECT
   std::vector<std::unique_ptr<TableRef>> with_table_;
 
   /** @param select List of SELECT columns */

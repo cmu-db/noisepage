@@ -319,6 +319,27 @@ statement ok
 
 
 statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_select_constant_assignment()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_select_constant_assignment() RETURNS INT AS $$ DECLARE x INT; y INT; BEGIN x = (SELECT 1); y = (SELECT 2); RETURN x + y; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_select_constant_assignment();
+----
+3
+
+
+statement ok
 
 
 statement ok
@@ -389,6 +410,21 @@ SELECT sql_embedded_agg_max();
 ----
 3
 
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_embedded_agg_multi()
+
+statement ok
+
+
+statement ok
+-- CREATE FUNCTION sql_embedded_agg_multi() RETURNS INT AS $$ -- DECLARE --   s       INT; --   minimum INT; --   maximum INT; -- BEGIN --   minimum = (SELECT MIN(x) FROM integers); --   maximum = (SELECT MAX(x) FROM integers); --   s = minumum + maximum; --   RETURN s; -- END; -- $$ LANGUAGE PLPGSQL;
 
 statement ok
 

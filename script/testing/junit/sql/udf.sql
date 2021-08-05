@@ -151,6 +151,21 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT sql_select_mutliple_constants();
 
+-- ----------------------------------------------------------------------------
+-- sql_select_constant_assignment()
+
+CREATE FUNCTION sql_select_constant_assignment() RETURNS INT AS $$ \
+DECLARE                                                            \
+  x INT;                                                           \
+  y INT;                                                           \
+BEGIN                                                              \
+  x = (SELECT 1);                                                  \
+  y = (SELECT 2);                                                  \
+  RETURN x + y;                                                    \
+END                                                                \
+$$ LANGUAGE PLPGSQL;
+
+SELECT sql_select_constant_assignment();
 
 -- ----------------------------------------------------------------------------
 -- sql_embedded_agg_count()
@@ -193,6 +208,22 @@ END                                                        \
 $$ LANGUAGE PLPGSQL;
 
 SELECT sql_embedded_agg_max();
+
+-- ----------------------------------------------------------------------------
+-- sql_embedded_agg_multi()
+
+-- CREATE FUNCTION sql_embedded_agg_multi() RETURNS INT AS $$ \
+-- DECLARE                                                    \
+--   s       INT;                                             \
+--   minimum INT;                                             \
+--   maximum INT;                                             \
+-- BEGIN                                                      \
+--   minimum = (SELECT MIN(x) FROM integers);                 \
+--   maximum = (SELECT MAX(x) FROM integers);                 \
+--   s = minumum + maximum;                                   \
+--   RETURN s;                                                \
+-- END;                                                       \
+-- $$ LANGUAGE PLPGSQL;
 
 -- ----------------------------------------------------------------------------
 -- proc_fors()
