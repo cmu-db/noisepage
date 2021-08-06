@@ -212,18 +212,16 @@ SELECT sql_embedded_agg_max();
 -- ----------------------------------------------------------------------------
 -- sql_embedded_agg_multi()
 
--- CREATE FUNCTION sql_embedded_agg_multi() RETURNS INT AS $$ \
--- DECLARE                                                    \
---   s       INT;                                             \
---   minimum INT;                                             \
---   maximum INT;                                             \
--- BEGIN                                                      \
---   minimum = (SELECT MIN(x) FROM integers);                 \
---   maximum = (SELECT MAX(x) FROM integers);                 \
---   s = minumum + maximum;                                   \
---   RETURN s;                                                \
--- END;                                                       \
--- $$ LANGUAGE PLPGSQL;
+CREATE FUNCTION sql_embedded_agg_multi() RETURNS INT AS $$ \
+DECLARE                                                    \
+  minimum INT;                                             \
+  maximum INT;                                             \
+BEGIN                                                      \
+  minimum = (SELECT MIN(x) FROM integers);                 \
+  maximum = (SELECT MAX(x) FROM integers);                 \
+  RETURN minimum + maximum;                                \
+END;                                                       \
+$$ LANGUAGE PLPGSQL;
 
 -- ----------------------------------------------------------------------------
 -- proc_fors()

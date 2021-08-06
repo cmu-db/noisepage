@@ -495,25 +495,27 @@ std::vector<std::pair<std::string, type::TypeId>> PLpgSQLParser::ResolveRecordTy
 }
 
 StatementType PLpgSQLParser::GetStatementType(const std::string &type) {
+  StatementType stmt_type;
   if (type == K_PLPGSQL_STMT_RETURN) {
-    return StatementType::RETURN;
+    stmt_type = StatementType::RETURN;
   } else if (type == K_PLPGSQL_STMT_IF) {
-    return StatementType::IF;
+    stmt_type = StatementType::IF;
   } else if (type == K_PLPGSQL_STMT_ASSIGN) {
-    return StatementType::ASSIGN;
+    stmt_type = StatementType::ASSIGN;
   } else if (type == K_PLPGSQL_STMT_WHILE) {
-    return StatementType::WHILE;
+    stmt_type = StatementType::WHILE;
   } else if (type == K_PLPGSQL_STMT_FORI) {
-    return StatementType::FORI;
+    stmt_type = StatementType::FORI;
   } else if (type == K_PLPGSQL_STMT_FORS) {
-    return StatementType::FORS;
+    stmt_type = StatementType::FORS;
   } else if (type == K_PLGPSQL_STMT_EXECSQL) {
-    return StatementType::EXECSQL;
+    stmt_type = StatementType::EXECSQL;
   } else if (type == K_PLPGSQL_STMT_DYNEXECUTE) {
-    return StatementType::DYNEXECUTE;
+    stmt_type = StatementType::DYNEXECUTE;
   } else {
-    return StatementType::UNKNOWN;
+    stmt_type = StatementType::UNKNOWN;
   }
+  return stmt_type;
 }
 
 // Static
@@ -550,7 +552,8 @@ std::unique_ptr<parser::ParseResult> PLpgSQLParser::StripEnclosingQuery(std::uni
   expressions.erase(std::remove_if(expressions.begin(), expressions.end(),
                                    [](const std::unique_ptr<parser::AbstractExpression> &expr) {
                                      return expr->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY;
-                                   }));
+                                   }),
+                    expressions.end());
 
   auto output = std::make_unique<parser::ParseResult>();
   output->AddStatement(std::move(subselect));

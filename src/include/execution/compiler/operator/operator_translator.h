@@ -273,6 +273,20 @@ class OperatorTranslator : public ColumnValueProvider {
   /** @return The pipeline this translator is a part of. */
   Pipeline *GetPipeline() const { return pipeline_; }
 
+  /**
+   * Make a local identifier from `name`.
+   * @param name The base name for the identifier
+   * @return The identifier
+   */
+  ast::Identifier MakeLocalIdentifier(std::string_view name) const;
+
+  /**
+   * Make a global identifier from `name`.
+   * @param name The base name for the identifier
+   * @return The identifier
+   */
+  ast::Identifier MakeGlobalIdentifier(std::string_view name) const;
+
   /** The plan node for this translator as its concrete type. */
   template <typename T>
   const T &GetPlanAs() const {

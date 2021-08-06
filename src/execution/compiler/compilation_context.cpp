@@ -444,7 +444,7 @@ ExpressionTranslator *CompilationContext::LookupTranslator(const parser::Abstrac
 std::string CompilationContext::GetFunctionPrefix() const {
   // If an output callback is present, we prefix
   // each function with the callback name
-  if (output_callback_ != nullptr) {
+  if (HasOutputCallback()) {
     return fmt::format("{}Query{}", output_callback_->GetName().GetString(), std::to_string(unique_id_));
   }
   return fmt::format("Query{}", std::to_string(unique_id_));

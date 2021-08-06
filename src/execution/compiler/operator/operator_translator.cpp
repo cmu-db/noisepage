@@ -88,6 +88,18 @@ ast::Expr *OperatorTranslator::GetMemoryPool() const {
   return GetCodeGen()->ExecCtxGetMemoryPool(GetExecutionContext());
 }
 
+ast::Identifier OperatorTranslator::MakeLocalIdentifier(std::string_view name) const {
+  const auto identifier = fmt::format("{}", name);
+  return GetCodeGen()->MakeFreshIdentifier(identifier);
+}
+
+ast::Identifier OperatorTranslator::MakeGlobalIdentifier(std::string_view name) const {
+  const auto identifier = GetCompilationContext()->HasOutputCallback()
+                              ? fmt::format("{}{}", GetCompilationContext()->GetFunctionPrefix(), name)
+                              : fmt::format("{}", name);
+  return GetCodeGen()->MakeFreshIdentifier(identifier);
+}
+
 void OperatorTranslator::GetAllChildOutputFields(const uint32_t child_index, const std::string &field_name_prefix,
                                                  util::RegionVector<ast::FieldDecl *> *fields) const {
   auto *codegen = GetCodeGen();
