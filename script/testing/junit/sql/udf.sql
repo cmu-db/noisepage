@@ -224,10 +224,7 @@ END;                                                       \
 $$ LANGUAGE PLPGSQL;
 
 -- ----------------------------------------------------------------------------
--- proc_fors()
-
--- CREATE TABLE tmp(z INT);
--- INSERT INTO tmp(z) VALUES (0), (1);
+-- proc_fors_constant_var()
 
 -- Select constant into a scalar variable
 CREATE FUNCTION proc_fors_constant_var() RETURNS INT AS $$ \
@@ -243,6 +240,9 @@ END                                                        \
 $$ LANGUAGE PLPGSQL;
 
 SELECT proc_fors_constant_var();
+
+-- ----------------------------------------------------------------------------
+-- proc_fors_constant_vars()
 
 -- Select multiple constants in scalar variables
 CREATE FUNCTION proc_fors_constant_vars() RETURNS INT AS $$ \
@@ -260,6 +260,11 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT proc_fors_constant_vars();
 
+-- ----------------------------------------------------------------------------
+-- proc_fors_rec()
+--
+-- TODO(Kyle): RECORD types not supported
+
 -- -- Bind query result to a RECORD type
 -- CREATE FUNCTION proc_fors_rec() RETURNS INT AS $$ \
 -- DECLARE                                           \ 
@@ -275,17 +280,20 @@ SELECT proc_fors_constant_vars();
 
 -- SELECT proc_fors_rec() FROM integers;
 
--- -- Bind query result directly to INT type
--- CREATE FUNCTION proc_fors_var() RETURNS INT AS $$ \
--- DECLARE                                           \
---   x INT := 0;                                     \
---   v INT;                                          \
--- BEGIN                                             \
---   FOR v IN (SELECT z FROM tmp) LOOP               \
---     x = x + 1;                                    \
---   END LOOP;                                       \
---   RETURN x;                                       \
--- END                                               \
--- $$ LANGUAGE PLPGSQL;
+-- ----------------------------------------------------------------------------
+-- proc_fors_var()
 
--- SELECT proc_fors_var() FROM integers;
+-- Bind query result directly to INT type
+CREATE FUNCTION proc_fors_var() RETURNS INT AS $$ \
+DECLARE                                           \
+  c INT := 0;                                     \
+  v INT;                                          \
+BEGIN                                             \
+  FOR v IN (SELECT x FROM integers) LOOP          \
+    c = c + 1;                                    \
+  END LOOP;                                       \
+  RETURN c;                                       \
+END                                               \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_fors_var();

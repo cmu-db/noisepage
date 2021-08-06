@@ -39,15 +39,15 @@ UdfCodegen::UdfCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
       needs_exec_ctx_{false} {
   for (auto i = 0UL; fb->GetParameterByPosition(i) != nullptr; ++i) {
     auto param = fb->GetParameterByPosition(i);
-    const auto &name = param->As<execution::ast::IdentifierExpr>()->Name();
+    const auto &name = param->As<ast::IdentifierExpr>()->Name();
     SymbolTable()[name.GetString()] = name;
   }
 }
 
 // Static
-execution::ast::File *UdfCodegen::Run(catalog::CatalogAccessor *accessor, FunctionBuilder *function_builder,
-                                      ast::udf::UdfAstContext *ast_context, CodeGen *codegen, catalog::db_oid_t db_oid,
-                                      ast::udf::FunctionAST *root) {
+ast::File *UdfCodegen::Run(catalog::CatalogAccessor *accessor, FunctionBuilder *function_builder,
+                           ast::udf::UdfAstContext *ast_context, CodeGen *codegen, catalog::db_oid_t db_oid,
+                           ast::udf::FunctionAST *root) {
   UdfCodegen generator{accessor, function_builder, ast_context, codegen, db_oid};
   generator.GenerateUDF(root->Body());
   return generator.Finish();
@@ -58,7 +58,7 @@ const char *UdfCodegen::GetReturnParamString() { return "return_val"; }
 
 void UdfCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
 
-catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type) {
+catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(ast::BuiltinType::Kind type) {
   switch (type) {
     case ast::BuiltinType::Kind::Integer: {
       return accessor_->GetTypeOidFromTypeId(type::TypeId::INTEGER);
@@ -93,15 +93,15 @@ void UdfCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
-  std::vector<execution::ast::Expr *> args_ast{};
-  std::vector<execution::ast::Expr *> args_ast_region_vec{};
+  std::vector<ast::Expr *> args_ast{};
+  std::vector<ast::Expr *> args_ast_region_vec{};
   std::vector<catalog::type_oid_t> arg_types{};
 
   for (auto &arg : ast->Args()) {
     arg->Accept(this);
     args_ast.push_back(dst_);
     args_ast_region_vec.push_back(dst_);
-    auto *builtin = dst_->GetType()->SafeAs<execution::ast::BuiltinType>();
+    auto *builtin = dst_->GetType()->SafeAs<ast::BuiltinType>();
     NOISEPAGE_ASSERT(builtin != nullptr, "Parameter must be a built-in type");
     NOISEPAGE_ASSERT(builtin->IsSqlValueType(), "Parameter must be a SQL value type");
     arg_types.push_back(GetCatalogTypeOidFromSQLType(builtin->GetKind()));
@@ -114,13 +114,13 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
     fb_->Append(codegen_->MakeStmt(codegen_->CallBuiltin(context->GetBuiltin(), args_ast)));
   } else {
     auto it = SymbolTable().find(ast->Callee());
-    execution::ast::Identifier ident_expr;
+    ast::Identifier ident_expr;
     if (it != SymbolTable().end()) {
       ident_expr = it->second;
     } else {
-      auto file = reinterpret_cast<execution::ast::File *>(
-          execution::ast::AstClone::Clone(context->GetFile(), codegen_->GetAstContext()->GetNodeFactory(),
-                                          context->GetASTContext(), codegen_->GetAstContext().Get()));
+      auto file = reinterpret_cast<ast::File *>(
+          ast::AstClone::Clone(context->GetFile(), codegen_->GetAstContext()->GetNodeFactory(),
+                               context->GetASTContext(), codegen_->GetAstContext().Get()));
       for (auto decl : file->Declarations()) {
         aux_decls_.push_back(decl);
       }
@@ -140,14 +140,14 @@ void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
     return;
   }
 
-  const execution::ast::Identifier identifier = codegen_->MakeFreshIdentifier(ast->Name());
+  const ast::Identifier identifier = codegen_->MakeFreshIdentifier(ast->Name());
   SymbolTable()[ast->Name()] = identifier;
 
   auto prev_type = current_type_;
-  execution::ast::Expr *tpl_type = nullptr;
+  ast::Expr *tpl_type = nullptr;
   if (ast->Type() == type::TypeId::INVALID) {
     // Record type
-    execution::util::RegionVector<execution::ast::FieldDecl *> fields{codegen_->GetAstContext()->GetRegion()};
+    util::RegionVector<ast::FieldDecl *> fields{codegen_->GetAstContext()->GetRegion()};
 
     // TODO(Kyle): Handle unbound record types
     const auto record_type = udf_ast_context_->GetRecordType(ast->Name());
@@ -157,14 +157,14 @@ void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
     }
 
     for (const auto &p : record_type.value()) {
-      fields.push_back(codegen_->MakeField(codegen_->MakeIdentifier(p.first),
-                                           codegen_->TplType(execution::sql::GetTypeId(p.second))));
+      fields.push_back(
+          codegen_->MakeField(codegen_->MakeIdentifier(p.first), codegen_->TplType(sql::GetTypeId(p.second))));
     }
     auto record_decl = codegen_->DeclareStruct(codegen_->MakeFreshIdentifier("rectype"), std::move(fields));
     aux_decls_.push_back(record_decl);
     tpl_type = record_decl->TypeRepr();
   } else {
-    tpl_type = codegen_->TplType(execution::sql::GetTypeId(ast->Type()));
+    tpl_type = codegen_->TplType(sql::GetTypeId(ast->Type()));
   }
   current_type_ = ast->Type();
   if (ast->Initial() != nullptr) {
@@ -195,27 +195,27 @@ void UdfCodegen::Visit(ast::udf::ValueExprAST *ast) {
     dst_ = codegen_->ConstNull(current_type_);
     return;
   }
-  auto type_id = execution::sql::GetTypeId(val->GetReturnValueType());
+  auto type_id = sql::GetTypeId(val->GetReturnValueType());
   switch (type_id) {
-    case execution::sql::TypeId::Boolean:
+    case sql::TypeId::Boolean:
       dst_ = codegen_->BoolToSql(val->GetBoolVal().val_);
       break;
-    case execution::sql::TypeId::TinyInt:
-    case execution::sql::TypeId::SmallInt:
-    case execution::sql::TypeId::Integer:
-    case execution::sql::TypeId::BigInt:
+    case sql::TypeId::TinyInt:
+    case sql::TypeId::SmallInt:
+    case sql::TypeId::Integer:
+    case sql::TypeId::BigInt:
       dst_ = codegen_->IntToSql(val->GetInteger().val_);
       break;
-    case execution::sql::TypeId::Float:
-    case execution::sql::TypeId::Double:
+    case sql::TypeId::Float:
+    case sql::TypeId::Double:
       dst_ = codegen_->FloatToSql(val->GetReal().val_);
-    case execution::sql::TypeId::Date:
+    case sql::TypeId::Date:
       dst_ = codegen_->DateToSql(val->GetDateVal().val_);
       break;
-    case execution::sql::TypeId::Timestamp:
+    case sql::TypeId::Timestamp:
       dst_ = codegen_->TimestampToSql(val->GetTimestampVal().val_);
       break;
-    case execution::sql::TypeId::Varchar:
+    case sql::TypeId::Varchar:
       dst_ = codegen_->StringToSql(val->GetStringVal().StringView());
       break;
     default:
@@ -239,49 +239,49 @@ void UdfCodegen::Visit(ast::udf::AssignStmtAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::BinaryExprAST *ast) {
-  execution::parsing::Token::Type op_token;
+  parsing::Token::Type op_token;
   bool compare = false;
   switch (ast->Op()) {
-    case noisepage::parser::ExpressionType::OPERATOR_DIVIDE:
-      op_token = execution::parsing::Token::Type::SLASH;
+    case parser::ExpressionType::OPERATOR_DIVIDE:
+      op_token = parsing::Token::Type::SLASH;
       break;
-    case noisepage::parser::ExpressionType::OPERATOR_PLUS:
-      op_token = execution::parsing::Token::Type::PLUS;
+    case parser::ExpressionType::OPERATOR_PLUS:
+      op_token = parsing::Token::Type::PLUS;
       break;
-    case noisepage::parser::ExpressionType::OPERATOR_MINUS:
-      op_token = execution::parsing::Token::Type::MINUS;
+    case parser::ExpressionType::OPERATOR_MINUS:
+      op_token = parsing::Token::Type::MINUS;
       break;
-    case noisepage::parser::ExpressionType::OPERATOR_MULTIPLY:
-      op_token = execution::parsing::Token::Type::STAR;
+    case parser::ExpressionType::OPERATOR_MULTIPLY:
+      op_token = parsing::Token::Type::STAR;
       break;
-    case noisepage::parser::ExpressionType::OPERATOR_MOD:
-      op_token = execution::parsing::Token::Type::PERCENT;
+    case parser::ExpressionType::OPERATOR_MOD:
+      op_token = parsing::Token::Type::PERCENT;
       break;
-    case noisepage::parser::ExpressionType::CONJUNCTION_OR:
-      op_token = execution::parsing::Token::Type::OR;
+    case parser::ExpressionType::CONJUNCTION_OR:
+      op_token = parsing::Token::Type::OR;
       break;
-    case noisepage::parser::ExpressionType::CONJUNCTION_AND:
-      op_token = execution::parsing::Token::Type::AND;
+    case parser::ExpressionType::CONJUNCTION_AND:
+      op_token = parsing::Token::Type::AND;
       break;
-    case noisepage::parser::ExpressionType::COMPARE_GREATER_THAN:
+    case parser::ExpressionType::COMPARE_GREATER_THAN:
       compare = true;
-      op_token = execution::parsing::Token::Type::GREATER;
+      op_token = parsing::Token::Type::GREATER;
       break;
-    case noisepage::parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
       compare = true;
-      op_token = execution::parsing::Token::Type::GREATER_EQUAL;
+      op_token = parsing::Token::Type::GREATER_EQUAL;
       break;
-    case noisepage::parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+    case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
       compare = true;
-      op_token = execution::parsing::Token::Type::LESS_EQUAL;
+      op_token = parsing::Token::Type::LESS_EQUAL;
       break;
-    case noisepage::parser::ExpressionType::COMPARE_LESS_THAN:
+    case parser::ExpressionType::COMPARE_LESS_THAN:
       compare = true;
-      op_token = execution::parsing::Token::Type::LESS;
+      op_token = parsing::Token::Type::LESS;
       break;
-    case noisepage::parser::ExpressionType::COMPARE_EQUAL:
+    case parser::ExpressionType::COMPARE_EQUAL:
       compare = true;
-      op_token = execution::parsing::Token::Type::EQUAL_EQUAL;
+      op_token = parsing::Token::Type::EQUAL_EQUAL;
       break;
     default:
       // TODO(Kyle): Figure out concatenation operation from expressions?
@@ -315,9 +315,9 @@ void UdfCodegen::Visit(ast::udf::IfStmtAST *ast) {
 void UdfCodegen::Visit(ast::udf::IsNullExprAST *ast) {
   ast->Child()->Accept(this);
   auto chld = dst_;
-  dst_ = codegen_->CallBuiltin(execution::ast::Builtin::IsValNull, {chld});
+  dst_ = codegen_->CallBuiltin(ast::Builtin::IsValNull, {chld});
   if (!ast->IsNullCheck()) {
-    dst_ = codegen_->UnaryOp(execution::parsing::Token::Type::BANG, dst_);
+    dst_ = codegen_->UnaryOp(parsing::Token::Type::BANG, dst_);
   }
 }
 
@@ -360,7 +360,7 @@ void UdfCodegen::Visit(ast::udf::ForIStmtAST *ast) { throw NOT_IMPLEMENTED_EXCEP
 void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   // Executing a SQL query requires an execution context
   needs_exec_ctx_ = true;
-  execution::ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
 
   // Bind the embedded query; must do this prior to attempting
   // to optimize to ensure correctness
@@ -389,10 +389,10 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   lambda_expr->SetName(lambda_identifier);
 
   // Materialize the lambda into the lambda expression
-  execution::exec::ExecutionSettings exec_settings{};
+  exec::ExecutionSettings exec_settings{};
   const std::string dummy_query{};
-  auto exec_query = execution::compiler::CompilationContext::Compile(
-      *plan, exec_settings, accessor_, execution::compiler::CompilationMode::OneShot, std::nullopt,
+  auto exec_query = compiler::CompilationContext::Compile(
+      *plan, exec_settings, accessor_, compiler::CompilationMode::OneShot, std::nullopt,
       common::ManagedPointer<planner::PlanMetaData>{}, lambda_expr, codegen_->GetAstContext());
 
   // Append all of the declarations from the compiled query
@@ -406,7 +406,7 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
       lambda_identifier, codegen_->LambdaType(lambda_expr->GetFunctionLiteralExpr()->TypeRepr()), lambda_expr));
 
   // Set its execution context to whatever execution context was passed in here
-  fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::StartNewParams, {exec_ctx}));
+  fb_->Append(codegen_->CallBuiltin(ast::Builtin::StartNewParams, {exec_ctx}));
 
   CodegenAddParameters(exec_ctx, variable_refs);
 
@@ -417,7 +417,7 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   // executable query (implementing the closure) to the builder
   CodegenTopLevelCalls(exec_query.get(), query_state, lambda_identifier);
 
-  fb_->Append(codegen_->CallBuiltin(execution::ast::Builtin::FinishNewParams, {exec_ctx}));
+  fb_->Append(codegen_->CallBuiltin(ast::Builtin::FinishNewParams, {exec_ctx}));
 }
 
 std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
@@ -507,9 +507,9 @@ std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambdaBindingToScalars(
 
   // The first parameter is always the execution context
   ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
-  parameters.push_back(codegen_->MakeField(
-      exec_ctx->As<ast::IdentifierExpr>()->Name(),
-      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
+  parameters.push_back(
+      codegen_->MakeField(exec_ctx->As<ast::IdentifierExpr>()->Name(),
+                          codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ExecutionContext))));
 
   // Assignees are those captures that are written in the closure
   std::vector<ast::Expr *> assignees{};
@@ -526,7 +526,7 @@ std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambdaBindingToScalars(
 
   // Begin construction of the function that implements the closure
   auto builder = std::make_unique<FunctionBuilder>(codegen_, std::move(parameters), std::move(captures),
-                                                   codegen_->BuiltinType(execution::ast::BuiltinType::Nil));
+                                                   codegen_->BuiltinType(ast::BuiltinType::Nil));
 
   // Generate an assignment from each input parameter to the associated capture
   for (std::size_t i = 0UL; i < assignees.size(); ++i) {
@@ -672,9 +672,9 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToScalars(common::ManagedPointer<p
 
   // The first parameter is always the execution context
   ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
-  parameters.push_back(codegen_->MakeField(
-      exec_ctx->As<ast::IdentifierExpr>()->Name(),
-      codegen_->PointerType(codegen_->BuiltinType(execution::ast::BuiltinType::Kind::ExecutionContext))));
+  parameters.push_back(
+      codegen_->MakeField(exec_ctx->As<ast::IdentifierExpr>()->Name(),
+                          codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ExecutionContext))));
 
   // Populate the remainder of the parameters and captures
   for (std::size_t i = 0; i < n_columns; ++i) {
@@ -690,7 +690,7 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToScalars(common::ManagedPointer<p
 
   // Begin construction of the function that implements the closure
   FunctionBuilder builder{codegen_, std::move(parameters), std::move(captures),
-                          codegen_->BuiltinType(execution::ast::BuiltinType::Nil)};
+                          codegen_->BuiltinType(ast::BuiltinType::Nil)};
 
   // Generate an assignment from each input parameter to the associated capture
   for (std::size_t i = 0UL; i < assignees.size(); ++i) {
@@ -702,7 +702,7 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToScalars(common::ManagedPointer<p
 }
 
 /* ----------------------------------------------------------------------------
-  Common Code Generation Helpers
+  Code Gneration Helpers: Add Parameters
 ---------------------------------------------------------------------------- */
 
 void UdfCodegen::CodegenAddParameters(ast::Expr *exec_ctx, const std::vector<parser::udf::VariableRef> &variable_refs) {
@@ -744,6 +744,10 @@ void UdfCodegen::CodegenAddTableParameter(ast::Expr *exec_ctx, const parser::udf
   fb_->Append(codegen_->CallBuiltin(AddParamBuiltinForParameterType(type), {exec_ctx, expr}));
 }
 
+/* ----------------------------------------------------------------------------
+  Code Gneration Helpers: Bound Variable Initialization
+---------------------------------------------------------------------------- */
+
 void UdfCodegen::CodegenBoundVariableInit(common::ManagedPointer<planner::AbstractPlanNode> plan,
                                           const std::vector<std::string> &bound_variables) {
   if (bound_variables.empty()) {
@@ -771,7 +775,7 @@ void UdfCodegen::CodegenBoundVariableInitForScalars(common::ManagedPointer<plann
   for (std::size_t i = 0; i < n_columns; ++i) {
     const auto &column = plan->GetOutputSchema()->GetColumn(i);
     const auto &variable = bound_variables.at(i);
-    execution::ast::Expr *capture = codegen_->MakeExpr(SymbolTable().find(variable)->second);
+    ast::Expr *capture = codegen_->MakeExpr(SymbolTable().find(variable)->second);
     fb_->Append(codegen_->Assign(capture, codegen_->ConstNull(column.GetType())));
   }
 }
@@ -882,23 +886,23 @@ ast::Builtin UdfCodegen::AddParamBuiltinForParameterType(type::TypeId parameter_
   // dispatch table, but honestly that would be overkill at this point
   switch (parameter_type) {
     case type::TypeId::BOOLEAN:
-      return execution::ast::Builtin::AddParamBool;
+      return ast::Builtin::AddParamBool;
     case type::TypeId::TINYINT:
-      return execution::ast::Builtin::AddParamTinyInt;
+      return ast::Builtin::AddParamTinyInt;
     case type::TypeId::SMALLINT:
-      return execution::ast::Builtin::AddParamSmallInt;
+      return ast::Builtin::AddParamSmallInt;
     case type::TypeId::INTEGER:
-      return execution::ast::Builtin::AddParamInt;
+      return ast::Builtin::AddParamInt;
     case type::TypeId::BIGINT:
-      return execution::ast::Builtin::AddParamBigInt;
+      return ast::Builtin::AddParamBigInt;
     case type::TypeId::DECIMAL:
-      return execution::ast::Builtin::AddParamDouble;
+      return ast::Builtin::AddParamDouble;
     case type::TypeId::DATE:
-      return execution::ast::Builtin::AddParamDate;
+      return ast::Builtin::AddParamDate;
     case type::TypeId::TIMESTAMP:
-      return execution::ast::Builtin::AddParamTimestamp;
+      return ast::Builtin::AddParamTimestamp;
     case type::TypeId::VARCHAR:
-      return execution::ast::Builtin::AddParamString;
+      return ast::Builtin::AddParamString;
     default:
       UNREACHABLE("Unsupported parameter type");
   }

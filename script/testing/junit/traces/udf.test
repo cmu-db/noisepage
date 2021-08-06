@@ -433,16 +433,7 @@ statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
--- proc_fors()
-
-statement ok
-
-
-statement ok
--- CREATE TABLE tmp(z INT);
-
-statement ok
--- INSERT INTO tmp(z) VALUES (0), (1);
+-- proc_fors_constant_var()
 
 statement ok
 
@@ -466,6 +457,15 @@ statement ok
 
 
 statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fors_constant_vars()
+
+statement ok
+
+
+statement ok
 -- Select multiple constants in scalar variables
 
 statement ok
@@ -479,6 +479,21 @@ SELECT proc_fors_constant_vars();
 ----
 1
 
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fors_rec()
+
+statement ok
+--
+
+statement ok
+-- TODO(Kyle): RECORD types not supported
 
 statement ok
 
@@ -502,14 +517,26 @@ statement ok
 
 
 statement ok
--- -- Bind query result directly to INT type
+-- ----------------------------------------------------------------------------
 
 statement ok
--- CREATE FUNCTION proc_fors_var() RETURNS INT AS $$ -- DECLARE --   x INT := 0; --   v INT; -- BEGIN --   FOR v IN (SELECT z FROM tmp) LOOP --     x = x + 1; --   END LOOP; --   RETURN x; -- END -- $$ LANGUAGE PLPGSQL;
+-- proc_fors_var()
 
 statement ok
 
 
 statement ok
--- SELECT proc_fors_var() FROM integers;
+-- Bind query result directly to INT type
+
+statement ok
+CREATE FUNCTION proc_fors_var() RETURNS INT AS $$ DECLARE c INT := 0; v INT; BEGIN FOR v IN (SELECT x FROM integers) LOOP c = c + 1; END LOOP; RETURN c; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_fors_var();
+----
+3
+
 
