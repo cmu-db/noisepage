@@ -43,7 +43,7 @@ class TestOLTPBench(TestServer):
         """
         old_dir = os.getcwd()
         os.chdir(constants.OLTPBENCH_GIT_LOCAL_PATH)
-        expect_command("./mvnw package")
+        expect_command("./mvnw package --no-transfer-progress")
         os.chdir(constants.OLTPBENCH_GIT_TARGET_PATH)
         expect_command(f"tar xvzf {constants.OLTPBENCH_VERSION}.tgz")
         os.chdir(old_dir)
