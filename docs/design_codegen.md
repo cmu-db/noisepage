@@ -8,15 +8,15 @@ As described in the _Execution Engine Design Document_, NoisePage utilizes [data
 
 Our goal in code generation is to produce a bytecode program that implements a query plan. 
 
-The straightforward and most common way of accomplishing this is to have each operator in the query plan tree assume responsibility for generating the code that it requires to execute. The complete byetcode program might then be realized by having each operator generate code into a distinct bytecode function and then chaining these functions together via calls from the functions produced by parent operators to those produced by child operators. 
+The straightforward and most common way of accomplishingz this is to have each operator in the query plan tree assume responsibility for generating the code that it requires to execute. The complete byetcode program might then be realized by having each operator generate code into a distinct bytecode function and then chaining these functions together via calls from the functions produced by parent operators to those produced by child operators. 
 
 As mentioned above, this approach is straightforward to reason about and to implement. The code generated for each operator is nicely self-contained in a single bytecode function, allowing developers to verify the correctness of the generated code and debug code generation issues. However, the simplicity of this approach comes at the cost of query runtime performance. We now incur function-call overhead in the transition between each operator. More importantly, we leave ourselves open to the same performance issues present in any operator-centric execution model: poor code and data locality resulting from tuple-at-a-time processing among each operator.
 
-Data-centric code generation is a solution to these performance issues. TODO
+Data-centric code generation is a solution to these performance issues. In this paradigm, code is generated according to the data dependencies between individual operators, rather than along operator boundaries themselves. In practice, this has the effect of _fusing_ multiple operators together into larger units called _pipelines_. When multiple operators are fused into a pipeline, all of the operations required to implement the logic of each operator may be performed in sequence, without incurring function call overhead or even spilling tuple attributes to memory - it is often possible to keep tuple attributes in registers for the duration of a pipeline, dramatically improving CPU efficiency.
 
 ### Pipelines
 
-TODO
+Pipelines are the lowest-level unit of code generation in the NoisePage query compilation architecture. Individual operators are assigned to a pipeline (some operators may be part of more than one pipeline e.g. `JOIN` operators). The pipeline defines a set of top-level bytecode functions to generate, and invokes a set of pre-defined member functions on each of its operators to populate the body of each of these functions. The specifics of each of the functions defined by each pipeline are described below.
 
 **Complications**
 
@@ -32,7 +32,7 @@ The are several flavors of pipelines within NoisePage that differ slightly in th
 
 #### Serial Pipelines
 
-We begin the discussion with serial pipelines because they are slightly less complicated. 
+We begin the discussion with serial pipelines because they are slightly less complicated than their parallel counterparts.
 
 **State Initialization**
 
@@ -125,8 +125,6 @@ The reason that a pointer to the pipeline state is provided to the call in the l
 #### Parallel Pipelines
 
 Parallel pipelines require different semantics from serial pipelines. Despite these differences, only the _Work_ function is affected by the change from a serial to a parallel pipeline.
-
-TODO
 
 ### References
 

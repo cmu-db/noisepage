@@ -24,6 +24,7 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
       agg_row_var_(GetCodeGen()->MakeFreshIdentifier(AGG_ROW_VAR)),
       agg_payload_type_(MakeGlobalIdentifier(AGG_PAYLOAD_TYPE)),
       agg_values_type_(MakeGlobalIdentifier(AGG_VALUES_TYPE)),
+      merge_func_(MakeGlobalIdentifier(AGG_MERGE_FUNC)),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   NOISEPAGE_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
   NOISEPAGE_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
