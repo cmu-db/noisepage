@@ -104,10 +104,10 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
 
   // TODO(Kyle): Clean up this logic
   for (auto &arg : ast->Args()) {
-    arg->Accept(this);
-    args_ast.push_back(dst_);
-    args_ast_region_vec.push_back(dst_);
-    auto *builtin = dst_->GetType()->SafeAs<ast::BuiltinType>();
+    ast::Expr *result = EvaluateExpression(arg.get());
+    args_ast.push_back(result);
+    args_ast_region_vec.push_back(result);
+    auto *builtin = result->GetType()->SafeAs<ast::BuiltinType>();
     NOISEPAGE_ASSERT(builtin != nullptr, "Parameter must be a built-in type");
     NOISEPAGE_ASSERT(builtin->IsSqlValueType(), "Parameter must be a SQL value type");
     arg_types.push_back(GetCatalogTypeOidFromSQLType(builtin->GetKind()));
@@ -122,7 +122,7 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
   auto context = accessor_->GetProcCtxPtr(proc_oid);
   if (context->IsBuiltin()) {
     ast::Expr *result = codegen_->CallBuiltin(context->GetBuiltin(), args_ast);
-    dst_ = result;
+    SetExecutionResult(result);
   } else {
     auto it = SymbolTable().find(ast->Callee());
     ast::Identifier ident_expr;
@@ -139,7 +139,7 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
       SymbolTable()[file->Declarations().back()->Name().GetString()] = ident_expr;
     }
     ast::Expr *result = codegen_->Call(ident_expr, args_ast_region_vec);
-    dst_ = result;
+    SetExecutionResult(result);
   }
 }
 
@@ -180,8 +180,8 @@ void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   }
   current_type_ = ast->Type();
   if (ast->Initial() != nullptr) {
-    ast->Initial()->Accept(this);
-    fb_->Append(codegen_->DeclareVar(identifier, tpl_type, dst_));
+    ast::Expr *initializer = EvaluateExpression(ast->Initial());
+    fb_->Append(codegen_->DeclareVar(identifier, tpl_type, initializer));
   } else {
     fb_->Append(codegen_->DeclareVarNoInit(identifier, tpl_type));
   }
@@ -198,49 +198,51 @@ void UdfCodegen::Visit(ast::udf::FunctionAST *ast) {
 void UdfCodegen::Visit(ast::udf::VariableExprAST *ast) {
   auto it = SymbolTable().find(ast->Name());
   NOISEPAGE_ASSERT(it != SymbolTable().end(), "Variable not declared");
-  dst_ = codegen_->MakeExpr(it->second);
+  SetExecutionResult(codegen_->MakeExpr(it->second));
 }
 
 void UdfCodegen::Visit(ast::udf::ValueExprAST *ast) {
   auto val = common::ManagedPointer(ast->Value()).CastManagedPointerTo<parser::ConstantValueExpression>();
   if (val->IsNull()) {
-    dst_ = codegen_->ConstNull(current_type_);
+    SetExecutionResult(codegen_->ConstNull(current_type_));
     return;
   }
+
+  ast::Expr *expr;
   auto type_id = sql::GetTypeId(val->GetReturnValueType());
   switch (type_id) {
     case sql::TypeId::Boolean:
-      dst_ = codegen_->BoolToSql(val->GetBoolVal().val_);
+      expr = codegen_->BoolToSql(val->GetBoolVal().val_);
       break;
     case sql::TypeId::TinyInt:
     case sql::TypeId::SmallInt:
     case sql::TypeId::Integer:
     case sql::TypeId::BigInt:
-      dst_ = codegen_->IntToSql(val->GetInteger().val_);
+      expr = codegen_->IntToSql(val->GetInteger().val_);
       break;
     case sql::TypeId::Float:
     case sql::TypeId::Double:
-      dst_ = codegen_->FloatToSql(val->GetReal().val_);
+      expr = codegen_->FloatToSql(val->GetReal().val_);
     case sql::TypeId::Date:
-      dst_ = codegen_->DateToSql(val->GetDateVal().val_);
+      expr = codegen_->DateToSql(val->GetDateVal().val_);
       break;
     case sql::TypeId::Timestamp:
-      dst_ = codegen_->TimestampToSql(val->GetTimestampVal().val_);
+      expr = codegen_->TimestampToSql(val->GetTimestampVal().val_);
       break;
     case sql::TypeId::Varchar:
-      dst_ = codegen_->StringToSql(val->GetStringVal().StringView());
+      expr = codegen_->StringToSql(val->GetStringVal().StringView());
       break;
     default:
       throw NOT_IMPLEMENTED_EXCEPTION("Unsupported type in UDF codegen");
   }
+  SetExecutionResult(expr);
 }
 
 void UdfCodegen::Visit(ast::udf::AssignStmtAST *ast) {
   const type::TypeId left_type = GetVariableType(ast->Destination()->Name());
   current_type_ = left_type;
 
-  reinterpret_cast<ast::udf::AbstractAST *>(ast->Source())->Accept(this);
-  auto rhs_expr = dst_;
+  ast::Expr *rhs_expr = EvaluateExpression(ast->Source());
 
   auto it = SymbolTable().find(ast->Destination()->Name());
   NOISEPAGE_ASSERT(it != SymbolTable().end(), "Variable not found");
@@ -299,23 +301,16 @@ void UdfCodegen::Visit(ast::udf::BinaryExprAST *ast) {
       // TODO(Kyle): Figure out concatenation operation from expressions?
       UNREACHABLE("Unsupported expression");
   }
-  ast->Left()->Accept(this);
-  auto lhs_expr = dst_;
-
-  ast->Right()->Accept(this);
-  auto rhs_expr = dst_;
-  if (compare) {
-    dst_ = codegen_->Compare(op_token, lhs_expr, rhs_expr);
-  } else {
-    dst_ = codegen_->BinaryOp(op_token, lhs_expr, rhs_expr);
-  }
+  ast::Expr *lhs_expr = EvaluateExpression(ast->Left());
+  ast::Expr *rhs_expr = EvaluateExpression(ast->Right());
+  ast::Expr *result =
+      compare ? codegen_->Compare(op_token, lhs_expr, rhs_expr) : codegen_->BinaryOp(op_token, lhs_expr, rhs_expr);
+  SetExecutionResult(result);
 }
 
 void UdfCodegen::Visit(ast::udf::IfStmtAST *ast) {
-  ast->Condition()->Accept(this);
-  auto cond = dst_;
-
-  If branch(fb_, cond);
+  ast::Expr *condition = EvaluateExpression(ast->Condition());
+  If branch(fb_, condition);
   ast->Then()->Accept(this);
   if (ast->Else() != nullptr) {
     branch.Else();
@@ -325,11 +320,11 @@ void UdfCodegen::Visit(ast::udf::IfStmtAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::IsNullExprAST *ast) {
-  ast->Child()->Accept(this);
-  auto chld = dst_;
-  dst_ = codegen_->CallBuiltin(ast::Builtin::IsValNull, {chld});
+  ast::Expr *child = EvaluateExpression(ast->Child());
+  ast::Expr *null_check = codegen_->CallBuiltin(ast::Builtin::IsValNull, {child});
+  SetExecutionResult(null_check);
   if (!ast->IsNullCheck()) {
-    dst_ = codegen_->UnaryOp(parsing::Token::Type::BANG, dst_);
+    SetExecutionResult(codegen_->UnaryOp(parsing::Token::Type::BANG, null_check));
   }
 }
 
@@ -340,24 +335,22 @@ void UdfCodegen::Visit(ast::udf::SeqStmtAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::WhileStmtAST *ast) {
-  ast->Condition()->Accept(this);
-  auto cond = dst_;
-  Loop loop(fb_, cond);
+  ast::Expr *condition = EvaluateExpression(ast->Condition());
+  Loop loop(fb_, condition);
   ast->Body()->Accept(this);
   loop.EndLoop();
 }
 
 void UdfCodegen::Visit(ast::udf::RetStmtAST *ast) {
   // TODO(Kyle): Handle NULL returns
-  ast->Return()->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
-  auto ret_expr = dst_;
-  fb_->Append(codegen_->Return(ret_expr));
+  ast::Expr *return_expr = EvaluateExpression(ast->Return());
+  fb_->Append(codegen_->Return(return_expr));
 }
 
 void UdfCodegen::Visit(ast::udf::MemberExprAST *ast) {
-  ast->Object()->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
-  auto object = dst_;
-  dst_ = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->FieldName()));
+  ast::Expr *object = EvaluateExpression(ast->Object());
+  ast::Expr *access = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->FieldName()));
+  SetExecutionResult(access);
 }
 
 /* ----------------------------------------------------------------------------
@@ -854,6 +847,15 @@ void UdfCodegen::CodegenTopLevelCalls(const ExecutableQuery *exec_query, ast::Id
 ---------------------------------------------------------------------------- */
 
 ast::Expr *UdfCodegen::GetExecutionContext() { return fb_->GetParameterByPosition(0); }
+
+ast::Expr *UdfCodegen::GetExecutionResult() { return execution_result_; }
+
+void UdfCodegen::SetExecutionResult(ast::Expr *result) { execution_result_ = result; }
+
+ast::Expr *UdfCodegen::EvaluateExpression(ast::udf::ExprAST *expr) {
+  expr->Accept(this);
+  return GetExecutionResult();
+}
 
 type::TypeId UdfCodegen::GetVariableType(const std::string &name) const {
   auto type = udf_ast_context_->GetVariableType(name);

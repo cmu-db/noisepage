@@ -437,6 +437,23 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   /** @return The execution context provided to the function */
   ast::Expr *GetExecutionContext();
 
+  /** @return The current execution result expression */
+  ast::Expr *GetExecutionResult();
+
+  /**
+   * Set the current execution result expression.
+   * @param The execution result expression
+   */
+  void SetExecutionResult(ast::Expr *result);
+
+  /**
+   * Stage evaluation of the expression `expr` by generating
+   * code to perform the evaluation (at runtime).
+   * @param expr The expression to evaluate
+   * @return The result of evaluating the expression
+   */
+  ast::Expr *EvaluateExpression(ast::udf::ExprAST *expr);
+
  private:
   /** The string identifier for internal declarations */
   constexpr static const char INTERNAL_DECL_ID[] = "*internal*";
@@ -462,8 +479,8 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   /** The current type during code generation */
   type::TypeId current_type_{type::TypeId::INVALID};
 
-  /** The destination expression */
-  execution::ast::Expr *dst_;
+  /** The current execution result expression */
+  execution::ast::Expr *execution_result_;
 
   /** Map from human-readable string identifier to internal identifier */
   std::unordered_map<std::string, execution::ast::Identifier> symbol_table_;
