@@ -299,18 +299,43 @@ $$ LANGUAGE PLPGSQL;
 SELECT proc_fors_var();
 
 -- ----------------------------------------------------------------------------
--- proc_call_ret()
+-- proc_call_*()
 
-CREATE FUNCTION proc_call_ret_callee() RETURNS INT AS $$ \
-BEGIN                                                    \
-  RETURN 1;                                              \
-END                                                      \
+CREATE FUNCTION proc_call_callee() RETURNS INT AS $$ \
+BEGIN                                                \
+  RETURN 1;                                          \
+END                                                  \
 $$ LANGUAGE PLPGSQL;
 
-CREATE FUNCTION proc_call_ret_caller() RETURNS INT AS $$ \
-BEGIN                                                    \
-  RETURN proc_call_ret_callee();                         \
-END                                                      \
+-- Just RETURN the result of call
+CREATE FUNCTION proc_call_ret() RETURNS INT AS $$ \
+BEGIN                                             \
+  RETURN proc_call_callee();                      \
+END                                               \
 $$ LANGUAGE PLPGSQL;
 
-SELECT proc_call_ret_caller();
+SELECT proc_call_ret();
+
+-- Assign the result of call to variable
+CREATE FUNCTION proc_call_assign() RETURNS INT AS $$ \
+DECLARE                                              \
+  v INT;                                             \
+BEGIN                                                \
+  v = proc_call_callee();                            \
+  RETURN v;                                          \
+END                                                  \
+$$ LANGUAGE PLPGSQl;
+
+SELECT proc_call_assign();
+
+-- SELECT the result of call into variable
+CREATE FUNCTION proc_call_select() RETURNS INT AS $$ \
+DECLARE                                              \
+  v INT;                                             \
+BEGIN                                                \
+  SELECT proc_call_callee() INTO v;                  \
+  RETURN v;                                          \
+END                                                  \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_call_select();
