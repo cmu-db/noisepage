@@ -78,8 +78,7 @@ std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(const std
     throw PARSER_EXCEPTION("Function list has size other than 1");
   }
 
-  // TODO(Kyle): This is a zip(), can we add our own generic
-  // algorithms library somewhere for stuff like this?
+  // TODO(Kyle): This is a zip()
   std::size_t i = 0;
   for (const auto &udf_name : param_names) {
     udf_ast_context_->SetVariableType(udf_name, param_types[i++]);
@@ -115,13 +114,7 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
     const StatementType statement_type = GetStatementType(statement.items().begin().key());
     switch (statement_type) {
       case StatementType::RETURN: {
-        // TODO(Kyle): Handle RETURN without expression
-        if (statement[K_PLPGSQL_STMT_RETURN].empty()) {
-          throw NOT_IMPLEMENTED_EXCEPTION("PL/pgSQL Parser : RETURN without expression not implemented.");
-        }
-        auto expr = ParseExprFromSQLString(
-            statement[K_PLPGSQL_STMT_RETURN][K_EXPR][K_PLPGSQL_EXPR][K_QUERY].get<std::string>());
-        statements.push_back(std::make_unique<execution::ast::udf::RetStmtAST>(std::move(expr)));
+        statements.push_back(ParseReturn(statement[K_PLPGSQL_STMT_RETURN]));
         break;
       }
       case StatementType::IF: {
@@ -129,7 +122,6 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
         break;
       }
       case StatementType::ASSIGN: {
-        // TODO(Kyle): Need to fix Assignment expression / statement
         statements.push_back(ParseAssign(statement[K_PLPGSQL_STMT_ASSIGN]));
         break;
       }
@@ -161,6 +153,15 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseBlock(const nl
   }
 
   return std::make_unique<execution::ast::udf::SeqStmtAST>(std::move(statements));
+}
+
+std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseReturn(const nlohmann::json &json) {
+  // TODO(Kyle): Handle RETURN without expression
+  if (json.empty()) {
+    throw NOT_IMPLEMENTED_EXCEPTION("PL/pgSQL Parser : RETURN without expression not implemented.");
+  }
+  auto expr = ParseExprFromSQLString(json[K_EXPR][K_PLPGSQL_EXPR][K_QUERY].get<std::string>());
+  return std::make_unique<execution::ast::udf::RetStmtAST>(std::move(expr));
 }
 
 std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlohmann::json &json) {
@@ -417,9 +418,6 @@ std::optional<std::unique_ptr<execution::ast::udf::ExprAST>> PLpgSQLParser::TryP
                                                                                    std::move(*lhs), std::move(*rhs)));
   }
 
-  // TODO(Kyle): I am not a fan of non-exhaustive switch statements;
-  // is there a way that we can refactor this logic to make it better?
-
   switch (expr->GetExpressionType()) {
     case parser::ExpressionType::COLUMN_VALUE: {
       auto cve = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -433,13 +431,12 @@ std::optional<std::unique_ptr<execution::ast::udf::ExprAST>> PLpgSQLParser::TryP
     case parser::ExpressionType::FUNCTION: {
       auto func_expr = expr.CastManagedPointerTo<parser::FunctionExpression>();
       std::vector<std::unique_ptr<execution::ast::udf::ExprAST>> args{};
-      auto num_args = func_expr->GetChildrenSize();
-      for (std::size_t idx = 0; idx < num_args; ++idx) {
-        auto arg = TryParseExprFromAbstract(func_expr->GetChild(idx));
-        if (!arg.has_value()) {
+      for (auto child : func_expr->GetChildren()) {
+        auto argument = TryParseExprFromAbstract(child);
+        if (!argument.has_value()) {
           return std::nullopt;
         }
-        args.push_back(std::move(*arg));
+        args.push_back(std::move(*argument));
       }
       return std::make_optional(
           std::make_unique<execution::ast::udf::CallExprAST>(func_expr->GetFuncName(), std::move(args)));

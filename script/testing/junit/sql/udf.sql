@@ -297,3 +297,20 @@ END                                               \
 $$ LANGUAGE PLPGSQL;
 
 SELECT proc_fors_var();
+
+-- ----------------------------------------------------------------------------
+-- proc_call_ret()
+
+CREATE FUNCTION proc_call_ret_callee() RETURNS INT AS $$ \
+BEGIN                                                    \
+  RETURN 1;                                              \
+END                                                      \
+$$ LANGUAGE PLPGSQL;
+
+CREATE FUNCTION proc_call_ret_caller() RETURNS INT AS $$ \
+BEGIN                                                    \
+  RETURN proc_call_ret_callee();                         \
+END                                                      \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_call_ret_caller();

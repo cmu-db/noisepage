@@ -35,8 +35,7 @@ UdfCodegen::UdfCodegen(catalog::CatalogAccessor *accessor, FunctionBuilder *fb,
       udf_ast_context_{udf_ast_context},
       codegen_{codegen},
       db_oid_{db_oid},
-      aux_decls_(codegen->GetAstContext()->GetRegion()),
-      needs_exec_ctx_{false} {
+      aux_decls_{codegen->GetAstContext()->GetRegion()} {
   for (auto i = 0UL; fb->GetParameterByPosition(i) != nullptr; ++i) {
     auto param = fb->GetParameterByPosition(i);
     const auto &name = param->As<ast::IdentifierExpr>()->Name();
@@ -97,6 +96,13 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
   std::vector<ast::Expr *> args_ast_region_vec{};
   std::vector<catalog::type_oid_t> arg_types{};
 
+  // First argument to UDF is an execution context
+  args_ast_region_vec.push_back(GetExecutionContext());
+
+  // TODO(Kyle): Is this the semantics we want? The execution
+  // context for the entire TPL program is shared?
+
+  // TODO(Kyle): Clean up this logic
   for (auto &arg : ast->Args()) {
     arg->Accept(this);
     args_ast.push_back(dst_);
@@ -106,12 +112,17 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
     NOISEPAGE_ASSERT(builtin->IsSqlValueType(), "Parameter must be a SQL value type");
     arg_types.push_back(GetCatalogTypeOidFromSQLType(builtin->GetKind()));
   }
-  auto proc_oid = accessor_->GetProcOid(ast->Callee(), arg_types);
-  NOISEPAGE_ASSERT(proc_oid != catalog::INVALID_PROC_OID, "Invalid call");
+
+  const auto proc_oid = accessor_->GetProcOid(ast->Callee(), arg_types);
+  if (proc_oid == catalog::INVALID_PROC_OID) {
+    throw BINDER_EXCEPTION(fmt::format("Invalid function call '{}'", ast->Callee()),
+                           common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
 
   auto context = accessor_->GetProcCtxPtr(proc_oid);
   if (context->IsBuiltin()) {
-    fb_->Append(codegen_->MakeStmt(codegen_->CallBuiltin(context->GetBuiltin(), args_ast)));
+    ast::Expr *result = codegen_->CallBuiltin(context->GetBuiltin(), args_ast);
+    dst_ = result;
   } else {
     auto it = SymbolTable().find(ast->Callee());
     ast::Identifier ident_expr;
@@ -127,7 +138,8 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
       ident_expr = codegen_->MakeFreshIdentifier(file->Declarations().back()->Name().GetString());
       SymbolTable()[file->Declarations().back()->Name().GetString()] = ident_expr;
     }
-    fb_->Append(codegen_->MakeStmt(codegen_->Call(ident_expr, args_ast_region_vec)));
+    ast::Expr *result = codegen_->Call(ident_expr, args_ast_region_vec);
+    dst_ = result;
   }
 }
 
@@ -336,6 +348,7 @@ void UdfCodegen::Visit(ast::udf::WhileStmtAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::RetStmtAST *ast) {
+  // TODO(Kyle): Handle NULL returns
   ast->Return()->Accept(reinterpret_cast<ASTNodeVisitor *>(this));
   auto ret_expr = dst_;
   fb_->Append(codegen_->Return(ret_expr));
@@ -359,8 +372,7 @@ void UdfCodegen::Visit(ast::udf::ForIStmtAST *ast) { throw NOT_IMPLEMENTED_EXCEP
 
 void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   // Executing a SQL query requires an execution context
-  needs_exec_ctx_ = true;
-  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  ast::Expr *exec_ctx = GetExecutionContext();
 
   // Bind the embedded query; must do this prior to attempting
   // to optimize to ensure correctness
@@ -446,7 +458,7 @@ std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambdaBindingToRecord(
   util::RegionVector<ast::FieldDecl *> parameters{codegen_->GetAstContext()->GetRegion()};
 
   // The first parameter is always the execution context
-  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  ast::Expr *exec_ctx = GetExecutionContext();
   parameters.push_back(
       codegen_->MakeField(exec_ctx->As<ast::IdentifierExpr>()->Name(),
                           codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ExecutionContext))));
@@ -506,7 +518,7 @@ std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambdaBindingToScalars(
   }
 
   // The first parameter is always the execution context
-  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  ast::Expr *exec_ctx = GetExecutionContext();
   parameters.push_back(
       codegen_->MakeField(exec_ctx->As<ast::IdentifierExpr>()->Name(),
                           codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ExecutionContext))));
@@ -543,8 +555,7 @@ std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambdaBindingToScalars(
 
 void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   // Executing a SQL query requires an execution context
-  needs_exec_ctx_ = true;
-  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  ast::Expr *exec_ctx = GetExecutionContext();
 
   // Bind the embedded query; must do this prior to attempting
   // to optimize to ensure correctness
@@ -622,8 +633,7 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToRecord(common::ManagedPointer<pl
   // The lambda accepts all columns of the query output schema as parameters
   util::RegionVector<ast::FieldDecl *> parameters{codegen_->GetAstContext()->GetRegion()};
 
-  // The first parameter is always the execution context
-  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  ast::Expr *exec_ctx = GetExecutionContext();
   parameters.push_back(
       codegen_->MakeField(exec_ctx->As<ast::IdentifierExpr>()->Name(),
                           codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ExecutionContext))));
@@ -670,8 +680,7 @@ ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToScalars(common::ManagedPointer<p
   // The lambda captures the variables to which results are bound from the enclosing scope
   util::RegionVector<ast::Expr *> captures{codegen_->GetAstContext()->GetRegion()};
 
-  // The first parameter is always the execution context
-  ast::Expr *exec_ctx = fb_->GetParameterByPosition(0);
+  ast::Expr *exec_ctx = GetExecutionContext();
   parameters.push_back(
       codegen_->MakeField(exec_ctx->As<ast::IdentifierExpr>()->Name(),
                           codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::Kind::ExecutionContext))));
@@ -843,6 +852,8 @@ void UdfCodegen::CodegenTopLevelCalls(const ExecutableQuery *exec_query, ast::Id
 /* ----------------------------------------------------------------------------
   General Utilities
 ---------------------------------------------------------------------------- */
+
+ast::Expr *UdfCodegen::GetExecutionContext() { return fb_->GetParameterByPosition(0); }
 
 type::TypeId UdfCodegen::GetVariableType(const std::string &name) const {
   auto type = udf_ast_context_->GetVariableType(name);

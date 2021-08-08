@@ -540,3 +540,33 @@ SELECT proc_fors_var();
 3
 
 
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_call_ret()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_call_ret_callee() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_call_ret_caller() RETURNS INT AS $$ BEGIN RETURN proc_call_ret_callee(); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_call_ret_caller();
+----
+1
+
+

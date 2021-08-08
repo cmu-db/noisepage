@@ -267,7 +267,7 @@ class CallExprAST : public ExprAST {
 
  private:
   /** The name of the called function */
-  std::string callee_;
+  const std::string callee_;
 
   /** The arguments to the function call */
   std::vector<std::unique_ptr<ExprAST>> args_;

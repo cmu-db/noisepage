@@ -65,6 +65,13 @@ class PLpgSQLParser {
   std::unique_ptr<execution::ast::udf::StmtAST> ParseBlock(const nlohmann::json &json);
 
   /**
+   * Parse a return statement.
+   * @param json The input JSON object
+   * @return The AST for the return statement
+   */
+  std::unique_ptr<execution::ast::udf::StmtAST> ParseReturn(const nlohmann::json &json);
+
+  /**
    * Parse a function statement.
    * @param json The input JSON object
    * @return json AST for the function

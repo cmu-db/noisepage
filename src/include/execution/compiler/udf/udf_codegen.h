@@ -61,6 +61,8 @@ class ForSStmtAST;
 
 namespace compiler::udf {
 
+class ExpressionResultScope;
+
 /**
  * The UdfCodegen class implements a visitor for UDF AST
  * nodes and encapsulates all of the logic required to generate
@@ -421,16 +423,19 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   static ast::Builtin AddParamBuiltinForParameterType(type::TypeId parameter_type);
 
   /**
-   * Sort the query
+   * TODO(Kyle): this
    */
   static std::vector<std::string> ParametersSortedByIndex(
       const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &parameter_map);
 
   /**
-   *
+   * TODO(Kyle): this
    */
   static std::vector<std::string> ColumnsSortedByIndex(
       const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &parameter_map);
+
+  /** @return The execution context provided to the function */
+  ast::Expr *GetExecutionContext();
 
  private:
   /** The string identifier for internal declarations */
@@ -453,9 +458,6 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
 
   /** Auxiliary declarations */
   execution::util::RegionVector<execution::ast::Decl *> aux_decls_;
-
-  /** Flag indicating whether this UDF requires an execution context */
-  bool needs_exec_ctx_;
 
   /** The current type during code generation */
   type::TypeId current_type_{type::TypeId::INVALID};
