@@ -323,6 +323,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
                                common::ErrorCode::ERRCODE_UNDEFINED_OBJECT);
       }
       break;
+    case parser::DropStatement::DropType::kFunction:
+      ValidateDatabaseName(node->GetDatabaseName());
+      throw NOT_IMPLEMENTED_EXCEPTION("DROP FUNCTION Not Implemented");
     case parser::DropStatement::DropType::kTrigger:
       // TODO(Ling): Get Trigger OID in catalog?
     case parser::DropStatement::DropType::kSchema:

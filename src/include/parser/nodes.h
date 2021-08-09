@@ -15,3 +15,18 @@ using value = struct Value {
     char *str_;    /**< string */
   } val_;          /**< value */
 };
+
+/**
+ * A typename parsenode as produced by the Postgres parser
+ */
+using typname = struct TypName {
+  NodeTag type_;
+  List *names_;
+  Oid typeOid_;
+  bool setof_;
+  bool pct_type_;
+  List *typmods_;
+  int32_t typemod_;
+  List *arrayBounds_;
+  int location_;
+};

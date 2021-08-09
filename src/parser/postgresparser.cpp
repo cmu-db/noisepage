@@ -48,6 +48,10 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   auto result = pg_query_parse(text);
 
   // Parse the query string with the Postgres parser.
+
+  // TODO(Kyle): Syntax "DROP FUNCTION fun;" fails in the
+  // Postgres parser, do we need to update the version?
+
   if (result.error != nullptr) {
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
 
@@ -1750,6 +1754,9 @@ std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(ParseResult *pa
 // Postgres.DropStmt -> noisepage.DropStatement
 std::unique_ptr<DropStatement> PostgresParser::DropTransform(ParseResult *parse_result, DropStmt *root) {
   switch (root->remove_type_) {
+    case ObjectType::OBJECT_FUNCTION: {
+      return DropFunctionTransform(parse_result, root);
+    }
     case ObjectType::OBJECT_INDEX: {
       return DropIndexTransform(parse_result, root);
     }
@@ -1776,6 +1783,34 @@ std::unique_ptr<DropStatement> PostgresParser::DropDatabaseTransform(ParseResult
 
   auto result = std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kDatabase, if_exists);
   return result;
+}
+
+// Postgres.DropStmt -> noisepage.DropStatement
+std::unique_ptr<DropStatement> PostgresParser::DropFunctionTransform(ParseResult *parse_result, DropStmt *root) {
+  // Grab the function name
+  auto objects = reinterpret_cast<List *>(root->objects_->head->data.ptr_value);
+  std::string function_name = reinterpret_cast<value *>(objects->head->data.ptr_value)->val_.str_;
+
+  // Grab the argument types from the function signature
+  auto arguments = reinterpret_cast<List *>(root->arguments_->head->data.ptr_value);
+
+  std::vector<std::string> function_args{};
+  function_args.reserve(arguments->length);
+  for (auto *cell = arguments->head; cell != nullptr; cell = cell->next) {
+    // The descriptor for some types consists of a head node with
+    // "pg_catalog" as the string value, so we need to skip over
+    auto *descriptor = reinterpret_cast<typname *>(cell->data.ptr_value)->names_;
+    if (descriptor->length > 1) {
+      std::string type = reinterpret_cast<value *>(descriptor->head->next->data.ptr_value)->val_.str_;
+      function_args.emplace_back(std::move(type));
+    } else {
+      std::string type = reinterpret_cast<value *>(descriptor->head->data.ptr_value)->val_.str_;
+      function_args.emplace_back(std::move(type));
+    }
+  }
+
+  return std::make_unique<DropStatement>(std::make_unique<TableInfo>("", "", ""), std::move(function_name),
+                                         std::move(function_args));
 }
 
 // Postgres.DropStmt -> noisepage.DropStatement

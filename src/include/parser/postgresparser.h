@@ -164,6 +164,7 @@ class PostgresParser {
   // DROP statements
   static std::unique_ptr<DropStatement> DropTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropDatabaseTransform(ParseResult *parse_result, DropDatabaseStmt *root);
+  static std::unique_ptr<DropStatement> DropFunctionTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropIndexTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropSchemaTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropTableTransform(ParseResult *parse_result, DropStmt *root);

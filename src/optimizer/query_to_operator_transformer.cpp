@@ -636,6 +636,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatem
                                              .RegisterWithTxnContext(txn_context),
                                          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       break;
+    case parser::DropStatement::DropType::kFunction:
     case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kView:
     case parser::DropStatement::DropType::kPreparedStatement:
