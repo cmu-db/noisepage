@@ -41,6 +41,7 @@
 #include "planner/plannodes/create_namespace_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_function_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
@@ -323,7 +324,8 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
   NOISEPAGE_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
-          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER,
+          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER ||
+          query_type == network::QueryType::QUERY_DROP_FUNCTION,
       "ExecuteDropStatement called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_DROP_TABLE: {
@@ -351,6 +353,13 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
+        return {ResultType::COMPLETE, 0U};
+      }
+      break;
+    }
+    case network::QueryType::QUERY_DROP_FUNCTION: {
+      if (execution::sql::DDLExecutors::DropFunctionExecutor(
+              physical_plan.CastManagedPointerTo<planner::DropFunctionPlanNode>(), connection_ctx->Accessor())) {
         return {ResultType::COMPLETE, 0U};
       }
       break;

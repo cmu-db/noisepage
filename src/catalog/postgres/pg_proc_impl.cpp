@@ -203,7 +203,8 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   auto &proc_pm = pg_proc_all_cols_prm_;
   auto name_varlen = *table_pr->Get<storage::VarlenEntry, false>(proc_pm[PgProc::PRONAME.oid_], nullptr);
   auto proc_ns = *table_pr->Get<namespace_oid_t, false>(proc_pm[PgProc::PRONAMESPACE.oid_], nullptr);
-  auto ctx_ptr = table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR.oid_]);
+  auto *ctx_ptr = reinterpret_cast<execution::functions::FunctionContext *>(
+      table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR.oid_]));
 
   // Delete from pg_proc_name_index.
   {
@@ -276,8 +277,7 @@ common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetPro
   NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *ptr_ptr = (reinterpret_cast<void **>(select_pr->AccessWithNullCheck(0)));
-  NOISEPAGE_ASSERT(nullptr != ptr_ptr,
-                   "GetFunctionContext called on an invalid OID or before SetFunctionContextPointer.");
+  NOISEPAGE_ASSERT(nullptr != ptr_ptr, "GetFunctionContext called on an invalid OID or before SetFunctionContext.");
   execution::functions::FunctionContext *ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
 
   delete[] buffer;
@@ -473,7 +473,7 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
       GetProcOid(txn, dbc, PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, func_name, arg_type_oids);
   const auto *const func_context = new execution::functions::FunctionContext(
       std::move(func_name), func_ret_type, std::move(arg_types), builtin, is_exec_ctx_required);
-  const auto retval UNUSED_ATTRIBUTE = dbc->SetFunctionContextPointer(txn, proc_oid, func_context);
+  const auto retval UNUSED_ATTRIBUTE = dbc->SetFunctionContext(txn, proc_oid, func_context);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 }
 

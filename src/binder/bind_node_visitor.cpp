@@ -323,9 +323,15 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
                                common::ErrorCode::ERRCODE_UNDEFINED_OBJECT);
       }
       break;
-    case parser::DropStatement::DropType::kFunction:
+    case parser::DropStatement::DropType::kFunction: {
       ValidateDatabaseName(node->GetDatabaseName());
-      throw NOT_IMPLEMENTED_EXCEPTION("DROP FUNCTION Not Implemented");
+      if (catalog_accessor_->GetProcOid(node->GetFunctionName(), node->GetFunctionArguments()) ==
+          catalog::INVALID_PROC_OID) {
+        throw BINDER_EXCEPTION(fmt::format("function \"{}\" does not exist", node->GetFunctionName()),
+                               common::ErrorCode::ERRCODE_UNDEFINED_OBJECT);
+      }
+      break;
+    }
     case parser::DropStatement::DropType::kTrigger:
       // TODO(Ling): Get Trigger OID in catalog?
     case parser::DropStatement::DropType::kSchema:
@@ -1167,5 +1173,4 @@ void BindNodeVisitor::AddUDFVariableReference(common::ManagedPointer<parser::Col
     expr->SetParamIdx(index);
   }
 }
-
 }  // namespace noisepage::binder

@@ -77,6 +77,11 @@ class PostgresParser {
     }
   }
 
+  /**
+   * Determine if the function identified by `fun_name` is an aggregate function.
+   * @param fun_name The function name
+   * @return `true` if the function is an aggregation, `false` otherwise
+   */
   static bool IsAggregateFunction(const std::string &fun_name) {
     return (fun_name == "min" || fun_name == "max" || fun_name == "count" || fun_name == "avg" || fun_name == "sum");
   }

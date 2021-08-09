@@ -2116,6 +2116,40 @@ class DropView : public OperatorNodeContents<DropView> {
 };
 
 /**
+ * Physical operator for DropFunction
+ */
+class DropFunction : public OperatorNodeContents<DropFunction> {
+ public:
+  /**
+   * @param database_oid OID of database
+   * @param proc_oid OID of view to drop
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::proc_oid_t proc_oid);
+
+  /** @return A copy of this */
+  BaseOperatorNodeContents *Copy() const override;
+
+  /** Comparison operator */
+  bool operator==(const BaseOperatorNodeContents &r) override;
+
+  /** @return The hash of this instance */
+  common::hash_t Hash() const override;
+
+  /** @return The OID of the database */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /** @return The OID of the function to drop */
+  catalog::proc_oid_t GetFunctionOID() const { return proc_oid_; }
+
+ private:
+  /** OID of the database */
+  catalog::db_oid_t database_oid_;
+  /** OID of the view to drop */
+  catalog::proc_oid_t proc_oid_;
+};
+
+/**
  * Physical operator for Analyze
  */
 class Analyze : public OperatorNodeContents<Analyze> {

@@ -11,9 +11,10 @@ class CreateNamespacePlanNode;
 class CreateTablePlanNode;
 class CreateIndexPlanNode;
 class CreateViewPlanNode;
+class CreateFunctionPlanNode;
 class DropDatabasePlanNode;
 class DropNamespacePlanNode;
-class CreateFunctionPlanNode;
+class DropFunctionPlanNode;
 class DropTablePlanNode;
 class DropIndexPlanNode;
 }  // namespace noisepage::planner
@@ -107,6 +108,14 @@ class DDLExecutors {
    */
   static bool DropIndexExecutor(common::ManagedPointer<planner::DropIndexPlanNode> node,
                                 common::ManagedPointer<catalog::CatalogAccessor> accessor);
+
+  /**
+   * @param node node to execute
+   * @param accessor accessor to use for execution
+   * @return `true` if operation succeeds, `false` otherwise
+   */
+  static bool DropFunctionExecutor(common::ManagedPointer<planner::DropFunctionPlanNode> node,
+                                   common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
  private:
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,

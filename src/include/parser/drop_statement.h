@@ -18,11 +18,6 @@ class DropStatement : public TableRefStatement {
   /** Drop statement type. */
   enum class DropType { kDatabase, kTable, kSchema, kIndex, kView, kPreparedStatement, kTrigger, kFunction };
 
-  // TODO(Kyle): This class is becoming overly-overloaded.
-  // For instance, I can't define the interface for a ctor
-  // for DROP FUNCTION that is identical to DROP INDEX.
-  // Additionally, we carry a bunch of useless state around.
-
   /**
    * DROP DATABASE, DROP TABLE
    * @param table_info table information
@@ -33,19 +28,6 @@ class DropStatement : public TableRefStatement {
       : TableRefStatement(StatementType::DROP, std::move(table_info)), type_(type), if_exists_(if_exists) {}
 
   /**
-   * DROP FUNCTION
-   * @param table_info table information
-   * @param function_name function name
-   * @param function_args function argument types
-   */
-  DropStatement(std::unique_ptr<TableInfo> table_info, std::string function_name,
-                std::vector<std::string> &&function_args)
-      : TableRefStatement(StatementType::DROP, std::move(table_info)),
-        type_(DropType::kFunction),
-        function_name_(std::move(function_name)),
-        function_args_(std::move(function_args)) {}
-
-  /**
    * DROP INDEX
    * @param table_info table information
    * @param index_name index name
@@ -54,6 +36,19 @@ class DropStatement : public TableRefStatement {
       : TableRefStatement(StatementType::DROP, std::move(table_info)),
         type_(DropType::kIndex),
         index_name_(std::move(index_name)) {}
+
+  /**
+   * DROP FUNCTION
+   * @param table_info table information
+   * @param function_name function name
+   * @param function_args function argument type identifiers
+   */
+  DropStatement(std::unique_ptr<TableInfo> table_info, std::string function_name,
+                std::vector<std::string> &&function_args)
+      : TableRefStatement(StatementType::DROP, std::move(table_info)),
+        type_(DropType::kFunction),
+        function_name_(std::move(function_name)),
+        function_args_(std::move(function_args)) {}
 
   /**
    * DROP SCHEMA
@@ -101,14 +96,14 @@ class DropStatement : public TableRefStatement {
   /** @return function name for [DROP FUNCTION] */
   std::string GetFunctionName() { return function_name_; }
 
-  /** @return function arguments for [DROP FUNCTION] */
+  /** @return function argument types for [DROP FUNCTION] */
   const std::vector<std::string> &GetFunctionArguments() const { return function_args_; }
-
-  // TODO(Kyle): Why are we returning all of these strings by value?
-  // It appears that we can just use const references here...
 
  private:
   const DropType type_;
+
+  // TODO(Kyle): Maybe use a std::variant here to make
+  // the overloading of this type less wasteful?
 
   // DROP DATABASE, SCHEMA
   const bool if_exists_ = false;

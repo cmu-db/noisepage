@@ -1332,6 +1332,32 @@ bool DropView::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// DropFunction
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *DropFunction::Copy() const { return new DropFunction(*this); }
+
+Operator DropFunction::Make(catalog::db_oid_t database_oid, catalog::proc_oid_t proc_oid) {
+  auto *op = new DropFunction();
+  op->database_oid_ = database_oid;
+  op->proc_oid_ = proc_oid;
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
+}
+
+common::hash_t DropFunction::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(proc_oid_));
+  return hash;
+}
+
+bool DropFunction::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetOpType() != OpType::DROPFUNCTION) return false;
+  const DropFunction &node = *dynamic_cast<const DropFunction *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  return proc_oid_ == node.proc_oid_;
+}
+
+//===--------------------------------------------------------------------===//
 // Analyze
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *Analyze::Copy() const { return new Analyze(*this); }
@@ -1472,6 +1498,8 @@ const char *OperatorNodeContents<DropTrigger>::name = "DropTrigger";
 template <>
 const char *OperatorNodeContents<DropView>::name = "DropView";
 template <>
+const char *OperatorNodeContents<DropFunction>::name = "DropFunction";
+template <>
 const char *OperatorNodeContents<Analyze>::name = "Analyze";
 template <>
 const char *OperatorNodeContents<CteScan>::name = "CteScan";
@@ -1553,6 +1581,8 @@ template <>
 OpType OperatorNodeContents<DropTrigger>::type = OpType::DROPTRIGGER;
 template <>
 OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
+template <>
+OpType OperatorNodeContents<DropFunction>::type = OpType::DROPFUNCTION;
 template <>
 OpType OperatorNodeContents<Analyze>::type = OpType::ANALYZE;
 template <>

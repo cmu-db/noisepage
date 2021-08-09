@@ -24,6 +24,7 @@
 #include "planner/plannodes/create_namespace_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_function_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
@@ -142,14 +143,12 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   auto udf_context = std::make_unique<functions::FunctionContext>(
       node->GetFunctionName(), parser::ReturnType::DataTypeToTypeId(node->GetReturnType()), std::move(types),
       std::unique_ptr<util::Region>(region), std::move(ast_context), file);
-  if (!accessor->SetFunctionContextPointer(proc_id, udf_context.get())) {
+  if (!accessor->SetFunctionContext(proc_id, udf_context.get())) {
     return false;
   }
 
-  // TODO(Kyle): Not quite sure how abort actions work, but is
-  // the implication here that we leak in the event that we do
-  // not abort and the associated transaction completes?
   accessor->GetTxn()->RegisterAbortAction([udf_context = udf_context.release()]() { delete udf_context; });
+
   return true;
 }
 
@@ -278,6 +277,11 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   NOISEPAGE_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
   return true;
+}
+
+bool DDLExecutors::DropFunctionExecutor(common::ManagedPointer<planner::DropFunctionPlanNode> node,
+                                        common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  return accessor->DropProcedure(node->GetProcedureOid());
 }
 
 }  // namespace noisepage::execution::sql

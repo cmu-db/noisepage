@@ -52,6 +52,8 @@ std::string PlanNodeTypeToString(PlanNodeType type) {
       return "DropTrigger";
     case PlanNodeType::DROP_VIEW:
       return "DropView";
+    case PlanNodeType::DROP_FUNC:
+      return "DropFunction";
     case PlanNodeType::ANALYZE:
       return "Analyze";
     case PlanNodeType::AGGREGATE:

@@ -177,6 +177,9 @@ void PostgresPacketWriter::WriteCommandComplete(const QueryType query_type, cons
     case QueryType::QUERY_DROP_SCHEMA:
       WriteCommandComplete("DROP SCHEMA");
       break;
+    case QueryType::QUERY_DROP_FUNCTION:
+      WriteCommandComplete("DROP FUNCTION");
+      break;
     case QueryType::QUERY_EXPLAIN:
       WriteCommandComplete("EXPLAIN");
       break;

@@ -62,6 +62,7 @@ enum class PlanNodeType {
   DROP_NAMESPACE,
   DROP_TABLE,
   DROP_INDEX,
+  DROP_FUNC,
   DROP_TRIGGER,
   DROP_VIEW,
   ANALYZE,

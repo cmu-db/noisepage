@@ -342,29 +342,25 @@ class EXPORT CatalogAccessor {
   bool DropProcedure(proc_oid_t proc_oid);
 
   /**
-   * Gets the oid of a procedure from pg_proc given a requested name and namespace
+   * Get the OID of the procedure from pg_proc given a requested name and argument
+   * types as string identifiers.
+   * This lookup with return the first one found through a sequential scan through
+   * the current search path.
+   * @param procname name of the proc to lookup
+   * @param arg_types vector of type identifiers for the arguments of the procedure
+   * @return The OID of the resolved procedure if found, else `INVALID_PROC_OID`
+   */
+  proc_oid_t GetProcOid(const std::string &procname, const std::vector<std::string> &arg_types);
+
+  /**
+   * Gets the OID of a procedure from pg_proc given a requested name and resolved argument types.
    * This lookup will return the first one found through a sequential scan through
    * the current search path
    * @param procname name of the proc to lookup
-   * @param all_arg_types vector of types of arguments of procedure to look up
-   * @return the oid of the found proc if found else INVALID_PROC_OID
+   * @param arg_types vector of types of arguments of procedure to look up
+   * @return The OID of the resolved procedure if found, else `INVALID_PROC_OID`
    */
-  proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
-
-  /**
-   * TODO(Kyle): Document.
-   */
-  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(proc_oid_t proc_oid);
-
-  // TODO(Kyle): Make these functions consistent
-
-  /**
-   * Sets the proc context pointer column of proc_oid to func_context
-   * @param proc_oid The proc_oid whose pointer column we are setting here
-   * @param func_context The context object to set to
-   * @return False if the given proc_oid is invalid, True if else
-   */
-  bool SetFunctionContextPointer(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context);
+  proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &arg_types);
 
   /**
    * Gets the proc context pointer column of proc_oid
@@ -372,6 +368,14 @@ class EXPORT CatalogAccessor {
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
    */
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(proc_oid_t proc_oid);
+
+  /**
+   * Sets the proc context pointer column of proc_oid to func_context
+   * @param proc_oid The proc_oid whose pointer column we are setting here
+   * @param func_context The context object to set to
+   * @return False if the given proc_oid is invalid, True if else
+   */
+  bool SetFunctionContext(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context);
 
   /**
    * Gets the statistics of a column from pg_statistic
@@ -461,6 +465,13 @@ class EXPORT CatalogAccessor {
   static void NormalizeObjectName(std::string *name) {
     std::transform(name->begin(), name->end(), name->begin(), [](auto &&c) { return std::tolower(c); });
   }
+
+  /**
+   * Resolve a string type name identifier to a catalog type.
+   * @param type_name The type name
+   * @return The internal catalog type identifier for the type
+   */
+  type_oid_t TypeNameToType(const std::string &type_name);
 };
 
 }  // namespace noisepage::catalog

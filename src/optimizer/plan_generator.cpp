@@ -31,6 +31,7 @@
 #include "planner/plannodes/cte_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_function_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
@@ -1133,6 +1134,14 @@ void PlanGenerator::Visit(const DropView *drop_view) {
                      .SetDatabaseOid(drop_view->GetDatabaseOid())
                      .SetViewOid(drop_view->GetViewOid())
                      .SetIfExist(drop_view->IsIfExists())
+                     .Build();
+}
+
+void PlanGenerator::Visit(const DropFunction *drop_function) {
+  output_plan_ = planner::DropFunctionPlanNode::Builder()
+                     .SetPlanNodeId(GetNextPlanNodeID())
+                     .SetDatabaseOid(drop_function->GetDatabaseOid())
+                     .SetProcedureOid(drop_function->GetFunctionOID())
                      .Build();
 }
 

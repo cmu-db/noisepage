@@ -59,6 +59,7 @@ enum class RuleType : uint32_t {
   DROP_NAMESPACE_TO_PHYSICAL,
   DROP_TRIGGER_TO_PHYSICAL,
   DROP_VIEW_TO_PHYSICAL,
+  DROP_FUNCTION_TO_PHYSICAL,
 
   // Don't move this one
   RewriteDelimiter,

@@ -192,6 +192,15 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, languag
 
 bool CatalogAccessor::DropProcedure(proc_oid_t proc_oid) { return dbc_->DropProcedure(txn_, proc_oid); }
 
+proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<std::string> &arg_types) {
+  // Transform the string type identifiers to internal type IDs
+  std::vector<type_oid_t> types{};
+  types.reserve(arg_types.size());
+  std::transform(arg_types.cbegin(), arg_types.cend(), std::back_inserter(types),
+                 [this](const std::string &name) { return TypeNameToType(name); });
+  return GetProcOid(procname, types);
+}
+
 proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<type_oid_t> &arg_types) {
   proc_oid_t ret;
   for (auto ns_oid : search_path_) {
@@ -203,18 +212,13 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return catalog::INVALID_PROC_OID;
 }
 
-common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetProcCtxPtr(
-    const proc_oid_t proc_oid) {
-  return dbc_->GetProcCtxPtr(txn_, proc_oid);
-}
-
-bool CatalogAccessor::SetFunctionContextPointer(proc_oid_t proc_oid,
-                                                const execution::functions::FunctionContext *func_context) {
-  return dbc_->SetFunctionContextPointer(txn_, proc_oid, func_context);
-}
-
 common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetFunctionContext(proc_oid_t proc_oid) {
   return dbc_->GetFunctionContext(txn_, proc_oid);
+}
+
+bool CatalogAccessor::SetFunctionContext(proc_oid_t proc_oid,
+                                         const execution::functions::FunctionContext *func_context) {
+  return dbc_->SetFunctionContext(txn_, proc_oid, func_context);
 }
 
 std::unique_ptr<optimizer::ColumnStatsBase> CatalogAccessor::GetColumnStatistics(table_oid_t table_oid,
@@ -237,6 +241,19 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
 
 void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table) {
   temp_tables_[table_oid] = table;
+}
+
+type_oid_t CatalogAccessor::TypeNameToType(const std::string &type_name) {
+  // TODO(Kyle): Complete this function
+  type_oid_t type;
+  if (type_name == "int4") {
+    type = GetTypeOidFromTypeId(type::TypeId::INTEGER);
+  } else if (type_name == "bool") {
+    type = GetTypeOidFromTypeId(type::TypeId::BOOLEAN);
+  } else {
+    type = GetTypeOidFromTypeId(type::TypeId::INVALID);
+  }
+  return type;
 }
 
 }  // namespace noisepage::catalog

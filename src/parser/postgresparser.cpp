@@ -50,7 +50,8 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   // Parse the query string with the Postgres parser.
 
   // TODO(Kyle): Syntax "DROP FUNCTION fun;" fails in the
-  // Postgres parser, do we need to update the version?
+  // Postgres parser, do we need to update the version to
+  // add support for the shorthand syntax?
 
   if (result.error != nullptr) {
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
@@ -1792,20 +1793,22 @@ std::unique_ptr<DropStatement> PostgresParser::DropFunctionTransform(ParseResult
   std::string function_name = reinterpret_cast<value *>(objects->head->data.ptr_value)->val_.str_;
 
   // Grab the argument types from the function signature
-  auto arguments = reinterpret_cast<List *>(root->arguments_->head->data.ptr_value);
-
   std::vector<std::string> function_args{};
-  function_args.reserve(arguments->length);
-  for (auto *cell = arguments->head; cell != nullptr; cell = cell->next) {
-    // The descriptor for some types consists of a head node with
-    // "pg_catalog" as the string value, so we need to skip over
-    auto *descriptor = reinterpret_cast<typname *>(cell->data.ptr_value)->names_;
-    if (descriptor->length > 1) {
-      std::string type = reinterpret_cast<value *>(descriptor->head->next->data.ptr_value)->val_.str_;
-      function_args.emplace_back(std::move(type));
-    } else {
-      std::string type = reinterpret_cast<value *>(descriptor->head->data.ptr_value)->val_.str_;
-      function_args.emplace_back(std::move(type));
+
+  auto *arguments = reinterpret_cast<List *>(root->arguments_->head->data.ptr_value);
+  if (arguments != NULL) {
+    function_args.reserve(arguments->length);
+    for (auto *cell = arguments->head; cell != nullptr; cell = cell->next) {
+      // The descriptor for some types consists of a head node with
+      // "pg_catalog" as the string value, so we need to skip over
+      auto *descriptor = reinterpret_cast<typname *>(cell->data.ptr_value)->names_;
+      if (descriptor->length > 1) {
+        std::string type = reinterpret_cast<value *>(descriptor->head->next->data.ptr_value)->val_.str_;
+        function_args.emplace_back(std::move(type));
+      } else {
+        std::string type = reinterpret_cast<value *>(descriptor->head->data.ptr_value)->val_.str_;
+        function_args.emplace_back(std::move(type));
+      }
     }
   }
 

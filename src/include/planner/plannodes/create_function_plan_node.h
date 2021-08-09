@@ -13,7 +13,7 @@
 namespace noisepage::planner {
 
 /**
- * Plan node for creating user defined functions
+ * Plan node for creating user-defined functions
  */
 class CreateFunctionPlanNode : public AbstractPlanNode {
  public:

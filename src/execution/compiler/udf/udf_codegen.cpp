@@ -119,7 +119,7 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
                            common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
   }
 
-  auto context = accessor_->GetProcCtxPtr(proc_oid);
+  auto context = accessor_->GetFunctionContext(proc_oid);
   if (context->IsBuiltin()) {
     ast::Expr *result = codegen_->CallBuiltin(context->GetBuiltin(), args_ast);
     SetExecutionResult(result);

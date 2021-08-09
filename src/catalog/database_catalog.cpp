@@ -364,9 +364,14 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   return pg_core_.CreateIndexEntry(txn, ns_oid, table_oid, index_oid, name, schema);
 }
 
-bool DatabaseCatalog::SetFunctionContextPointer(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                proc_oid_t proc_oid,
-                                                const execution::functions::FunctionContext *func_context) {
+common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
+    common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
+  return pg_proc_.GetProcCtxPtr(txn, proc_oid);
+}
+
+bool DatabaseCatalog::SetFunctionContext(common::ManagedPointer<transaction::TransactionContext> txn,
+                                         proc_oid_t proc_oid,
+                                         const execution::functions::FunctionContext *func_context) {
   NOISEPAGE_ASSERT(
       write_lock_.load() == txn->FinishTime(),
       "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
@@ -378,13 +383,6 @@ bool DatabaseCatalog::SetFunctionContextPointer(common::ManagedPointer<transacti
   });
 
   return pg_proc_.SetProcCtxPtr(txn, proc_oid, func_context);
-}
-
-common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
-    common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
-  auto proc_ctx = pg_proc_.GetProcCtxPtr(txn, proc_oid);
-  NOISEPAGE_ASSERT(proc_ctx != nullptr, "Dynamically added UDFs are currently not supported.");
-  return proc_ctx;
 }
 
 std::unique_ptr<optimizer::ColumnStatsBase> DatabaseCatalog::GetColumnStatistics(
@@ -470,11 +468,6 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
   return pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types);
-}
-
-common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetProcCtxPtr(
-    common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
-  return pg_proc_.GetProcCtxPtr(txn, proc_oid);
 }
 
 template <typename ClassOid, typename Ptr>
