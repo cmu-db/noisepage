@@ -278,7 +278,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
     EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
 
     if (col_expr->GetTableOid() == table_a_oid_) {
-      EXPECT_EQ(col_expr->GetTableName(), "a");
+      EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("a"));
       if (col_expr->GetColumnName() == "a1") {
         a1_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
@@ -291,7 +291,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
       }
     }
     if (col_expr->GetTableOid() == table_b_oid_) {
-      EXPECT_EQ(col_expr->GetTableName(), "b");
+      EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("b"));
       if (col_expr->GetColumnName() == "b1") {
         b1_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
@@ -343,7 +343,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
     EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
     if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_a_oid_) {
-      EXPECT_EQ(col_expr->GetTableName(), "a");
+      EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("a"));
 
       if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
           execution::sql::SqlTypeId::Integer == col_expr->GetReturnValueType()) {
@@ -360,7 +360,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
 
     if (col_expr->GetDatabaseOid() == catalog::INVALID_DATABASE_OID &&
         col_expr->GetTableOid() == catalog::INVALID_TABLE_OID && catalog::IsTempOid(col_expr->GetColumnOid())) {
-      EXPECT_EQ(col_expr->GetTableName(), "c");
+      EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("c"));
 
       if (col_expr->GetColumnName() == "a1") {
         c_a1_exists = true;
@@ -396,7 +396,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
                       ->GetChild(0)
                       .CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetColumnName(), "b1");  // C.B1
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("c"));
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::INVALID_DATABASE_OID);
   EXPECT_EQ(col_expr->GetTableOid(), catalog::INVALID_TABLE_OID);
   EXPECT_TRUE(catalog::IsTempOid(col_expr->GetColumnOid()));
@@ -408,11 +408,11 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
                  ->GetJoinCondition()
                  ->GetChild(1)
                  .CastManagedPointerTo<parser::ColumnValueExpression>();
-  EXPECT_EQ(col_expr->GetColumnName(), "a1");                  // A.a1
-  EXPECT_EQ(col_expr->GetTableName(), "a");                    // A.a1
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
-  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(col_expr->GetColumnName(), "a1");                    // A.a1
+  EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("a"));  // A.a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);                // A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);              // A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));    // A.a1; columns are indexed from 1
   EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
@@ -440,7 +440,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
     EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
 
     if (col_expr->GetTableOid() == table_a_oid_) {
-      EXPECT_EQ(col_expr->GetTableName(), "a");
+      EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("a"));
       if (col_expr->GetColumnName() == "a1") {
         a1_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
@@ -453,7 +453,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
       }
     }
     if (col_expr->GetTableOid() == table_b_oid_) {
-      EXPECT_EQ(col_expr->GetTableName(), "b");
+      EXPECT_EQ(col_expr->GetTableAlias(), parser::AliasType("b"));
       if (col_expr->GetColumnName() == "b1") {
         b1_exists = true;
         EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
@@ -870,7 +870,8 @@ TEST_F(BinderCorrectnessTest, CreateTableTest) {
   EXPECT_TRUE(check_expr != nullptr);
   auto comp_expr = check_expr.CastManagedPointerTo<parser::ComparisonExpression>();
   // check (c4 < 100)
-  EXPECT_EQ(comp_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName(), "c");
+  EXPECT_EQ(comp_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableAlias(),
+            parser::AliasType("c"));
 }
 
 // NOLINTNEXTLINE
@@ -1149,7 +1150,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   col_expr = cte_stmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -1170,7 +1171,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   col_expr = cte_stmt->GetSelectTable()
@@ -1190,7 +1191,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   // Check Group By and Having
@@ -1199,7 +1200,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   col_expr = cte_stmt->GetSelectGroupBy()->GetColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -1215,7 +1216,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 
   // Check Order By
@@ -1225,7 +1226,7 @@ TEST_F(BinderCorrectnessTest, CTEStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::table_oid_t(0));  // c.a3
   EXPECT_EQ(execution::sql::SqlTypeId::Integer, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
-  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetTableAlias().GetName(), "c");
   EXPECT_EQ(col_expr->GetColumnName(), "a3");
 }
 

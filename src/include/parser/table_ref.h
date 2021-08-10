@@ -129,7 +129,7 @@ class TableRef {
    * @param alias alias for table ref
    * @param table_info table information to use in creation
    */
-  TableRef(std::string alias, std::unique_ptr<TableInfo> table_info)
+  TableRef(AliasType alias, std::unique_ptr<TableInfo> table_info)
       : type_(TableReferenceType::NAME), alias_(std::move(alias)), table_info_(std::move(table_info)) {}
 
   /**
@@ -137,7 +137,7 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    */
-  TableRef(std::string alias, std::unique_ptr<SelectStatement> select)
+  TableRef(AliasType alias, std::unique_ptr<SelectStatement> select)
       : type_(TableReferenceType::SELECT), alias_(std::move(alias)), select_(std::move(select)) {}
 
   /**
@@ -147,7 +147,7 @@ class TableRef {
    * @param cte_col_aliases aliases for the columns
    * @param cte_type The type of the CTE referenced by this table
    */
-  TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<AliasType> cte_col_aliases,
+  TableRef(AliasType alias, std::unique_ptr<SelectStatement> select, std::vector<AliasType> cte_col_aliases,
            parser::CteType cte_type)
       : type_(TableReferenceType::SELECT),
         alias_(std::move(alias)),
@@ -160,21 +160,20 @@ class TableRef {
    * @param list table refs to use in creation
    */
   explicit TableRef(std::vector<std::unique_ptr<TableRef>> list)
-      : type_(TableReferenceType::CROSS_PRODUCT), alias_(""), list_(std::move(list)) {}
+      : type_(TableReferenceType::CROSS_PRODUCT), list_(std::move(list)) {}
 
   /**
    * Construct a table reference.
    * @param join join definition to use in creation
    */
-  explicit TableRef(std::unique_ptr<JoinDefinition> join)
-      : type_(TableReferenceType::JOIN), alias_(""), join_(std::move(join)) {}
+  explicit TableRef(std::unique_ptr<JoinDefinition> join) : type_(TableReferenceType::JOIN), join_(std::move(join)) {}
 
   /**
    * @param alias alias for table ref
    * @param table_info table info to use in creation
    * @return unique pointer to the created table ref
    */
-  static std::unique_ptr<TableRef> CreateTableRefByName(std::string alias, std::unique_ptr<TableInfo> table_info) {
+  static std::unique_ptr<TableRef> CreateTableRefByName(AliasType alias, std::unique_ptr<TableInfo> table_info) {
     return std::make_unique<TableRef>(std::move(alias), std::move(table_info));
   }
 
@@ -183,7 +182,7 @@ class TableRef {
    * @param select select statement to use in creation
    * @return unique pointer to the created table ref
    */
-  static std::unique_ptr<TableRef> CreateTableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select) {
+  static std::unique_ptr<TableRef> CreateTableRefBySelect(AliasType alias, std::unique_ptr<SelectStatement> select) {
     return std::make_unique<TableRef>(std::move(alias), std::move(select));
   }
 
@@ -197,7 +196,8 @@ class TableRef {
   static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select,
                                                              std::vector<AliasType> cte_col_aliases,
                                                              parser::CteType cte_type) {
-    return std::make_unique<TableRef>(std::move(alias), std::move(select), std::move(cte_col_aliases), cte_type);
+    return std::make_unique<TableRef>(parser::AliasType(std::move(alias)), std::move(select),
+                                      std::move(cte_col_aliases), cte_type);
   }
 
   /**
@@ -223,9 +223,9 @@ class TableRef {
   TableReferenceType GetTableReferenceType() { return type_; }
 
   /** @return The table alias */
-  const std::string &GetAlias() {
-    if (alias_.empty()) {
-      alias_ = table_info_->GetTableName();
+  AliasType &GetAlias() {
+    if (alias_.Empty()) {
+      alias_ = AliasType(GetTableName());
     }
     return alias_;
   }
@@ -321,7 +321,7 @@ class TableRef {
   TableReferenceType type_;
 
   // The alias for the table reference
-  std::string alias_;
+  AliasType alias_;
 
   // Associated information for the referenced table (if applicable)
   std::unique_ptr<TableInfo> table_info_;

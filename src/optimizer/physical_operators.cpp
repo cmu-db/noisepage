@@ -43,7 +43,8 @@ common::hash_t TableFreeScan::Hash() const {
 BaseOperatorNodeContents *SeqScan::Copy() const { return new SeqScan(*this); }
 
 Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                       std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update) {
+                       std::vector<AnnotatedExpression> &&predicates, parser::AliasType table_alias,
+                       bool is_for_update) {
   auto *scan = new SeqScan();
   scan->database_oid_ = database_oid;
   scan->table_oid_ = table_oid;
@@ -71,7 +72,7 @@ common::hash_t SeqScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
   return hash;
 }
@@ -192,7 +193,7 @@ common::hash_t ExternalFileScan::Hash() const {
 BaseOperatorNodeContents *QueryDerivedScan::Copy() const { return new QueryDerivedScan(*this); }
 
 Operator QueryDerivedScan::Make(
-    std::string table_alias,
+    parser::AliasType table_alias,
     std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new QueryDerivedScan();
   get->table_alias_ = std::move(table_alias);
@@ -209,7 +210,7 @@ bool QueryDerivedScan::operator==(const BaseOperatorNodeContents &r) {
 
 common::hash_t QueryDerivedScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(table_alias_));
   for (auto &iter : alias_to_expr_map_) {
     hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(iter.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));

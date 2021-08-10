@@ -46,8 +46,7 @@ enum class SqlTypeId : int8_t {
   Timestamp,  // Timestamps
   Char,       // Fixed-length string //TODO(Matt): front-end doesn't support this
   Varchar,    // Variable-length string
-  Varbinary,  // TODO(Matt): front-end doesn't support this. See #788
-  Variadic    // TODO(Matt): hack from type::TypeId having a VARIADIC. See #1183
+  Varbinary   // TODO(Matt): front-end doesn't support this. See #788
 };
 
 /**

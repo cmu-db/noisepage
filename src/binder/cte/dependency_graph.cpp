@@ -89,9 +89,9 @@ bool DependencyGraph::ContainsAmbiguousReferences(const LexicalScope &scope) {
   std::unordered_set<std::string> write_aliases{};
   for (const auto &table_ref : scope.References()) {
     if (table_ref->Type() == RefType::READ) {
-      read_aliases.insert(table_ref->Table()->GetAlias());
+      read_aliases.insert(table_ref->Table()->GetAlias().GetName());
     } else if (table_ref->Type() == RefType::WRITE) {
-      write_aliases.insert(table_ref->Table()->GetAlias());
+      write_aliases.insert(table_ref->Table()->GetAlias().GetName());
     }
   }
   const auto contains_ambiguous_ref =
@@ -153,7 +153,7 @@ const ContextSensitiveTableRef *DependencyGraph::ResolveReference(const ContextS
    * down because of the precendence of rules 3. and 4. above.
    */
 
-  const auto &target_alias = table_ref.Table()->GetAlias();
+  const auto &target_alias = table_ref.Table()->GetAlias().GetName();
 
   // `scope` is the scope that conatins the READ reference that we want to resolve
   const auto &scope = *table_ref.EnclosingScope();
@@ -197,7 +197,7 @@ const ContextSensitiveTableRef *DependencyGraph::FindWriteReferenceInScope(std::
                                                                            const LexicalScope &scope) {
   auto it = std::find_if(scope.References().cbegin(), scope.References().cend(),
                          [&alias](const std::unique_ptr<ContextSensitiveTableRef> &r) {
-                           return r->Type() == RefType::WRITE && r->Table()->GetAlias() == alias;
+                           return r->Type() == RefType::WRITE && r->Table()->GetAlias().GetName() == alias;
                          });
   return (it == scope.References().cend()) ? NOT_FOUND : (*it).get();
 }
@@ -234,7 +234,7 @@ const ContextSensitiveTableRef *DependencyGraph::FindForwardWriteReferenceInScop
   // Search the appropriate range for the target alias
   auto it =
       std::find_if(begin, scope.References().cend(), [&alias](const std::unique_ptr<ContextSensitiveTableRef> &r) {
-        return r->Type() == RefType::WRITE && r->Table()->GetAlias() == alias;
+        return r->Type() == RefType::WRITE && r->Table()->GetAlias().GetName() == alias;
       });
   return (it == scope.References().cend()) ? NOT_FOUND : (*it).get();
 }
@@ -255,7 +255,7 @@ const ContextSensitiveTableRef *DependencyGraph::FindBackwardWriteReferenceInSco
   // Search the appropriate range for the target alias
   auto it =
       std::find_if(scope.References().cbegin(), end, [&alias](const std::unique_ptr<ContextSensitiveTableRef> &r) {
-        return r->Type() == RefType::WRITE && r->Table()->GetAlias() == alias;
+        return r->Type() == RefType::WRITE && r->Table()->GetAlias().GetName() == alias;
       });
   return (it == end) ? NOT_FOUND : (*it).get();
 }
@@ -275,7 +275,7 @@ bool DependencyGraph::HasVertex(const Vertex &vertex) const {
   // Map the vertex type to its corresponding reference type
   const auto ref_type = (vertex.Type() == VertexType::READ) ? RefType::READ : RefType::WRITE;
   for (const auto &[ref, _] : graph_) {
-    if (ref->Type() == ref_type && ref->Table()->GetAlias() == vertex.Alias()) {
+    if (ref->Type() == ref_type && ref->Table()->GetAlias().GetName() == vertex.Alias()) {
       const auto &scope = *ref->EnclosingScope();
       if (scope.Depth() == vertex.Depth() && scope.PositionOf(vertex.Alias(), ref_type) == vertex.Position()) {
         return true;
@@ -305,7 +305,7 @@ bool DependencyGraph::HasEdge(const Edge &edge) const {
 ContextSensitiveTableRef *DependencyGraph::FindRef(std::string_view alias, RefType type, const std::size_t depth,
                                                    const std::size_t position) const {
   for (auto &[ref, _] : graph_) {
-    if (ref->Type() == type && ref->Table()->GetAlias() == alias) {
+    if (ref->Type() == type && ref->Table()->GetAlias().GetName() == alias) {
       const auto &scope = *ref->EnclosingScope();
       if (scope.Depth() == depth && scope.PositionOf(alias, type) == position) {
         return ref;
@@ -360,8 +360,8 @@ bool DependencyGraph::IsInvalidForwardReference(const ContextSensitiveTableRef &
     return false;
   }
   const auto &scope = *src.EnclosingScope();
-  const std::size_t src_position = scope.PositionOf(src.Table()->GetAlias(), src.Type());
-  const std::size_t dst_position = scope.PositionOf(dst.Table()->GetAlias(), dst.Type());
+  const std::size_t src_position = scope.PositionOf(src.Table()->GetAlias().GetName(), src.Type());
+  const std::size_t dst_position = scope.PositionOf(dst.Table()->GetAlias().GetName(), dst.Type());
   return (dst_position > src_position) ? !src.Table()->IsSyntacticallyInductiveCte() : false;
 }
 
