@@ -83,11 +83,10 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
     return false;
   }
 
-  // TODO(Kyle): Is this leaked?
-  auto region = new util::Region(node->GetFunctionName());
-  sema::ErrorReporter error_reporter{region};
+  auto region = std::make_unique<util::Region>(node->GetFunctionName());
+  sema::ErrorReporter error_reporter{region.get()};
 
-  auto ast_context = std::make_unique<ast::Context>(region, &error_reporter);
+  auto ast_context = std::make_unique<ast::Context>(region.get(), &error_reporter);
 
   compiler::CodeGen codegen{ast_context.get(), accessor.Get()};
   util::RegionVector<ast::FieldDecl *> fn_params{codegen.GetAstContext()->GetRegion()};
@@ -142,12 +141,15 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
 
   auto udf_context = std::make_unique<functions::FunctionContext>(
       node->GetFunctionName(), parser::ReturnType::DataTypeToTypeId(node->GetReturnType()), std::move(types),
-      std::unique_ptr<util::Region>(region), std::move(ast_context), file);
-  if (!accessor->SetFunctionContext(proc_id, udf_context.get())) {
+      std::move(region), std::move(ast_context), file);
+  if (!accessor->SetFunctionContext(proc_id, udf_context.release())) {
     return false;
   }
 
-  accessor->GetTxn()->RegisterAbortAction([udf_context = udf_context.release()]() { delete udf_context; });
+  // TODO(Kyle): We used to manually register an abort action here to destroy the
+  // function context in the event the transaction aborts, but this is already
+  // done in the catalog (in the call to CatalogAccessor::SetFunctionContext), is
+  // this the "ownership model" for transaction abort that we want?
 
   return true;
 }

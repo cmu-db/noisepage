@@ -203,8 +203,10 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   auto &proc_pm = pg_proc_all_cols_prm_;
   auto name_varlen = *table_pr->Get<storage::VarlenEntry, false>(proc_pm[PgProc::PRONAME.oid_], nullptr);
   auto proc_ns = *table_pr->Get<namespace_oid_t, false>(proc_pm[PgProc::PRONAMESPACE.oid_], nullptr);
-  auto *ctx_ptr = reinterpret_cast<execution::functions::FunctionContext *>(
-      table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR.oid_]));
+
+  auto *ptr_ptr = reinterpret_cast<void **>(table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR.oid_]));
+  NOISEPAGE_ASSERT(ptr_ptr != nullptr, "DropProcedure called on an invalid OID or before SetFunctionContext.");
+  auto *ctx_ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
 
   // Delete from pg_proc_name_index.
   {
