@@ -160,7 +160,7 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
 }
 
 bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc) {
-  NOISEPAGE_ASSERT(proc != INVALID_PROC_OID, "Invalid oid passed");
+  NOISEPAGE_ASSERT(proc != INVALID_PROC_OID, "DropProcedure called with invalid procedure OID");
 
   const auto &name_pri = procs_name_index_->GetProjectedRowInitializer();
   const auto &oid_pri = procs_oid_index_->GetProjectedRowInitializer();

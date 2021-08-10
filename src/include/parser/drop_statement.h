@@ -42,11 +42,13 @@ class DropStatement : public TableRefStatement {
    * @param table_info table information
    * @param function_name function name
    * @param function_args function argument type identifiers
+   * @param if_exists `true` if `IF EXISTS` specified, `false` otherwise
    */
   DropStatement(std::unique_ptr<TableInfo> table_info, std::string function_name,
-                std::vector<std::string> &&function_args)
+                std::vector<std::string> &&function_args, bool if_exists)
       : TableRefStatement(StatementType::DROP, std::move(table_info)),
         type_(DropType::kFunction),
+        if_exists_(if_exists),
         function_name_(std::move(function_name)),
         function_args_(std::move(function_args)) {}
 
@@ -105,7 +107,7 @@ class DropStatement : public TableRefStatement {
   // TODO(Kyle): Maybe use a std::variant here to make
   // the overloading of this type less wasteful?
 
-  // DROP DATABASE, SCHEMA
+  // DROP DATABASE, SCHEMA, FUNCTION
   const bool if_exists_ = false;
 
   // DROP INDEX

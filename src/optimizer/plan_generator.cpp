@@ -1141,7 +1141,8 @@ void PlanGenerator::Visit(const DropFunction *drop_function) {
   output_plan_ = planner::DropFunctionPlanNode::Builder()
                      .SetPlanNodeId(GetNextPlanNodeID())
                      .SetDatabaseOid(drop_function->GetDatabaseOid())
-                     .SetProcedureOid(drop_function->GetFunctionOID())
+                     .SetProcedureOid(drop_function->GetFunctionOid())
+                     .SetIfExists(drop_function->GetIfExists())
                      .Build();
 }
 

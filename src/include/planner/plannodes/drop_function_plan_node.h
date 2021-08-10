@@ -45,6 +45,11 @@ class DropFunctionPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+    Builder &SetIfExists(bool if_exists) {
+      if_exists_ = if_exists;
+      return *this;
+    }
+
     /**
      * Build the drop function plan node
      * @return plan node
@@ -56,6 +61,8 @@ class DropFunctionPlanNode : public AbstractPlanNode {
     catalog::db_oid_t database_oid_;
     /** OID of the procedure */
     catalog::proc_oid_t proc_oid_;
+    /** `true` if `IF EXISTS` specified */
+    bool if_exists_;
   };
 
  private:
@@ -64,11 +71,12 @@ class DropFunctionPlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database
    * @param proc_oid OID of the procedure
+   * @param if_exists `true` if `IF EXISTS` specified
    * @param plan_node_id Plan node ID
    */
   DropFunctionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                       catalog::proc_oid_t proc_oid, plan_node_id_t plan_node_id);
+                       catalog::proc_oid_t proc_oid, bool if_exists, plan_node_id_t plan_node_id);
 
  public:
   /** Default constructor used for deserialization */
@@ -84,6 +92,9 @@ class DropFunctionPlanNode : public AbstractPlanNode {
 
   /** @return OID of the procedure */
   catalog::proc_oid_t GetProcedureOid() const { return proc_oid_; }
+
+  /** @return `true` if `IF EXISTS` is specified */
+  bool GetIfExists() const { return if_exists_; }
 
   /** @return the hashed value of this plan node */
   common::hash_t Hash() const override;
@@ -102,6 +113,8 @@ class DropFunctionPlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
   /** OID of procedure */
   catalog::proc_oid_t proc_oid_;
+  /** `true` if `IF EXISTS` specified */
+  bool if_exists_;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(DropFunctionPlanNode);

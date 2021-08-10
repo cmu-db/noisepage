@@ -1811,9 +1811,9 @@ std::unique_ptr<DropStatement> PostgresParser::DropFunctionTransform(ParseResult
       }
     }
   }
-
+  const auto if_exists = root->missing_ok_;
   return std::make_unique<DropStatement>(std::make_unique<TableInfo>("", "", ""), std::move(function_name),
-                                         std::move(function_args));
+                                         std::move(function_args), if_exists);
 }
 
 // Postgres.DropStmt -> noisepage.DropStatement

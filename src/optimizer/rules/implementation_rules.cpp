@@ -1202,10 +1202,10 @@ void LogicalDropFunctionToPhysicalDropFunction::Transform(
   auto df_op = input->Contents()->GetContentsAs<LogicalDropFunction>();
   NOISEPAGE_ASSERT(input->GetChildren().empty(), "LogicalDropFunction should have 0 children");
 
-  auto op = std::make_unique<OperatorNode>(DropFunction::Make(df_op->GetDatabaseOid(), df_op->GetFunctionOid())
-                                               .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                           std::vector<std::unique_ptr<AbstractOptimizerNode>>(),
-                                           context->GetOptimizerContext()->GetTxn());
+  auto op = std::make_unique<OperatorNode>(
+      DropFunction::Make(df_op->GetDatabaseOid(), df_op->GetFunctionOid(), df_op->GetIfExists())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(op));
 }
 

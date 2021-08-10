@@ -2123,9 +2123,10 @@ class DropFunction : public OperatorNodeContents<DropFunction> {
   /**
    * @param database_oid OID of database
    * @param proc_oid OID of view to drop
+   * @param if_exists `true` if `IF_EXISTS` specified
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::proc_oid_t proc_oid);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::proc_oid_t proc_oid, bool if_exists);
 
   /** @return A copy of this */
   BaseOperatorNodeContents *Copy() const override;
@@ -2140,13 +2141,18 @@ class DropFunction : public OperatorNodeContents<DropFunction> {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /** @return The OID of the function to drop */
-  catalog::proc_oid_t GetFunctionOID() const { return proc_oid_; }
+  catalog::proc_oid_t GetFunctionOid() const { return proc_oid_; }
+
+  /** @return `true` if `IF EXISTS` specified */
+  bool GetIfExists() const { return if_exists_; }
 
  private:
   /** OID of the database */
   catalog::db_oid_t database_oid_;
   /** OID of the view to drop */
   catalog::proc_oid_t proc_oid_;
+  /** `true` if `IF EXISTS` specified */
+  bool if_exists_;
 };
 
 /**

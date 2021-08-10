@@ -327,6 +327,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
       ValidateDatabaseName(node->GetDatabaseName());
       if (catalog_accessor_->GetProcOid(node->GetFunctionName(), node->GetFunctionArguments()) ==
           catalog::INVALID_PROC_OID) {
+        // TODO(Kyle): We have all of the information needed for DROP FUNCTION IF EXISTS,
+        // but it does not seem that there is a way to communicate a non-error failure
+        // condition during binding, maybe we need to add an error severity to the exception?
         throw BINDER_EXCEPTION(fmt::format("function \"{}\" does not exist", node->GetFunctionName()),
                                common::ErrorCode::ERRCODE_UNDEFINED_OBJECT);
       }

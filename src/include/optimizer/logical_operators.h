@@ -1911,9 +1911,10 @@ class LogicalDropFunction : public OperatorNodeContents<LogicalDropFunction> {
   /**
    * @param database_oid OID of the database
    * @param proc_oid OID of the function to be dropped
+   * @param if_exists `true` if `IF EXISTS` specified
    * @return LogicalDropFunction
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::proc_oid_t proc_oid);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::proc_oid_t proc_oid, bool if_exists);
 
   /**
    * Copy
@@ -1933,11 +1934,16 @@ class LogicalDropFunction : public OperatorNodeContents<LogicalDropFunction> {
   /** @return The OID of the function to drop */
   catalog::proc_oid_t GetFunctionOid() const { return proc_oid_; }
 
+  /** @return `true` if `IF EXISTS` specified */
+  bool GetIfExists() const { return if_exists_; }
+
  private:
   /** OID of the database */
   catalog::db_oid_t database_oid_;
   /** OID of the function to drop */
   catalog::proc_oid_t proc_oid_;
+  /** `true` if `IF EXISTS` specified */
+  bool if_exists_;
 };
 
 /**
