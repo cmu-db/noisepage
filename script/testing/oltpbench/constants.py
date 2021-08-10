@@ -3,13 +3,13 @@ import os
 from ..util.constants import DIR_TMP
 
 # git settings for OLTPBench.
-OLTPBENCH_VERSION = "oltpbench2-20.1.3-SNAPSHOT"
-OLTPBENCH_GIT_URL = "https://github.com/oltpbenchmark/oltpbench.git"
+OLTPBENCH_VERSION = "benchbase-2021-SNAPSHOT"
+OLTPBENCH_GIT_URL = "https://github.com/cmu-db/benchbase.git"
 OLTPBENCH_GIT_LOCAL_PATH = os.path.join(DIR_TMP, "benchbase")
 OLTPBENCH_GIT_TARGET_PATH = os.path.join(OLTPBENCH_GIT_LOCAL_PATH, "target")
 OLTPBENCH_GIT_FINAL_PATH = os.path.join(OLTPBENCH_GIT_TARGET_PATH, OLTPBENCH_VERSION)
 OLTPBENCH_GIT_CLEAN_COMMAND = "rm -rf {}".format(OLTPBENCH_GIT_LOCAL_PATH)
-OLTPBENCH_GIT_CLONE_COMMAND = "git clone --single-branch --branch oltpbench_tim --depth 1 {} {}".format(
+OLTPBENCH_GIT_CLONE_COMMAND = "git clone --depth 1 {} {}".format(
     OLTPBENCH_GIT_URL,
     OLTPBENCH_GIT_LOCAL_PATH)
 
