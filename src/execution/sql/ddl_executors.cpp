@@ -142,16 +142,13 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   auto udf_context = std::make_unique<functions::FunctionContext>(
       node->GetFunctionName(), parser::ReturnType::DataTypeToTypeId(node->GetReturnType()), std::move(types),
       std::move(region), std::move(ast_context), file);
-  if (!accessor->SetFunctionContext(proc_id, udf_context.release())) {
-    return false;
-  }
 
   // TODO(Kyle): We used to manually register an abort action here to destroy the
   // function context in the event the transaction aborts, but this is already
   // done in the catalog (in the call to CatalogAccessor::SetFunctionContext), is
   // this the "ownership model" for transaction abort that we want?
 
-  return true;
+  return accessor->SetFunctionContext(proc_id, udf_context.release());
 }
 
 bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::CreateTablePlanNode> node,

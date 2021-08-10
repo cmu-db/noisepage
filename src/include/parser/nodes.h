@@ -22,11 +22,11 @@ using value = struct Value {
 using typname = struct TypName {
   NodeTag type_;
   List *names_;
-  Oid typeOid_;
+  Oid type_oid_;
   bool setof_;
   bool pct_type_;
   List *typmods_;
   int32_t typemod_;
-  List *arrayBounds_;
+  List *array_bounds_;
   int location_;
 };

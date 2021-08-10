@@ -1796,7 +1796,7 @@ std::unique_ptr<DropStatement> PostgresParser::DropFunctionTransform(ParseResult
   std::vector<std::string> function_args{};
 
   auto *arguments = reinterpret_cast<List *>(root->arguments_->head->data.ptr_value);
-  if (arguments != NULL) {
+  if (arguments != nullptr) {
     function_args.reserve(arguments->length);
     for (auto *cell = arguments->head; cell != nullptr; cell = cell->next) {
       // The descriptor for some types consists of a head node with

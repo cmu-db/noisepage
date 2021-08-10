@@ -223,6 +223,7 @@ void UdfCodegen::Visit(ast::udf::ValueExprAST *ast) {
     case sql::TypeId::Float:
     case sql::TypeId::Double:
       expr = codegen_->FloatToSql(val->GetReal().val_);
+      break;
     case sql::TypeId::Date:
       expr = codegen_->DateToSql(val->GetDateVal().val_);
       break;
