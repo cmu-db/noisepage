@@ -238,6 +238,14 @@ class PLpgSQLParser {
    */
   static bool HasEnclosingQuery(ParseResult *parse_result);
 
+  /**
+   * Get the internal type identifier for given type name.
+   * @param type_name The typename
+   * @return The type identifier for the type, or empty std::optional
+   * in the case of an unsupported or unrecognized type
+   */
+  static std::optional<execution::sql::SqlTypeId> TypeNameToType(const std::string &type_name);
+
  private:
   /** The UDF AST context */
   common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context_;

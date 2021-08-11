@@ -256,15 +256,31 @@ void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::Man
 }
 
 type_oid_t CatalogAccessor::TypeNameToType(const std::string &type_name) {
-  // TODO(Kyle): Complete this function
   type_oid_t type;
-  if (type_name == "int4") {
+  if (type_name == "int2") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::SmallInt);
+  } else if (type_name == "int4") {
     type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer);
+  } else if (type_name == "int8") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::BigInt);
   } else if (type_name == "bool") {
     type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Boolean);
+  } else if (type_name == "float4") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Real);
+  } else if (type_name == "float8") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double);
+  } else if (type_name == "numeric") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Decimal);
+  } else if (type_name == "bpchar") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Char);
+  } else if (type_name == "varchar" || type_name == "text") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Varchar);
+  } else if (type_name == "varbinary") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Varbinary);
   } else {
     type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid);
   }
+
   return type;
 }
 

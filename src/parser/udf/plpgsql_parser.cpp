@@ -50,12 +50,27 @@ static constexpr const char K_UPPER[] = "upper";
 static constexpr const char K_STEP[] = "step";
 static constexpr const char K_VAR[] = "var";
 
-/** Variable declaration type identifiers */
+/** Integral types */
+static constexpr const char DECL_TYPE_ID_SMALLINT[] = "smallint";
 static constexpr const char DECL_TYPE_ID_INT[] = "int";
 static constexpr const char DECL_TYPE_ID_INTEGER[] = "integer";
+static constexpr const char DECL_TYPE_ID_BIGINT[] = "bigint";
+
+/** Variable-precision floating point */
+static constexpr const char DECL_TYPE_ID_REAL[] = "real";
+static constexpr const char DECL_TYPE_ID_FLOAT[] = "float";
 static constexpr const char DECL_TYPE_ID_DOUBLE[] = "double";
+
+/** Arbitrary-precision floating point */
 static constexpr const char DECL_TYPE_ID_NUMERIC[] = "numeric";
+static constexpr const char DECL_TYPE_ID_DECIMAL[] = "decimal";
+
+/** Character types */
+static constexpr const char DECL_TYPE_ID_CHAR[] = "char";
 static constexpr const char DECL_TYPE_ID_VARCHAR[] = "varchar";
+static constexpr const char DECL_TYPE_ID_TEXT[] = "text";
+
+/** Other */
 static constexpr const char DECL_TYPE_ID_DATE[] = "date";
 static constexpr const char DECL_TYPE_ID_RECORD[] = "record";
 
@@ -172,10 +187,6 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
     // Track the local variable (for assignment)
     udf_ast_context_->AddLocal(var_name);
 
-    // Grab the type identifier from the PL/pgSQL parser
-    const std::string type = StringUtils::Strip(
-        StringUtils::Lower(json[K_PLPGSQL_VAR][K_DATATYPE][K_PLPGSQL_TYPE][K_TYPENAME].get<std::string>()));
-
     // Parse the initializer, if present
     std::unique_ptr<execution::ast::udf::ExprAST> initial{nullptr};
     if (json[K_PLPGSQL_VAR].find(K_DEFAULT_VAL) != json[K_PLPGSQL_VAR].end()) {
@@ -192,45 +203,17 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
     // Otherwise, we perform a string comparison with the type identifier
     // for the variable to determine the type for the declaration
 
-    if ((type == DECL_TYPE_ID_INT) || (type == DECL_TYPE_ID_INTEGER)) {
-      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Integer);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Integer,
-                                                                std::move(initial));
-    }
-    if ((type == DECL_TYPE_ID_DOUBLE) || (type == DECL_TYPE_ID_NUMERIC)) {
-      // TODO(Kyle): type.rfind("numeric")
-      // TODO(Kyle): Should this support FLOAT and DECMIAL as well??
-      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Decimal);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Decimal,
-                                                                std::move(initial));
-    }
-    if (type == DECL_TYPE_ID_VARCHAR) {
-      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Varchar);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Varchar,
-                                                                std::move(initial));
-    }
-    if (type == DECL_TYPE_ID_DATE) {
-      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Date);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Date,
-                                                                std::move(initial));
-    }
-    if (type == DECL_TYPE_ID_RECORD) {
-      // TODO(Kyle): I don't like modeling RECORD types with the Invalid
-      // SqlTypeId, need to find a better way to integrate the type system
-      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Invalid);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Invalid,
-                                                                std::move(initial));
+    // Grab the type identifier from the PL/pgSQL parser
+    const std::string type_name = StringUtils::Strip(
+        StringUtils::Lower(json[K_PLPGSQL_VAR][K_DATATYPE][K_PLPGSQL_TYPE][K_TYPENAME].get<std::string>()));
+    auto type = TypeNameToType(type_name);
+    if (!type.has_value()) {
+      throw PARSER_EXCEPTION(
+          fmt::format("PL/pgSQL Parser : unsupported type '{}' for variable '{}'", type_name, var_name));
     }
 
-    throw PARSER_EXCEPTION(fmt::format("PL/pgSQL Parser : unsupported type '{}' for variable '{}'", type, var_name));
-  }
-
-  // TODO(Kyle): Support row types later
-  if (declaration_type == K_PLPGSQL_ROW) {
-    const auto var_name = json[K_PLPGSQL_ROW][K_REFNAME].get<std::string>();
-    NOISEPAGE_ASSERT(var_name == "*internal*", "Unexpected refname");
-    udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Invalid);
-    return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Invalid, nullptr);
+    udf_ast_context_->SetVariableType(var_name, type.value());
+    return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type.value(), std::move(initial));
   }
 
   // TODO(Kyle): Need to handle other types like row, table etc;
@@ -584,6 +567,36 @@ bool PLpgSQLParser::HasEnclosingQuery(ParseResult *parse_result) {
   }
   auto target = select->GetSelectColumns().at(0);
   return (target->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY);
+}
+
+std::optional<execution::sql::SqlTypeId> PLpgSQLParser::TypeNameToType(const std::string &type_name) {
+  // TODO(Kyle): This is awkward control flow because we
+  // model RECORD types with the SqlTypeId::Invalid type
+  execution::sql::SqlTypeId type;
+  if (type_name == DECL_TYPE_ID_SMALLINT) {
+    type = execution::sql::SqlTypeId::SmallInt;
+  } else if (type_name == DECL_TYPE_ID_INT || type_name == DECL_TYPE_ID_INTEGER) {
+    type = execution::sql::SqlTypeId::Integer;
+  } else if (type_name == DECL_TYPE_ID_BIGINT) {
+    type = execution::sql::SqlTypeId::BigInt;
+  } else if (type_name == DECL_TYPE_ID_REAL || type_name == DECL_TYPE_ID_FLOAT) {
+    type = execution::sql::SqlTypeId::Real;
+  } else if (type_name == DECL_TYPE_ID_DOUBLE) {
+    type = execution::sql::SqlTypeId::Double;
+  } else if (type_name == DECL_TYPE_ID_NUMERIC || type_name == DECL_TYPE_ID_DECIMAL) {
+    type = execution::sql::SqlTypeId::Decimal;
+  } else if (type_name == DECL_TYPE_ID_CHAR) {
+    type = execution::sql::SqlTypeId::Char;
+  } else if (type_name == DECL_TYPE_ID_VARCHAR || type_name == DECL_TYPE_ID_TEXT) {
+    type = execution::sql::SqlTypeId::Varchar;
+  } else if (type_name == DECL_TYPE_ID_DATE) {
+    type = execution::sql::SqlTypeId::Date;
+  } else if (type_name == DECL_TYPE_ID_RECORD) {
+    type = execution::sql::SqlTypeId::Invalid;
+  } else {
+    return std::nullopt;
+  }
+  return std::make_optional(type);
 }
 
 }  // namespace noisepage::parser::udf
