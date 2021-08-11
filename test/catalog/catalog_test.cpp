@@ -122,56 +122,61 @@ TEST_F(CatalogTests, ProcTest) {
   // Check visibility to me
   VerifyCatalogTables(*accessor);
 
-  auto lan_oid = accessor->CreateLanguage("test_language");
-  auto ns_oid = accessor->GetDefaultNamespace();
-
-  EXPECT_NE(lan_oid, catalog::INVALID_LANGUAGE_OID);
+  const auto language_oid = accessor->CreateLanguage("test_language");
+  const auto namespace_oid = accessor->GetDefaultNamespace();
+  EXPECT_NE(language_oid, catalog::INVALID_LANGUAGE_OID);
+  EXPECT_NE(namespace_oid, catalog::INVALID_NAMESPACE_OID);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  /** User-defined procedure */
+
+  // Create the procedure
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
-  // create a sample proc
-  auto procname = "sample";
-  std::vector<std::string> args = {"arg1", "arg2", "arg3"};
-  std::vector<catalog::type_oid_t> arg_types = {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
-                                                accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Boolean),
-                                                accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::SmallInt)};
-
-  auto src = "int sample(arg1, arg2, arg3){return 2;}";
+  const std::string procname{"sample"};
+  const std::vector<std::string> args{"arg1", "arg2", "arg3"};
+  const std::vector<catalog::type_oid_t> arg_types{accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
+                                                   accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Boolean),
+                                                   accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::SmallInt)};
+  const std::string src{"int sample(arg1, arg2, arg3){return 2;}"};
 
   auto proc_oid = accessor->CreateProcedure(
-      procname, lan_oid, ns_oid, catalog::INVALID_TYPE_OID, args, arg_types, {}, {},
+      procname, language_oid, namespace_oid, catalog::INVALID_TYPE_OID, args, arg_types, {}, {},
       catalog::type_oid_t(static_cast<uint8_t>(execution::sql::SqlTypeId::Integer)), src, false);
   EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  // Query the catalog for the procedure
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
-  // make sure we didn't find this proc that we never added
-  auto found_oid = accessor->GetProcOid("bad_proc", arg_types);
-  EXPECT_EQ(found_oid, catalog::INVALID_PROC_OID);
+  // Make sure we didn't find this proc that we never added
+  EXPECT_EQ(accessor->GetProcOid("bad_proc", arg_types), catalog::INVALID_PROC_OID);
 
-  // look for proc that we actually added
-  found_oid = accessor->GetProcOid(procname, arg_types);
+  // Look for proc that we actually added
+  const auto found_oid = accessor->GetProcOid(procname, arg_types);
+  EXPECT_EQ(found_oid, proc_oid);
+  EXPECT_TRUE(accessor->DropProcedure(found_oid));
 
-  auto sin_oid = accessor->GetProcOid("sin", {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double)});
+  /** Builting procedure */
+
+  // The procedure should already exist
+  const auto sin_oid = accessor->GetProcOid("sin", {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double)});
   EXPECT_NE(sin_oid, catalog::INVALID_PROC_OID);
 
+  // The function context should already exist
   auto sin_context = accessor->GetFunctionContext(sin_oid);
   EXPECT_TRUE(sin_context->IsBuiltin());
   EXPECT_EQ(sin_context->GetBuiltin(), execution::ast::Builtin::Sin);
   EXPECT_EQ(sin_context->GetFunctionReturnType(), execution::sql::SqlTypeId::Double);
-  auto sin_args = sin_context->GetFunctionArgsType();
+
+  auto sin_args = sin_context->GetFunctionArgTypes();
   EXPECT_EQ(sin_args.size(), 1);
   EXPECT_EQ(sin_args.back(), execution::sql::SqlTypeId::Double);
   EXPECT_EQ(sin_context->GetFunctionName(), "sin");
 
-  EXPECT_EQ(found_oid, proc_oid);
-  auto result = accessor->DropProcedure(found_oid);
-  EXPECT_TRUE(result);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 

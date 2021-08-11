@@ -228,9 +228,8 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   auto name_varlen = *table_pr->Get<storage::VarlenEntry, false>(proc_pm[PgProc::PRONAME.oid_], nullptr);
   auto proc_ns = *table_pr->Get<namespace_oid_t, false>(proc_pm[PgProc::PRONAMESPACE.oid_], nullptr);
 
+  // Grab a pointer to the procedure context (if present)
   auto *ptr_ptr = reinterpret_cast<void **>(table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR.oid_]));
-  NOISEPAGE_ASSERT(ptr_ptr != nullptr, "DropProcedure called on an invalid OID or before SetFunctionContext.");
-  auto *ctx_ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
 
   // Delete from pg_proc_name_index.
   {
@@ -242,7 +241,8 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   }
 
   // Clean up the procedure context.
-  if (ctx_ptr != nullptr) {
+  if (ptr_ptr != nullptr) {
+    auto *ctx_ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
       deferred_action_manager->RegisterDeferredAction(
           [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; }); });
