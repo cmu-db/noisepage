@@ -39,7 +39,7 @@ class FunctionBuilder {
    * Construct a new FunctionBuilder instance for a closure.
    * @param codegen The code generation instance
    * @param params The function parameters
-   * @param closures The function closures
+   * @param captures The function captures
    * @param return_type The return type representation of the function
    */
   FunctionBuilder(CodeGen *codegen, util::RegionVector<ast::FieldDecl *> &&params,

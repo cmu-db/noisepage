@@ -410,7 +410,10 @@ class ForIStmtAST : public StmtAST {
 
   /**
    * Construct a new ForIStmtAST instance.
-   * @param variables The collection of variables in the loop
+   * @param variable The loop induction variable
+   * @param lower The loop lower bound
+   * @param upper The loop upper bound
+   * @param step The loop step
    * @param body The body of the loop
    */
   ForIStmtAST(std::string variable, std::unique_ptr<ExprAST> lower, std::unique_ptr<ExprAST> upper,

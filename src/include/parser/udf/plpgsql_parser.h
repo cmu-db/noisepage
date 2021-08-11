@@ -49,7 +49,6 @@ class PLpgSQLParser {
    * @param param_names The names of the function parameters
    * @param param_types The types of the function parameters
    * @param func_body The input source for the function
-   * @param ast_context The AST context to use during parsing
    * @return The abstract syntax tree for the source function
    */
   std::unique_ptr<execution::ast::udf::FunctionAST> Parse(const std::vector<std::string> &param_names,

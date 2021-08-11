@@ -45,6 +45,10 @@ class DropFunctionPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+    /**
+     * @param if_exists `true` if `IF EXISTS` is specified
+     * @return builder object
+     */
     Builder &SetIfExists(bool if_exists) {
       if_exists_ = if_exists;
       return *this;
