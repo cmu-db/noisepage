@@ -23,6 +23,8 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT return_constant();
 
+DROP FUNCTION return_constant();
+
 -- ----------------------------------------------------------------------------
 -- return_input()
 
@@ -33,6 +35,8 @@ END                                                   \
 $$ LANGUAGE PLPGSQL;
 
 SELECT x, return_input(x) FROM integers;
+
+DROP FUNCTION return_input(INT);
 
 -- ----------------------------------------------------------------------------
 -- return_sum()
@@ -45,6 +49,8 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT x, y, return_sum(x, y) FROM integers;
 
+DROP FUNCTION return_sum(INT, INT);
+
 -- ----------------------------------------------------------------------------
 -- return_prod()
 
@@ -55,6 +61,8 @@ END                                                            \
 $$ LANGUAGE PLPGSQL;
 
 SELECT x, y, return_product(x, y) FROM integers;
+
+DROP FUNCTION return_product(INT, INT);
 
 -- ----------------------------------------------------------------------------
 -- integer_decl()
@@ -68,6 +76,8 @@ END                                              \
 $$ LANGUAGE PLPGSQL;
 
 SELECT integer_decl(); 
+
+DROP FUNCTION integer_decl();
 
 -- ----------------------------------------------------------------------------
 -- conditional()
@@ -88,6 +98,8 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT x, conditional(x) FROM integers;
 
+DROP FUNCTION conditional(INT);
+
 -- ----------------------------------------------------------------------------
 -- proc_while()
 
@@ -103,6 +115,8 @@ END                                            \
 $$ LANGUAGE PLPGSQL;
 
 SELECT proc_while();
+
+DROP FUNCTION proc_while();
 
 -- ----------------------------------------------------------------------------
 -- proc_fori()
@@ -136,10 +150,12 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT sql_select_single_constant();
 
+DROP FUNCTION sql_select_single_constant();
+
 -- ----------------------------------------------------------------------------
 -- sql_select_mutliple_constants()
 
-CREATE FUNCTION sql_select_mutliple_constants() RETURNS INT AS $$ \
+CREATE FUNCTION sql_select_multiple_constants() RETURNS INT AS $$ \
 DECLARE                                                           \
   x INT;                                                          \
   y INT;                                                          \
@@ -149,7 +165,9 @@ BEGIN                                                             \
 END                                                               \
 $$ LANGUAGE PLPGSQL;
 
-SELECT sql_select_mutliple_constants();
+SELECT sql_select_multiple_constants();
+
+DROP FUNCTION sql_select_multiple_constants();
 
 -- ----------------------------------------------------------------------------
 -- sql_select_constant_assignment()
@@ -167,6 +185,8 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT sql_select_constant_assignment();
 
+DROP FUNCTION sql_select_constant_assignment();
+
 -- ----------------------------------------------------------------------------
 -- sql_embedded_agg_count()
 
@@ -180,6 +200,8 @@ END                                                        \
 $$ LANGUAGE PLPGSQL;
 
 SELECT sql_embedded_agg_count();
+
+DROP FUNCTION sql_embedded_agg_count();
 
 -- ----------------------------------------------------------------------------
 -- sql_embedded_agg_min()
@@ -195,6 +217,8 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT sql_embedded_agg_min();
 
+DROP FUNCTION sql_embedded_agg_min();
+
 -- ----------------------------------------------------------------------------
 -- sql_embedded_agg_max()
 
@@ -209,6 +233,8 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT sql_embedded_agg_max();
 
+DROP FUNCTION sql_embedded_agg_max();
+
 -- ----------------------------------------------------------------------------
 -- sql_embedded_agg_multi()
 
@@ -222,6 +248,8 @@ BEGIN                                                      \
   RETURN minimum + maximum;                                \
 END;                                                       \
 $$ LANGUAGE PLPGSQL;
+
+DROP FUNCTION sql_embedded_agg_multi();
 
 -- ----------------------------------------------------------------------------
 -- proc_fors_constant_var()
@@ -241,6 +269,8 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT proc_fors_constant_var();
 
+DROP FUNCTION proc_fors_constant_var();
+
 -- ----------------------------------------------------------------------------
 -- proc_fors_constant_vars()
 
@@ -259,6 +289,8 @@ END                                                         \
 $$ LANGUAGE PLPGSQL;
 
 SELECT proc_fors_constant_vars();
+
+DROP FUNCTION proc_fors_constant_vars();
 
 -- ----------------------------------------------------------------------------
 -- proc_fors_rec()
@@ -297,6 +329,8 @@ END                                               \
 $$ LANGUAGE PLPGSQL;
 
 SELECT proc_fors_var();
+
+DROP FUNCTION proc_fors_var();
 
 -- ----------------------------------------------------------------------------
 -- proc_call_*()
@@ -339,3 +373,8 @@ END                                                  \
 $$ LANGUAGE PLPGSQL;
 
 SELECT proc_call_select();
+
+DROP FUNCTION proc_call_callee();
+DROP FUNCTION proc_call_ret();
+DROP FUNCTION proc_call_assign();
+DROP FUNCTION proc_call_select();

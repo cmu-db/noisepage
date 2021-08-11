@@ -65,6 +65,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION return_constant();
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -89,6 +95,12 @@ SELECT x, return_input(x) FROM integers;
 3
 3
 
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_input(INT);
 
 statement ok
 
@@ -126,6 +138,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION return_sum(INT, INT);
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -158,6 +176,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION return_product(INT, INT);
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -177,6 +201,12 @@ SELECT integer_decl();
 ----
 0
 
+
+statement ok
+
+
+statement ok
+DROP FUNCTION integer_decl();
 
 statement ok
 
@@ -220,6 +250,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION conditional(INT);
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -239,6 +275,12 @@ SELECT proc_while();
 ----
 10
 
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_while();
 
 statement ok
 
@@ -295,6 +337,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION sql_select_single_constant();
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -304,16 +352,22 @@ statement ok
 
 
 statement ok
-CREATE FUNCTION sql_select_mutliple_constants() RETURNS INT AS $$ DECLARE x INT; y INT; BEGIN SELECT 1, 2 INTO x, y; RETURN x + y; END $$ LANGUAGE PLPGSQL;
+CREATE FUNCTION sql_select_multiple_constants() RETURNS INT AS $$ DECLARE x INT; y INT; BEGIN SELECT 1, 2 INTO x, y; RETURN x + y; END $$ LANGUAGE PLPGSQL;
 
 statement ok
 
 
 query I rowsort
-SELECT sql_select_mutliple_constants();
+SELECT sql_select_multiple_constants();
 ----
 3
 
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_select_multiple_constants();
 
 statement ok
 
@@ -343,6 +397,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION sql_select_constant_assignment();
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -362,6 +422,12 @@ SELECT sql_embedded_agg_count();
 ----
 3
 
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_embedded_agg_count();
 
 statement ok
 
@@ -391,6 +457,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION sql_embedded_agg_min();
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -415,6 +487,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION sql_embedded_agg_max();
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -425,6 +503,12 @@ statement ok
 
 statement ok
 CREATE FUNCTION sql_embedded_agg_multi() RETURNS INT AS $$ DECLARE minimum INT; maximum INT; BEGIN minimum = (SELECT MIN(x) FROM integers); maximum = (SELECT MAX(x) FROM integers); RETURN minimum + maximum; END; $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_embedded_agg_multi();
 
 statement ok
 
@@ -457,6 +541,12 @@ statement ok
 
 
 statement ok
+DROP FUNCTION proc_fors_constant_var();
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -479,6 +569,12 @@ SELECT proc_fors_constant_vars();
 ----
 1
 
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_fors_constant_vars();
 
 statement ok
 
@@ -539,6 +635,12 @@ SELECT proc_fors_var();
 ----
 3
 
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_fors_var();
 
 statement ok
 
@@ -609,3 +711,19 @@ SELECT proc_call_select();
 1
 
 
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_call_callee();
+
+statement ok
+DROP FUNCTION proc_call_ret();
+
+statement ok
+DROP FUNCTION proc_call_assign();
+
+statement ok
+DROP FUNCTION proc_call_select();
+
+statement ok

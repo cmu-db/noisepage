@@ -109,11 +109,16 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseFunction(const
   const auto function_body = json[K_ACTION][K_PLPGSQL_STMT_BLOCK][K_BODY];
 
   std::vector<std::unique_ptr<execution::ast::udf::StmtAST>> statements{};
-  // Skip the first declaration in the datums list
+  // Skip the first declaration in the datums list; parse all declarations
   std::transform(declarations.cbegin() + 1, declarations.cend(), std::back_inserter(statements),
                  [this](const nlohmann::json &declaration) -> std::unique_ptr<execution::ast::udf::StmtAST> {
                    return ParseDecl(declaration);
                  });
+  // Remove the invalid declarations
+  statements.erase(
+      std::remove_if(statements.begin(), statements.end(),
+                     [](std::unique_ptr<execution::ast::udf::StmtAST> &stmt) { return !static_cast<bool>(stmt); }),
+      statements.end());
   statements.push_back(ParseBlock(function_body));
   return std::make_unique<execution::ast::udf::SeqStmtAST>(std::move(statements));
 }
@@ -216,7 +221,15 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
     return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type.value(), std::move(initial));
   }
 
-  // TODO(Kyle): Need to handle other types like row, table etc;
+  if (declaration_type == K_PLPGSQL_ROW && json[K_PLPGSQL_ROW][K_REFNAME].get<std::string>() == "*internal*") {
+    // For query-variant for-loop structures (For-S in PL/pgSQL parlance)
+    // the Postgres parser generates a dummy internal declaration for the
+    // variable that is a target of the `SELECT INTO`, we can elide this
+    return std::unique_ptr<execution::ast::udf::DeclStmtAST>{};
+  }
+
+  // TODO(Kyle): Handle RECORD declarations
+  // TODO(Kyle): Handle table row declarations
   throw PARSER_EXCEPTION(fmt::format("PL/pgSQL Parser : declaration type '{}' not supported", declaration_type));
 }
 
