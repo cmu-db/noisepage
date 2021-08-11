@@ -187,14 +187,15 @@ language_oid_t CatalogAccessor::GetLanguageOid(const std::string &lanname) {
 
 bool CatalogAccessor::DropLanguage(language_oid_t language_oid) { return dbc_->DropLanguage(txn_, language_oid); }
 
-proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, language_oid_t language_oid,
-                                            namespace_oid_t procns, const std::vector<std::string> &args,
+proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, const language_oid_t language_oid,
+                                            const namespace_oid_t procns, const type_oid_t variadic_type,
+                                            const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
                                             const std::vector<postgres::PgProc::ArgModes> &arg_modes,
-                                            type_oid_t rettype, const std::string &src, bool is_aggregate) {
-  return dbc_->CreateProcedure(txn_, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes, rettype,
-                               src, is_aggregate);
+                                            const type_oid_t rettype, const std::string &src, const bool is_aggregate) {
+  return dbc_->CreateProcedure(txn_, procname, language_oid, procns, variadic_type, args, arg_types, all_arg_types,
+                               arg_modes, rettype, src, is_aggregate);
 }
 
 bool CatalogAccessor::DropProcedure(proc_oid_t proc_oid) { return dbc_->DropProcedure(txn_, proc_oid); }

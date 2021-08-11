@@ -140,7 +140,7 @@ class AnnotatedExpression {
    * @param table_alias_set an unordered set of table aliases
    */
   AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression> expr,
-                      std::unordered_set<std::string> &&table_alias_set)
+                      std::unordered_set<parser::AliasType> &&table_alias_set)
       : expr_(expr), table_alias_set_(std::move(table_alias_set)) {}
 
   /**
@@ -157,7 +157,7 @@ class AnnotatedExpression {
   /**
    * @return the unordered set of table aliases
    */
-  const std::unordered_set<std::string> &GetTableAliasSet() const { return table_alias_set_; }
+  const std::unordered_set<parser::AliasType> &GetTableAliasSet() const { return table_alias_set_; }
 
   /**
    * Logical equality check.
@@ -190,7 +190,7 @@ class AnnotatedExpression {
   /**
    * Unordered set of table aliases
    */
-  std::unordered_set<std::string> table_alias_set_;
+  std::unordered_set<parser::AliasType> table_alias_set_;
 };
 
 /**

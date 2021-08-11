@@ -138,13 +138,10 @@ TEST_F(CatalogTests, ProcTest) {
   std::vector<catalog::type_oid_t> arg_types = {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
                                                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Boolean),
                                                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::SmallInt)};
-  std::vector<catalog::postgres::PgProc::ArgModes> arg_modes = {catalog::postgres::PgProc::ArgModes::IN,
-                                                                catalog::postgres::PgProc::ArgModes::IN,
-                                                                catalog::postgres::PgProc::ArgModes::IN};
   auto src = "int sample(arg1, arg2, arg3){return 2;}";
 
   auto proc_oid = accessor->CreateProcedure(
-      procname, lan_oid, ns_oid, args, arg_types, arg_types, arg_modes,
+      procname, lan_oid, ns_oid, catalog::INVALID_TYPE_OID, args, arg_types, {}, {},
       catalog::type_oid_t(static_cast<uint8_t>(execution::sql::SqlTypeId::Integer)), src, false);
   EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

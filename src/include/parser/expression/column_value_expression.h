@@ -39,22 +39,22 @@ class ColumnValueExpression : public AbstractExpression {
   /**
    * This constructor is called only in postgresparser, setting the column name,
    * and optionally setting the table name and alias.
-   * @param table_name table name
+   * @param table_alias table name
    * @param col_name column name
    * @param alias alias of the expression
    */
-  ColumnValueExpression(std::string table_name, std::string col_name, AliasType alias)
+  ColumnValueExpression(AliasType table_alias, std::string col_name, AliasType alias)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, execution::sql::SqlTypeId::Invalid, std::move(alias), {}),
-        table_name_(std::move(table_name)),
+        table_alias_(std::move(table_alias)),
         column_name_(std::move(col_name)) {}
 
   /**
-   * @param table_name table name
+   * @param table_alias table name
    * @param col_name column name
    */
-  ColumnValueExpression(std::string table_name, std::string col_name)
+  ColumnValueExpression(AliasType table_alias, std::string col_name)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, execution::sql::SqlTypeId::Invalid, {}),
-        table_name_(std::move(table_name)),
+        table_alias_(std::move(table_alias)),
         column_name_(std::move(col_name)) {}
 
   /**
@@ -88,22 +88,38 @@ class ColumnValueExpression : public AbstractExpression {
   ColumnValueExpression(std::string table_name, std::string col_name, execution::sql::SqlTypeId type, AliasType alias,
                         catalog::col_oid_t column_oid)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, std::move(alias), {}),
-        table_name_(std::move(table_name)),
+        table_alias_(std::move(table_name)),
         column_name_(std::move(col_name)),
         column_oid_(column_oid) {}
 
   /**
-   * @param table_name table name
+   * This constructor is used to construct abstract value expressions used by CTEs
+   * for LogicalQueryDerivedGet's below it to reference aliases.
+   * @param table_alias Name of the table
+   * @param col_name name of the column.
+   * @param type Type of the column.
+   * @param alias Alias of the column this is referencing
+   * @param column_oid Oid of the column (it should be a temp oid in this case)
+   */
+  ColumnValueExpression(AliasType table_alias, std::string col_name, execution::sql::SqlTypeId type, AliasType alias,
+                        catalog::col_oid_t column_oid)
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type, std::move(alias), {}),
+        table_alias_(std::move(table_alias)),
+        column_name_(std::move(col_name)),
+        column_oid_(column_oid) {}
+
+  /**
+   * @param table_alias table name
    * @param col_name column name
    * @param database_oid database OID
    * @param table_oid table OID
    * @param column_oid column OID
    * @param type Type of the column.
    */
-  ColumnValueExpression(std::string table_name, std::string col_name, catalog::db_oid_t database_oid,
+  ColumnValueExpression(AliasType table_alias, std::string col_name, catalog::db_oid_t database_oid,
                         catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, execution::sql::SqlTypeId type)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}),
-        table_name_(std::move(table_name)),
+        table_alias_(std::move(table_alias)),
         column_name_(std::move(col_name)),
         database_oid_(database_oid),
         table_oid_(table_oid),
@@ -113,7 +129,10 @@ class ColumnValueExpression : public AbstractExpression {
   ColumnValueExpression() = default;
 
   /** @return table name */
-  std::string GetTableName() const { return table_name_; }
+  AliasType GetTableAlias() const { return table_alias_; }
+
+  /** @param table_alias Table alias to be assigned to this expression */
+  void SetTableAlias(const AliasType &table_alias) { table_alias_ = AliasType(table_alias); }
 
   /** @return column name */
   std::string GetColumnName() const { return column_name_; }
@@ -131,8 +150,8 @@ class ColumnValueExpression : public AbstractExpression {
    * Get Column Full Name [tbl].[col]
    */
   std::string GetFullName() const {
-    if (!table_name_.empty()) {
-      return table_name_ + "." + column_name_;
+    if (!table_alias_.Empty()) {
+      return table_alias_.GetName() + "." + column_name_;
     }
 
     return column_name_;
@@ -193,13 +212,11 @@ class ColumnValueExpression : public AbstractExpression {
   void SetTableOID(catalog::table_oid_t table_oid) { table_oid_ = table_oid; }
   /** @param column_oid Column OID to be assigned to this expression */
   void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
-  /** @param table_oid Table OID to be assigned to this expression */
-  void SetTableName(const std::string &table_name) { table_name_ = std::string(table_name); }
   /** @param column_oid Column OID to be assigned to this expression */
   void SetColumnName(const std::string &col_name) { column_name_ = std::string(col_name); }
 
   /** Table name. */
-  std::string table_name_;
+  AliasType table_alias_;
   /** Column name. */
   std::string column_name_;
 

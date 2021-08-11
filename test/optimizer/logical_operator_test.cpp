@@ -354,39 +354,43 @@ TEST(OperatorTests, LogicalGetTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_get_01 = LogicalGet::Make(catalog::db_oid_t(2), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "table", false)
+                                             std::vector<AnnotatedExpression>(), parser::AliasType("table"), false)
                                 .RegisterWithTxnContext(txn_context);
   Operator logical_get_03 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(4),
-                                             std::vector<AnnotatedExpression>(), "table", false)
+                                             std::vector<AnnotatedExpression>(), parser::AliasType("table"), false)
                                 .RegisterWithTxnContext(txn_context);
   Operator logical_get_04 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "tableTable", false)
+                                             std::vector<AnnotatedExpression>(), parser::AliasType("tableTable"), false)
                                 .RegisterWithTxnContext(txn_context);
-  Operator logical_get_05 =
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", true)
-          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_05 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                                             std::vector<AnnotatedExpression>(), parser::AliasType("table"), true)
+                                .RegisterWithTxnContext(txn_context);
   Operator logical_get_1 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", false)
+                                            std::vector<AnnotatedExpression>(), parser::AliasType("table"), false)
                                .RegisterWithTxnContext(txn_context);
-  Operator logical_get_3 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false)
-                               .RegisterWithTxnContext(txn_context);
-  Operator logical_get_4 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false)
-                               .RegisterWithTxnContext(txn_context);
-  Operator logical_get_5 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false)
-                               .RegisterWithTxnContext(txn_context);
-  Operator logical_get_6 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false)
-                               .RegisterWithTxnContext(txn_context);
+  Operator logical_get_3 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_0}, parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_4 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_1}, parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_5 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_2}, parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_6 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_3}, parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(logical_get_1.GetOpType(), OpType::LOGICALGET);
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetDatabaseOid(), catalog::db_oid_t(1));
@@ -396,7 +400,7 @@ TEST(OperatorTests, LogicalGetTest) {
             std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(logical_get_4.GetContentsAs<LogicalGet>()->GetPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableAlias(), "table");
+  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableAlias(), parser::AliasType("table"));
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
   EXPECT_FALSE(logical_get_1 == logical_get_3);
@@ -596,23 +600,30 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   alias_to_expr_map_5[parser::AliasType("constant expr2")] = expr2;
 
   Operator logical_query_derived_get_1 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_1)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_1))
+          .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_2 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_2)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_2))
+          .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_3 =
       LogicalQueryDerivedGet::Make(
-          "alias", std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
+          parser::AliasType("alias"),
+          std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
           .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_4 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_3)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_3))
+          .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_5 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_4)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_4))
+          .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_6 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_5)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_5))
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(logical_query_derived_get_1.GetOpType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
-  EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetTableAlias(), "alias");
+  EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetTableAlias(),
+            parser::AliasType("alias"));
   EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetAliasToExprMap(),
             alias_to_expr_map_1_1);
   EXPECT_TRUE(logical_query_derived_get_1 == logical_query_derived_get_2);
@@ -625,7 +636,6 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_4.Hash());
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_5.Hash());
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_6.Hash());
-
   delete expr_b_1;
   delete expr_b_2;
 
@@ -661,11 +671,11 @@ TEST(OperatorTests, LogicalFilterTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_filter_1 =
       LogicalFilter::Make(std::vector<AnnotatedExpression>()).RegisterWithTxnContext(txn_context);
@@ -791,11 +801,11 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_dep_join_0 = LogicalDependentJoin::Make().RegisterWithTxnContext(txn_context);
   Operator logical_dep_join_1 =
@@ -867,11 +877,11 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_mark_join_0 = LogicalMarkJoin::Make().RegisterWithTxnContext(txn_context);
   Operator logical_mark_join_1 =
@@ -942,11 +952,11 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_single_join_0 = LogicalSingleJoin::Make().RegisterWithTxnContext(txn_context);
   Operator logical_single_join_1 =
@@ -1018,11 +1028,11 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_inner_join_0 = LogicalInnerJoin::Make().RegisterWithTxnContext(txn_context);
   Operator logical_inner_join_1 =
@@ -1094,9 +1104,9 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_left_join_1 =
       LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1})).RegisterWithTxnContext(txn_context);
@@ -1155,9 +1165,9 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_right_join_1 =
       LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1})).RegisterWithTxnContext(txn_context);
@@ -1217,9 +1227,9 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_outer_join_1 =
       LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1})).RegisterWithTxnContext(txn_context);
@@ -1278,9 +1288,9 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_semi_join_1 =
       LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1})).RegisterWithTxnContext(txn_context);
@@ -1359,12 +1369,12 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   auto x_8 = common::ManagedPointer<parser::AbstractExpression>(expr_b_8);
 
   // havings: vector of AnnotatedExpression
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
-  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<parser::AliasType>());
 
   Operator logical_group_1_0 =
       LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},

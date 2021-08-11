@@ -245,7 +245,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
     }
   }
   if (alias != nullptr) {
-    expr->SetAlias(parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(expr.get()))));
+    expr->SetAlias(
+        parser::AliasType(alias, alias_oid_t(reinterpret_cast<size_t>(reinterpret_cast<void *>(expr.get())))));
   }
   return expr;
 }
@@ -581,10 +582,21 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
       if (all_columns)
         result = std::make_unique<TableStarExpression>(table_name);
       else if (alias != nullptr)
+        /*
+         * We create a table alias using the table name. For SELECT queries, the binder will assign the corresponding
+         * TableRef a unique serial number. After that, in the binder, we'll have to update this AliasType to have a
+         * matching serial number
+         */
         result = std::make_unique<ColumnValueExpression>(
-            table_name, col_name, parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(alias))));
+            AliasType(table_name), col_name,
+            parser::AliasType(alias, alias_oid_t(reinterpret_cast<size_t>(reinterpret_cast<void *>(alias)))));
       else
-        result = std::make_unique<ColumnValueExpression>(table_name, col_name);
+        /*
+         * We create a table alias using the table name. For SELECT queries, the binder will assign the corresponding
+         * TableRef a unique serial number. After that, in the binder, we'll have to update this AliasType to have a
+         * matching serial number
+         */
+        result = std::make_unique<ColumnValueExpression>(AliasType(table_name), col_name);
       break;
     }
     case T_A_Star: {
@@ -1097,11 +1109,11 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(ParseResult *parse
   return result;
 }
 
-std::string PostgresParser::AliasTransform(Alias *root) {
+AliasType PostgresParser::AliasTransform(Alias *root) {
   if (root == nullptr) {
-    return "";
+    return AliasType("");
   }
-  return root->aliasname_;
+  return AliasType(root->aliasname_);
 }
 
 // Postgres.RangeVar -> noisepage.TableRef
@@ -2167,7 +2179,7 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
           for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
             const auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
             const auto column = target->val_.str_;
-            colnames.emplace_back(parser::AliasType(column, i));
+            colnames.emplace_back(parser::AliasType(column, alias_oid_t(i)));
             ++i;
           }
         }

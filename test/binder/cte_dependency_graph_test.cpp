@@ -135,7 +135,7 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolutionUnit1) {
   StructuredStatement statement{select};
   const auto *ref = DependencyGraph::FindWriteReferenceInScope("x", statement.RootScope());
   EXPECT_NE(DependencyGraph::NOT_FOUND, ref);
-  EXPECT_EQ(ref->Table()->GetAlias(), "x");
+  EXPECT_EQ(ref->Table()->GetAlias().GetName(), "x");
   EXPECT_EQ(ref->Type(), RefType::WRITE);
 }
 
@@ -146,12 +146,12 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolutionUnit2) {
   StructuredStatement statement{select};
   const auto *x_ref = DependencyGraph::FindWriteReferenceInScope("x", statement.RootScope());
   EXPECT_NE(DependencyGraph::NOT_FOUND, x_ref);
-  EXPECT_EQ(x_ref->Table()->GetAlias(), "x");
+  EXPECT_EQ(x_ref->Table()->GetAlias().GetName(), "x");
   EXPECT_EQ(x_ref->Type(), RefType::WRITE);
 
   const auto *y_ref = DependencyGraph::FindWriteReferenceInScope("y", statement.RootScope());
   EXPECT_NE(DependencyGraph::NOT_FOUND, y_ref);
-  EXPECT_EQ(y_ref->Table()->GetAlias(), "y");
+  EXPECT_EQ(y_ref->Table()->GetAlias().GetName(), "y");
   EXPECT_EQ(y_ref->Type(), RefType::WRITE);
 
   const auto *z_ref = DependencyGraph::FindWriteReferenceInScope("z", statement.RootScope());
@@ -166,17 +166,17 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolutionUnit3) {
   StructuredStatement statement{select};
   const auto *x_ref = DependencyGraph::FindWriteReferenceInScope("x", statement.RootScope());
   EXPECT_NE(DependencyGraph::NOT_FOUND, x_ref);
-  EXPECT_EQ(x_ref->Table()->GetAlias(), "x");
+  EXPECT_EQ(x_ref->Table()->GetAlias().GetName(), "x");
   EXPECT_EQ(x_ref->Type(), RefType::WRITE);
 
   const auto *y_ref = DependencyGraph::FindWriteReferenceInScope("y", statement.RootScope());
   EXPECT_NE(DependencyGraph::NOT_FOUND, y_ref);
-  EXPECT_EQ(y_ref->Table()->GetAlias(), "y");
+  EXPECT_EQ(y_ref->Table()->GetAlias().GetName(), "y");
   EXPECT_EQ(y_ref->Type(), RefType::WRITE);
 
   const auto *z_ref = DependencyGraph::FindWriteReferenceInScope("z", statement.RootScope());
   EXPECT_NE(DependencyGraph::NOT_FOUND, z_ref);
-  EXPECT_EQ(z_ref->Table()->GetAlias(), "z");
+  EXPECT_EQ(z_ref->Table()->GetAlias().GetName(), "z");
   EXPECT_EQ(z_ref->Type(), RefType::WRITE);
 }
 
@@ -328,7 +328,7 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution0) {
   // Grab a reference to the read on `x`
   const auto &x_read = *root.References().at(1);
   EXPECT_EQ(RefType::READ, x_read.Type());
-  EXPECT_EQ("x", x_read.Table()->GetAlias());
+  EXPECT_EQ("x", x_read.Table()->GetAlias().GetName());
 
   // Resolve dependencies for `x` (READ references do not introduce dependencies)
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_read));
@@ -349,7 +349,7 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution1) {
   // Resolve dependencies for write on `x`
   const auto &x_write = *root.References().at(0);
   EXPECT_EQ(RefType::WRITE, x_write.Type());
-  EXPECT_EQ("x", x_write.Table()->GetAlias());
+  EXPECT_EQ("x", x_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_write));
   const auto x_write_deps = DependencyGraph::ResolveDependenciesFor(x_write);
   EXPECT_EQ(0UL, x_write_deps.size());
@@ -357,7 +357,7 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution1) {
   // Resolve dependencies for write on `y`
   const auto &y_write = *root.References().at(1);
   EXPECT_EQ(RefType::WRITE, y_write.Type());
-  EXPECT_EQ("y", y_write.Table()->GetAlias());
+  EXPECT_EQ("y", y_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_write));
   const auto y_write_deps = DependencyGraph::ResolveDependenciesFor(y_write);
   EXPECT_EQ(1UL, y_write_deps.size());
@@ -368,7 +368,7 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution1) {
   // Resolve dependencies for read on `y`
   const auto &y_read = *root.References().at(2);
   EXPECT_EQ(RefType::READ, y_read.Type());
-  EXPECT_EQ("y", y_read.Table()->GetAlias());
+  EXPECT_EQ("y", y_read.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_read));
   const auto deps = DependencyGraph::ResolveDependenciesFor(y_read);
   EXPECT_EQ(0UL, deps.size());
@@ -390,7 +390,7 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution2) {
 
   // Resolve dependencies for write on `y`
   EXPECT_EQ(RefType::WRITE, y_write.Type());
-  EXPECT_EQ("y", y_write.Table()->GetAlias());
+  EXPECT_EQ("y", y_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_write));
   const auto y_write_deps = DependencyGraph::ResolveDependenciesFor(y_write);
   EXPECT_EQ(1UL, y_write_deps.size());
@@ -400,14 +400,14 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution2) {
 
   // Resolve dependencies for write on `x`
   EXPECT_EQ(RefType::WRITE, x_write.Type());
-  EXPECT_EQ("x", x_write.Table()->GetAlias());
+  EXPECT_EQ("x", x_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_write));
   const auto x_write_deps = DependencyGraph::ResolveDependenciesFor(x_write);
   EXPECT_EQ(0UL, x_write_deps.size());
 
   // Resolve dependencies for read on `y`
   EXPECT_EQ(RefType::READ, y_read.Type());
-  EXPECT_EQ("y", y_read.Table()->GetAlias());
+  EXPECT_EQ("y", y_read.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_read));
   const auto deps = DependencyGraph::ResolveDependenciesFor(y_read);
   EXPECT_EQ(0UL, deps.size());
@@ -432,13 +432,13 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution3) {
   const auto &y_write = *root.References().at(1);
 
   EXPECT_EQ(RefType::WRITE, x_write.Type());
-  EXPECT_EQ("x", x_write.Table()->GetAlias());
+  EXPECT_EQ("x", x_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_write));
   const auto x_write_deps = DependencyGraph::ResolveDependenciesFor(x_write);
   EXPECT_EQ(1UL, x_write_deps.size());
 
   EXPECT_EQ(RefType::WRITE, y_write.Type());
-  EXPECT_EQ("y", y_write.Table()->GetAlias());
+  EXPECT_EQ("y", y_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_write));
   const auto y_write_deps = DependencyGraph::ResolveDependenciesFor(y_write);
   EXPECT_EQ(0UL, y_write_deps.size());
@@ -455,13 +455,13 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution3) {
   const auto &nested_a_write = *x_scope->References().at(1);
 
   EXPECT_EQ(RefType::WRITE, nested_y_write.Type());
-  EXPECT_EQ("y", nested_y_write.Table()->GetAlias());
+  EXPECT_EQ("y", nested_y_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(nested_y_write));
   const auto nested_y_write_deps = DependencyGraph::ResolveDependenciesFor(nested_y_write);
   EXPECT_EQ(0UL, nested_y_write_deps.size());
 
   EXPECT_EQ(RefType::WRITE, nested_a_write.Type());
-  EXPECT_EQ("a", nested_a_write.Table()->GetAlias());
+  EXPECT_EQ("a", nested_a_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(nested_a_write));
   const auto nested_a_write_deps = DependencyGraph::ResolveDependenciesFor(nested_a_write);
   EXPECT_EQ(1UL, nested_a_write_deps.size());
@@ -494,13 +494,13 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution4) {
   const auto &y_write = *root.References().at(1);
 
   EXPECT_EQ(RefType::WRITE, x_write.Type());
-  EXPECT_EQ("x", x_write.Table()->GetAlias());
+  EXPECT_EQ("x", x_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(x_write));
   const auto x_write_deps = DependencyGraph::ResolveDependenciesFor(x_write);
   EXPECT_EQ(1UL, x_write_deps.size());
 
   EXPECT_EQ(RefType::WRITE, y_write.Type());
-  EXPECT_EQ("y", y_write.Table()->GetAlias());
+  EXPECT_EQ("y", y_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(y_write));
   const auto y_write_deps = DependencyGraph::ResolveDependenciesFor(y_write);
   EXPECT_EQ(0UL, y_write_deps.size());
@@ -517,13 +517,13 @@ TEST_F(BinderCteDepdendencyGraphTest, ReferenceResolution4) {
   const auto &nested_y_write = *x_scope->References().at(1);
 
   EXPECT_EQ(RefType::WRITE, nested_a_write.Type());
-  EXPECT_EQ("a", nested_a_write.Table()->GetAlias());
+  EXPECT_EQ("a", nested_a_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(nested_a_write));
   const auto nested_a_write_deps = DependencyGraph::ResolveDependenciesFor(nested_a_write);
   EXPECT_EQ(1UL, nested_a_write_deps.size());
 
   EXPECT_EQ(RefType::WRITE, nested_y_write.Type());
-  EXPECT_EQ("y", nested_y_write.Table()->GetAlias());
+  EXPECT_EQ("y", nested_y_write.Table()->GetAlias().GetName());
   EXPECT_NO_THROW(DependencyGraph::ResolveDependenciesFor(nested_y_write));
   const auto nested_y_write_deps = DependencyGraph::ResolveDependenciesFor(nested_y_write);
   EXPECT_EQ(0UL, nested_y_write_deps.size());
