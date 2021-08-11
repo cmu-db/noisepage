@@ -43,7 +43,9 @@ class TestOLTPBench(TestServer):
         """
         old_dir = os.getcwd()
         os.chdir(constants.OLTPBENCH_GIT_LOCAL_PATH)
-        expect_command("./mvnw package --no-transfer-progress")
+        # --no-transfer-progress: don't show download progress, too noisy
+        # -Dmaven.test.skip=true: we're not in the business of testing BenchBase, we just want to use it
+        expect_command("./mvnw package --no-transfer-progress -Dmaven.test.skip=true")
         os.chdir(constants.OLTPBENCH_GIT_TARGET_PATH)
         expect_command(f"tar xvzf {constants.OLTPBENCH_VERSION}.tgz")
         os.chdir(old_dir)
