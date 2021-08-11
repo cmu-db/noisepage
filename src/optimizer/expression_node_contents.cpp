@@ -54,7 +54,7 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
     case parser::ExpressionType::OPERATOR_IS_NOT_NULL:
     case parser::ExpressionType::OPERATOR_EXISTS: {
       // Create new expression, preserving return value type
-      type::TypeId ret = expr_->GetReturnValueType();
+      execution::sql::SqlTypeId ret = expr_->GetReturnValueType();
       result = common::ManagedPointer<parser::AbstractExpression>(
           new parser::OperatorExpression(type, ret, std::move(children)));
       break;

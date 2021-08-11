@@ -45,7 +45,7 @@ struct Util {
                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &projection_map,
                               storage::ProjectedRow *const pr, T value) {
     const auto &key_cols = schema.GetColumns();
-    NOISEPAGE_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT16_MAX) == sizeof(T),
+    NOISEPAGE_ASSERT((execution::sql::GetSqlTypeIdSize(key_cols.at(col_offset).Type()) & INT16_MAX) == sizeof(T),
                      "Invalid attribute size.");
     const auto col_oid = key_cols.at(col_offset).Oid();
     const auto attr_offset = static_cast<uint16_t>(projection_map.at(col_oid));

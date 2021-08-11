@@ -53,7 +53,7 @@ class PLpgSQLParser {
    * @return The abstract syntax tree for the source function
    */
   std::unique_ptr<execution::ast::udf::FunctionAST> Parse(const std::vector<std::string> &param_names,
-                                                          const std::vector<type::TypeId> &param_types,
+                                                          const std::vector<execution::sql::SqlTypeId> &param_types,
                                                           const std::string &func_body);
 
  private:
@@ -214,7 +214,7 @@ class PLpgSQLParser {
    * @param parse_result The result of parsing the SQL query
    * @return The resolved record type
    */
-  std::vector<std::pair<std::string, type::TypeId>> ResolveRecordType(const ParseResult *parse_result);
+  std::vector<std::pair<std::string, execution::sql::SqlTypeId>> ResolveRecordType(const ParseResult *parse_result);
 
   /**
    * Get the StatementType for the provided statement type identifier.
@@ -242,7 +242,7 @@ class PLpgSQLParser {
   /** The UDF AST context */
   common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context_;
   /** The function symbol table */
-  std::unordered_map<std::string, type::TypeId> symbol_table_;
+  std::unordered_map<std::string, execution::sql::SqlTypeId> symbol_table_;
 };
 
 }  // namespace noisepage::parser::udf

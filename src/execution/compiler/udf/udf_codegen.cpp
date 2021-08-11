@@ -60,13 +60,12 @@ void UdfCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
 catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(ast::BuiltinType::Kind type) {
   switch (type) {
     case ast::BuiltinType::Kind::Integer: {
-      return accessor_->GetTypeOidFromTypeId(type::TypeId::INTEGER);
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Integer);
     }
     case ast::BuiltinType::Kind::Boolean: {
-      return accessor_->GetTypeOidFromTypeId(type::TypeId::BOOLEAN);
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Boolean);
     }
     default:
-      return accessor_->GetTypeOidFromTypeId(type::TypeId::INVALID);
       NOISEPAGE_ASSERT(false, "Unsupported parameter type");
   }
 }
@@ -157,7 +156,7 @@ void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
 
   auto prev_type = current_type_;
   ast::Expr *tpl_type = nullptr;
-  if (ast->Type() == type::TypeId::INVALID) {
+  if (ast->Type() == sql::SqlTypeId::Invalid) {
     // Record type
     util::RegionVector<ast::FieldDecl *> fields{codegen_->GetAstContext()->GetRegion()};
 
@@ -240,7 +239,7 @@ void UdfCodegen::Visit(ast::udf::ValueExprAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::AssignStmtAST *ast) {
-  const type::TypeId left_type = GetVariableType(ast->Destination()->Name());
+  const sql::SqlTypeId left_type = GetVariableType(ast->Destination()->Name());
   current_type_ = left_type;
 
   ast::Expr *rhs_expr = EvaluateExpression(ast->Source());
@@ -428,8 +427,8 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
 
 std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
                                                          const std::vector<std::string> &variables) {
-  return GetVariableType(variables.front()) == type::TypeId::INVALID ? StartLambdaBindingToRecord(plan, variables)
-                                                                     : StartLambdaBindingToScalars(plan, variables);
+  return GetVariableType(variables.front()) == sql::SqlTypeId::Invalid ? StartLambdaBindingToRecord(plan, variables)
+                                                                       : StartLambdaBindingToScalars(plan, variables);
 }
 
 std::unique_ptr<FunctionBuilder> UdfCodegen::StartLambdaBindingToRecord(
@@ -604,8 +603,8 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
 
 ast::LambdaExpr *UdfCodegen::MakeLambda(common::ManagedPointer<planner::AbstractPlanNode> plan,
                                         const std::vector<std::string> &variables) {
-  return GetVariableType(variables.front()) == type::TypeId::INVALID ? MakeLambdaBindingToRecord(plan, variables)
-                                                                     : MakeLambdaBindingToScalars(plan, variables);
+  return GetVariableType(variables.front()) == sql::SqlTypeId::Invalid ? MakeLambdaBindingToRecord(plan, variables)
+                                                                       : MakeLambdaBindingToScalars(plan, variables);
 }
 
 ast::LambdaExpr *UdfCodegen::MakeLambdaBindingToRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
@@ -721,7 +720,7 @@ void UdfCodegen::CodegenAddParameters(ast::Expr *exec_ctx, const std::vector<par
 void UdfCodegen::CodegenAddScalarParameter(ast::Expr *exec_ctx, const parser::udf::VariableRef &variable_ref) {
   NOISEPAGE_ASSERT(variable_ref.IsScalar(), "Broken invariant");
   const auto &name = variable_ref.ColumnName();
-  const type::TypeId type = GetVariableType(name);
+  const sql::SqlTypeId type = GetVariableType(name);
   ast::Expr *expr = codegen_->MakeExpr(SymbolTable().at(name));
   fb_->Append(codegen_->CallBuiltin(AddParamBuiltinForParameterType(type), {exec_ctx, expr}));
 }
@@ -735,13 +734,13 @@ void UdfCodegen::CodegenAddTableParameter(ast::Expr *exec_ctx, const parser::udf
   const auto fields = GetRecordType(record_name);
   auto it = std::find_if(
       fields.cbegin(), fields.cend(),
-      [&field_name](const std::pair<std::string, type::TypeId> &field) -> bool { return field.first == field_name; });
+      [&field_name](const std::pair<std::string, sql::SqlTypeId> &field) -> bool { return field.first == field_name; });
   if (it == fields.cend()) {
     throw EXECUTION_EXCEPTION(fmt::format("Field '{}' not found in record '{}'", field_name, record_name),
                               common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
   }
 
-  const type::TypeId type = it->second;
+  const sql::SqlTypeId type = it->second;
   ast::Expr *expr = codegen_->AccessStructMember(codegen_->MakeExpr(SymbolTable().at(record_name)),
                                                  codegen_->MakeIdentifier(field_name));
   fb_->Append(codegen_->CallBuiltin(AddParamBuiltinForParameterType(type), {exec_ctx, expr}));
@@ -758,7 +757,7 @@ void UdfCodegen::CodegenBoundVariableInit(common::ManagedPointer<planner::Abstra
     return;
   }
 
-  if (GetVariableType(bound_variables.front()) == type::TypeId::INVALID) {
+  if (GetVariableType(bound_variables.front()) == sql::SqlTypeId::Invalid) {
     CodegenBoundVariableInitForRecord(plan, bound_variables.front());
   } else {
     CodegenBoundVariableInitForScalars(plan, bound_variables);
@@ -785,7 +784,7 @@ void UdfCodegen::CodegenBoundVariableInitForScalars(common::ManagedPointer<plann
 
 void UdfCodegen::CodegenBoundVariableInitForRecord(common::ManagedPointer<planner::AbstractPlanNode> plan,
                                                    const std::string &record_name) {
-  NOISEPAGE_ASSERT(GetVariableType(record_name) == type::TypeId::INVALID, "Broken invariant");
+  NOISEPAGE_ASSERT(GetVariableType(record_name) == sql::SqlTypeId::Invalid, "Broken invariant");
   const auto n_columns = plan->GetOutputSchema()->GetColumns().size();
   const auto fields = GetRecordType(record_name);
   const auto n_fields = fields.size();
@@ -847,7 +846,11 @@ void UdfCodegen::CodegenTopLevelCalls(const ExecutableQuery *exec_query, ast::Id
   General Utilities
 ---------------------------------------------------------------------------- */
 
-ast::Expr *UdfCodegen::GetExecutionContext() { return fb_->GetParameterByPosition(0); }
+ast::Expr *UdfCodegen::GetExecutionContext() {
+  // The execution context is always suppplied to the
+  // top-level function builder for the function
+  return fb_->GetParameterByPosition(0);
+}
 
 ast::Expr *UdfCodegen::GetExecutionResult() { return execution_result_; }
 
@@ -858,7 +861,7 @@ ast::Expr *UdfCodegen::EvaluateExpression(ast::udf::ExprAST *expr) {
   return GetExecutionResult();
 }
 
-type::TypeId UdfCodegen::GetVariableType(const std::string &name) const {
+sql::SqlTypeId UdfCodegen::GetVariableType(const std::string &name) const {
   auto type = udf_ast_context_->GetVariableType(name);
   if (!type.has_value()) {
     throw EXECUTION_EXCEPTION(fmt::format("Failed to resolve type for variable '{}'", name),
@@ -867,7 +870,7 @@ type::TypeId UdfCodegen::GetVariableType(const std::string &name) const {
   return type.value();
 }
 
-std::vector<std::pair<std::string, type::TypeId>> UdfCodegen::GetRecordType(const std::string &name) const {
+std::vector<std::pair<std::string, sql::SqlTypeId>> UdfCodegen::GetRecordType(const std::string &name) const {
   auto type = udf_ast_context_->GetRecordType(name);
   if (!type.has_value()) {
     throw EXECUTION_EXCEPTION(fmt::format("Failed to resolve type for record variable '{}'", name),
@@ -895,65 +898,29 @@ bool UdfCodegen::IsRunAllFunction(const std::string &name) {
 }
 
 // Static
-ast::Builtin UdfCodegen::AddParamBuiltinForParameterType(type::TypeId parameter_type) {
-  // TODO(Kyle): Could accomplish this same thing with a compile-time
-  // dispatch table, but honestly that would be overkill at this point
+ast::Builtin UdfCodegen::AddParamBuiltinForParameterType(sql::SqlTypeId parameter_type) {
   switch (parameter_type) {
-    case type::TypeId::BOOLEAN:
+    case sql::SqlTypeId::Boolean:
       return ast::Builtin::AddParamBool;
-    case type::TypeId::TINYINT:
+    case sql::SqlTypeId::TinyInt:
       return ast::Builtin::AddParamTinyInt;
-    case type::TypeId::SMALLINT:
+    case sql::SqlTypeId::SmallInt:
       return ast::Builtin::AddParamSmallInt;
-    case type::TypeId::INTEGER:
+    case sql::SqlTypeId::Integer:
       return ast::Builtin::AddParamInt;
-    case type::TypeId::BIGINT:
+    case sql::SqlTypeId::BigInt:
       return ast::Builtin::AddParamBigInt;
-    case type::TypeId::DECIMAL:
+    case sql::SqlTypeId::Decimal:
       return ast::Builtin::AddParamDouble;
-    case type::TypeId::DATE:
+    case sql::SqlTypeId::Date:
       return ast::Builtin::AddParamDate;
-    case type::TypeId::TIMESTAMP:
+    case sql::SqlTypeId::Timestamp:
       return ast::Builtin::AddParamTimestamp;
-    case type::TypeId::VARCHAR:
+    case sql::SqlTypeId::Varchar:
       return ast::Builtin::AddParamString;
     default:
       UNREACHABLE("Unsupported parameter type");
   }
-}
-
-// Static
-std::vector<std::string> UdfCodegen::ParametersSortedByIndex(
-    const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &parameter_map) {
-  // TODO(Kyle): This temporary data structure is gross
-  std::unordered_map<std::string, std::size_t> parameters{};
-  for (const auto &entry : parameter_map) {
-    // Column Name -> (Parameter Name, Parameter Index)
-    parameters[entry.second.first] = entry.second.second;
-  }
-  std::vector<std::string> result{};
-  result.reserve(parameters.size());
-  std::transform(parameters.cbegin(), parameters.cend(), std::back_inserter(result),
-                 [](const std::pair<std::string, std::size_t> &entry) -> std::string { return entry.first; });
-  std::sort(result.begin(), result.end(), [&parameters](const std::string &a, const std::string &b) -> bool {
-    return parameters.at(a) < parameters.at(b);
-  });
-  return result;
-}
-
-// Static
-std::vector<std::string> UdfCodegen::ColumnsSortedByIndex(
-    const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &parameter_map) {
-  std::vector<std::string> result{};
-  result.reserve(parameter_map.size());
-  std::transform(parameter_map.cbegin(), parameter_map.cend(), std::back_inserter(result),
-                 [](const std::pair<std::string, std::pair<std::string, std::size_t>> &entry) -> std::string {
-                   return entry.first;
-                 });
-  std::sort(result.begin(), result.end(), [&parameter_map](const std::string &a, const std::string &b) -> bool {
-    return parameter_map.at(a).second < parameter_map.at(b).second;
-  });
-  return result;
 }
 
 }  // namespace noisepage::execution::compiler::udf

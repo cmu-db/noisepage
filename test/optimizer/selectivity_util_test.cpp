@@ -52,7 +52,7 @@ class SelectivityUtilTests : public TerrierTest {
     // Floating point type column.
     auto real_column_stats = std::make_unique<ColumnStats<execution::sql::Real>>(
         db_oid_, table1_oid_, table1_real_col_oid_, 10, 8, 8, std::make_unique<TopKElements<double>>(),
-        std::make_unique<Histogram<double>>(), type::TypeId::REAL);
+        std::make_unique<Histogram<double>>(), execution::sql::SqlTypeId::Double);
 
     // Values and frequencies.
     std::vector<std::pair<double, int>> real_vals = {{3, 2}, {4, 2}, {5, 2}, {0, 1}, {1, 1}};
@@ -72,7 +72,7 @@ class SelectivityUtilTests : public TerrierTest {
     // INTEGER type column.
     auto integet_col_stats = std::make_unique<ColumnStats<execution::sql::Integer>>(
         db_oid_, table1_oid_, table1_int_col_oid_, 10, 8, 8, std::make_unique<TopKElements<int64_t>>(),
-        std::make_unique<Histogram<int64_t>>(), type::TypeId::INTEGER);
+        std::make_unique<Histogram<int64_t>>(), execution::sql::SqlTypeId::Integer);
 
     // Values and frequencies.
     std::vector<std::pair<int64_t, int>> int_vals = {{3, 2}, {4, 2}, {5, 2}, {0, 1}, {7, 1}};
@@ -99,7 +99,7 @@ class SelectivityUtilTests : public TerrierTest {
     // DECIMAL column.
     auto real_col_stats = std::make_unique<ColumnStats<execution::sql::Real>>(
         db_oid_, table2_oid_, table2_real_col_oid_, 1000, 900, 900, std::make_unique<TopKElements<double>>(),
-        std::make_unique<Histogram<double>>(), type::TypeId::REAL);
+        std::make_unique<Histogram<double>>(), execution::sql::SqlTypeId::Double);
 
     // Values and frequencies.
     std::vector<std::pair<double, int>> real_vals = {{1.0, 500}, {2.0, 250}, {3.0, 100}, {4.0, 20}, {5.0, 5},
@@ -126,7 +126,7 @@ class SelectivityUtilTests : public TerrierTest {
     // DECIMAL column.
     auto real_col_stats = std::make_unique<ColumnStats<execution::sql::Real>>(
         db_oid_, table3_oid_, table3_real_col_oid_, 600000, 500500, 500500, std::make_unique<TopKElements<double>>(),
-        std::make_unique<Histogram<double>>(), type::TypeId::REAL);
+        std::make_unique<Histogram<double>>(), execution::sql::SqlTypeId::Double);
     // Assume entry with value i occurs i times in the table.
     for (int i = 1; i <= 1000; ++i) real_col_stats->GetTopK()->Increment(static_cast<float>(i), i);
     // Construct histogram.
@@ -144,7 +144,7 @@ class SelectivityUtilTests : public TerrierTest {
     // BOOLEAN column.
     auto bool_col_stats = std::make_unique<ColumnStats<execution::sql::BoolVal>>(
         db_oid_, table4_oid_, table4_bool_col_oid_, 100, 80, 80, std::make_unique<TopKElements<bool>>(),
-        std::make_unique<Histogram<bool>>(), type::TypeId::BOOLEAN);
+        std::make_unique<Histogram<bool>>(), execution::sql::SqlTypeId::Boolean);
     // 60 true, 20 false, 20 null.
     bool_col_stats->GetTopK()->Increment(true, 60);
     bool_col_stats->GetTopK()->Increment(false, 20);
@@ -157,7 +157,7 @@ class SelectivityUtilTests : public TerrierTest {
     // DATE column
     auto date_col_stats = std::make_unique<ColumnStats<execution::sql::DateVal>>(
         db_oid_, table5_oid_, table5_date_col_oid_, 5, 5, 4, std::make_unique<TopKElements<execution::sql::Date>>(),
-        std::make_unique<Histogram<execution::sql::Date>>(), type::TypeId::DATE);
+        std::make_unique<Histogram<execution::sql::Date>>(), execution::sql::SqlTypeId::Date);
 
     std::vector<execution::sql::Date> date_vals;
     date_vals.emplace_back(execution::sql::Date::FromYMD(1995, 8, 6));
@@ -174,7 +174,7 @@ class SelectivityUtilTests : public TerrierTest {
     auto timestamp_col_stats = std::make_unique<ColumnStats<execution::sql::TimestampVal>>(
         db_oid_, table5_oid_, table5_timestamp_col_oid_, 5, 5, 4,
         std::make_unique<TopKElements<execution::sql::Timestamp>>(),
-        std::make_unique<Histogram<execution::sql::Timestamp>>(), type::TypeId::TIMESTAMP);
+        std::make_unique<Histogram<execution::sql::Timestamp>>(), execution::sql::SqlTypeId::Timestamp);
 
     std::vector<execution::sql::Timestamp> timestamp_vals;
     timestamp_vals.emplace_back(execution::sql::Timestamp::FromYMDHMS(1995, 8, 6, 15, 2, 40));
@@ -196,7 +196,7 @@ class SelectivityUtilTests : public TerrierTest {
     // Varchar column
     auto varchar_col_stats = std::make_unique<ColumnStats<execution::sql::StringVal>>(
         db_oid_, table6_oid_, table6_varchar_col_oid_, 2, 2, 2, std::make_unique<TopKElements<storage::VarlenEntry>>(),
-        std::make_unique<Histogram<storage::VarlenEntry>>(), type::TypeId::VARCHAR);
+        std::make_unique<Histogram<storage::VarlenEntry>>(), execution::sql::SqlTypeId::Varchar);
 
     std::vector<storage::VarlenEntry> varchar_vals;
     varchar_vals.emplace_back(storage::VarlenEntry::Create("Foo"));
@@ -214,7 +214,7 @@ class SelectivityUtilTests : public TerrierTest {
     // Empty column
     auto empty_col_stats = std::make_unique<ColumnStats<execution::sql::Integer>>(
         db_oid_, table7_oid_, table7_empty_col_oid_, 0, 0, 0, std::make_unique<TopKElements<int64_t>>(),
-        std::make_unique<Histogram<int64_t>>(), type::TypeId::INTEGER);
+        std::make_unique<Histogram<int64_t>>(), execution::sql::SqlTypeId::Integer);
 
     std::vector<std::unique_ptr<ColumnStatsBase>> column_stats;
     column_stats.emplace_back(std::move(empty_col_stats));
@@ -238,7 +238,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
   // Create a constant value expression to pass to ValueCondition.
   // Floating point numbers have DECIMAL type and are represented as Reals in execution layer.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(6.f));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(6.f));
 
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table1_real_col_oid_, "", parser::ExpressionType::COMPARE_LESS_THAN,
@@ -251,7 +251,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
 
   // TEST PART 2
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(3.f));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(3.f));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_real_col_oid_, "", parser::ExpressionType::COMPARE_LESS_THAN,
@@ -265,7 +265,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
 
   // TEST PART 3
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(0.f));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(0.f));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_real_col_oid_, "", parser::ExpressionType::COMPARE_LESS_THAN,
@@ -281,7 +281,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
 TEST_F(SelectivityUtilTests, TestIntegerLessThan) {
   // Create a constant value expression to pass to ValueCondition.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(6));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(6));
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_LESS_THAN,
                                  std::move(const_value_expr_ptr));
@@ -295,7 +295,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThan) {
 TEST_F(SelectivityUtilTests, TestTinyIntLessThan) {
   // Create a constant value expression to pass to ValueCondition.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::TINYINT, execution::sql::Integer(6));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(6));
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_LESS_THAN,
                                  std::move(const_value_expr_ptr));
@@ -309,7 +309,7 @@ TEST_F(SelectivityUtilTests, TestTinyIntLessThan) {
 TEST_F(SelectivityUtilTests, TestTinyIntegerEqual) {
   // Create a constant value expression to pass to ValueCondition.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(4));
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
@@ -321,7 +321,7 @@ TEST_F(SelectivityUtilTests, TestTinyIntegerEqual) {
 
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(0));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(0));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
@@ -338,7 +338,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
   // TEST PART 1
   // Create a constant value expression to pass to ValueCondition.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(1.0));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(1.0));
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table2_real_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
@@ -350,7 +350,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
   // TEST PART 2
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(5.0));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(5.0));
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
       ValueCondition(table2_real_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
@@ -363,7 +363,7 @@ TEST_F(SelectivityUtilTests, TestFloatEqual) {
   for (int i = 1; i <= 1000; ++i) {
     // Create a constant value expression to pass to ValueCondition.
     const_value_expr_ptr = std::make_unique<parser::ConstantValueExpression>(
-        type::TypeId::REAL, execution::sql::Real(static_cast<float>(i)));
+        execution::sql::SqlTypeId::Double, execution::sql::Real(static_cast<float>(i)));
     // Create a value condition to pass to SelectivityUtil.
     value_condition = ValueCondition(table3_real_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                      std::move(const_value_expr_ptr));
@@ -380,7 +380,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
   // Create a constant value expression to pass to ValueCondition.
   // Floating point numbers have DECIMAL type and are represented as Reals in execution layer.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(6.f));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(6.f));
 
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table1_real_col_oid_, "", parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
@@ -393,7 +393,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
 
   // TEST PART 2
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(3.f));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(3.f));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_real_col_oid_, "", parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
@@ -406,7 +406,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
 
   // TEST PART 3
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(0.f));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double, execution::sql::Real(0.f));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_real_col_oid_, "", parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
@@ -424,7 +424,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
   // Create a constant value expression to pass to ValueCondition.
   // Floating point numbers have DECIMAL type and are represented as Reals in execution layer.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(6));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(6));
 
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
@@ -436,7 +436,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
 
   // TEST PART 2
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(3));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
@@ -449,7 +449,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
 
   // TEST PART 3
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(0));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(0));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
@@ -477,7 +477,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
   // Create a constant value expression to pass to ValueCondition.
   // Floating point numbers have DECIMAL type and are represented as Reals in execution layer.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(6));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(6));
 
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_GREATER_THAN,
@@ -490,7 +490,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
 
   // TEST PART 2
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(3));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(3));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_GREATER_THAN,
@@ -503,7 +503,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
 
   // TEST PART 3
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(0));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(0));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_GREATER_THAN,
@@ -518,7 +518,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
 TEST_F(SelectivityUtilTests, TestIntegerNotEqual) {
   // Create a constant value expression to pass to ValueCondition.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(4));
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_NOT_EQUAL,
                                  std::move(const_value_expr_ptr));
@@ -529,7 +529,7 @@ TEST_F(SelectivityUtilTests, TestIntegerNotEqual) {
 
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(0));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer, execution::sql::Integer(0));
 
   // Create a value condition to pass to SelectivityUtil.
   value_condition = ValueCondition(table1_int_col_oid_, "", parser::ExpressionType::COMPARE_NOT_EQUAL,
@@ -557,7 +557,8 @@ TEST_F(SelectivityUtilTests, TestBoolEqual) {
   // TEST PART 1
   // Create a constant value expression to pass to ValueCondition.
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                        execution::sql::BoolVal(true));
   // Create a value condition to pass to SelectivityUtil.
   ValueCondition value_condition(table4_bool_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
@@ -569,8 +570,8 @@ TEST_F(SelectivityUtilTests, TestBoolEqual) {
 
   // TEST PART 2
   // Create a constant value expression to pass to ValueCondition.
-  const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+  const_value_expr_ptr = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                                           execution::sql::BoolVal(false));
   // Create a value condition to pass to SelectivityUtil.
   value_condition =
       ValueCondition(table4_bool_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
@@ -596,7 +597,7 @@ TEST_F(SelectivityUtilTests, TestBoolNull) {
 TEST_F(SelectivityUtilTests, TestDateEqual) {
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
       std::make_unique<parser::ConstantValueExpression>(
-          type::TypeId::DATE, execution::sql::DateVal(execution::sql::Date::FromYMD(1995, 8, 6)));
+          execution::sql::SqlTypeId::Date, execution::sql::DateVal(execution::sql::Date::FromYMD(1995, 8, 6)));
   ValueCondition value_condition(table5_date_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
   double res = SelectivityUtil::ComputeSelectivity(table_stats_5_, value_condition);
@@ -607,7 +608,7 @@ TEST_F(SelectivityUtilTests, TestDateEqual) {
 TEST_F(SelectivityUtilTests, TestTimestampEqual) {
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
       std::make_unique<parser::ConstantValueExpression>(
-          type::TypeId::TIMESTAMP,
+          execution::sql::SqlTypeId::Timestamp,
           execution::sql::TimestampVal(execution::sql::Timestamp::FromYMDHMS(2020, 4, 20, 3, 20, 56)));
   ValueCondition value_condition(table5_timestamp_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
@@ -618,7 +619,7 @@ TEST_F(SelectivityUtilTests, TestTimestampEqual) {
 // NOLINTNEXTLINE
 TEST_F(SelectivityUtilTests, TestVarcharEqual) {
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR,
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Varchar,
                                                         execution::sql::StringVal(storage::VarlenEntry::Create("Foo")));
   ValueCondition value_condition(catalog::col_oid_t(1), "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
@@ -629,7 +630,7 @@ TEST_F(SelectivityUtilTests, TestVarcharEqual) {
 // NOLINTNEXTLINE
 TEST_F(SelectivityUtilTests, TestVarcharLessThan) {
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR,
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Varchar,
                                                         execution::sql::StringVal(storage::VarlenEntry::Create("Foo")));
   ValueCondition value_condition(catalog::col_oid_t(1), "", parser::ExpressionType::COMPARE_LESS_THAN,
                                  std::move(const_value_expr_ptr));
@@ -640,7 +641,7 @@ TEST_F(SelectivityUtilTests, TestVarcharLessThan) {
 // NOLINTNEXTLINE
 TEST_F(SelectivityUtilTests, TestVarcharGreaterThanOrEqualTo) {
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR,
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Varchar,
                                                         execution::sql::StringVal(storage::VarlenEntry::Create("Bar")));
   ValueCondition value_condition(catalog::col_oid_t(1), "", parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO,
                                  std::move(const_value_expr_ptr));
@@ -651,7 +652,8 @@ TEST_F(SelectivityUtilTests, TestVarcharGreaterThanOrEqualTo) {
 // NOLINTNEXTLINE
 TEST_F(SelectivityUtilTests, TestEmptyEqual) {
   std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
-      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(666));
+      std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer,
+                                                        execution::sql::Integer(666));
   ValueCondition value_condition(table6_varchar_col_oid_, "", parser::ExpressionType::COMPARE_EQUAL,
                                  std::move(const_value_expr_ptr));
   double res = SelectivityUtil::ComputeSelectivity(table_stats_7_, value_condition);

@@ -8,7 +8,6 @@
 
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_defs.h"
-#include "type/type_id.h"
 
 #include "execution/ast/udf/udf_ast_node_visitor.h"
 #include "execution/sql/value.h"
@@ -313,7 +312,7 @@ class DeclStmtAST : public StmtAST {
    * @param type The type of the declared variable
    * @param initial The initial value in the declaration
    */
-  DeclStmtAST(std::string name, type::TypeId type, std::unique_ptr<ExprAST> &&initial)
+  DeclStmtAST(std::string name, sql::SqlTypeId type, std::unique_ptr<ExprAST> &&initial)
       : name_{std::move(name)}, type_(type), initial_{std::move(initial)} {}
 
   /**
@@ -326,7 +325,7 @@ class DeclStmtAST : public StmtAST {
   const std::string &Name() const { return name_; }
 
   /** @return The type of the declared variable */
-  type::TypeId Type() const { return type_; }
+  sql::SqlTypeId Type() const { return type_; }
 
   /** @return A mutable pointer to the initial value expression */
   ExprAST *Initial() { return initial_.get(); }
@@ -339,7 +338,7 @@ class DeclStmtAST : public StmtAST {
   std::string name_;
 
   /** The type of the declared variable */
-  type::TypeId type_;
+  sql::SqlTypeId type_;
 
   /** The initial value of the declaration */
   std::unique_ptr<ExprAST> initial_;
@@ -705,7 +704,7 @@ class FunctionAST : public AbstractAST {
    * @param parameter_types The types of the parameters to the function
    */
   FunctionAST(std::unique_ptr<StmtAST> &&body, std::vector<std::string> parameter_names,
-              std::vector<type::TypeId> parameter_types)
+              std::vector<sql::SqlTypeId> parameter_types)
       : body_{std::move(body)},
         parameter_names_{std::move(parameter_names)},
         parameter_types_{std::move(parameter_types)} {
@@ -730,7 +729,7 @@ class FunctionAST : public AbstractAST {
   const std::vector<std::string> &ParameterNames() const { return parameter_names_; }
 
   /** @return The function parameter types */
-  const std::vector<type::TypeId> &ParameterTypes() const { return parameter_types_; }
+  const std::vector<sql::SqlTypeId> &ParameterTypes() const { return parameter_types_; }
 
  private:
   /** The body of the function */
@@ -740,7 +739,7 @@ class FunctionAST : public AbstractAST {
   std::vector<std::string> parameter_names_;
 
   /** The types of the parameters to the function */
-  std::vector<type::TypeId> parameter_types_;
+  std::vector<sql::SqlTypeId> parameter_types_;
 };
 
 // ----------------------------------------------------------------------------

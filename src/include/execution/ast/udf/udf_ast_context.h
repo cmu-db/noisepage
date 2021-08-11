@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "type/type_id.h"
+#include "execution/sql/sql.h"
 
 namespace noisepage::execution::ast::udf {
 
@@ -16,7 +16,7 @@ namespace noisepage::execution::ast::udf {
  */
 class UdfAstContext {
   /** An invidual entry for a record type, (name, type ID) */
-  using RecordTypeEntry = std::pair<std::string, type::TypeId>;
+  using RecordTypeEntry = std::pair<std::string, sql::SqlTypeId>;
 
   /** A full description of a record type */
   using RecordType = std::vector<RecordTypeEntry>;
@@ -59,7 +59,7 @@ class UdfAstContext {
    * @param name The name of the variable
    * @param type The type to which the variable should be set
    */
-  void SetVariableType(const std::string &name, type::TypeId type) { symbol_table_[name] = type; }
+  void SetVariableType(const std::string &name, sql::SqlTypeId type) { symbol_table_[name] = type; }
 
   /**
    * Get the type of the variable identified by `name`.
@@ -67,7 +67,7 @@ class UdfAstContext {
    * @return The type ID for the specified variable if present,
    * empty optional value otherwise
    */
-  std::optional<type::TypeId> GetVariableType(const std::string &name) const {
+  std::optional<sql::SqlTypeId> GetVariableType(const std::string &name) const {
     auto it = symbol_table_.find(name);
     return (it == symbol_table_.cend()) ? std::nullopt : std::make_optional(it->second);
   }
@@ -81,7 +81,7 @@ class UdfAstContext {
    * that the variable is not present; for variable queries
    * that may fail, use UdfAstContext::GetVariableType().
    */
-  type::TypeId GetVariableTypeFailFast(const std::string &name) const {
+  sql::SqlTypeId GetVariableTypeFailFast(const std::string &name) const {
     auto it = symbol_table_.find(name);
     NOISEPAGE_ASSERT(it != symbol_table_.cend(), "Required variable is not present in UDF AST");
     return it->second;
@@ -100,7 +100,7 @@ class UdfAstContext {
    * @param name The name of the variable
    * @param elems The record
    */
-  void SetRecordType(const std::string &name, std::vector<std::pair<std::string, type::TypeId>> &&elems) {
+  void SetRecordType(const std::string &name, std::vector<std::pair<std::string, sql::SqlTypeId>> &&elems) {
     record_types_[name] = std::move(elems);
   }
 
@@ -137,7 +137,7 @@ class UdfAstContext {
   /** Collection of local variable names for the UDF. */
   std::vector<std::string> locals_;
   /** The symbol table for the UDF. */
-  std::unordered_map<std::string, type::TypeId> symbol_table_;
+  std::unordered_map<std::string, sql::SqlTypeId> symbol_table_;
   /** Collection of record types for the UDF. */
   std::unordered_map<std::string, RecordType> record_types_;
 };

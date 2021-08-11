@@ -26,7 +26,6 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
-#include "type/type_id.h"
 
 namespace noisepage::catalog {
 
@@ -313,7 +312,7 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   return pg_core_.GetIndexes(txn, table);
 }
 
-type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) {
+type_oid_t DatabaseCatalog::GetTypeOidForType(const execution::sql::SqlTypeId type) {
   // TODO(WAN): WARNING! Do not change this seeing PgCoreImpl::MakeColumn and PgCoreImpl::CreateColumn.
   return type_oid_t(static_cast<uint8_t>(type));
 }
@@ -444,22 +443,24 @@ language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<tran
   return pg_language_.GetLanguageOid(txn, lanname);
 }
 
-proc_oid_t DatabaseCatalog::CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn,
-                                            const std::string &procname, language_oid_t language_oid,
-                                            namespace_oid_t procns, const std::vector<std::string> &args,
+proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                            const std::string &procname, const language_oid_t language_oid,
+                                            const namespace_oid_t procns, const type_oid_t variadic_type,
+                                            const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
-                                            const std::vector<postgres::PgProc::ArgMode> &arg_modes, type_oid_t rettype,
-                                            const std::string &src, bool is_aggregate) {
+                                            const std::vector<postgres::PgProc::ArgMode> &arg_modes,
+                                            const type_oid_t rettype, const std::string &src, bool is_aggregate) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
-  proc_oid_t oid = proc_oid_t{next_oid_++};
-  const auto result = pg_proc_.CreateProcedure(txn, oid, procname, language_oid, procns, args, arg_types, all_arg_types,
-                                               arg_modes, rettype, src, is_aggregate);
-  return result ? oid : INVALID_PROC_OID;
+  const proc_oid_t proc_oid = proc_oid_t{next_oid_++};
+  return pg_proc_.CreateProcedure(txn, proc_oid, procname, language_oid, procns, variadic_type, args, arg_types,
+                                  all_arg_types, arg_modes, rettype, src, is_aggregate)
+             ? proc_oid
+             : INVALID_PROC_OID;
 }
 
 bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                    proc_oid_t proc) {
+                                    const proc_oid_t proc) {
   if (!TryLock(txn)) return false;
   return pg_proc_.DropProcedure(txn, proc);
 }

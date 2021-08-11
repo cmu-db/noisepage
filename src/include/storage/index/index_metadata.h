@@ -12,7 +12,6 @@
 #include "storage/index/index_defs.h"
 #include "storage/projected_row.h"
 #include "storage/storage_util.h"
-#include "type/type_util.h"
 
 namespace noisepage::storage::index {
 
@@ -140,7 +139,7 @@ class IndexMetadata {
     auto key_cols = key_schema.GetColumns();
     attr_sizes.reserve(key_cols.size());
     for (const auto &key : key_cols) {
-      attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key.Type()));
+      attr_sizes.emplace_back(execution::sql::GetSqlTypeIdSize(key.Type()));
     }
     return attr_sizes;
   }
@@ -152,7 +151,7 @@ class IndexMetadata {
     uint16_t key_size = 0;
     auto key_cols = key_schema.GetColumns();
     for (const auto &key : key_cols) {
-      key_size = static_cast<uint16_t>(key_size + AttrSizeBytes(type::TypeUtil::GetTypeSize(key.Type())));
+      key_size = static_cast<uint16_t>(key_size + AttrSizeBytes(execution::sql::GetSqlTypeIdSize(key.Type())));
     }
     return key_size;
   }
@@ -170,8 +169,8 @@ class IndexMetadata {
     for (const auto &key : key_cols) {
       auto key_type = key.Type();
       switch (key_type) {
-        case type::TypeId::VARBINARY:
-        case type::TypeId::VARCHAR: {
+        case execution::sql::SqlTypeId::Varbinary:
+        case execution::sql::SqlTypeId::Varchar: {
           // Add 4 bytes because we'll prepend a size field. If we're too small, we'll just use a VarlenEntry.
           auto varlen_size =
               std::max(static_cast<uint16_t>(key.TypeModifier() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
@@ -179,7 +178,7 @@ class IndexMetadata {
           break;
         }
         default:
-          inlined_attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key_type));
+          inlined_attr_sizes.emplace_back(execution::sql::GetSqlTypeIdSize(key_type));
           break;
       }
     }
@@ -193,8 +192,8 @@ class IndexMetadata {
     auto key_cols = key_schema.GetColumns();
     return std::any_of(key_cols.begin(), key_cols.end(), [](const auto &key) -> bool {
       switch (key.Type()) {
-        case type::TypeId::VARBINARY:
-        case type::TypeId::VARCHAR: {
+        case execution::sql::SqlTypeId::Varbinary:
+        case execution::sql::SqlTypeId::Varchar: {
           // TODO(Matt): we should add an assertion here once a default for unlimited varlens is decided
           return static_cast<uint32_t>(key.TypeModifier()) > VarlenEntry::InlineThreshold();
         }

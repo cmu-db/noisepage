@@ -184,7 +184,7 @@ void ChildPropertyDeriver::DeriveForJoin() {
 
           // If a column is not in the prob table, we cannot fulfill the sort
           // property in the requirement
-          if (probe_group->GetTableAliases().count(tv_expr->GetTableName()) == 0U) {
+          if (probe_group->GetTableAliases().count(tv_expr->GetTableAlias()) == 0U) {
             can_pass_down = false;
             break;
           }

@@ -42,38 +42,38 @@ struct BaseFunctionParameter {
   DataType GetDataType() { return datatype_; }
 
   /** @return internal type id of the parameter */
-  static type::TypeId DataTypeToTypeId(DataType datatype) {
+  static execution::sql::SqlTypeId DataTypeToTypeId(DataType datatype) {
     switch (datatype) {
       case DataType::INT:
-        return type::TypeId::INTEGER;
+        return execution::sql::SqlTypeId::Integer;
       case DataType::INTEGER:
-        return type::TypeId::INTEGER;
+        return execution::sql::SqlTypeId::Integer;
       case DataType::TINYINT:
-        return type::TypeId::TINYINT;
+        return execution::sql::SqlTypeId::TinyInt;
       case DataType::SMALLINT:
-        return type::TypeId::SMALLINT;
+        return execution::sql::SqlTypeId::SmallInt;
       case DataType::BIGINT:
-        return type::TypeId::BIGINT;
+        return execution::sql::SqlTypeId::BigInt;
       case DataType::CHAR:
-        return type::TypeId::INVALID;
+        return execution::sql::SqlTypeId::Invalid;
       case DataType::DOUBLE:
-        return type::TypeId::DECIMAL;
+        return execution::sql::SqlTypeId::Decimal;
       case DataType::FLOAT:
-        return type::TypeId::DECIMAL;
+        return execution::sql::SqlTypeId::Decimal;
       case DataType::DECIMAL:
-        return type::TypeId::DECIMAL;
+        return execution::sql::SqlTypeId::Decimal;
       case DataType::VARCHAR:
-        return type::TypeId::VARCHAR;
+        return execution::sql::SqlTypeId::Varchar;
       case DataType::TEXT:
-        return type::TypeId::VARCHAR;
+        return execution::sql::SqlTypeId::Varchar;
       case DataType::BOOL:
-        return type::TypeId::BOOLEAN;
+        return execution::sql::SqlTypeId::Boolean;
       case DataType::BOOLEAN:
-        return type::TypeId::BOOLEAN;
+        return execution::sql::SqlTypeId::Boolean;
       case DataType::DATE:
-        return type::TypeId::DATE;
+        return execution::sql::SqlTypeId::Date;
     }
-    return type::TypeId::INVALID;
+    return execution::sql::SqlTypeId::Invalid;
   }
 
  private:

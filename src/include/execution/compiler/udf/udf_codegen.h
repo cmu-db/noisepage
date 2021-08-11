@@ -383,7 +383,7 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    * @return The type of the variable identified by `name`
    * @throw EXECUTION_EXCEPTION on failure to resolve type
    */
-  type::TypeId GetVariableType(const std::string &name) const;
+  sql::SqlTypeId GetVariableType(const std::string &name) const;
 
   /**
    * Get the type of the record variable identified by `name`.
@@ -391,7 +391,7 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    * @return The type of the record variable identified by `name`
    * @throw EXECUTION_EXCEPTION on failure to resolve type
    */
-  std::vector<std::pair<std::string, type::TypeId>> GetRecordType(const std::string &name) const;
+  std::vector<std::pair<std::string, sql::SqlTypeId>> GetRecordType(const std::string &name) const;
 
   /**
    * Bind the query and return the variable references.
@@ -420,19 +420,7 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    * @param parameter_type The parameter type
    * @return The builtin function to add this parameter
    */
-  static ast::Builtin AddParamBuiltinForParameterType(type::TypeId parameter_type);
-
-  /**
-   * TODO(Kyle): this
-   */
-  static std::vector<std::string> ParametersSortedByIndex(
-      const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &parameter_map);
-
-  /**
-   * TODO(Kyle): this
-   */
-  static std::vector<std::string> ColumnsSortedByIndex(
-      const std::unordered_map<std::string, std::pair<std::string, std::size_t>> &parameter_map);
+  static ast::Builtin AddParamBuiltinForParameterType(sql::SqlTypeId parameter_type);
 
   /** @return The execution context provided to the function */
   ast::Expr *GetExecutionContext();
@@ -477,7 +465,7 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   execution::util::RegionVector<execution::ast::Decl *> aux_decls_;
 
   /** The current type during code generation */
-  type::TypeId current_type_{type::TypeId::INVALID};
+  sql::SqlTypeId current_type_{sql::SqlTypeId::Invalid};
 
   /** The current execution result expression */
   execution::ast::Expr *execution_result_;

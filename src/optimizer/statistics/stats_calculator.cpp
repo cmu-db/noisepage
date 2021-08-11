@@ -231,7 +231,7 @@ double StatsCalculator::CalculateSelectivityForPredicate(Group *group, const Tab
     NOISEPAGE_ASSERT(expr->GetChildrenSize() == 0, "CVE should have no child.");
     auto cve = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
     NOISEPAGE_ASSERT(
-        cve->GetReturnValueType() == type::TypeId::BOOLEAN,
+        cve->GetReturnValueType() == execution::sql::SqlTypeId::Boolean,
         "Single child ConstantValueExpression should be a boolean since WHERE clauses must resolve to boolean.");
     if (cve->IsNull() || !cve->GetBoolVal().val_) {
       selectivity = 0;

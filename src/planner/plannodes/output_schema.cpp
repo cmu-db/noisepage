@@ -14,7 +14,7 @@ nlohmann::json OutputSchema::Column::ToJson() const {
 
 std::vector<std::unique_ptr<parser::AbstractExpression>> OutputSchema::Column::FromJson(const nlohmann::json &j) {
   name_ = j.at("name").get<std::string>();
-  type_ = j.at("type").get<type::TypeId>();
+  type_ = j.at("type").get<execution::sql::SqlTypeId>();
 
   if (!j.at("expr").is_null()) {
     auto deserialized = parser::DeserializeExpression(j.at("expr"));

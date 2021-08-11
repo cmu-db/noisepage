@@ -258,7 +258,7 @@ void stageModeling() {
 
     // Recompile the noisepage DBMS in Debug mode with code coverage.
     buildNoisePage([buildCommand:'ninja noisepage', cmake:
-        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_GENERATE_COVERAGE=ON'
+        '-DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON'
     ])
 
     // Run the self_driving_e2e_test.

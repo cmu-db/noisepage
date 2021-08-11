@@ -59,9 +59,9 @@ static constexpr const char DECL_TYPE_ID_VARCHAR[] = "varchar";
 static constexpr const char DECL_TYPE_ID_DATE[] = "date";
 static constexpr const char DECL_TYPE_ID_RECORD[] = "record";
 
-std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(const std::vector<std::string> &param_names,
-                                                                       const std::vector<type::TypeId> &param_types,
-                                                                       const std::string &func_body) {
+std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
+    const std::vector<std::string> &param_names, const std::vector<execution::sql::SqlTypeId> &param_types,
+    const std::string &func_body) {
   auto result = PLpgSQLParseResult{pg_query_parse_plpgsql(func_body.c_str())};
   if ((*result).error != nullptr) {
     throw PARSER_EXCEPTION(fmt::format("PL/pgSQL parser : {}", (*result).error->message));
@@ -193,26 +193,33 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
     // for the variable to determine the type for the declaration
 
     if ((type == DECL_TYPE_ID_INT) || (type == DECL_TYPE_ID_INTEGER)) {
-      udf_ast_context_->SetVariableType(var_name, type::TypeId::INTEGER);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INTEGER, std::move(initial));
+      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Integer);
+      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Integer,
+                                                                std::move(initial));
     }
     if ((type == DECL_TYPE_ID_DOUBLE) || (type == DECL_TYPE_ID_NUMERIC)) {
       // TODO(Kyle): type.rfind("numeric")
       // TODO(Kyle): Should this support FLOAT and DECMIAL as well??
-      udf_ast_context_->SetVariableType(var_name, type::TypeId::DECIMAL);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::DECIMAL, std::move(initial));
+      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Decimal);
+      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Decimal,
+                                                                std::move(initial));
     }
     if (type == DECL_TYPE_ID_VARCHAR) {
-      udf_ast_context_->SetVariableType(var_name, type::TypeId::VARCHAR);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::VARCHAR, std::move(initial));
+      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Varchar);
+      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Varchar,
+                                                                std::move(initial));
     }
     if (type == DECL_TYPE_ID_DATE) {
-      udf_ast_context_->SetVariableType(var_name, type::TypeId::DATE);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::DATE, std::move(initial));
+      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Date);
+      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Date,
+                                                                std::move(initial));
     }
     if (type == DECL_TYPE_ID_RECORD) {
-      udf_ast_context_->SetVariableType(var_name, type::TypeId::INVALID);
-      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INVALID, std::move(initial));
+      // TODO(Kyle): I don't like modeling RECORD types with the Invalid
+      // SqlTypeId, need to find a better way to integrate the type system
+      udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Invalid);
+      return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Invalid,
+                                                                std::move(initial));
     }
 
     throw PARSER_EXCEPTION(fmt::format("PL/pgSQL Parser : unsupported type '{}' for variable '{}'", type, var_name));
@@ -222,8 +229,8 @@ std::unique_ptr<execution::ast::udf::StmtAST> PLpgSQLParser::ParseDecl(const nlo
   if (declaration_type == K_PLPGSQL_ROW) {
     const auto var_name = json[K_PLPGSQL_ROW][K_REFNAME].get<std::string>();
     NOISEPAGE_ASSERT(var_name == "*internal*", "Unexpected refname");
-    udf_ast_context_->SetVariableType(var_name, type::TypeId::INVALID);
-    return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, type::TypeId::INVALID, nullptr);
+    udf_ast_context_->SetVariableType(var_name, execution::sql::SqlTypeId::Invalid);
+    return std::make_unique<execution::ast::udf::DeclStmtAST>(var_name, execution::sql::SqlTypeId::Invalid, nullptr);
   }
 
   // TODO(Kyle): Need to handle other types like row, table etc;
@@ -421,10 +428,10 @@ std::optional<std::unique_ptr<execution::ast::udf::ExprAST>> PLpgSQLParser::TryP
   switch (expr->GetExpressionType()) {
     case parser::ExpressionType::COLUMN_VALUE: {
       auto cve = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
-      if (cve->GetTableName().empty()) {
+      if (cve->GetTableAlias().GetName().empty()) {
         return std::make_optional(std::make_unique<execution::ast::udf::VariableExprAST>(cve->GetColumnName()));
       }
-      auto vexpr = std::make_unique<execution::ast::udf::VariableExprAST>(cve->GetTableName());
+      auto vexpr = std::make_unique<execution::ast::udf::VariableExprAST>(cve->GetTableAlias().GetName());
       return std::make_optional(
           std::make_unique<execution::ast::udf::MemberExprAST>(std::move(vexpr), cve->GetColumnName()));
     }
@@ -475,12 +482,13 @@ bool PLpgSQLParser::AllVariablesDeclared(const std::vector<std::string> &names) 
 
 bool PLpgSQLParser::ContainsRecordType(const std::vector<std::string> &names) const {
   return std::any_of(names.cbegin(), names.cend(), [this](const std::string &name) -> bool {
-    return udf_ast_context_->GetVariableType(name) == type::TypeId::INVALID;
+    return udf_ast_context_->GetVariableType(name) == execution::sql::SqlTypeId::Invalid;
   });
 }
 
-std::vector<std::pair<std::string, type::TypeId>> PLpgSQLParser::ResolveRecordType(const ParseResult *parse_result) {
-  std::vector<std::pair<std::string, type::TypeId>> fields{};
+std::vector<std::pair<std::string, execution::sql::SqlTypeId>> PLpgSQLParser::ResolveRecordType(
+    const ParseResult *parse_result) {
+  std::vector<std::pair<std::string, execution::sql::SqlTypeId>> fields{};
   const auto &select_columns =
       parse_result->GetStatement(0).CastManagedPointerTo<const parser::SelectStatement>()->GetSelectColumns();
   fields.reserve(select_columns.size());

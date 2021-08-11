@@ -146,7 +146,7 @@ class CodeGen {
   /**
    * @return A literal null whose type matches the provided type
    */
-  [[nodiscard]] ast::Expr *ConstNull(type::TypeId type) const;
+  [[nodiscard]] ast::Expr *ConstNull(execution::sql::SqlTypeId type) const;
 
   // ---------------------------------------------------------------------------
   //
@@ -753,7 +753,8 @@ class CodeGen {
    * @param attr_idx Index of the column being accessed.
    * @return The expression corresponding to the builtin call.
    */
-  [[nodiscard]] ast::Expr *PRGet(ast::Expr *pr, noisepage::type::TypeId type, bool nullable, uint32_t attr_idx);
+  [[nodiscard]] ast::Expr *PRGet(ast::Expr *pr, noisepage::execution::sql::SqlTypeId type, bool nullable,
+                                 uint32_t attr_idx);
 
   /**
    * Call \@prSet(pr, attr_idx, val, [own]).
@@ -765,8 +766,8 @@ class CodeGen {
    * @param own When inserting varchars, whether the VarlenEntry should own its content.
    * @return The expression corresponding to the builtin call.
    */
-  [[nodiscard]] ast::Expr *PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val,
-                                 bool own = false);
+  [[nodiscard]] ast::Expr *PRSet(ast::Expr *pr, execution::sql::SqlTypeId type, bool nullable, uint32_t attr_idx,
+                                 ast::Expr *val, bool own = false);
 
   // -------------------------------------------------------
   //

@@ -37,7 +37,7 @@ void LexicalScope::AddReference(std::unique_ptr<ContextSensitiveTableRef> &&ref)
 std::size_t LexicalScope::PositionOf(std::string_view alias, RefType type) const {
   auto it =
       std::find_if(references_.cbegin(), references_.cend(), [&](const std::unique_ptr<ContextSensitiveTableRef> &ref) {
-        return ref->Type() == type && ref->Table()->GetAlias() == alias;
+        return ref->Type() == type && ref->Table()->GetAlias().GetName() == alias;
       });
   NOISEPAGE_ASSERT(it != references_.cend(), "Requested table reference not present in scope");
   return std::distance(references_.cbegin(), it);

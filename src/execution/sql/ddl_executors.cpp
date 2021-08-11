@@ -47,23 +47,27 @@ bool DDLExecutors::CreateNamespaceExecutor(const common::ManagedPointer<planner:
 
 bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::CreateFunctionPlanNode> node,
                                           const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
-  // Request permission from the Catalog to see if this a valid namespace name
   NOISEPAGE_ASSERT(node->GetUDFLanguage() == parser::PLType::PL_PGSQL, "Unsupported language");
   NOISEPAGE_ASSERT(!node->GetFunctionBody().empty(), "Unsupported function body contents");
 
-  // I don't like how we have to separate the two here
-  std::vector<type::TypeId> param_type_ids{};
-  std::vector<catalog::type_oid_t> param_types{};
-  for (const auto t : node->GetFunctionParameterTypes()) {
-    param_type_ids.push_back(parser::FuncParameter::DataTypeToTypeId(t));
-    param_types.push_back(accessor->GetTypeOidFromTypeId(parser::FuncParameter::DataTypeToTypeId(t)));
-  }
+  const auto &parameter_types = node->GetFunctionParameterTypes();
 
-  auto body = node->GetFunctionBody().front();
-  auto proc_id = accessor->CreateProcedure(
-      node->GetFunctionName(), catalog::postgres::PgLanguage::PLPGSQL_LANGUAGE_OID, node->GetNamespaceOid(),
-      node->GetFunctionParameterNames(), param_types, param_types, {},
-      accessor->GetTypeOidFromTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType())), body, false);
+  std::vector<execution::sql::SqlTypeId> param_type_ids{};
+  std::transform(
+      parameter_types.cbegin(), parameter_types.cend(), std::back_inserter(param_type_ids),
+      [](const parser::BaseFunctionParameter::DataType &t) { return parser::FuncParameter::DataTypeToTypeId(t); });
+
+  std::vector<catalog::type_oid_t> param_types{};
+  std::transform(parameter_types.cbegin(), parameter_types.cend(), std::back_inserter(param_types),
+                 [&accessor](const parser::BaseFunctionParameter::DataType &t) {
+                   return accessor->GetTypeOidFromTypeId(parser::FuncParameter::DataTypeToTypeId(t));
+                 });
+
+  const auto return_type = accessor->GetTypeOidFromTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType()));
+  auto proc_id =
+      accessor->CreateProcedure(node->GetFunctionName(), catalog::postgres::PgLanguage::PLPGSQL_LANGUAGE_OID,
+                                node->GetNamespaceOid(), catalog::INVALID_TYPE_OID, node->GetFunctionParameterNames(),
+                                param_types, {}, {}, return_type, node->GetFunctionBody().front(), false);
   if (proc_id == catalog::INVALID_PROC_OID) {
     return false;
   }
@@ -77,7 +81,7 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   parser::udf::PLpgSQLParser udf_parser{common::ManagedPointer{&udf_ast_context}};
   std::unique_ptr<ast::udf::FunctionAST> ast{};
   try {
-    ast = udf_parser.Parse(node->GetFunctionParameterNames(), param_type_ids, body);
+    ast = udf_parser.Parse(node->GetFunctionParameterNames(), param_type_ids, node->GetFunctionBody().front());
   } catch (const ParserException &parser_error) {
     PARSER_LOG_ERROR(parser_error.what());
     return false;
@@ -132,10 +136,10 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
   // them to a std::move() above when we generate the AST, can we
   // avoid duplicating this work? Would need to change the APIs.
 
-  std::vector<type::TypeId> types{};
+  std::vector<sql::SqlTypeId> types{};
   types.reserve(node->GetFunctionParameterTypes().size());
   std::transform(node->GetFunctionParameterTypes().cbegin(), node->GetFunctionParameterTypes().cend(),
-                 std::back_inserter(types), [](const parser::BaseFunctionParameter::DataType &type) -> type::TypeId {
+                 std::back_inserter(types), [](const parser::BaseFunctionParameter::DataType &type) -> sql::SqlTypeId {
                    return parser::FuncParameter::DataTypeToTypeId(type);
                  });
 
@@ -174,7 +178,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     key_cols.reserve(primary_key_info.primary_key_cols_.size());
     for (const auto &parser_col : primary_key_info.primary_key_cols_) {
       const auto &table_col = schema.GetColumn(parser_col);
-      if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+      if (table_col.Type() == execution::sql::SqlTypeId::Varchar ||
+          table_col.Type() == execution::sql::SqlTypeId::Varbinary) {
         key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.TypeModifier(), table_col.Nullable(),
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
 
@@ -197,7 +202,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     std::vector<catalog::IndexSchema::Column> key_cols;
     for (const auto &unique_col : unique_constraint.unique_cols_) {
       const auto &table_col = schema.GetColumn(unique_col);
-      if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+      if (table_col.Type() == execution::sql::SqlTypeId::Varchar ||
+          table_col.Type() == execution::sql::SqlTypeId::Varbinary) {
         key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.TypeModifier(), table_col.Nullable(),
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
 

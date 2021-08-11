@@ -100,30 +100,36 @@ void PgTypeImpl::InsertType(const common::ManagedPointer<transaction::Transactio
 
 void PgTypeImpl::BootstrapTypes(const common::ManagedPointer<DatabaseCatalog> dbc,
                                 const common::ManagedPointer<transaction::TransactionContext> txn) {
-  auto insert_base_type = [&](const type::TypeId type, const std::string &type_name, const int16_t type_size) {
+  auto insert_base_type = [&](const execution::sql::SqlTypeId type, const std::string &type_name,
+                              const int16_t type_size) {
     InsertType(txn, dbc->GetTypeOidForType(type), type_name, PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, type_size,
                true, PgType::Type::BASE);
   };
 
-  insert_base_type(type::TypeId::INVALID, "invalid", 1);
-  insert_base_type(type::TypeId::BOOLEAN, "boolean", sizeof(bool));
-  insert_base_type(type::TypeId::TINYINT, "tinyint", sizeof(int8_t));
-  insert_base_type(type::TypeId::SMALLINT, "smallint", sizeof(int16_t));
-  insert_base_type(type::TypeId::INTEGER, "integer", sizeof(int32_t));
-  insert_base_type(type::TypeId::BIGINT, "bigint", sizeof(int64_t));
-  insert_base_type(type::TypeId::REAL, "real", sizeof(double));
-  insert_base_type(type::TypeId::DECIMAL, "decimal", sizeof(int128_t));
-  insert_base_type(type::TypeId::DATE, "date", sizeof(type::date_t));
-  insert_base_type(type::TypeId::TIMESTAMP, "timestamp", sizeof(type::timestamp_t));
+  insert_base_type(execution::sql::SqlTypeId::Boolean, "boolean",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Boolean));
+  insert_base_type(execution::sql::SqlTypeId::TinyInt, "tinyint",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::TinyInt));
+  insert_base_type(execution::sql::SqlTypeId::SmallInt, "smallint",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::SmallInt));
+  insert_base_type(execution::sql::SqlTypeId::Integer, "integer",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  insert_base_type(execution::sql::SqlTypeId::BigInt, "bigint",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
+  insert_base_type(execution::sql::SqlTypeId::Double, "double",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Double));
+  insert_base_type(execution::sql::SqlTypeId::Decimal, "decimal",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Decimal));
+  insert_base_type(execution::sql::SqlTypeId::Date, "date",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Date));
+  insert_base_type(execution::sql::SqlTypeId::Timestamp, "timestamp",
+                   execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Timestamp));
 
-  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARCHAR), "varchar",
+  InsertType(txn, dbc->GetTypeOidForType(execution::sql::SqlTypeId::Varchar), "varchar",
              PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);
 
-  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VARBINARY), "varbinary",
+  InsertType(txn, dbc->GetTypeOidForType(execution::sql::SqlTypeId::Varbinary), "varbinary",
              PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::BASE);
-
-  InsertType(txn, dbc->GetTypeOidForType(type::TypeId::VAR_ARRAY), "var_array",
-             PgNamespace::NAMESPACE_CATALOG_NAMESPACE_OID, -1, false, PgType::Type::COMPOSITE);
 }
 
 }  // namespace noisepage::catalog::postgres

@@ -9,7 +9,7 @@ namespace noisepage::parser {
 std::unique_ptr<AbstractExpression> ColumnValueExpression::Copy() const {
   auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
   expr->SetMutableStateForCopy(*this);
-  expr->table_name_ = this->table_name_;
+  expr->table_alias_ = this->table_alias_;
   expr->column_name_ = this->column_name_;
   expr->SetDatabaseOID(this->database_oid_);
   expr->SetTableOID(this->table_oid_);
@@ -20,7 +20,7 @@ std::unique_ptr<AbstractExpression> ColumnValueExpression::Copy() const {
 common::hash_t ColumnValueExpression::Hash() const {
   common::hash_t hash = common::HashUtil::Hash(GetExpressionType());
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetReturnValueType()));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_name_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
@@ -35,7 +35,7 @@ bool ColumnValueExpression::operator==(const AbstractExpression &rhs) const {
 
   auto const &other = dynamic_cast<const ColumnValueExpression &>(rhs);
   if (GetColumnName() != other.GetColumnName()) return false;
-  if (GetTableName() != other.GetTableName()) return false;
+  if (GetTableAlias() != other.GetTableAlias()) return false;
   if (GetColumnOid() != other.GetColumnOid()) return false;
   if (GetTableOid() != other.GetTableOid()) return false;
   if (!(GetAlias() == rhs.GetAlias())) return false;
@@ -55,7 +55,7 @@ void ColumnValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor
 
 nlohmann::json ColumnValueExpression::ToJson() const {
   nlohmann::json j = AbstractExpression::ToJson();
-  j["table_name"] = table_name_;
+  j["table_name"] = table_alias_.ToJson();
   j["column_name"] = column_name_;
   j["database_oid"] = database_oid_;
   j["table_oid"] = table_oid_;
@@ -67,7 +67,7 @@ std::vector<std::unique_ptr<AbstractExpression>> ColumnValueExpression::FromJson
   std::vector<std::unique_ptr<AbstractExpression>> exprs;
   auto e1 = AbstractExpression::FromJson(j);
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-  table_name_ = j.at("table_name").get<std::string>();
+  table_alias_.FromJson(j.at("table_name"));
   column_name_ = j.at("column_name").get<std::string>();
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();

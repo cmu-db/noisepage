@@ -9,10 +9,10 @@
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
 #include "execution/ast/udf/udf_ast_context.h"
+#include "execution/sql/sql.h"
 #include "parser/postgresparser.h"
 #include "parser/select_statement.h"
 #include "parser/udf/variable_ref.h"
-#include "type/type_id.h"
 
 namespace noisepage {
 
@@ -73,7 +73,7 @@ class BindNodeVisitor final : public SqlNodeVisitor {
    */
   void BindNameToNode(common::ManagedPointer<parser::ParseResult> parse_result,
                       common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
-                      common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types);
+                      common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> desired_parameter_types);
 
   void Visit(common::ManagedPointer<parser::AnalyzeStatement> node) override;
   void Visit(common::ManagedPointer<parser::CopyStatement> node) override;
@@ -194,6 +194,12 @@ class BindNodeVisitor final : public SqlNodeVisitor {
    */
   void AddUDFVariableReference(common::ManagedPointer<parser::ColumnValueExpression> expr,
                                const std::string &column_name);
+
+  /**
+   * Set the serial number of the table alias to a unique number if it isn't already set
+   * @param node Table Ref to set serial number of
+   */
+  void SetUniqueTableAlias(common::ManagedPointer<parser::TableRef> node);
 };
 
 }  // namespace binder

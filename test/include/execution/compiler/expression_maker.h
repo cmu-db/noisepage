@@ -45,16 +45,16 @@ class ExpressionMaker {
    * Create an integer constant expression
    */
   ManagedExpression Constant(int32_t val) {
-    return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(val)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Integer,
+                                                                         execution::sql::Integer(val)));
   }
 
   /**
    * Create a floating point constant expression
    */
   ManagedExpression Constant(double val) {
-    return MakeManaged(
-        std::make_unique<parser::ConstantValueExpression>(type::TypeId::REAL, execution::sql::Real(val)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Double,
+                                                                         execution::sql::Real(val)));
   }
 
   /**
@@ -62,8 +62,8 @@ class ExpressionMaker {
    */
   ManagedExpression Constant(const std::string &str) {
     auto string_val = execution::sql::ValueUtil::CreateStringVal(str);
-    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
-                                                                         std::move(string_val.second)));
+    return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
+        execution::sql::SqlTypeId::Varchar, string_val.first, std::move(string_val.second)));
   }
 
   /**
@@ -71,14 +71,14 @@ class ExpressionMaker {
    */
   ManagedExpression Constant(int32_t year, uint32_t month, uint32_t day) {
     return MakeManaged(std::make_unique<parser::ConstantValueExpression>(
-        type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(year, month, day))));
+        execution::sql::SqlTypeId::Date, sql::DateVal(sql::Date::FromYMD(year, month, day))));
   }
 
   /**
    * Create an expression for a builtin call.
    */
   ManagedExpression Function(std::string &&func_name, const std::vector<ManagedExpression> &args,
-                             const type::TypeId return_value_type, catalog::proc_oid_t proc_oid) {
+                             const execution::sql::SqlTypeId return_value_type, catalog::proc_oid_t proc_oid) {
     std::vector<execution::compiler::test::ExpressionMaker::OwnedExpression> children;
     children.reserve(args.size());
     for (const auto &arg : args) {
@@ -91,21 +91,21 @@ class ExpressionMaker {
   /**
    * Create a column value expression
    */
-  ManagedExpression CVE(catalog::col_oid_t column_oid, type::TypeId type) {
+  ManagedExpression CVE(catalog::col_oid_t column_oid, execution::sql::SqlTypeId type) {
     return MakeManaged(std::make_unique<parser::ColumnValueExpression>(catalog::table_oid_t(0), column_oid, type));
   }
 
   /**
    * Create a derived value expression
    */
-  ManagedExpression DVE(type::TypeId type, int tuple_idx, int value_idx) {
+  ManagedExpression DVE(execution::sql::SqlTypeId type, int tuple_idx, int value_idx) {
     return MakeManaged(std::make_unique<parser::DerivedValueExpression>(type, tuple_idx, value_idx));
   }
 
   /**
    * Create a parameter value expression
    */
-  ManagedExpression PVE(type::TypeId type, uint32_t param_idx) {
+  ManagedExpression PVE(execution::sql::SqlTypeId type, uint32_t param_idx) {
     return MakeManaged(std::make_unique<parser::ParameterValueExpression>(param_idx, type));
   }
 
@@ -188,7 +188,8 @@ class ExpressionMaker {
   /**
    * Create a unary operation expression
    */
-  ManagedExpression Operator(parser::ExpressionType op_type, type::TypeId ret_type, ManagedExpression child) {
+  ManagedExpression Operator(parser::ExpressionType op_type, execution::sql::SqlTypeId ret_type,
+                             ManagedExpression child) {
     std::vector<OwnedExpression> children;
     children.emplace_back(child->Copy());
     return MakeManaged(std::make_unique<parser::OperatorExpression>(op_type, ret_type, std::move(children)));
@@ -197,8 +198,8 @@ class ExpressionMaker {
   /**
    * Create a binary operation expression
    */
-  ManagedExpression Operator(parser::ExpressionType op_type, type::TypeId ret_type, ManagedExpression child1,
-                             ManagedExpression child2) {
+  ManagedExpression Operator(parser::ExpressionType op_type, execution::sql::SqlTypeId ret_type,
+                             ManagedExpression child1, ManagedExpression child2) {
     std::vector<OwnedExpression> children;
     children.emplace_back(child1->Copy());
     children.emplace_back(child2->Copy());
@@ -244,7 +245,7 @@ class ExpressionMaker {
    * Create expression for NOT(child)
    */
   ManagedExpression OpNot(ManagedExpression child) {
-    return Operator(parser::ExpressionType::OPERATOR_NOT, type::TypeId::BOOLEAN, child);
+    return Operator(parser::ExpressionType::OPERATOR_NOT, execution::sql::SqlTypeId::Boolean, child);
   }
 
   /**

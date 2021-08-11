@@ -8,32 +8,13 @@ This document describes important aspects of the design and implementation of us
 
 This section describes known limitations of our implementation of UDFs.
 
-**Parallel Table Scans**
+**Function Argument Modes**
 
-Consider the following function:
+Currently, only the implicit `IN` argument mode is supported. `OUT` and `INOUT` argument modes have no effect on the semantics of the function.
 
-```sql
-CREATE FUNCTION agg_count() RETURNS INT AS $$
-DECLARE 
-v INT; 
-BEGIN 
-  SELECT COUNT(z) INTO v FROM tmp; 
-  RETURN v; 
-END 
-$$ LANGUAGE PLPGSQL;
-```
+**Parallel Operations**
 
-Currently, we fail to generate code for this function. Code generation fails while we attempt to generate code for the embedded SQL query `SELECT COUTN(z) INTO v FROM tmp;`. The plan tree for this query is straighforward: a static aggregation with a sequential table scan as its only child. However, we fail semantic analysis for the generated code because of the presence of the ouutput callback - a TPL closure that takes the output of the query and "writes" it into the variable `v` within the contextion of the function (a simplification, but close enough). When the callback is present, we add the closure itself as an additional parameter to the top-level pipeline functions:
-- Wrapper
-- Init
-- Run
-- Teardown
-
-This is an issue because we expect the callback function for a parallel table vector iterator to have a specific signature, and the presence of the closure violates this signature.
-
-There are a couple of fixes available for this problem, but the question of which one is "correct" is not straightforward.
-- Do we just change the signature in semantic analysis to accept this? What are the correctness implications of this decision? Is it possible that invoking a closure in parallel will result in incorrect or undefined behavior?
-- It doesn't seem like we _need_ to push the closure down as an argument to all of the functions that define the pipeline, only some of them. Specifically, the closure is only used (thus far) as a mechanism for pushing results out of the query back into the function in which it is embedded. Therefore, why do we add the closure as an argument to every pipeline function? It seems like this may have been just an "expedient" solution that isn't actually what is required or desired.
+There is some data race that occurs when an output callback is used in the context of a parallel pipeline that results in garbage results.
 
 **Missing `RETURN`**
 

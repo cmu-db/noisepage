@@ -35,7 +35,7 @@ class Group {
    * @param id ID of the Group
    * @param table_aliases Set of table aliases used by the Group
    */
-  Group(group_id_t id, std::unordered_set<std::string> table_aliases)
+  Group(group_id_t id, std::unordered_set<parser::AliasType> table_aliases)
       : id_(id), table_aliases_(std::move(table_aliases)), has_explored_(false) {}
 
   /**
@@ -89,7 +89,7 @@ class Group {
   /**
    * @returns table aliases for this group
    */
-  const std::unordered_set<std::string> &GetTableAliases() const { return table_aliases_; }
+  const std::unordered_set<parser::AliasType> &GetTableAliases() const { return table_aliases_; }
 
   /**
    * Gets the vector of all logical expressions
@@ -202,7 +202,7 @@ class Group {
    * All the table alias this group represents. This will not change once create
    * TODO(boweic) Do not use string, store table alias id
    */
-  std::unordered_set<std::string> table_aliases_;
+  std::unordered_set<parser::AliasType> table_aliases_;
 
   /**
    * Mapping from property requirements to a pair of (cost, GroupExpression)

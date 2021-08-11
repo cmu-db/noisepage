@@ -2,15 +2,13 @@
 #include <memory>
 #include <vector>
 
-#include "execution/sql/cte_scan_iterator.h"
-#include "execution/sql/storage_interface.h"
-
 #include "catalog/catalog_defs.h"
+#include "execution/sql/cte_scan_iterator.h"
 #include "execution/sql/index_iterator.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
-#include "type/type_id.h"
 
 namespace noisepage::execution::sql::test {
 
@@ -32,9 +30,10 @@ class CTEScanTest : public SqlBasedTest {
 TEST_F(CTEScanTest, CTEInitTest) {
   // Check the mapping of col_oids to the col_ids in the constructed table
 
-  uint32_t cte_table_col_type[4] = {
-      static_cast<uint32_t>(type::TypeId::BIGINT), static_cast<uint32_t>(type::TypeId::INTEGER),
-      static_cast<uint32_t>(type::TypeId::SMALLINT), static_cast<uint32_t>(type::TypeId::VARCHAR)};
+  uint32_t cte_table_col_type[4] = {static_cast<uint32_t>(execution::sql::SqlTypeId::BigInt),
+                                    static_cast<uint32_t>(execution::sql::SqlTypeId::Integer),
+                                    static_cast<uint32_t>(execution::sql::SqlTypeId::SmallInt),
+                                    static_cast<uint32_t>(execution::sql::SqlTypeId::Varchar)};
   uint32_t cte_table_col_ids[4] = {exec_ctx_->GetAccessor()->GetNewTempOid(), exec_ctx_->GetAccessor()->GetNewTempOid(),
                                    exec_ctx_->GetAccessor()->GetNewTempOid(),
                                    exec_ctx_->GetAccessor()->GetNewTempOid()};
@@ -89,7 +88,7 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   index_iter1.Init();
 
   // Create cte_table
-  uint32_t cte_table_col_type[1] = {4};  // Represents TypeId for {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
 
   auto cte_scan = new noisepage::execution::sql::CteScanIterator(
@@ -122,7 +121,7 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
   TableVectorIterator table_iter(exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
                                  cte_table_col_ids, static_cast<uint32_t>(col_oids.size()));
-  table_iter.InitTempTable(common::ManagedPointer(cte_table));
+  table_iter.InitTempTable(common::ManagedPointer(cte_table), cte_scan->GetSchema());
   VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
@@ -158,7 +157,7 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
 
   // Create cte_table
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
-  uint32_t cte_table_col_type[1] = {4};  // Represents TypeId for {INTEGER}
+  uint32_t cte_table_col_type[1] = {static_cast<uint32_t>(execution::sql::SqlTypeId::Integer)};
 
   auto cte_scan = new noisepage::execution::sql::CteScanIterator(
       exec_ctx_.get(), catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
@@ -190,7 +189,7 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
   auto table_iter = new TableVectorIterator(exec_ctx_.get(), (cte_scan->GetTableOid()).UnderlyingValue(),
                                             cte_table_col_ids, static_cast<uint32_t>(col_oids.size()));
-  table_iter->InitTempTable(common::ManagedPointer(cte_table));
+  table_iter->InitTempTable(common::ManagedPointer(cte_table), cte_scan->GetSchema());
   VectorProjectionIterator *vpi = table_iter->GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter->Advance()) {

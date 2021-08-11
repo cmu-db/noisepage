@@ -9,7 +9,6 @@
 
 #include "storage/arrow_block_metadata.h"
 #include "storage/data_table.h"
-#include "type/type_id.h"
 
 namespace flatbuf = org::apache::arrow::flatbuf;
 
@@ -60,7 +59,7 @@ class ArrowSerializer {
    * @param col_types since in the data table level, we don't know the type of each column. We need to use this
    *        parameter that is provided to get the types of columns.
    */
-  void ExportTable(const std::string &file_name, std::vector<noisepage::type::TypeId> *col_types);
+  void ExportTable(const std::string &file_name, std::vector<noisepage::execution::sql::SqlTypeId> *col_types);
 
  private:
   const DataTable &data_table_;
@@ -114,7 +113,8 @@ class ArrowSerializer {
    * @param flatbuf_builder flatbuffer builder
    */
   void WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
-                          std::vector<type::TypeId> *col_types, flatbuffers::FlatBufferBuilder *flatbuf_builder);
+                          std::vector<execution::sql::SqlTypeId> *col_types,
+                          flatbuffers::FlatBufferBuilder *flatbuf_builder);
 
   /**
    * This function write a Dictionary message. The dictionary message is something contains the dictionary entries.

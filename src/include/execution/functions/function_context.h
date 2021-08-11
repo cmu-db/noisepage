@@ -11,7 +11,6 @@
 #include "execution/ast/builtins.h"
 #include "execution/ast/context.h"
 #include "execution/util/region.h"
-#include "type/type_id.h"
 
 namespace noisepage::execution::functions {
 
@@ -26,7 +25,8 @@ class FunctionContext {
    * @param func_ret_type Return type of function
    * @param arg_types Vector of argument types
    */
-  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types)
+  FunctionContext(std::string func_name, execution::sql::SqlTypeId func_ret_type,
+                  std::vector<execution::sql::SqlTypeId> &&arg_types)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
         arg_types_(std::move(arg_types)),
@@ -41,7 +41,7 @@ class FunctionContext {
    * @param builtin Which builtin this context refers to
    * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
    */
-  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
+  FunctionContext(std::string func_name, sql::SqlTypeId func_ret_type, std::vector<sql::SqlTypeId> &&arg_types,
                   ast::Builtin builtin, bool is_exec_ctx_required = false)
       : func_name_(std::move(func_name)),
         func_ret_type_(func_ret_type),
@@ -61,7 +61,7 @@ class FunctionContext {
    * @param is_exec_ctx_required Flag indicating whether an
    * execution context is required for this function
    */
-  FunctionContext(std::string func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
+  FunctionContext(std::string func_name, sql::SqlTypeId func_ret_type, std::vector<sql::SqlTypeId> &&arg_types,
                   std::unique_ptr<util::Region> ast_region, std::unique_ptr<ast::Context> ast_context, ast::File *file,
                   bool is_exec_ctx_required = true)
       : func_name_(std::move(func_name)),
@@ -76,14 +76,14 @@ class FunctionContext {
   /** @return The name of the function represented by this context object. */
   const std::string &GetFunctionName() const { return func_name_; }
 
-  /** @return The vector of type arguments of the function represented by this context object. */
-  const std::vector<type::TypeId> &GetFunctionArgTypes() const { return arg_types_; }
+  /** @return The vector of type arguments of the function represented by this context object */
+  const std::vector<execution::sql::SqlTypeId> &GetFunctionArgTypes() const { return arg_types_; }
 
   /**
    * Gets the return type of the function represented by this object.
    * @return The return type of this function.
    */
-  type::TypeId GetFunctionReturnType() const { return func_ret_type_; }
+  execution::sql::SqlTypeId GetFunctionReturnType() const { return func_ret_type_; }
 
   /** @return `true` if this represents a builtin function, `false` otherwise. */
   bool IsBuiltin() const { return is_builtin_; }
@@ -123,11 +123,10 @@ class FunctionContext {
   /** The function name */
   std::string func_name_;
   /** The function return type */
-  type::TypeId func_ret_type_;
-  /** The types of the arguments to the function */
-  std::vector<type::TypeId> arg_types_;
-
-  /** `true` if this function is a builtin, `false` otherwise */
+  sql::SqlTypeId func_ret_type_;
+  /** The function argument types */
+  std::vector<sql::SqlTypeId> arg_types_;
+  /** `true` if this function is a builtin */
   bool is_builtin_;
   /** The builtin function, if applicable */
   ast::Builtin builtin_;

@@ -154,7 +154,7 @@ std::size_t StructuredStatement::RefCount(const StructuredStatement::RefDescript
         const std::size_t pos = std::distance(scope->References().cbegin(), it);
         if (pos == position) {
           const auto &table_ref = *it;
-          if (table_ref->Table()->GetAlias() == alias && table_ref->Type() == type) {
+          if (table_ref->Table()->GetAlias().GetName() == alias && table_ref->Type() == type) {
             ++count;
           }
         }

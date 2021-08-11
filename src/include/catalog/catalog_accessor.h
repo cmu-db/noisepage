@@ -14,7 +14,6 @@
 #include "common/managed_pointer.h"
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
-#include "type/type_id.h"
 
 namespace noisepage::storage {
 class SqlTable;
@@ -313,24 +312,25 @@ class EXPORT CatalogAccessor {
   bool DropLanguage(language_oid_t language_oid);
 
   /**
-   * Creates a procedure for the pg_proc table
+   * Creates a procedure for the pg_proc table. See postgres' documentation for that the constraints are, or the
+   * assertions in pg_proc_impl.cpp.
    * @param procname name of process to add
    * @param language_oid oid of language this process is written in
    * @param procns namespace of process to add
+   * @param variadic_type type of the variadic arg (if any)
    * @param args names of arguments to this proc
    * @param arg_types types of arguments to this proc in the same order as in args (only for in and inout
    *        arguments)
-   * @param all_arg_types types of all arguments
-   * @param arg_modes modes of arguments in the same order as in args
+   * @param all_arg_types types of all arguments only if there are args that are not IN
+   * @param arg_modes modes of arguments in the same order as in args, only if they aren't all IN
    * @param rettype oid of the type of return value
    * @param src source code of proc
    * @param is_aggregate true iff this is an aggregate procedure
    * @return oid of created proc entry
-   * @warning does not support variadics yet
    */
   proc_oid_t CreateProcedure(const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
-                             const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
-                             const std::vector<type_oid_t> &all_arg_types,
+                             type_oid_t variadic_type, const std::vector<std::string> &args,
+                             const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
                              const std::vector<postgres::PgProc::ArgMode> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
 
@@ -397,7 +397,7 @@ class EXPORT CatalogAccessor {
    * @param type
    * @return type_oid of type in pg_type
    */
-  type_oid_t GetTypeOidFromTypeId(type::TypeId type);
+  type_oid_t GetTypeOidFromTypeId(execution::sql::SqlTypeId type);
 
   /**
    * @return BlockStore to be used for CREATE operations
@@ -414,8 +414,11 @@ class EXPORT CatalogAccessor {
    * @warning For use in the execution engine only, such that cached modules function correctly
    * @param table_oid The temporary oid of this table
    * @param table The temp table being registered
+   * @param schema The schema of the temp table. //TODO(Matt): this is owned by the CTEScanIterator. Are there lifecycle
+   * issues there? Maybe The CatalogAccessor should own temp objects to guarantee availability?
    */
-  void RegisterTempTable(table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table);
+  void RegisterTempTable(table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table,
+                         common::ManagedPointer<const catalog::Schema> schema);
 
   /**
    * Allocates and returns a new temporary oid. These oids are only valid for the lifetime of this accessor
@@ -456,6 +459,7 @@ class EXPORT CatalogAccessor {
    * cte scan iterators will interact with this and handle the lifetime of these temporary tables.
    */
   std::unordered_map<catalog::table_oid_t, common::ManagedPointer<storage::SqlTable>> temp_tables_;
+  std::unordered_map<catalog::table_oid_t, common::ManagedPointer<const catalog::Schema>> temp_schemas_;
   uint32_t temp_oid_counter_{0};
 
   /**

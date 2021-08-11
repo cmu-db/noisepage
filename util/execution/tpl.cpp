@@ -171,11 +171,11 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Add dummy parameters for tests
   std::vector<parser::ConstantValueExpression> params{};
-  params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));
-  params.emplace_back(type::TypeId::REAL, sql::Real(37.73));
-  params.emplace_back(type::TypeId::DATE, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
+  params.emplace_back(execution::sql::SqlTypeId::Integer, sql::Integer(37));
+  params.emplace_back(execution::sql::SqlTypeId::Double, sql::Real(37.73));
+  params.emplace_back(execution::sql::SqlTypeId::Date, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
   auto string_val = sql::ValueUtil::CreateStringVal(std::string_view("37 Strings"));
-  params.emplace_back(type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));
+  params.emplace_back(execution::sql::SqlTypeId::Varchar, string_val.first, std::move(string_val.second));
 
   auto exec_ctx = exec::ExecutionContextBuilder()
                       .WithDatabaseOID(db_oid)
