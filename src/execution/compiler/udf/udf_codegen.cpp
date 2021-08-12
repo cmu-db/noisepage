@@ -59,14 +59,30 @@ void UdfCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
 
 catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(ast::BuiltinType::Kind type) {
   switch (type) {
-    case ast::BuiltinType::Kind::Integer: {
-      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Integer);
-    }
     case ast::BuiltinType::Kind::Boolean: {
       return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Boolean);
     }
+    case ast::BuiltinType::Kind::Integer: {
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Integer);
+    }
+    case ast::BuiltinType::Kind::Real: {
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Real);
+    }
+    case ast::BuiltinType::Kind::Decimal: {
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Decimal);
+    }
+    case ast::BuiltinType::Kind::StringVal: {
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Varchar);
+    }
+    case ast::BuiltinType::Kind::Date: {
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Date);
+    }
+    case ast::BuiltinType::Kind::Timestamp: {
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Timestamp);
+    }
     default:
-      NOISEPAGE_ASSERT(false, "Unsupported parameter type");
+      NOISEPAGE_ASSERT(false, "Invalid SQL type in function call");
+      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Invalid);
   }
 }
 
@@ -91,28 +107,29 @@ void UdfCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
-  std::vector<ast::Expr *> args_ast{};
-  std::vector<ast::Expr *> args_ast_region_vec{};
-  std::vector<catalog::type_oid_t> arg_types{};
+  const auto &args = ast->Args();
 
-  // First argument to UDF is an execution context
-  args_ast_region_vec.push_back(GetExecutionContext());
+  // Evaluate all arguments to call
+  std::vector<ast::Expr *> arguments{};
+  arguments.reserve(ast->Args().size());
+  std::transform(args.cbegin(), args.cend(), std::back_inserter(arguments),
+                 [this](const std::unique_ptr<ast::udf::ExprAST> &expr) { return EvaluateExpression(expr.get()); });
 
-  // TODO(Kyle): Is this the semantics we want? The execution
-  // context for the entire TPL program is shared?
+  NOISEPAGE_ASSERT(std::all_of(arguments.cbegin(), arguments.cend(),
+                               [](const ast::Expr *arg) {
+                                 auto *builtin = arg->GetType()->SafeAs<ast::BuiltinType>();
+                                 return builtin != nullptr && builtin->IsSqlValueType();
+                               }),
+                   "Invalid argument type in function call");
 
-  // TODO(Kyle): Clean up this logic
-  for (auto &arg : ast->Args()) {
-    ast::Expr *result = EvaluateExpression(arg.get());
-    args_ast.push_back(result);
-    args_ast_region_vec.push_back(result);
-    auto *builtin = result->GetType()->SafeAs<ast::BuiltinType>();
-    NOISEPAGE_ASSERT(builtin != nullptr, "Parameter must be a built-in type");
-    NOISEPAGE_ASSERT(builtin->IsSqlValueType(), "Parameter must be a SQL value type");
-    arg_types.push_back(GetCatalogTypeOidFromSQLType(builtin->GetKind()));
-  }
+  // Get argument types
+  std::vector<catalog::type_oid_t> argument_types{};
+  std::transform(arguments.cbegin(), arguments.cend(), std::back_inserter(argument_types),
+                 [this](const ast::Expr *expr) {
+                   return GetCatalogTypeOidFromSQLType(expr->GetType()->SafeAs<ast::BuiltinType>()->GetKind());
+                 });
 
-  const auto proc_oid = accessor_->GetProcOid(ast->Callee(), arg_types);
+  const auto proc_oid = accessor_->GetProcOid(ast->Callee(), argument_types);
   if (proc_oid == catalog::INVALID_PROC_OID) {
     throw BINDER_EXCEPTION(fmt::format("Invalid function call '{}'", ast->Callee()),
                            common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
@@ -120,9 +137,13 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
 
   auto context = accessor_->GetFunctionContext(proc_oid);
   if (context->IsBuiltin()) {
-    ast::Expr *result = codegen_->CallBuiltin(context->GetBuiltin(), args_ast);
+    ast::Expr *result = codegen_->CallBuiltin(context->GetBuiltin(), arguments);
     SetExecutionResult(result);
   } else {
+    // NOTE(Kyle): This is an unfortunate operation because it
+    // requires shifting all elements in the vector, but we
+    // don't typically see functions with super-high arity
+    arguments.insert(arguments.begin(), GetExecutionContext());
     auto it = SymbolTable().find(ast->Callee());
     ast::Identifier ident_expr;
     if (it != SymbolTable().end()) {
@@ -137,7 +158,7 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
       ident_expr = codegen_->MakeFreshIdentifier(file->Declarations().back()->Name().GetString());
       SymbolTable()[file->Declarations().back()->Name().GetString()] = ident_expr;
     }
-    ast::Expr *result = codegen_->Call(ident_expr, args_ast_region_vec);
+    ast::Expr *result = codegen_->Call(ident_expr, arguments);
     SetExecutionResult(result);
   }
 }

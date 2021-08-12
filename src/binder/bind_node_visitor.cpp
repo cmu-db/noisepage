@@ -1161,8 +1161,8 @@ bool BindNodeVisitor::HaveUDFVariableRef(const std::string &identifier) const {
 
 void BindNodeVisitor::AddUDFVariableReference(common::ManagedPointer<parser::ColumnValueExpression> expr,
                                               const std::string &table_name, const std::string &column_name) {
-  const execution::sql::SqlTypeId type = udf_ast_context_->GetVariableTypeFailFast(table_name);
-  NOISEPAGE_ASSERT(type == execution::sql::SqlTypeId::Invalid, "Must be a RECORD type");
+  NOISEPAGE_ASSERT(udf_ast_context_->GetVariableTypeFailFast(table_name) == execution::sql::SqlTypeId::Invalid,
+                   "Must be a RECORD type");
 
   // Locate the column name in the structure
   const auto fields = udf_ast_context_->GetRecordTypeFailFast(table_name);
