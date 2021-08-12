@@ -23,19 +23,22 @@ statement ok
 
 
 statement ok
--- Create a test table
+-- Create test tables
 
 statement ok
 CREATE TABLE integers(x INT, y INT);
 
 statement ok
+INSERT INTO integers(x, y) VALUES (1, 1), (2, 2), (3, 3);
+
+statement ok
 
 
 statement ok
--- Insert some data
+CREATE TABLE strings(s TEXT);
 
 statement ok
-INSERT INTO integers (x, y) VALUES (1, 1), (2, 2), (3, 3);
+INSERT INTO strings(s) VALUES ('aaa'), ('bbb'), ('ccc');
 
 statement ok
 
@@ -59,6 +62,27 @@ query I rowsort
 SELECT return_constant();
 ----
 1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_constant();
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_constant() RETURNS TEXT AS $$ BEGIN RETURN 'hello, functions'; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query T rowsort
+SELECT return_constant();
+----
+hello, functions
 
 
 statement ok
@@ -101,6 +125,32 @@ statement ok
 
 statement ok
 DROP FUNCTION return_input(INT);
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_input(x TEXT) RETURNS TEXT AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query TT rowsort
+SELECT s, return_input(s) FROM strings;
+----
+aaa
+aaa
+bbb
+bbb
+ccc
+ccc
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_input(TEXT);
 
 statement ok
 

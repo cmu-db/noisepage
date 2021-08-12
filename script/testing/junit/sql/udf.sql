@@ -6,11 +6,12 @@
 -- because all user-defined functions are implemented
 -- in the Postgres PL/SQL dialect, PL/pgSQL.
 
--- Create a test table
+-- Create test tables
 CREATE TABLE integers(x INT, y INT);
+INSERT INTO integers(x, y) VALUES (1, 1), (2, 2), (3, 3);
 
--- Insert some data
-INSERT INTO integers (x, y) VALUES (1, 1), (2, 2), (3, 3);
+CREATE TABLE strings(s TEXT);
+INSERT INTO strings(s) VALUES ('aaa'), ('bbb'), ('ccc');
 
 -- ----------------------------------------------------------------------------
 -- return_constant()
@@ -20,6 +21,16 @@ BEGIN                                               \
   RETURN 1;                                         \
 END                                                 \
 $$ LANGUAGE PLPGSQL;                              
+
+SELECT return_constant();
+
+DROP FUNCTION return_constant();
+
+CREATE FUNCTION return_constant() RETURNS TEXT AS $$ \
+BEGIN                                                \
+  RETURN 'hello, functions';                         \
+END                                                  \
+$$ LANGUAGE PLPGSQL;
 
 SELECT return_constant();
 
@@ -37,6 +48,16 @@ $$ LANGUAGE PLPGSQL;
 SELECT x, return_input(x) FROM integers;
 
 DROP FUNCTION return_input(INT);
+
+CREATE FUNCTION return_input(x TEXT) RETURNS TEXT AS $$ \
+BEGIN                                                   \
+  RETURN x;                                             \
+END                                                     \
+$$ LANGUAGE PLPGSQL;
+
+SELECT s, return_input(s) FROM strings;
+
+DROP FUNCTION return_input(TEXT);
 
 -- ----------------------------------------------------------------------------
 -- return_sum()
