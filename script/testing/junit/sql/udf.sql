@@ -26,15 +26,15 @@ SELECT return_constant();
 
 DROP FUNCTION return_constant();
 
-CREATE FUNCTION return_constant() RETURNS TEXT AS $$ \
+CREATE FUNCTION return_constant_str() RETURNS TEXT AS $$ \
 BEGIN                                                \
   RETURN 'hello, functions';                         \
 END                                                  \
 $$ LANGUAGE PLPGSQL;
 
-SELECT return_constant();
+SELECT return_constant_str();
 
-DROP FUNCTION return_constant();
+DROP FUNCTION return_constant_str();
 
 -- ----------------------------------------------------------------------------
 -- return_input()
