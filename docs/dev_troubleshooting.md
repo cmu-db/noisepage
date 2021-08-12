@@ -1,6 +1,6 @@
-# Development Environment Troubleshooting
+# Developer Documentation: Development Environment Troubleshooting
 
-**Table of Contents**
+## Table of Contents
 
 - [Platform Agnostic](#platform-agnostic)
 - [OSX](#osx)

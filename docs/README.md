@@ -89,11 +89,6 @@ You should learn a little about the following:
 
 If you run into issues, you may need your default `python` to point to a `python3` install. For example, add this to your `~/.zshrc`: `alias python=python3`
 
-### Other Targets to Know
-
-In addition to the CMake targets above, some additional commands that are run during the continuous integration process include:
-- `cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2> warnings.txt`: This runs Doxygen to write the API documentation for NoisePage and directs all warnings to the local file `warnings.txt`. Continuous integration rejects PRs for which Doxygen produces any warnings, so it is useful to run this command locally first to verify that you have added / updated all of the necessary documentation.
-
 ## Development
 
 ### Workflow
@@ -114,9 +109,11 @@ In addition to the CMake targets above, some additional commands that are run du
    - Code has to pass all the checks for it to be merged!
 7. When your pull request passes all of the checks, post on Slack in `#pr-czar`.
 
-### Running tests locally
+See the [Pull Request Process](./dev_pr_process.md) document for a full rundown of the pull request procedure.
 
-#### unittests
+### Running Tests Locally
+
+#### Unit Tests
 
 You can run the `unittest` or `jumbotests` suite, they are equivalent. Inside your build folder, after running the build system generator:
 - `ninja unittest`: Compile and run each individual test in the `test/` folder.
@@ -131,6 +128,6 @@ The `ctest` runner calls `build-support/run-test.sh`, which handles setting up o
 You can also run the test binaries manually, but you will need to set the environment variables yourself. Right now, the variables that should be set are:
 - `LSAN_OPTIONS=suppressions=/absolute/path/to/noisepage/build-support/data/lsan_suppressions.txt`
 
-#### junit tests
+#### Integration Tests
 
 TODO(WAN): write this. possibly after updating the junit thing to make it a little easier for people to pick up.
