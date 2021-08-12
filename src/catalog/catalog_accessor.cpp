@@ -78,7 +78,7 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
   return dbc_->SetTablePointer(txn_, table, table_ptr);
 }
 
-common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) const {
+common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(const table_oid_t table) const {
   if (UNLIKELY(catalog::IsTempOid(table))) {
     auto result = temp_tables_.find(table);
     NOISEPAGE_ASSERT(result != temp_tables_.end(), "temp_tables_ does not contain desired table");
@@ -100,7 +100,14 @@ bool CatalogAccessor::UpdateSchema(table_oid_t table, Schema *new_schema) const 
   return dbc_->UpdateSchema(txn_, table, new_schema);
 }
 
-const Schema &CatalogAccessor::GetSchema(table_oid_t table) const { return dbc_->GetSchema(txn_, table); }
+const Schema &CatalogAccessor::GetSchema(const table_oid_t table) const {
+  if (UNLIKELY(catalog::IsTempOid(table))) {
+    auto result = temp_schemas_.find(table);
+    NOISEPAGE_ASSERT(result != temp_schemas_.end(), "temp_tables_ does not contain desired table");
+    return *(result->second);
+  }
+  return dbc_->GetSchema(txn_, table);
+}
 
 std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table) const {
   return dbc_->GetConstraints(txn_, table);
@@ -180,14 +187,15 @@ language_oid_t CatalogAccessor::GetLanguageOid(const std::string &lanname) {
 
 bool CatalogAccessor::DropLanguage(language_oid_t language_oid) { return dbc_->DropLanguage(txn_, language_oid); }
 
-proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, language_oid_t language_oid,
-                                            namespace_oid_t procns, const std::vector<std::string> &args,
+proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, const language_oid_t language_oid,
+                                            const namespace_oid_t procns, const type_oid_t variadic_type,
+                                            const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
                                             const std::vector<postgres::PgProc::ArgModes> &arg_modes,
-                                            type_oid_t rettype, const std::string &src, bool is_aggregate) {
-  return dbc_->CreateProcedure(txn_, procname, language_oid, procns, args, arg_types, all_arg_types, arg_modes, rettype,
-                               src, is_aggregate);
+                                            const type_oid_t rettype, const std::string &src, const bool is_aggregate) {
+  return dbc_->CreateProcedure(txn_, procname, language_oid, procns, variadic_type, args, arg_types, all_arg_types,
+                               arg_modes, rettype, src, is_aggregate);
 }
 
 bool CatalogAccessor::DropProcedure(proc_oid_t proc_oid) { return dbc_->DropProcedure(txn_, proc_oid); }
@@ -221,7 +229,9 @@ optimizer::TableStats CatalogAccessor::GetTableStatistics(table_oid_t table_oid)
   return dbc_->GetTableStatistics(txn_, table_oid);
 }
 
-type_oid_t CatalogAccessor::GetTypeOidFromTypeId(type::TypeId type) { return dbc_->GetTypeOidForType(type); }
+type_oid_t CatalogAccessor::GetTypeOidFromTypeId(execution::sql::SqlTypeId type) {
+  return dbc_->GetTypeOidForType(type);
+}
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
   // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a
@@ -230,8 +240,10 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   return catalog_->GetBlockStore();
 }
 
-void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table) {
+void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table,
+                                        const common::ManagedPointer<const catalog::Schema> schema) {
   temp_tables_[table_oid] = table;
+  temp_schemas_[table_oid] = schema;
 }
 
 }  // namespace noisepage::catalog

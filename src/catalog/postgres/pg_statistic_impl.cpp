@@ -204,7 +204,7 @@ optimizer::TableStats PgStatisticImpl::GetTableStatistics(common::ManagedPointer
 
 std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
     common::ManagedPointer<storage::ProjectedRow> all_cols_pr, table_oid_t table_oid, col_oid_t col_oid,
-    type::TypeId type) {
+    execution::sql::SqlTypeId type) {
   auto num_rows = *PgStatistic::STA_NUMROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
   auto non_null_rows = *PgStatistic::STA_NONNULLROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
   auto distinct_values = *PgStatistic::STA_DISTINCTROWS.Get(all_cols_pr, pg_statistic_all_cols_prm_);
@@ -212,29 +212,29 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
   const auto *histogram_str = PgStatistic::STA_HISTOGRAM.Get(all_cols_pr, pg_statistic_all_cols_prm_);
 
   switch (type) {
-    case type::TypeId::BOOLEAN:
+    case execution::sql::SqlTypeId::Boolean:
       return CreateColumnStats<execution::sql::BoolVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                         top_k_str, histogram_str, type);
-    case type::TypeId::TINYINT:
-    case type::TypeId::SMALLINT:
-    case type::TypeId::INTEGER:
-    case type::TypeId::BIGINT:
+    case execution::sql::SqlTypeId::TinyInt:
+    case execution::sql::SqlTypeId::SmallInt:
+    case execution::sql::SqlTypeId::Integer:
+    case execution::sql::SqlTypeId::BigInt:
       return CreateColumnStats<execution::sql::Integer>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                         top_k_str, histogram_str, type);
-    case type::TypeId::REAL:
+    case execution::sql::SqlTypeId::Double:
       return CreateColumnStats<execution::sql::Real>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                      top_k_str, histogram_str, type);
-    case type::TypeId::DECIMAL:
+    case execution::sql::SqlTypeId::Decimal:
       return CreateColumnStats<execution::sql::DecimalVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                            top_k_str, histogram_str, type);
-    case type::TypeId::TIMESTAMP:
+    case execution::sql::SqlTypeId::Timestamp:
       return CreateColumnStats<execution::sql::TimestampVal>(table_oid, col_oid, num_rows, non_null_rows,
                                                              distinct_values, top_k_str, histogram_str, type);
-    case type::TypeId::DATE:
+    case execution::sql::SqlTypeId::Date:
       return CreateColumnStats<execution::sql::DateVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                         top_k_str, histogram_str, type);
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY:
+    case execution::sql::SqlTypeId::Varchar:
+    case execution::sql::SqlTypeId::Varbinary:
       return CreateColumnStats<execution::sql::StringVal>(table_oid, col_oid, num_rows, non_null_rows, distinct_values,
                                                           top_k_str, histogram_str, type);
     default:
@@ -245,7 +245,7 @@ std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
 template <typename T>
 std::unique_ptr<optimizer::ColumnStatsBase> PgStatisticImpl::CreateColumnStats(
     table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, size_t non_null_rows, size_t distinct_values,
-    const storage::VarlenEntry *top_k_str, const storage::VarlenEntry *histogram_str, type::TypeId type) {
+    const storage::VarlenEntry *top_k_str, const storage::VarlenEntry *histogram_str, execution::sql::SqlTypeId type) {
   using CppType = decltype(T::val_);
   // top_k and histogram will be NULL on a newly created table
   auto top_k = top_k_str != nullptr

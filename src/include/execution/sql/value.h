@@ -4,9 +4,9 @@
 
 #include "common/macros.h"
 #include "execution/sql/runtime_types.h"
+#include "execution/sql/sql.h"
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"
-#include "type/type_id.h"
 
 namespace noisepage::execution::sql {
 
@@ -89,7 +89,7 @@ struct Integer : public Val {
 /**
  * A NULL-able single- and double-precision floating point SQL value.
  */
-struct Real : public Val {
+struct Real : public Val {  // TODO(Matt): should this be refactored to Double for consistency?
   /** The raw double value. */
   double val_;
 
@@ -320,6 +320,7 @@ struct TimestampVal : public Val {
   }
 };
 
+// TODO(Matt): these look redundant to sql.h/.cpp
 /**
  * Utility functions for sql values
  */
@@ -328,25 +329,25 @@ struct ValUtil {
    * @param type a noisepage type
    * @return the size of the corresponding sql type
    */
-  static uint32_t GetSqlSize(type::TypeId type) {
+  static uint32_t GetSqlSize(execution::sql::SqlTypeId type) {
     switch (type) {
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT:
+      case execution::sql::SqlTypeId::TinyInt:
+      case execution::sql::SqlTypeId::SmallInt:
+      case execution::sql::SqlTypeId::Integer:
+      case execution::sql::SqlTypeId::BigInt:
         return static_cast<uint32_t>(sizeof(Integer));
-      case type::TypeId::BOOLEAN:
+      case execution::sql::SqlTypeId::Boolean:
         return static_cast<uint32_t>(sizeof(BoolVal));
-      case type::TypeId::DATE:
+      case execution::sql::SqlTypeId::Date:
         return static_cast<uint32_t>(sizeof(DateVal));
-      case type::TypeId::TIMESTAMP:
+      case execution::sql::SqlTypeId::Timestamp:
         return static_cast<uint32_t>(sizeof(TimestampVal));
-      case type::TypeId::REAL:
+      case execution::sql::SqlTypeId::Double:
         return static_cast<uint32_t>(sizeof(Real));
-      case type::TypeId::DECIMAL:
+      case execution::sql::SqlTypeId::Decimal:
         return static_cast<uint32_t>(sizeof(DecimalVal));
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY:
+      case execution::sql::SqlTypeId::Varchar:
+      case execution::sql::SqlTypeId::Varbinary:
         return static_cast<uint32_t>(sizeof(StringVal));
       default:
         return 0;
@@ -357,25 +358,25 @@ struct ValUtil {
    * @param type A noisepage type.
    * @return The alignment for this type in the execution engine.
    */
-  static uint32_t GetSqlAlignment(type::TypeId type) {
+  static uint32_t GetSqlAlignment(execution::sql::SqlTypeId type) {
     switch (type) {
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT:
+      case execution::sql::SqlTypeId::TinyInt:
+      case execution::sql::SqlTypeId::SmallInt:
+      case execution::sql::SqlTypeId::Integer:
+      case execution::sql::SqlTypeId::BigInt:
         return static_cast<uint32_t>(alignof(Integer));
-      case type::TypeId::BOOLEAN:
+      case execution::sql::SqlTypeId::Boolean:
         return static_cast<uint32_t>(alignof(BoolVal));
-      case type::TypeId::DATE:
+      case execution::sql::SqlTypeId::Date:
         return static_cast<uint32_t>(alignof(DateVal));
-      case type::TypeId::TIMESTAMP:
+      case execution::sql::SqlTypeId::Timestamp:
         return static_cast<uint32_t>(alignof(TimestampVal));
-      case type::TypeId::REAL:
+      case execution::sql::SqlTypeId::Double:
         return static_cast<uint32_t>(alignof(Real));
-      case type::TypeId::DECIMAL:
+      case execution::sql::SqlTypeId::Decimal:
         return static_cast<uint32_t>(alignof(DecimalVal));
-      case type::TypeId::VARCHAR:
-      case type::TypeId::VARBINARY:
+      case execution::sql::SqlTypeId::Varchar:
+      case execution::sql::SqlTypeId::Varbinary:
         return static_cast<uint32_t>(alignof(StringVal));
       default:
         return 0;

@@ -312,6 +312,115 @@ SELECT sno FROM supplier WHERE sno >= (SELECT MIN(shipment.sno) FROM shipment IN
 ----
 1 values hashing to 1dcca23355272056f04fe8bf20edfce0
 
+query IIIT rowsort
+SELECT * FROM shipment WHERE sno = (SELECT MIN(sno) FROM shipment);
+----
+1
+1
+1
+item_11
+
+query IIIT rowsort
+SELECT * FROM shipment WHERE sno IN (SELECT sno FROM shipment);
+----
+1
+1
+1
+item_11
+2
+1
+1
+item_11
+2
+1
+2
+item_12
+2
+2
+2
+item_22
+2
+3
+1
+item_31
+2
+4
+4
+item_41
+3
+1
+1
+item_11
+3
+1
+3
+item_13
+3
+2
+2
+item_21
+3
+3
+10
+item_32
+4
+3
+10
+item_33
+4
+4
+6
+item_42
+5
+4
+5
+item_43
+5
+5
+100
+item_51
+
+query IIT rowsort
+SELECT * FROM part WHERE pno IN (SELECT amount FROM part);
+----
+1
+1
+item_13
+1
+10
+item_11
+1
+11
+item_14
+1
+5
+item_12
+2
+20
+item_21
+4
+10
+item_42
+4
+2
+item_43
+4
+4
+item_41
+5
+1000
+item_51
+
+query III rowsort
+SELECT shipment.sno, pno, quota FROM shipment, supplier WHERE shipment.sno = supplier.sno AND quota IN (SELECT amount FROM shipment, part WHERE shipment.pno = part.pno);
+----
+5
+4
+5
+5
+5
+5
+
 statement ok
 
 

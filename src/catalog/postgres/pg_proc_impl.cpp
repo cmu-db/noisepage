@@ -75,59 +75,83 @@ std::function<void(void)> PgProcImpl::GetTearDownFn(common::ManagedPointer<trans
 
 bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
                                  const proc_oid_t oid, const std::string &procname, const language_oid_t language_oid,
-                                 const namespace_oid_t procns, const std::vector<std::string> &args,
-                                 const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
+                                 const namespace_oid_t procns, const type_oid_t variadic_type,
+                                 const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
+                                 const std::vector<type_oid_t> &all_arg_types,
                                  const std::vector<PgProc::ArgModes> &arg_modes, const type_oid_t rettype,
                                  const std::string &src, const bool is_aggregate) {
   NOISEPAGE_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
+  NOISEPAGE_ASSERT(args.size() == arg_types.size(), "Every input arg needs a type.");
+  NOISEPAGE_ASSERT(
+      arg_modes.empty() || (!(std::all_of(arg_modes.cbegin(), arg_modes.cend(),
+                                          [](PgProc::ArgModes mode) { return mode == PgProc::ArgModes::IN; })) &&
+                            arg_modes.size() >= args.size()),
+      "argmodes should be empty unless there are modes other than IN, in which case arg_modes must be at "
+      "least equal to the size of args.");
+  NOISEPAGE_ASSERT(all_arg_types.size() == arg_modes.size(),
+                   "If a mode is defined for each arg, then a type must be defined for each arg as well.");
 
   const auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
 
   auto *const redo = txn->StageWrite(db_oid_, PgProc::PRO_TABLE_OID, pg_proc_all_cols_pri_);
-  auto delta = common::ManagedPointer(redo->Delta());
-  auto &pm = pg_proc_all_cols_prm_;
+  const auto delta = common::ManagedPointer(redo->Delta());
+  const auto &pm = pg_proc_all_cols_prm_;
 
   // Prepare the PR for insertion.
   {
-    std::vector<std::string> arg_name_vec;
-    arg_name_vec.reserve(args.size() * sizeof(storage::VarlenEntry));
-    for (auto &arg : args) {
-      arg_name_vec.push_back(arg);
+    PgProc::PROOID.Set(delta, pm, oid);                 // Procedure OID.
+    PgProc::PRONAME.Set(delta, pm, name_varlen);        // Procedure name.
+    PgProc::PRONAMESPACE.Set(delta, pm, procns);        // Namespace of procedure.
+    PgProc::PROLANG.Set(delta, pm, language_oid);       // Language for procedure.
+    PgProc::PROCOST.Set(delta, pm, 0);                  // Estimated cost per row returned. // TODO(Matt): unused field?
+    PgProc::PROROWS.Set(delta, pm, 0);                  // Estimated number of result rows. // TODO(Matt): unused field?
+    PgProc::PROVARIADIC.Set(delta, pm, variadic_type);  // Type of the variadic argument, or 0
+    PgProc::PROISAGG.Set(delta, pm, is_aggregate);      // Whether aggregate or not. // TODO(Matt): unused field?
+    PgProc::PROISWINDOW.Set(delta, pm, false);          // Not window. // TODO(Matt): unused field?
+    PgProc::PROISSTRICT.Set(delta, pm, true);           // Strict. // TODO(Matt): unused field?
+    PgProc::PRORETSET.Set(delta, pm, false);            // Doesn't return a set. // TODO(Matt): unused field?
+    PgProc::PROVOLATILE.Set(delta, pm,
+                            static_cast<char>(PgProc::ProVolatile::STABLE));  // Stable. // TODO(Matt): unused field?
+    PgProc::PRONARGS.Set(delta, pm, static_cast<uint16_t>(args.size()));      // Num args.
+    PgProc::PRONARGDEFAULTS.Set(delta, pm, 0);   // Assume no default args. // TODO(Matt): unused field?
+    PgProc::PRORETTYPE.Set(delta, pm, rettype);  // Return type.
+
+    if (arg_types.empty()) {
+      PgProc::PROARGTYPES.SetNull(delta, pm);
+    } else {
+      const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
+      PgProc::PROARGTYPES.Set(delta, pm, arg_types_varlen);  // Arg types.
     }
 
-    const auto arg_names_varlen = storage::StorageUtil::CreateVarlen(args);
-    const auto arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
-    const auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(all_arg_types);
-    const auto arg_modes_varlen = storage::StorageUtil::CreateVarlen(arg_modes);
-    const auto src_varlen = storage::StorageUtil::CreateVarlen(src);
+    if (all_arg_types.empty()) {
+      PgProc::PROALLARGTYPES.SetNull(delta, pm);
+    } else {
+      const auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(all_arg_types);
+      PgProc::PROALLARGTYPES.Set(delta, pm, all_arg_types_varlen);
+    }
 
-    PgProc::PROOID.Set(delta, pm, oid);            // Procedure OID.
-    PgProc::PRONAME.Set(delta, pm, name_varlen);   // Procedure name.
-    PgProc::PRONAMESPACE.Set(delta, pm, procns);   // Namespace of procedure.
-    PgProc::PROLANG.Set(delta, pm, language_oid);  // Language for procedure.
-    PgProc::PROCOST.Set(delta, pm, 0);             // Estimated cost per row returned.
-    PgProc::PROROWS.Set(delta, pm, 0);             // Estimated number of result rows.
-    // The Postgres documentation says that provariadic should be 0 if no variadics are present.
-    // Otherwise, it is the data type of the variadic array parameter's elements.
-    // TODO(WAN): Hang on, how are we using CreateProcedure for variadics then?
-    PgProc::PROVARIADIC.Set(delta, pm, type_oid_t{0});                                   // Assume no variadics.
-    PgProc::PROISAGG.Set(delta, pm, is_aggregate);                                       // Whether aggregate or not.
-    PgProc::PROISWINDOW.Set(delta, pm, false);                                           // Not window.
-    PgProc::PROISSTRICT.Set(delta, pm, true);                                            // Strict.
-    PgProc::PRORETSET.Set(delta, pm, false);                                             // Doesn't return a set.
-    PgProc::PROVOLATILE.Set(delta, pm, static_cast<char>(PgProc::ProVolatile::STABLE));  // Stable.
-    PgProc::PRONARGS.Set(delta, pm, static_cast<uint16_t>(args.size()));                 // Num args.
-    PgProc::PRONARGDEFAULTS.Set(delta, pm, 0);                                           // Assume no default args.
-    PgProc::PRORETTYPE.Set(delta, pm, rettype);                                          // Return type.
-    PgProc::PROARGTYPES.Set(delta, pm, arg_types_varlen);                                // Arg types.
-    // TODO(WAN): proallargtypes and proargmodes in Postgres should be NULL most of the time. See #1359.
-    PgProc::PROALLARGTYPES.Set(delta, pm, all_arg_types_varlen);
-    PgProc::PROARGMODES.Set(delta, pm, arg_modes_varlen);
-    delta->SetNull(pm[PgProc::PROARGDEFAULTS.oid_]);       // Assume no default args.
-    PgProc::PROARGNAMES.Set(delta, pm, arg_names_varlen);  // Arg names.
-    PgProc::PROSRC.Set(delta, pm, src_varlen);             // Source code.
-    delta->SetNull(pm[PgProc::PROCONFIG.oid_]);            // Assume no procedure local run-time configuration.
-    delta->SetNull(pm[PgProc::PRO_CTX_PTR.oid_]);          // Pointer to procedure context.
+    if (arg_modes.empty()) {
+      PgProc::PROARGMODES.SetNull(delta, pm);
+    } else {
+      const auto arg_modes_varlen = storage::StorageUtil::CreateVarlen(arg_modes);
+      PgProc::PROARGMODES.Set(delta, pm, arg_modes_varlen);
+    }
+
+    delta->SetNull(pm.at(PgProc::PROARGDEFAULTS.oid_));  // Assume no default args. // TODO(Matt): unused field?
+
+    if (args.empty()) {
+      PgProc::PROARGNAMES.SetNull(delta, pm);
+    } else {
+      const auto arg_names_varlen = storage::StorageUtil::CreateVarlen(args);
+      PgProc::PROARGNAMES.Set(delta, pm, arg_names_varlen);
+    }
+
+    const auto src_varlen = storage::StorageUtil::CreateVarlen(src);
+    PgProc::PROSRC.Set(delta, pm, src_varlen);  // Source code.
+
+    delta->SetNull(pm.at(
+        PgProc::PROCONFIG.oid_));  // Assume no procedure local run-time configuration. // TODO(Matt): unused field?
+    delta->SetNull(pm.at(PgProc::PRO_CTX_PTR.oid_));  // Pointer to procedure context.
   }
 
   const auto tuple_slot = procs_->Insert(txn, redo);
@@ -139,9 +163,9 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
   // Insert into pg_proc_name_index.
   {
     auto name_pr = name_pri.InitializeRow(buffer);
-    auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
-    name_pr->Set<namespace_oid_t, false>(name_map[indexkeycol_oid_t(1)], procns, false);
-    name_pr->Set<storage::VarlenEntry, false>(name_map[indexkeycol_oid_t(2)], name_varlen, false);
+    const auto &name_map = procs_name_index_->GetKeyOidToOffsetMap();
+    name_pr->Set<namespace_oid_t, false>(name_map.at(indexkeycol_oid_t(1)), procns, false);
+    name_pr->Set<storage::VarlenEntry, false>(name_map.at(indexkeycol_oid_t(2)), name_varlen, false);
 
     if (auto result = procs_name_index_->Insert(txn, *name_pr, tuple_slot); !result) {
       delete[] buffer;
@@ -210,9 +234,9 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   // Delete from pg_proc_name_index.
   {
     auto name_pr = name_pri.InitializeRow(buffer);
-    auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
-    name_pr->Set<namespace_oid_t, false>(name_map[indexkeycol_oid_t(1)], proc_ns, false);
-    name_pr->Set<storage::VarlenEntry, false>(name_map[indexkeycol_oid_t(2)], name_varlen, false);
+    const auto &name_map = procs_name_index_->GetKeyOidToOffsetMap();
+    name_pr->Set<namespace_oid_t, false>(name_map.at(indexkeycol_oid_t(1)), proc_ns, false);
+    name_pr->Set<storage::VarlenEntry, false>(name_map.at(indexkeycol_oid_t(2)), name_varlen, false);
     procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
   }
 
@@ -288,7 +312,7 @@ common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetPro
 
 proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const common::ManagedPointer<DatabaseCatalog> dbc, const namespace_oid_t procns,
-                                  const std::string &procname, const std::vector<type_oid_t> &arg_types) {
+                                  const std::string &procname, const std::vector<type_oid_t> &input_arg_types) {
   const auto &name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 
@@ -296,11 +320,11 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
   std::vector<storage::TupleSlot> results;
   {
     auto name_pr = name_pri.InitializeRow(buffer);
-    auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
+    const auto &name_map = procs_name_index_->GetKeyOidToOffsetMap();
 
     auto name_varlen = storage::StorageUtil::CreateVarlen(procname);
-    name_pr->Set<namespace_oid_t, false>(name_map[indexkeycol_oid_t(1)], procns, false);
-    name_pr->Set<storage::VarlenEntry, false>(name_map[indexkeycol_oid_t(2)], name_varlen, false);
+    name_pr->Set<namespace_oid_t, false>(name_map.at(indexkeycol_oid_t(1)), procns, false);
+    name_pr->Set<storage::VarlenEntry, false>(name_map.at(indexkeycol_oid_t(2)), name_varlen, false);
     procs_name_index_->ScanKey(*txn, *name_pr, &results);
 
     if (name_varlen.NeedReclaim()) {
@@ -312,35 +336,90 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
   std::vector<proc_oid_t> matching_functions;
 
   if (!results.empty()) {
-    const std::vector<type_oid_t> variadic = {dbc->GetTypeOidForType(type::TypeId::VARIADIC)};
-    auto variadic_varlen = storage::StorageUtil::CreateVarlen(variadic);
-    auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
+    const auto &pm = pg_proc_all_cols_prm_;
+    auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
 
     // Search through the results and check if any match the parsed function by argument types.
-    for (auto &tuple : results) {
-      auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
-      bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
+    for (const auto &candidate_proc_slot : results) {
+      bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, candidate_proc_slot, table_pr);
+      NOISEPAGE_ASSERT(visible, "Index scan should have already verified visibility.");
 
       // "PROARGTYPES ... represents the call signature of the function". Check only input arguments.
       // https://www.postgresql.org/docs/12/catalog-pg-proc.html
-      auto &pm = pg_proc_all_cols_prm_;
-      auto ind_all_arg_types = *table_pr->Get<storage::VarlenEntry, false>(pm[PgProc::PROARGTYPES.oid_], nullptr);
 
-      // Variadic functions will match any argument type as long as there are one or more arguments.
-      bool matches_exactly = ind_all_arg_types == all_arg_types_varlen;
-      bool is_variadic = ind_all_arg_types == variadic_varlen && !arg_types.empty();
+      bool match = false;
 
-      if (matches_exactly || is_variadic) {
-        auto proc_oid = *table_pr->Get<proc_oid_t, false>(pm[PgProc::PROOID.oid_], nullptr);
-        matching_functions.push_back(proc_oid);
-        break;
+      const auto candidate_proc_nargs = *(table_pr->Get<uint16_t, false>(pm.at(PgProc::PRONARGS.oid_), nullptr));
+      if (candidate_proc_nargs <= input_arg_types.size()) {
+        // input has enough arguments to try to match types
+        if (candidate_proc_nargs == 0) {
+          // function has no args, check the length of the input args
+          if (input_arg_types.empty()) {
+            // both had an empty argument list
+            match = true;
+          } else {
+            // function has no args, but input arg list is non-empty. Cannot be a match.
+            continue;
+          }
+        } else {
+          // Right now we know that both arg lists (function's and input) are non-empty, and that the input args is at
+          // least as long as the function's args. Start trying to match types
+
+          // Read the arg types out of the table
+          bool null_arg = false;
+          const auto *candidate_proc_args =
+              table_pr->Get<storage::VarlenEntry, true>(pm.at(PgProc::PROARGTYPES.oid_), &null_arg);
+          NOISEPAGE_ASSERT(!null_arg, "This shouldn't be NULL if nargs > 0.");
+
+          const auto candidate_proc_args_vector = candidate_proc_args->DeserializeArray<
+              type_oid_t>();  // TODO(Matt): could maybe elide this copy with
+                              // VarlenEntry.Content() shenanigans, but then need a bespoke way to compare against input
+                              // args in their vector. Previous version of this function constructed a VarlenEntry of
+                              // input args to compare, which seems worse.
+          if (candidate_proc_args_vector == input_arg_types) {
+            // argument signature matches exactly
+            match = true;
+          } else {
+            // not an exact signature match, check if the function is variadic
+            const auto candidate_proc_variadic =
+                *(table_pr->Get<type_oid_t, false>(pm.at(PgProc::PROVARIADIC.oid_), nullptr));
+            if (candidate_proc_variadic != INVALID_TYPE_OID) {
+              // it's variadic. match if:
+              // 1) function's args are a prefix of input args
+              // 2) remaining input args are all the same, and same type as variadic in function signature
+
+              // check condition 1
+              bool prefix_match = true;
+              for (uint16_t i = 0; i < candidate_proc_nargs && prefix_match; i++) {
+                if (candidate_proc_args_vector[i] != input_arg_types[i]) {
+                  // type mismatch, bail out
+                  prefix_match = false;
+                }
+              }
+              if (prefix_match) {
+                // condition 1 satisfied, check condition 2
+                NOISEPAGE_ASSERT(candidate_proc_variadic == candidate_proc_args_vector.back(),
+                                 "Last argument of function signature should be the variadic.");
+                bool variadic_args_match = true;
+                for (uint16_t i = candidate_proc_nargs; i < input_arg_types.size() && variadic_args_match; i++) {
+                  if (input_arg_types[i] != candidate_proc_variadic) {
+                    variadic_args_match = false;
+                  }
+                }
+                if (variadic_args_match) {
+                  // we satisfied both conditions described above, this function can match the input arguments
+                  match = true;
+                }
+              }
+            }
+          }
+        }
       }
-    }
-    if (variadic_varlen.NeedReclaim()) {
-      delete[] variadic_varlen.Content();
-    }
-    if (all_arg_types_varlen.NeedReclaim()) {
-      delete[] all_arg_types_varlen.Content();
+
+      if (match) {
+        const auto proc_oid = *table_pr->Get<proc_oid_t, false>(pm.at(PgProc::PROOID.oid_), nullptr);
+        matching_functions.push_back(proc_oid);
+      }
     }
   }
 
@@ -364,107 +443,112 @@ proc_oid_t PgProcImpl::GetProcOid(const common::ManagedPointer<transaction::Tran
 
 void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn,
                                 const common::ManagedPointer<DatabaseCatalog> dbc) {
-  const auto INT = dbc->GetTypeOidForType(type::TypeId::INTEGER);   // NOLINT
-  const auto STR = dbc->GetTypeOidForType(type::TypeId::VARCHAR);   // NOLINT
-  const auto REAL = dbc->GetTypeOidForType(type::TypeId::REAL);     // NOLINT
-  const auto DATE = dbc->GetTypeOidForType(type::TypeId::DATE);     // NOLINT
-  const auto BOOL = dbc->GetTypeOidForType(type::TypeId::BOOLEAN);  // NOLINT
-  const auto VAR = dbc->GetTypeOidForType(type::TypeId::VARIADIC);  // NOLINT
+  const auto INT = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Integer);   // NOLINT
+  const auto STR = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Varchar);   // NOLINT
+  const auto REAL = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Double);   // NOLINT
+  const auto DATE = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Date);     // NOLINT
+  const auto BOOL = dbc->GetTypeOidForType(execution::sql::SqlTypeId::Boolean);  // NOLINT
 
-  auto create_fn = [&](const std::string &procname, const std::vector<std::string> &args,
-                       const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
-                       type_oid_t rettype, bool is_aggregate) {
+  auto create_fn = [&](const std::string &procname, const type_oid_t variadic_type,
+                       const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
+                       type_oid_t rettype) {
+    std::vector<PgProc::ArgModes> arg_modes;
+    std::vector<type_oid_t> all_arg_types;
+    if (variadic_type != INVALID_TYPE_OID) {
+      all_arg_types = arg_types;
+      arg_modes.resize(arg_types.size(), PgProc::ArgModes::IN);  // we dont' support OUT or INOUT args right now
+      arg_modes.back() = PgProc::ArgModes::VARIADIC;             // variadic must be the last arg
+    }
     CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, procname, PgLanguage::INTERNAL_LANGUAGE_OID,
-                    PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, args, arg_types, all_arg_types, {}, rettype, "",
-                    true);
+                    PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, variadic_type, args, arg_types, all_arg_types,
+                    arg_modes, rettype, "", false);
   };
 
   // Math functions.
-  create_fn("abs", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("abs", {"n"}, {INT}, {INT}, INT, true);
-  create_fn("ceil", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("cbrt", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("exp", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("floor", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("log10", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("log2", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("mod", {"a", "b"}, {REAL, REAL}, {REAL, REAL}, REAL, true);
-  create_fn("mod", {"a", "b"}, {INT, INT}, {INT, INT}, INT, true);
-  create_fn("pow", {"x", "y"}, {REAL, REAL}, {REAL, REAL}, REAL, true);
-  create_fn("round", {"x", "n"}, {REAL, INT}, {REAL, INT}, REAL, true);
-  create_fn("round", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("sqrt", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("truncate", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("abs", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("abs", INVALID_TYPE_OID, {"n"}, {INT}, INT);
+  create_fn("ceil", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("cbrt", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("exp", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("floor", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("log10", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("log2", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("mod", INVALID_TYPE_OID, {"a", "b"}, {REAL, REAL}, REAL);
+  create_fn("mod", INVALID_TYPE_OID, {"a", "b"}, {INT, INT}, INT);
+  create_fn("pow", INVALID_TYPE_OID, {"x", "y"}, {REAL, REAL}, REAL);
+  create_fn("round", INVALID_TYPE_OID, {"x", "n"}, {REAL, INT}, REAL);
+  create_fn("round", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("sqrt", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("truncate", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
 
   // Trig functions.
-  create_fn("acos", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("asin", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("atan", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("atan2", {"y", "x"}, {REAL, REAL}, {REAL, REAL}, REAL, true);
-  create_fn("cos", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("cosh", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("cot", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("sin", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("sinh", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("tan", {"x"}, {REAL}, {REAL}, REAL, true);
-  create_fn("tanh", {"x"}, {REAL}, {REAL}, REAL, true);
+  create_fn("acos", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("asin", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("atan", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("atan2", INVALID_TYPE_OID, {"y", "x"}, {REAL, REAL}, REAL);
+  create_fn("cos", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("cosh", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("cot", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("sin", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("sinh", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("tan", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
+  create_fn("tanh", INVALID_TYPE_OID, {"x"}, {REAL}, REAL);
 
   // String functions.
-  create_fn("ascii", {"s"}, {STR}, {STR}, INT, true);
-  create_fn("btrim", {"s"}, {STR}, {STR}, STR, true);
-  create_fn("btrim", {"s", "s"}, {STR, STR}, {STR, STR}, STR, true);
-  create_fn("char_length", {"s"}, {STR}, {STR}, INT, true);
-  create_fn("chr", {"n"}, {INT}, {INT}, STR, true);
-  create_fn("concat", {"s"}, {VAR}, {VAR}, STR, true);
-  create_fn("initcap", {"s"}, {STR}, {STR}, STR, true);
-  create_fn("lower", {"s"}, {STR}, {STR}, STR, true);
-  create_fn("left", {"s", "n"}, {STR, INT}, {STR, INT}, STR, true);
-  create_fn("length", {"s"}, {STR}, {STR}, INT, true);
-  create_fn("lpad", {"s", "len"}, {STR, INT}, {STR, INT}, STR, true);
-  create_fn("lpad", {"s", "len", "pad"}, {STR, INT, STR}, {STR, INT, STR}, STR, true);
-  create_fn("ltrim", {"s"}, {STR}, {STR}, STR, true);
-  create_fn("ltrim", {"s", "chars"}, {STR, STR}, {STR, STR}, STR, true);
-  create_fn("position", {"s1", "s2"}, {STR, STR}, {STR, STR}, INT, true);
-  create_fn("repeat", {"s", "n"}, {STR, INT}, {STR, INT}, STR, true);
-  create_fn("reverse", {"s"}, {STR}, {STR}, STR, true);
-  create_fn("right", {"s", "n"}, {STR, INT}, {STR, INT}, STR, true);
-  create_fn("rpad", {"s", "len"}, {STR, INT}, {STR, INT}, STR, true);
-  create_fn("rpad", {"s", "len", "pad"}, {STR, INT, STR}, {STR, INT, STR}, STR, true);
-  create_fn("rtrim", {"s"}, {STR}, {STR}, STR, true);
-  create_fn("rtrim", {"s", "chars"}, {STR, STR}, {STR, STR}, STR, true);
-  create_fn("split_part", {"s", "delim", "field"}, {STR, STR, INT}, {STR, STR, INT}, STR, true);
-  create_fn("starts_with", {"s", "start"}, {STR, STR}, {STR, STR}, BOOL, true);
-  create_fn("substr", {"s", "pos", "len"}, {STR, INT, INT}, {STR, INT, INT}, STR, true);
-  create_fn("upper", {"s"}, {STR}, {STR}, STR, true);
+  create_fn("ascii", INVALID_TYPE_OID, {"s"}, {STR}, INT);
+  create_fn("btrim", INVALID_TYPE_OID, {"s"}, {STR}, STR);
+  create_fn("btrim", INVALID_TYPE_OID, {"s", "s"}, {STR, STR}, STR);
+  create_fn("char_length", INVALID_TYPE_OID, {"s"}, {STR}, INT);
+  create_fn("chr", INVALID_TYPE_OID, {"n"}, {INT}, STR);
+  create_fn("concat", STR, {"s"}, {STR}, STR);
+  create_fn("initcap", INVALID_TYPE_OID, {"s"}, {STR}, STR);
+  create_fn("lower", INVALID_TYPE_OID, {"s"}, {STR}, STR);
+  create_fn("left", INVALID_TYPE_OID, {"s", "n"}, {STR, INT}, STR);
+  create_fn("length", INVALID_TYPE_OID, {"s"}, {STR}, INT);
+  create_fn("lpad", INVALID_TYPE_OID, {"s", "len"}, {STR, INT}, STR);
+  create_fn("lpad", INVALID_TYPE_OID, {"s", "len", "pad"}, {STR, INT, STR}, STR);
+  create_fn("ltrim", INVALID_TYPE_OID, {"s"}, {STR}, STR);
+  create_fn("ltrim", INVALID_TYPE_OID, {"s", "chars"}, {STR, STR}, STR);
+  create_fn("position", INVALID_TYPE_OID, {"s1", "s2"}, {STR, STR}, INT);
+  create_fn("repeat", INVALID_TYPE_OID, {"s", "n"}, {STR, INT}, STR);
+  create_fn("reverse", INVALID_TYPE_OID, {"s"}, {STR}, STR);
+  create_fn("right", INVALID_TYPE_OID, {"s", "n"}, {STR, INT}, STR);
+  create_fn("rpad", INVALID_TYPE_OID, {"s", "len"}, {STR, INT}, STR);
+  create_fn("rpad", INVALID_TYPE_OID, {"s", "len", "pad"}, {STR, INT, STR}, STR);
+  create_fn("rtrim", INVALID_TYPE_OID, {"s"}, {STR}, STR);
+  create_fn("rtrim", INVALID_TYPE_OID, {"s", "chars"}, {STR, STR}, STR);
+  create_fn("split_part", INVALID_TYPE_OID, {"s", "delim", "field"}, {STR, STR, INT}, STR);
+  create_fn("starts_with", INVALID_TYPE_OID, {"s", "start"}, {STR, STR}, BOOL);
+  create_fn("substr", INVALID_TYPE_OID, {"s", "pos", "len"}, {STR, INT, INT}, STR);
+  create_fn("upper", INVALID_TYPE_OID, {"s"}, {STR}, STR);
 
   // Replication.
-  create_fn("replication_get_last_txn_id", {}, {}, {}, INT, false);
+  create_fn("replication_get_last_txn_id", INVALID_TYPE_OID, {}, {}, INT);
 
   // Other functions.
-  create_fn("date_part", {"date, date_part_type"}, {DATE, INT}, {DATE, INT}, INT, false);
-  create_fn("version", {}, {}, {}, STR, false);
+  create_fn("date_part", INVALID_TYPE_OID, {"date", "date_part_type"}, {DATE, INT}, INT);
+  create_fn("version", INVALID_TYPE_OID, {}, {}, STR);
 
-  CreateProcedure(
-      txn, proc_oid_t{dbc->next_oid_++}, "nprunnersemitint", PgLanguage::INTERNAL_LANGUAGE_OID,
-      PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
-      {INT, INT, INT, INT}, {INT, INT, INT, INT},
-      {PgProc::ArgModes::IN, PgProc::ArgModes::IN, PgProc::ArgModes::IN, PgProc::ArgModes::IN}, INT, "", false);
-  CreateProcedure(
-      txn, proc_oid_t{dbc->next_oid_++}, "nprunnersemitreal", PgLanguage::INTERNAL_LANGUAGE_OID,
-      PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
-      {INT, INT, INT, INT}, {INT, INT, INT, INT},
-      {PgProc::ArgModes::IN, PgProc::ArgModes::IN, PgProc::ArgModes::IN, PgProc::ArgModes::IN}, REAL, "", false);
+  CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersemitint", PgLanguage::INTERNAL_LANGUAGE_OID,
+                  PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, INVALID_TYPE_OID,
+                  {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"}, {INT, INT, INT, INT}, {}, {}, INT, "",
+                  false);
+  CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersemitreal", PgLanguage::INTERNAL_LANGUAGE_OID,
+                  PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, INVALID_TYPE_OID,
+                  {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"}, {INT, INT, INT, INT}, {}, {}, REAL, "",
+                  false);
   CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersdummyint", PgLanguage::INTERNAL_LANGUAGE_OID,
-                  PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, INT, "", false);
+                  PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, INVALID_TYPE_OID, {}, {}, {}, {}, INT, "", false);
   CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersdummyreal", PgLanguage::INTERNAL_LANGUAGE_OID,
-                  PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, REAL, "", false);
+                  PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, INVALID_TYPE_OID, {}, {}, {}, {}, REAL, "", false);
 
   BootstrapProcContexts(txn, dbc);
 }
 
 void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const common::ManagedPointer<DatabaseCatalog> dbc, std::string &&func_name,
-                                      const type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
+                                      const execution::sql::SqlTypeId func_ret_type,
+                                      std::vector<execution::sql::SqlTypeId> &&arg_types,
                                       const execution::ast::Builtin builtin, const bool is_exec_ctx_required) {
   std::vector<type_oid_t> arg_type_oids;
   arg_type_oids.reserve(arg_types.size());
@@ -473,6 +557,8 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
   }
   const proc_oid_t proc_oid =
       GetProcOid(txn, dbc, PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, func_name, arg_type_oids);
+  NOISEPAGE_ASSERT(proc_oid != INVALID_PROC_OID,
+                   "GetProcOid returned no results during bootstrap. Something failed earlier.");
   const auto *const func_context = new execution::functions::FunctionContext(
       std::move(func_name), func_ret_type, std::move(arg_types), builtin, is_exec_ctx_required);
   const auto retval UNUSED_ATTRIBUTE = dbc->SetFunctionContextPointer(txn, proc_oid, func_context);
@@ -481,12 +567,13 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
 
 void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn,
                                        const common::ManagedPointer<DatabaseCatalog> dbc) {
-  constexpr auto REAL = type::TypeId::REAL;    // NOLINT
-  constexpr auto INT = type::TypeId::INTEGER;  // NOLINT
-  constexpr auto VAR = type::TypeId::VARCHAR;  // NOLINT
+  constexpr auto REAL = execution::sql::SqlTypeId::Double;  // NOLINT
+  constexpr auto INT = execution::sql::SqlTypeId::Integer;  // NOLINT
+  constexpr auto VAR = execution::sql::SqlTypeId::Varchar;  // NOLINT
 
-  auto create_fn = [&](std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
-                       execution::ast::Builtin builtin, bool is_exec_ctx_required) {
+  auto create_fn = [&](std::string &&func_name, execution::sql::SqlTypeId func_ret_type,
+                       std::vector<execution::sql::SqlTypeId> &&arg_types, execution::ast::Builtin builtin,
+                       bool is_exec_ctx_required) {
     BootstrapProcContext(txn, dbc, std::move(func_name), func_ret_type, std::move(arg_types), builtin,
                          is_exec_ctx_required);
   };
@@ -545,7 +632,7 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   create_fn("rtrim", VAR, {VAR, VAR}, execution::ast::Builtin::Rtrim, true);
   create_fn("rtrim", VAR, {VAR}, execution::ast::Builtin::Rtrim, true);
   create_fn("split_part", VAR, {VAR, VAR, INT}, execution::ast::Builtin::SplitPart, true);
-  create_fn("starts_with", type::TypeId::BOOLEAN, {VAR, VAR}, execution::ast::Builtin::StartsWith, true);
+  create_fn("starts_with", execution::sql::SqlTypeId::Boolean, {VAR, VAR}, execution::ast::Builtin::StartsWith, true);
   create_fn("substr", VAR, {VAR, INT, INT}, execution::ast::Builtin::Substring, true);
   create_fn("upper", VAR, {VAR}, execution::ast::Builtin::Upper, true);
 
@@ -553,7 +640,7 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   create_fn("replication_get_last_txn_id", INT, {}, execution::ast::Builtin::ReplicationGetLastTransactionId, true);
 
   // Other functions.
-  create_fn("date_part", INT, {type::TypeId::DATE, INT}, execution::ast::Builtin::DatePart, false);
+  create_fn("date_part", INT, {execution::sql::SqlTypeId::Date, INT}, execution::ast::Builtin::DatePart, false);
   create_fn("version", VAR, {}, execution::ast::Builtin::Version, true);
 
   create_fn("nprunnersemitint", INT, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitInt, true);

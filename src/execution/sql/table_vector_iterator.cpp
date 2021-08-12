@@ -29,11 +29,12 @@ bool TableVectorIterator::Init() { return Init(0, storage::DataTable::GetMaxBloc
 
 bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
   auto table = exec_ctx_->GetAccessor()->GetTable(table_oid_);
-  return Init(table, block_start, block_end);
+  const auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid_);
+  return Init(table, schema, block_start, block_end);
 }
 
-bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, uint32_t block_start,
-                               uint32_t block_end) {
+bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, const catalog::Schema &schema,
+                               uint32_t block_start, uint32_t block_end) {
   // No-op if already initialized
   if (IsInitialized()) {
     return true;
@@ -54,8 +55,8 @@ bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, 
   std::vector<TypeId> col_types(col_oids_.size());
   for (uint64_t idx = 0; idx < col_oids_.size(); idx++) {
     auto col_oid = col_oids_[idx];
-    auto col_type = GetTypeId(table_col_map.at(col_oid).col_type_);
-    auto storage_col_id = table_col_map.at(col_oid).col_id_;
+    auto col_type = GetTypeId(schema.GetColumn(col_oid).Type());
+    auto storage_col_id = table_col_map.at(col_oid);
 
     col_ids.emplace_back(storage_col_id);
     col_types[idx] = col_type;
@@ -71,8 +72,9 @@ bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, 
   return true;
 }
 
-bool TableVectorIterator::InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table) {
-  return Init(cte_table, 0, storage::DataTable::GetMaxBlocks());
+bool TableVectorIterator::InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table,
+                                        const catalog::Schema &schema) {
+  return Init(cte_table, schema, 0, storage::DataTable::GetMaxBlocks());
 }
 
 bool TableVectorIterator::Advance() {
@@ -136,7 +138,8 @@ class ScanTask {
 
 bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
                                        void *const query_state, exec::ExecutionContext *exec_ctx,
-                                       const TableVectorIterator::ScanFn scan_fn, const uint32_t min_grain_size) {
+                                       uint32_t num_threads_override, const TableVectorIterator::ScanFn scan_fn,
+                                       const uint32_t min_grain_size) {
   // Lookup table
   const auto table = exec_ctx->GetAccessor()->GetTable(catalog::table_oid_t{table_oid});
   if (table == nullptr) {
@@ -149,6 +152,10 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
   // Execute parallel scan
   size_t num_threads = std::max(exec_ctx->GetExecutionSettings().GetNumberOfParallelExecutionThreads(), 0);
+  if (num_threads_override != 0) {
+    num_threads = num_threads_override;
+  }
+
   size_t num_tasks = std::ceil(table->table_.data_table_->GetNumBlocks() * 1.0 / min_grain_size);
   size_t concurrent = std::min(num_threads, num_tasks);
   exec_ctx->SetNumConcurrentEstimate(concurrent);

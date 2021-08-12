@@ -36,8 +36,8 @@ TEST(OperatorTests, LogicalInsertTest) {
   catalog::table_oid_t table_oid(789);
   catalog::col_oid_t columns[] = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
   parser::AbstractExpression *raw_values[] = {
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)),
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9))};
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1)),
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(9))};
   auto *values = new std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(
       {std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))});
 
@@ -151,7 +151,7 @@ TEST(OperatorTests, LogicalLimitTest) {
   size_t offset = 90;
   size_t limit = 22;
   parser::AbstractExpression *sort_expr_ori =
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
   OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
 
@@ -236,7 +236,7 @@ TEST(OperatorTests, LogicalUpdateTest) {
 
   std::string column = "abc";
   parser::AbstractExpression *value =
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1));
   auto update_clause =
       std::make_unique<parser::UpdateClause>(column, common::ManagedPointer<parser::AbstractExpression>(value));
   auto update_clause2 =
@@ -344,49 +344,53 @@ TEST(OperatorTests, LogicalGetTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_get_01 = LogicalGet::Make(catalog::db_oid_t(2), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "table", false)
+                                             std::vector<AnnotatedExpression>(), parser::AliasType("table"), false)
                                 .RegisterWithTxnContext(txn_context);
   Operator logical_get_03 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(4),
-                                             std::vector<AnnotatedExpression>(), "table", false)
+                                             std::vector<AnnotatedExpression>(), parser::AliasType("table"), false)
                                 .RegisterWithTxnContext(txn_context);
   Operator logical_get_04 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "tableTable", false)
+                                             std::vector<AnnotatedExpression>(), parser::AliasType("tableTable"), false)
                                 .RegisterWithTxnContext(txn_context);
-  Operator logical_get_05 =
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", true)
-          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_05 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                                             std::vector<AnnotatedExpression>(), parser::AliasType("table"), true)
+                                .RegisterWithTxnContext(txn_context);
   Operator logical_get_1 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", false)
+                                            std::vector<AnnotatedExpression>(), parser::AliasType("table"), false)
                                .RegisterWithTxnContext(txn_context);
-  Operator logical_get_3 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false)
-                               .RegisterWithTxnContext(txn_context);
-  Operator logical_get_4 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false)
-                               .RegisterWithTxnContext(txn_context);
-  Operator logical_get_5 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false)
-                               .RegisterWithTxnContext(txn_context);
-  Operator logical_get_6 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false)
-                               .RegisterWithTxnContext(txn_context);
+  Operator logical_get_3 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_0}, parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_4 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_1}, parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_5 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_2}, parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_6 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
+                       std::vector<AnnotatedExpression>{annotated_expr_3}, parser::AliasType("table"), false)
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(logical_get_1.GetOpType(), OpType::LOGICALGET);
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetDatabaseOid(), catalog::db_oid_t(1));
@@ -396,7 +400,7 @@ TEST(OperatorTests, LogicalGetTest) {
             std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(logical_get_4.GetContentsAs<LogicalGet>()->GetPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableAlias(), "table");
+  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableAlias(), parser::AliasType("table"));
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
   EXPECT_FALSE(logical_get_1 == logical_get_3);
@@ -440,11 +444,11 @@ TEST(OperatorTests, LogicalCteScanTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -581,9 +585,9 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
       std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1));
   auto expr1 = common::ManagedPointer(expr_b_1);
   auto expr2 = common::ManagedPointer(expr_b_2);
 
@@ -596,23 +600,30 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   alias_to_expr_map_5[parser::AliasType("constant expr2")] = expr2;
 
   Operator logical_query_derived_get_1 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_1)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_1))
+          .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_2 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_2)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_2))
+          .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_3 =
       LogicalQueryDerivedGet::Make(
-          "alias", std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
+          parser::AliasType("alias"),
+          std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>>())
           .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_4 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_3)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_3))
+          .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_5 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_4)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_4))
+          .RegisterWithTxnContext(txn_context);
   Operator logical_query_derived_get_6 =
-      LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_5)).RegisterWithTxnContext(txn_context);
+      LogicalQueryDerivedGet::Make(parser::AliasType("alias"), std::move(alias_to_expr_map_5))
+          .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(logical_query_derived_get_1.GetOpType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
-  EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetTableAlias(), "alias");
+  EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetTableAlias(),
+            parser::AliasType("alias"));
   EXPECT_EQ(logical_query_derived_get_1.GetContentsAs<LogicalQueryDerivedGet>()->GetAliasToExprMap(),
             alias_to_expr_map_1_1);
   EXPECT_TRUE(logical_query_derived_get_1 == logical_query_derived_get_2);
@@ -625,7 +636,6 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_4.Hash());
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_5.Hash());
   EXPECT_NE(logical_query_derived_get_1.Hash(), logical_query_derived_get_6.Hash());
-
   delete expr_b_1;
   delete expr_b_2;
 
@@ -651,21 +661,21 @@ TEST(OperatorTests, LogicalFilterTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_filter_1 =
       LogicalFilter::Make(std::vector<AnnotatedExpression>()).RegisterWithTxnContext(txn_context);
@@ -723,11 +733,11 @@ TEST(OperatorTests, LogicalProjectionTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -781,21 +791,21 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_dep_join_0 = LogicalDependentJoin::Make().RegisterWithTxnContext(txn_context);
   Operator logical_dep_join_1 =
@@ -857,21 +867,21 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_mark_join_0 = LogicalMarkJoin::Make().RegisterWithTxnContext(txn_context);
   Operator logical_mark_join_1 =
@@ -932,21 +942,21 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_single_join_0 = LogicalSingleJoin::Make().RegisterWithTxnContext(txn_context);
   Operator logical_single_join_1 =
@@ -1008,21 +1018,21 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_inner_join_0 = LogicalInnerJoin::Make().RegisterWithTxnContext(txn_context);
   Operator logical_inner_join_1 =
@@ -1084,19 +1094,19 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_left_join_1 =
       LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1})).RegisterWithTxnContext(txn_context);
@@ -1145,19 +1155,19 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_right_join_1 =
       LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1})).RegisterWithTxnContext(txn_context);
@@ -1207,19 +1217,19 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_outer_join_1 =
       LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1})).RegisterWithTxnContext(txn_context);
@@ -1268,19 +1278,19 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<parser::AliasType>());
 
   Operator logical_semi_join_1 =
       LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1})).RegisterWithTxnContext(txn_context);
@@ -1330,13 +1340,13 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
 
   // ConstValueExpression subclass AbstractExpression
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
   parser::AbstractExpression *expr_b_7 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
 
   // columns: vector of ManagedPointer of AbstractExpression
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
@@ -1346,25 +1356,25 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
 
   // ConstValueExpression subclass AbstractExpression
   parser::AbstractExpression *expr_b_4 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_5 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_8 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_6 =
-      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+      new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(false));
   auto x_4 = common::ManagedPointer<parser::AbstractExpression>(expr_b_4);
   auto x_5 = common::ManagedPointer<parser::AbstractExpression>(expr_b_5);
   auto x_6 = common::ManagedPointer<parser::AbstractExpression>(expr_b_6);
   auto x_8 = common::ManagedPointer<parser::AbstractExpression>(expr_b_8);
 
   // havings: vector of AnnotatedExpression
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
-  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
-  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
-  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
-  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(),
+                                              std::unordered_set<parser::AliasType>());
+  auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<parser::AliasType>());
+  auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<parser::AliasType>());
 
   Operator logical_group_1_0 =
       LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
@@ -1585,6 +1595,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   // Due to the deferred action framework being used to manage memory, we need to
   // simulate a transaction to prevent leaks
+  catalog::IndexOptions options;
   auto timestamp_manager = transaction::TimestampManager();
   auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
   auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
@@ -1596,7 +1607,7 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   Operator op1 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                           parser::IndexType::BPLUSTREE, true, "index_1",
-                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, options)
                      .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALCREATEINDEX);
@@ -1612,76 +1623,79 @@ TEST(OperatorTests, LogicalCreateIndexTest) {
 
   Operator op2 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                           parser::IndexType::BPLUSTREE, true, "index_1",
-                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, options)
                      .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> raw_values = {
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1))),
+          new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1))),
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9)))};
+          new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(9)))};
   auto raw_values_copy = raw_values;
-  Operator op3 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy))
-                     .RegisterWithTxnContext(txn_context);
+  Operator op3 =
+      LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                               parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy), options)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op3.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_FALSE(op3 == op1);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   auto raw_values_copy2 = raw_values;
-  Operator op4 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                          parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy2))
-                     .RegisterWithTxnContext(txn_context);
+  Operator op4 =
+      LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                               parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy2), options)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op4.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values);
   EXPECT_TRUE(op3 == op4);
   EXPECT_EQ(op4.Hash(), op3.Hash());
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> raw_values_2 = {
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true))),
+          new parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, execution::sql::BoolVal(true))),
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9)))};
+          new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(9)))};
   auto raw_values_copy3 = raw_values_2;
-  Operator op10 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
-                                           parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy3))
-                      .RegisterWithTxnContext(txn_context);
+  Operator op10 =
+      LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
+                               parser::IndexType::BPLUSTREE, true, "index_1", std::move(raw_values_copy3), options)
+          .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op10.GetContentsAs<LogicalCreateIndex>()->GetIndexAttr(), raw_values_2);
   EXPECT_FALSE(op3 == op10);
   EXPECT_NE(op10.Hash(), op3.Hash());
 
   Operator op5 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(1),
                                           parser::IndexType::BPLUSTREE, true, "index_1",
-                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, options)
                      .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   Operator op6 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(2),
                                           parser::IndexType::BPLUSTREE, true, "index_1",
-                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, options)
                      .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
   Operator op7 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                           parser::IndexType::HASH, true, "index_1",
-                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, options)
                      .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op7);
   EXPECT_NE(op1.Hash(), op7.Hash());
 
   Operator op8 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                           parser::IndexType::BPLUSTREE, false, "index_1",
-                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, options)
                      .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op8);
   EXPECT_NE(op1.Hash(), op8.Hash());
 
   Operator op9 = LogicalCreateIndex::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                           parser::IndexType::BPLUSTREE, true, "index_2",
-                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{})
+                                          std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, options)
                      .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op9);
   EXPECT_NE(op1.Hash(), op9.Hash());
@@ -1713,7 +1727,7 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   auto col_def = new parser::ColumnDefinition(
       "col_1", parser::ColumnDefinition::DataType::INTEGER, true, true, true,
       common::ManagedPointer<parser::AbstractExpression>(
-          new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(9))),
+          new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(9))),
       nullptr, 4);
   Operator op1 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_1",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
@@ -1773,7 +1787,7 @@ TEST(OperatorTests, LogicalCreateTableTest) {
   auto col_def_2 = new parser::ColumnDefinition(
       "col_1", parser::ColumnDefinition::DataType::VARCHAR, true, true, true,
       common::ManagedPointer<parser::AbstractExpression>(new parser::ConstantValueExpression(
-          type::TypeId::VARCHAR, col_def_2_string_val.first, std::move(col_def_2_string_val.second))),
+          execution::sql::SqlTypeId::Varchar, col_def_2_string_val.first, std::move(col_def_2_string_val.second))),
       nullptr, 20);
   Operator op7 = LogicalCreateTable::Make(catalog::namespace_oid_t(1), "Table_2",
                                           std::vector<common::ManagedPointer<parser::ColumnDefinition>>{
@@ -1859,7 +1873,7 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  auto when = new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
+  auto when = new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(1));
   Operator op1 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                             "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
                                             common::ManagedPointer<parser::AbstractExpression>(when), 0)
@@ -1949,7 +1963,7 @@ TEST(OperatorTests, LogicalCreateTriggerTest) {
   EXPECT_FALSE(op10 == op1);
   EXPECT_NE(op1.Hash(), op10.Hash());
 
-  auto when_2 = new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(2));
+  auto when_2 = new parser::ConstantValueExpression(execution::sql::SqlTypeId::TinyInt, execution::sql::Integer(2));
   Operator op11 = LogicalCreateTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::table_oid_t(1),
                                              "Trigger_1", {}, {}, {catalog::col_oid_t(1)},
                                              common::ManagedPointer<parser::AbstractExpression>(when_2), 0)

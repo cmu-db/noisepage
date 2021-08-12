@@ -23,7 +23,7 @@ class AggregateExpression : public AbstractExpression {
    * @param distinct whether to eliminate duplicate values in aggregate function calculations
    */
   AggregateExpression(ExpressionType type, std::vector<std::unique_ptr<AbstractExpression>> &&children, bool distinct)
-      : AbstractExpression(type, type::TypeId::INVALID, std::move(children)), distinct_(distinct) {}
+      : AbstractExpression(type, execution::sql::SqlTypeId::Invalid, std::move(children)), distinct_(distinct) {}
 
   /** Default constructor for deserialization. */
   AggregateExpression() = default;

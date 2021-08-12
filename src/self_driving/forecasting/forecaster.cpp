@@ -71,10 +71,10 @@ std::pair<WorkloadMetadata, bool> Forecaster::RetrieveWorkloadMetadata(
 
   // Lambda function to convert a JSON-serialized param string to a vector of type ids
   auto types_conv = [](const std::string &param_types) {
-    std::vector<type::TypeId> types;
+    std::vector<execution::sql::SqlTypeId> types;
     auto json_decomp = nlohmann::json::parse(param_types);
     for (auto &elem : json_decomp) {
-      types.push_back(type::TypeUtil::TypeIdFromString(elem));
+      types.push_back(execution::sql::SqlTypeIdFromString(elem));
     }
     return types;
   };
@@ -82,7 +82,7 @@ std::pair<WorkloadMetadata, bool> Forecaster::RetrieveWorkloadMetadata(
   // Lambda function to convert a JSON-serialized constants to a vector of cexpressions
   auto cves_conv = [](const WorkloadMetadata &metadata, execution::query_id_t qid, const std::string &cve) {
     std::vector<parser::ConstantValueExpression> cves;
-    const std::vector<type::TypeId> &types = metadata.query_id_to_param_types_.find(qid)->second;
+    const std::vector<execution::sql::SqlTypeId> &types = metadata.query_id_to_param_types_.find(qid)->second;
     auto json_decomp = nlohmann::json::parse(cve);
     for (size_t i = 0; i < json_decomp.size(); i++) {
       cves.emplace_back(parser::ConstantValueExpression::FromString(json_decomp[i], types[i]));

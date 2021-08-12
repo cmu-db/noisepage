@@ -234,13 +234,19 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
       expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(node));
       break;
     }
+    case T_Integer: {
+      expr = std::make_unique<ConstantValueExpression>(
+          execution::sql::SqlTypeId::Integer, execution::sql::Integer(reinterpret_cast<Value *>(node)->val_.ival_));
+      break;
+    }
     default: {
       PARSER_LOG_DEBUG("ExprTransform: type {} unsupported", node->type);
       throw PARSER_EXCEPTION("ExprTransform: unsupported type");
     }
   }
   if (alias != nullptr) {
-    expr->SetAlias(parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(expr.get()))));
+    expr->SetAlias(
+        parser::AliasType(alias, alias_oid_t(reinterpret_cast<size_t>(reinterpret_cast<void *>(expr.get())))));
   }
   return expr;
 }
@@ -439,7 +445,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(ParseResult *
       auto in_expr = std::make_unique<ComparisonExpression>(target_type, std::move(children));
       std::vector<std::unique_ptr<AbstractExpression>> in_child;
       in_child.emplace_back(std::move(in_expr));
-      return std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, type::TypeId::INVALID,
+      return std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, execution::sql::SqlTypeId::Invalid,
                                                   std::move(in_child));
     }
   } else {
@@ -461,7 +467,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(ParseResult *
     case ExpressionType::OPERATOR_IS_NULL:
     case ExpressionType::OPERATOR_IS_NOT_NULL:
     case ExpressionType::OPERATOR_EXISTS: {
-      return std::make_unique<OperatorExpression>(target_type, type::TypeId::INVALID, std::move(children));
+      return std::make_unique<OperatorExpression>(target_type, execution::sql::SqlTypeId::Invalid, std::move(children));
     }
     case ExpressionType::OPERATOR_CAST: {
       return TypeCastTransform(parse_result, reinterpret_cast<TypeCast *>(root));
@@ -503,7 +509,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::BoolExprTransform(ParseResul
       break;
     }
     case NOT_EXPR: {
-      result = std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, type::TypeId::INVALID,
+      result = std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_NOT, execution::sql::SqlTypeId::Invalid,
                                                     std::move(children));
       break;
     }
@@ -576,10 +582,21 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
       if (all_columns)
         result = std::make_unique<TableStarExpression>(table_name);
       else if (alias != nullptr)
+        /*
+         * We create a table alias using the table name. For SELECT queries, the binder will assign the corresponding
+         * TableRef a unique serial number. After that, in the binder, we'll have to update this AliasType to have a
+         * matching serial number
+         */
         result = std::make_unique<ColumnValueExpression>(
-            table_name, col_name, parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(alias))));
+            AliasType(table_name), col_name,
+            parser::AliasType(alias, alias_oid_t(reinterpret_cast<size_t>(reinterpret_cast<void *>(alias)))));
       else
-        result = std::make_unique<ColumnValueExpression>(table_name, col_name);
+        /*
+         * We create a table alias using the table name. For SELECT queries, the binder will assign the corresponding
+         * TableRef a unique serial number. After that, in the binder, we'll have to update this AliasType to have a
+         * matching serial number
+         */
+        result = std::make_unique<ColumnValueExpression>(AliasType(table_name), col_name);
       break;
     }
     case T_A_Star: {
@@ -620,7 +637,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResul
         children.emplace_back(ExprTransform(parse_result, expr_node, nullptr));
       }
     }
-    result = std::make_unique<FunctionExpression>(std::move(func_name), type::TypeId::INVALID, std::move(children));
+    result = std::make_unique<FunctionExpression>(std::move(func_name), execution::sql::SqlTypeId::Invalid,
+                                                  std::move(children));
   } else {
     // aggregate function
     auto agg_fun_type = StringToExpressionType("AGGREGATE_" + func_name);
@@ -679,7 +697,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(ParseResul
   ExpressionType type =
       root->nulltesttype_ == IS_NULL ? ExpressionType::OPERATOR_IS_NULL : ExpressionType::OPERATOR_IS_NOT_NULL;
 
-  return std::make_unique<OperatorExpression>(type, type::TypeId::BOOLEAN, std::move(children));
+  return std::make_unique<OperatorExpression>(type, execution::sql::SqlTypeId::Boolean, std::move(children));
 }
 
 // Postgres.ParamRef -> noisepage.ParameterValueExpression
@@ -709,7 +727,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::SubqueryExprTransform(ParseR
     }
     case EXISTS_SUBLINK: {
       children.emplace_back(std::move(subquery_expr));
-      result = std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_EXISTS, type::TypeId::BOOLEAN,
+      result = std::make_unique<OperatorExpression>(ExpressionType::OPERATOR_EXISTS, execution::sql::SqlTypeId::Boolean,
                                                     std::move(children));
       break;
     }
@@ -740,15 +758,15 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
   std::unique_ptr<AbstractExpression> result;
   switch (val.type_) {
     case T_Integer: {
-      result =
-          std::make_unique<ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(val.val_.ival_));
+      result = std::make_unique<ConstantValueExpression>(execution::sql::SqlTypeId::Integer,
+                                                         execution::sql::Integer(val.val_.ival_));
       break;
     }
 
     case T_String: {
       const auto string = std::string_view{val.val_.str_};
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
-      result = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
+      result = std::make_unique<ConstantValueExpression>(execution::sql::SqlTypeId::Varchar, string_val.first,
                                                          std::move(string_val.second));
 
       break;
@@ -760,17 +778,17 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
       // For this reason, a quick hack...
       // TODO(WAN): figure out how Postgres does it once we care about floating point
       if (std::strchr(val.val_.str_, '.') == nullptr) {
-        result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
+        result = std::make_unique<ConstantValueExpression>(execution::sql::SqlTypeId::BigInt,
                                                            execution::sql::Integer(std::stoll(val.val_.str_)));
       } else {
-        result = std::make_unique<ConstantValueExpression>(type::TypeId::REAL,
+        result = std::make_unique<ConstantValueExpression>(execution::sql::SqlTypeId::Double,
                                                            execution::sql::Real(std::stod(val.val_.str_)));
       }
       break;
     }
 
     case T_Null: {
-      result = std::make_unique<ConstantValueExpression>(type::TypeId::INVALID, execution::sql::Val(true));
+      result = std::make_unique<ConstantValueExpression>(execution::sql::SqlTypeId::Invalid, execution::sql::Val(true));
       break;
     }
     default: {
@@ -1091,11 +1109,11 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(ParseResult *parse
   return result;
 }
 
-std::string PostgresParser::AliasTransform(Alias *root) {
+AliasType PostgresParser::AliasTransform(Alias *root) {
   if (root == nullptr) {
-    return "";
+    return AliasType("");
   }
-  return root->aliasname_;
+  return AliasType(root->aliasname_);
 }
 
 // Postgres.RangeVar -> noisepage.TableRef
@@ -1395,8 +1413,34 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");
   }
 
+  catalog::IndexOptions options;
+  if (root->options_ != nullptr) {
+    for (auto cell = root->options_->head; cell != nullptr; cell = cell->next) {
+      auto *arg = reinterpret_cast<DefElem *>(cell->data.ptr_value);
+      char *name = arg->defname_;
+      NOISEPAGE_ASSERT(name && arg->arg_, "Invalid DefElem for CREATE INDEX option");
+      auto option = catalog::IndexOptions::ConvertToOptionKnob(name);
+      if (option == catalog::IndexOptions::Knob::UNKNOWN) {
+        // We found an unsupported option, so skip.
+        PARSER_LOG_DEBUG("CreateIndexTransform: received unknown option {}", option);
+        continue;
+      }
+
+      std::unique_ptr<AbstractExpression> val = ExprTransform(parse_result, arg->arg_, name);
+      if (!val || val->GetExpressionType() != parser::ExpressionType::VALUE_CONSTANT) {
+        throw PARSER_EXCEPTION("CreateIndexTransform: non-scalar value for option");
+      }
+
+      if (val->GetReturnValueType() != catalog::IndexOptions::ExpectedTypeForKnob(option)) {
+        throw PARSER_EXCEPTION("CreateIndexTransform: incorrect type for option");
+      }
+
+      options.AddOption(option, std::move(val));
+    }
+  }
+
   return std::make_unique<CreateStatement>(std::move(table_info), index_type, unique, index_name,
-                                           std::move(index_attrs));
+                                           std::move(index_attrs), std::move(options));
 }
 
 // Postgres.CreateSchemaStmt -> noisepage.CreateStatement
@@ -2135,7 +2179,7 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
           for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
             const auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
             const auto column = target->val_.str_;
-            colnames.emplace_back(parser::AliasType(column, i));
+            colnames.emplace_back(parser::AliasType(column, alias_oid_t(i)));
             ++i;
           }
         }

@@ -10,6 +10,7 @@
 #include "execution/vm/vm_defs.h"
 #include "network/network_defs.h"
 #include "traffic_cop/traffic_cop_defs.h"
+#include "transaction/transaction_defs.h"
 
 namespace noisepage::catalog {
 class Catalog;
@@ -95,6 +96,7 @@ class TrafficCop {
         stats_storage_(stats_storage),
         optimizer_timeout_(optimizer_timeout),
         use_query_cache_(use_query_cache),
+        query_cache_timestamp_(transaction::INITIAL_TXN_TIMESTAMP),
         execution_mode_(execution_mode) {}
 
   virtual ~TrafficCop() = default;
@@ -188,15 +190,15 @@ class TrafficCop {
                                        common::ManagedPointer<network::Statement> statement) const;
 
   /**
-   * Contains the logic to handle SHOW statements. Currently a hack to only support SHOW TRANSACTION ISOLATION LEVEL
-   * @param connection_ctx The context to be used to access the internal txn.
-   * @param statement The show statement to be executed.
-   * @param out Packet writer for writing results.
-   * @return The result of the operation.
+   * Contains the logic to handle SHOW statements.
+   * @param connection_ctx  The context to be used to access the internal txn.
+   * @param out             The packet writer to return results.
+   * @param statement       The statement to be executed.
+   * @return                The result of the operation.
    */
   TrafficCopResult ExecuteShowStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
-                                        common::ManagedPointer<network::Statement> statement,
-                                        common::ManagedPointer<network::PostgresPacketWriter> out) const;
+                                        common::ManagedPointer<network::PostgresPacketWriter> out,
+                                        common::ManagedPointer<network::Statement> statement) const;
 
   /**
    * Contains the logic to reason about CREATE execution.
@@ -273,6 +275,12 @@ class TrafficCop {
    */
   bool UseQueryCache() const { return use_query_cache_; }
 
+  /**
+   * Update the minimum generation timestamp required for the cached ExecutableQuery (resulting re-compilation for the
+   * unsatisfied ExecutableQuery )
+   */
+  void UpdateQueryCacheTimestamp();
+
  private:
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
   common::ManagedPointer<catalog::Catalog> catalog_;
@@ -282,6 +290,7 @@ class TrafficCop {
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
   const bool use_query_cache_;
+  transaction::timestamp_t query_cache_timestamp_;
   execution::vm::ExecutionMode execution_mode_;
 };
 

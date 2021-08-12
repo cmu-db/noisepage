@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+
 #include "execution/exec/execution_context.h"
 #include "storage/sql_table.h"
 
@@ -25,12 +26,17 @@ class EXPORT CteScanIterator {
   /**
    * @return Returns the temporary table that the cte has made
    */
-  storage::SqlTable *GetTable();
+  storage::SqlTable *GetTable() const { return cte_table_; }
+
+  /**
+   * @return Schema for this table since the Catalog doesn't own it
+   */
+  const catalog::Schema &GetSchema() const { return cte_table_schema_; }
 
   /**
    * @return Returns the oid of the temporary table that the cte has made
    */
-  catalog::table_oid_t GetTableOid();
+  catalog::table_oid_t GetTableOid() const { return cte_table_oid_; }
 
   /**
    * @return Returns a projected row of the table for insertion
@@ -52,6 +58,7 @@ class EXPORT CteScanIterator {
   noisepage::execution::exec::ExecutionContext *exec_ctx_;
   /** The underlying temporary table */
   storage::SqlTable *cte_table_;
+  catalog::Schema cte_table_schema_;
   /** The OID for the underlying temporary table */
   catalog::table_oid_t cte_table_oid_;
   /** The OIDs for the columns of the underlying table */

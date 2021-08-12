@@ -19,7 +19,7 @@ class TableVectorIteratorTest : public SqlBasedTest {
 
  public:
   parser::ConstantValueExpression DummyExpr() {
-    return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
+    return parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(0));
   }
 
  protected:
@@ -159,7 +159,7 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
   TableVectorIterator::ParallelScan(table_oid.UnderlyingValue(), col_oids.data(), col_oids.size(), nullptr,
-                                    exec_ctx_.get(), scanner);
+                                    exec_ctx_.get(), 0, scanner);
 
   // Count total aggregate tuple count seen by all threads
   uint32_t aggregate_tuple_count = 0;

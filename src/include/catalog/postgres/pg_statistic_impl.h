@@ -157,7 +157,7 @@ class PgStatisticImpl {
    */
   std::unique_ptr<optimizer::ColumnStatsBase> CreateColumnStats(
       common::ManagedPointer<storage::ProjectedRow> all_cols_pr, table_oid_t table_oid, col_oid_t col_oid,
-      type::TypeId type);
+      execution::sql::SqlTypeId type);
 
   /**
    * Helper method that creates a columns statistics object from supplied information
@@ -175,7 +175,7 @@ class PgStatisticImpl {
   template <typename T>
   std::unique_ptr<optimizer::ColumnStatsBase> CreateColumnStats(
       table_oid_t table_oid, col_oid_t col_oid, size_t num_rows, size_t non_null_rows, size_t distinct_values,
-      const storage::VarlenEntry *top_k_str, const storage::VarlenEntry *histogram_str, type::TypeId type);
+      const storage::VarlenEntry *top_k_str, const storage::VarlenEntry *histogram_str, execution::sql::SqlTypeId type);
 
   const db_oid_t db_oid_;
   /**

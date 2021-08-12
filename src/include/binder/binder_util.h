@@ -6,7 +6,7 @@
 
 #include "common/error/exception.h"
 #include "common/managed_pointer.h"
-#include "type/type_id.h"
+#include "execution/sql/sql.h"
 
 namespace noisepage::parser {
 class ConstantValueExpression;
@@ -35,7 +35,7 @@ class BinderUtil {
    * @param desired_parameter_types desired parameter types from the initial binding
    */
   static void PromoteParameters(common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
-                                const std::vector<type::TypeId> &desired_parameter_types);
+                                const std::vector<execution::sql::SqlTypeId> &desired_parameter_types);
 
   /**
    * Attempt to convert the transient value to the desired type.
@@ -45,7 +45,7 @@ class BinderUtil {
    * @param desired_type The type to promote the transient value to.
    */
   static void CheckAndTryPromoteType(common::ManagedPointer<parser::ConstantValueExpression> value,
-                                     type::TypeId desired_type);
+                                     execution::sql::SqlTypeId desired_type);
 
   /**
    * Predicate for evaluating expressions that serve as WHERE clauses. This is mostly defined by postgres and what we
@@ -65,18 +65,18 @@ class BinderUtil {
    */
   template <typename Input>
   static void TryCastNumericAll(common::ManagedPointer<parser::ConstantValueExpression> value, Input int_val,
-                                type::TypeId desired_type);
+                                execution::sql::SqlTypeId desired_type);
 };
 
 /// @cond DOXYGEN_IGNORE
 extern template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                                   const int8_t int_val, const type::TypeId desired_type);
+                                                   const int8_t int_val, const execution::sql::SqlTypeId desired_type);
 extern template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                                   const int16_t int_val, const type::TypeId desired_type);
+                                                   const int16_t int_val, const execution::sql::SqlTypeId desired_type);
 extern template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                                   const int32_t int_val, const type::TypeId desired_type);
+                                                   const int32_t int_val, const execution::sql::SqlTypeId desired_type);
 extern template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
-                                                   const int64_t int_val, const type::TypeId desired_type);
+                                                   const int64_t int_val, const execution::sql::SqlTypeId desired_type);
 
 extern template bool BinderUtil::IsRepresentable<int8_t>(const int8_t int_val);
 extern template bool BinderUtil::IsRepresentable<int16_t>(const int8_t int_val);

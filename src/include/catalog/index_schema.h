@@ -1,9 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <deque>
+#include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -12,9 +16,8 @@
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "storage/index/index_defs.h"
-#include "type/type_id.h"
-#include "type/type_util.h"
 
 namespace noisepage {
 class StorageTestUtil;
@@ -32,6 +35,224 @@ namespace postgres {
 class Builder;
 class PgCoreImpl;
 }  // namespace postgres
+
+/**
+ * A class used to represent valid knobs and options that have
+ * been passed to the CREATE INDEX SQL statement.
+ */
+class IndexOptions {
+ public:
+  /**
+   * Specific knobs that can be specified
+   */
+  enum Knob {
+    /** Number of threads to use for building the index */
+    BUILD_THREADS,
+
+    /** B+Tree inner node split threshold */
+    BPLUSTREE_INNER_NODE_UPPER_THRESHOLD,
+    /** B+Tree Inner node merge threshold */
+    BPLUSTREE_INNER_NODE_LOWER_THRESHOLD,
+
+    UNKNOWN
+  };
+
+  /**
+   * Converts a string input into a specific Knob enum.
+   * If no valid conversion can be found, Knob::UNKNOWN is returned.
+   * @param option string to convert
+   * @return converted enum or UNKNOWN
+   */
+  static IndexOptions::Knob ConvertToOptionKnob(std::string option) {
+    Knob knob = UNKNOWN;
+    std::transform(option.begin(), option.end(), option.begin(), ::toupper);
+    if (option == "BUILD_THREADS") {
+      knob = BUILD_THREADS;
+    } else if (option == "BPLUSTREE_INNER_NODE_UPPER_THRESHOLD") {
+      knob = BPLUSTREE_INNER_NODE_UPPER_THRESHOLD;
+    } else if (option == "BPLUSTREE_INNER_NODE_LOWER_THRESHOLD") {
+      knob = BPLUSTREE_INNER_NODE_LOWER_THRESHOLD;
+    }
+    return knob;
+  }
+
+  /**
+   * Converts a knob into its string representation.
+   * @param val knob to convert to string
+   * @return string representation of the enum
+   */
+  static std::string ConvertOptionKnobToString(IndexOptions::Knob val) {
+    switch (val) {
+      case BUILD_THREADS:
+        return "BUILD_THREADS";
+      case BPLUSTREE_INNER_NODE_UPPER_THRESHOLD:
+        return "BPLUSTREE_INNER_NODE_UPPER_THRESHOLD";
+      case BPLUSTREE_INNER_NODE_LOWER_THRESHOLD:
+        return "BPLUSTREE_INNER_NODE_LOWER_THRESHOLD";
+      case UNKNOWN:
+      default:
+        return "UNKNOWN";
+    }
+  }
+
+  /**
+   * Returns the expected type of the knob's value
+   * @param val knob to heck
+   * @return type of the knob's value
+   */
+  static execution::sql::SqlTypeId ExpectedTypeForKnob(Knob val) {
+    switch (val) {
+      case BUILD_THREADS:
+        return execution::sql::SqlTypeId::Integer;
+      case BPLUSTREE_INNER_NODE_UPPER_THRESHOLD:
+        return execution::sql::SqlTypeId::Integer;
+      case BPLUSTREE_INNER_NODE_LOWER_THRESHOLD:
+        return execution::sql::SqlTypeId::Integer;
+      case UNKNOWN:
+      default:
+        return execution::sql::SqlTypeId::Invalid;
+    }
+  }
+
+  /**
+   * Adds an option to be tracked in the IndexOptions data structure
+   * @param option Knob to insert (much be unique in tracking)
+   * @param value Value of the knob
+   */
+  void AddOption(Knob option, std::unique_ptr<parser::AbstractExpression> value) {
+    NOISEPAGE_ASSERT(options_.find(option) == options_.end(), "Adding duplicate option to INDEX options");
+    options_[option] = std::move(value);
+  }
+
+  /** Default constructor */
+  IndexOptions() = default;
+
+  /**
+   * Constructor by reference
+   * @param other IndexOptions to copy from
+   */
+  IndexOptions(const IndexOptions &other) {
+    for (const auto &pair : other.options_) {
+      AddOption(pair.first, pair.second->Copy());
+    }
+  }
+
+  /**
+   * Constructor by copy assignment
+   * @param other IndexOptions to copy from
+   */
+  IndexOptions &operator=(const IndexOptions &other) {
+    for (auto &option : other.GetOptions()) {
+      AddOption(option.first, option.second->Copy());
+    }
+
+    return *this;
+  }
+
+  /**
+   * Constructor by move assignment
+   * @param other IndexOptions to move from
+   */
+  IndexOptions &operator=(IndexOptions &&other) noexcept {
+    options_ = std::move(other.options_);
+    return *this;
+  }
+
+  /**
+   * Checks for equality with another IndexOptions
+   * @param other IndexOptions to check equality
+   * @return equal to other or not
+   */
+  bool operator==(const IndexOptions &other) const {
+    std::unordered_set<Knob> current_options;
+    std::unordered_set<Knob> other_options;
+    for (const auto &pair : options_) current_options.insert(pair.first);
+    for (const auto &pair : other.options_) other_options.insert(pair.first);
+    if (current_options != other_options) return false;
+
+    for (const auto &pair : options_) {
+      auto it = other.options_.find(pair.first);
+      if ((*pair.second) != (*it->second)) return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Checks for inequality with another IndexOptions
+   * @param other IndexOptions to check inequality against
+   * @return not equal or equal
+   */
+  bool operator!=(const IndexOptions &other) const { return !(*this == other); }
+
+  /** @return hash */
+  common::hash_t Hash() const {
+    common::hash_t hash = 0;
+    for (const auto &pair : options_) {
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.first));
+      hash = common::HashUtil::CombineHashes(hash, pair.second->Hash());
+    }
+    return hash;
+  }
+
+  /** @return the options stored */
+  const std::map<Knob, std::unique_ptr<parser::AbstractExpression>> &GetOptions() const { return options_; }
+
+  /** Converts the IndexOptions to a nlohmann::json object */
+  nlohmann::json ToJson() const;
+  /** Loads the IndexOptions with the data of a nlohmann::json object */
+  void FromJson(const nlohmann::json &j);
+
+  /**
+   * Serializes the IndexOptions into a string to be stored in the catalog
+   * Function serializes options in format of "knob1=value1 knob2=value2".
+   * @return string for storing in catalog
+   */
+  std::string ToCatalogString() const {
+    std::stringstream sstream;
+    for (auto &option : options_) {
+      auto cve = reinterpret_cast<const parser::ConstantValueExpression *>(option.second.get());
+      sstream << ConvertOptionKnobToString(option.first) << "=" << cve->ToString() << " ";
+    }
+
+    return sstream.str();
+  }
+
+  /**
+   * Instantiates the IndexOptions from a string stashed in the catalog.
+   * Function expects options to be of form "knob1=value1 knob2=value2..."
+   * @return options string from the catalog
+   */
+  void FromCatalogString(const std::string &options) {
+    std::stringstream sstream(options);
+    std::vector<std::string> tokens;
+    {
+      while (sstream.good()) {
+        std::string token;
+        std::getline(sstream, token, ' ');
+        tokens.push_back(token);
+      }
+    }
+
+    for (auto &token : tokens) {
+      auto pos = token.find('=');
+      if (pos != std::string::npos) {
+        auto option = token.substr(0, pos);
+        auto set_val = token.substr(pos, token.size());
+        Knob val = ConvertToOptionKnob(option);
+        NOISEPAGE_ASSERT(val != UNKNOWN, "Invalid IndexOptions::Knob serialized");
+
+        auto type = ExpectedTypeForKnob(val);
+        options_[val] = std::make_unique<parser::ConstantValueExpression>(
+            parser::ConstantValueExpression::FromString(set_val, type));
+      }
+    }
+  }
+
+ private:
+  /** Map that stores knobs and the knob values */
+  std::map<Knob, std::unique_ptr<parser::AbstractExpression>> options_;
+};
 
 /**
  * A schema for an index.  It contains the definitions for the columns in the
@@ -53,10 +274,11 @@ class IndexSchema {
      * @param nullable whether the column is nullable
      * @param definition definition of this attribute
      */
-    Column(std::string name, const type::TypeId type, const bool nullable, const parser::AbstractExpression &definition)
+    Column(std::string name, const execution::sql::SqlTypeId type, const bool nullable,
+           const parser::AbstractExpression &definition)
         : name_(std::move(name)),
           type_(type),
-          attr_length_(type::TypeUtil::GetTypeSize(type_)),
+          attr_length_(execution::sql::GetSqlTypeIdSize(type_)),
           nullable_(nullable),
           oid_(INVALID_INDEXKEYCOL_OID),
           definition_(definition.Copy()) {
@@ -71,11 +293,11 @@ class IndexSchema {
      * @param nullable whether the column is nullable
      * @param definition definition of this attribute
      */
-    Column(std::string name, const type::TypeId type, const int32_t type_modifier, const bool nullable,
+    Column(std::string name, const execution::sql::SqlTypeId type, const int32_t type_modifier, const bool nullable,
            const parser::AbstractExpression &definition)
         : name_(std::move(name)),
           type_(type),
-          attr_length_(type::TypeUtil::GetTypeSize(type_)),
+          attr_length_(execution::sql::GetSqlTypeIdSize(type_)),
           type_modifier_(type_modifier == -1 ? 0 : type_modifier),  // TODO(Matt): this is a hack around unlimited
                                                                     // length varlens and is likely busted elsewhere
           nullable_(nullable),
@@ -150,7 +372,7 @@ class IndexSchema {
     /**
      * @return SQL type for this column
      */
-    type::TypeId Type() const { return type_; }
+    execution::sql::SqlTypeId Type() const { return type_; }
 
     /**
      * Default constructor for deserialization
@@ -209,20 +431,21 @@ class IndexSchema {
 
    private:
     bool ShouldHaveTypeModifier() const {
-      return type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY || type_ == type::TypeId::DECIMAL;
+      return type_ == execution::sql::SqlTypeId::Varchar || type_ == execution::sql::SqlTypeId::Varbinary ||
+             type_ == execution::sql::SqlTypeId::Decimal;
     }
 
     void Validate() const {
-      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      NOISEPAGE_ASSERT(type_ != execution::sql::SqlTypeId::Invalid, "Attribute type cannot be INVALID.");
       NOISEPAGE_ASSERT(definition_ != nullptr, "Definition cannot be nullptr.");
 
-      if (type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY) {
+      if (type_ == execution::sql::SqlTypeId::Varchar || type_ == execution::sql::SqlTypeId::Varbinary) {
         NOISEPAGE_ASSERT(attr_length_ == storage::VARLEN_COLUMN, "Invalid attribute length.");
         // TODO(Matt): uncomment this assertion once we decide what a reasonable default is for unlimited varlens
 
         //        NOISEPAGE_ASSERT(type_modifier_ == -1 || type_modifier_ > 0,
         //                         "Type modifier should be -1 (no limit), or a positive integer.");
-      } else if (type_ == type::TypeId::DECIMAL) {
+      } else if (type_ == execution::sql::SqlTypeId::Decimal) {
         NOISEPAGE_ASSERT(attr_length_ == 16, "Invalid attribute length.");
         NOISEPAGE_ASSERT(type_modifier_ > 0, "Type modifier should be a  positive integer.");
       } else {
@@ -233,7 +456,7 @@ class IndexSchema {
     }
 
     std::string name_;
-    type::TypeId type_;
+    execution::sql::SqlTypeId type_;
     uint16_t attr_length_;
     int32_t type_modifier_ = -1;  // corresponds to Postgres' atttypmod int4: atttypmod records type-specific data
     // supplied at table creation time (for example, the maximum length of a varchar
@@ -249,7 +472,7 @@ class IndexSchema {
 
     void SetTypeModifier(const int32_t type_modifier) { type_modifier_ = type_modifier; }
 
-    void SetTypeId(const type::TypeId type) { type_ = type; }
+    void SetTypeId(const execution::sql::SqlTypeId type) { type_ = type; }
 
     void SetNullable(const bool nullable) { nullable_ = nullable; }
 
@@ -267,15 +490,18 @@ class IndexSchema {
    * @param is_primary indicating whether this will be the index for a primary key
    * @param is_exclusion indicating whether this index is for exclusion constraints
    * @param is_immediate indicating that the uniqueness check fails at insertion time
+   * @param index_options that are options for building the index
    */
   IndexSchema(std::vector<Column> columns, const storage::index::IndexType type, const bool is_unique,
-              const bool is_primary, const bool is_exclusion, const bool is_immediate)
+              const bool is_primary, const bool is_exclusion, const bool is_immediate,
+              const IndexOptions &index_options)
       : columns_(std::move(columns)),
         type_(type),
         is_unique_(is_unique),
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
-        is_immediate_(is_immediate) {
+        is_immediate_(is_immediate),
+        index_options_(index_options) {
     NOISEPAGE_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
     ExtractIndexedColOids();
   }
@@ -366,8 +592,13 @@ class IndexSchema {
   }
 
   /**
-   * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive for
-   * large expressions. Thus, it should only be called once during object construction.
+   * @return index options
+   */
+  const IndexOptions &GetIndexOptions() const { return index_options_; }
+
+  /**
+   * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive
+   * for large expressions. Thus, it should only be called once during object construction.
    * @return col oids in index keys, ordered by index key
    */
   void ExtractIndexedColOids() {
@@ -411,6 +642,7 @@ class IndexSchema {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_primary_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_exclusion_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_immediate_));
+    hash = common::HashUtil::CombineHashes(hash, index_options_.Hash());
     return hash;
   }
 
@@ -427,7 +659,8 @@ class IndexSchema {
     if (is_immediate_ != rhs.is_immediate_) return false;
     // TODO(Ling): Does column order matter for compare equal?
     if (indexed_oids_ != rhs.indexed_oids_) return false;
-    return columns_ == rhs.columns_;
+    if (columns_ != rhs.columns_) return false;
+    return index_options_ == rhs.index_options_;
   }
 
   /**
@@ -451,8 +684,10 @@ class IndexSchema {
   bool is_primary_;
   bool is_exclusion_;
   bool is_immediate_;
+  IndexOptions index_options_;
 };
 
+DEFINE_JSON_HEADER_DECLARATIONS(IndexOptions);
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema::Column);
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema);
 

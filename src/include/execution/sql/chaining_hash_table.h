@@ -4,6 +4,7 @@
 #include <tuple>
 #include <utility>
 
+#include "common/constants.h"
 #include "common/macros.h"
 #include "execution/sql/hash_table_entry.h"
 #include "execution/sql/memory_pool.h"

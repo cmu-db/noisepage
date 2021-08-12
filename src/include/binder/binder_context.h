@@ -171,7 +171,7 @@ class BinderContext {
    * @param expr Column value expression
    * @return Return true if the column is found, false otherwise
    */
-  bool CheckNestedTableColumn(const std::string &alias, const std::string &col_name,
+  bool CheckNestedTableColumn(const parser::AliasType &alias, const std::string &col_name,
                               common::ManagedPointer<parser::ColumnValueExpression> expr);
 
   /**
@@ -217,6 +217,44 @@ class BinderContext {
    */
   common::ManagedPointer<TableMetadata> GetTableMapping(const std::string &table_name);
 
+  /**
+   * Save mapping from alias name to AliasType in this context
+   * @param alias_name alias name to save
+   * @param alias_type AliasType to save
+   */
+  void AddTableAliasMapping(const std::string &alias_name, const parser::AliasType &alias_type);
+
+  /**
+   * Check if alias is saved in this context
+   * @param alias_name alias name to check for
+   * @return true if alias_name is saved in this context, false otherwise
+   */
+  bool HasTableAlias(const std::string &alias_name);
+
+  /**
+   * Retrieves the AliasType saved in this context corresponding to alias name
+   * @pre Unless you are sure the alias exists at this level you should call HasTableAlias first
+   * @param alias_name name of alias to retrieve
+   * @return AliasType with name alias_name
+   */
+  parser::AliasType &GetTableAlias(const std::string &alias_name);
+
+  /**
+   * Retrieve the alias saved in this context corresponding to alias_name, if none is found then create a new alias
+   * using alias_name
+   * @param alias_name name of the alias we are looking for
+   * @return AliasType corresponding to alias_name
+   */
+  parser::AliasType GetOrCreateTableAlias(const std::string &alias_name);
+
+  /**
+   * Starting at the current context, traverse up to higher level contexts until we find an AliasType corresponding to
+   * alias_name. If we don't find one, then create a new AliasType using alias_name.
+   * @param alias_name name of alias to look for
+   * @return AliasType corresponding to alias_name
+   */
+  parser::AliasType FindTableAlias(const std::string &alias_name);
+
  private:
   /**
    * Map table alias to its metadata
@@ -231,7 +269,13 @@ class BinderContext {
   /**
    * Map the table alias to maps which is from table alias to the value type
    */
-  std::unordered_map<std::string, std::unordered_map<parser::AliasType, type::TypeId>> nested_table_alias_map_;
+  std::unordered_map<std::string, std::unordered_map<parser::AliasType, execution::sql::SqlTypeId>>
+      nested_table_alias_map_;
+
+  /**
+   * Map the table alias name to table AliasType
+   */
+  std::unordered_map<std::string, parser::AliasType> table_alias_name_to_type_map_;
 
   /**
    * Upper binder context of the current binder context

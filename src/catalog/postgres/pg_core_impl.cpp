@@ -470,6 +470,7 @@ bool PgCoreImpl::CreateTableEntry(const common::ManagedPointer<transaction::Tran
     PgClass::RELNAME.Set(delta, pm, name_varlen);
     PgClass::RELNAMESPACE.Set(delta, pm, ns_oid);
     PgClass::RELKIND.Set(delta, pm, static_cast<char>(PgClass::RelKind::REGULAR_TABLE));
+    PgClass::RELOPTIONS.SetNull(delta, pm);
     PgClass::REL_SCHEMA.Set(delta, pm, nullptr);  // Need to update once we've recreated the columns.
     PgClass::REL_PTR.SetNull(delta, pm);
     PgClass::REL_NEXTCOLOID.Set(delta, pm, next_col_oid);
@@ -683,6 +684,9 @@ bool PgCoreImpl::CreateIndexEntry(const common::ManagedPointer<transaction::Tran
     PgClass::RELNAME.Set(delta, pm, name_varlen);
     PgClass::RELNAMESPACE.Set(delta, pm, ns_oid);
     PgClass::RELKIND.Set(delta, pm, static_cast<char>(PgClass::RelKind::INDEX));
+
+    auto options_varlen = storage::StorageUtil::CreateVarlen(schema.GetIndexOptions().ToCatalogString());
+    PgClass::RELOPTIONS.Set(delta, pm, options_varlen);
     PgClass::REL_SCHEMA.Set(delta, pm, nullptr);
     PgClass::REL_PTR.SetNull(delta, pm);         // Set by execution layer after instantiation.
     PgClass::REL_NEXTCOLOID.SetNull(delta, pm);  // Indexes don't need col_oid.
@@ -801,8 +805,8 @@ bool PgCoreImpl::CreateIndexEntry(const common::ManagedPointer<transaction::Tran
   {
     std::vector<IndexSchema::Column> cols =
         GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
-    auto *new_schema =
-        new IndexSchema(cols, schema.Type(), schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
+    auto *new_schema = new IndexSchema(cols, schema.Type(), schema.Unique(), schema.Primary(), schema.Exclusion(),
+                                       schema.Immediate(), schema.GetIndexOptions());
     txn->RegisterAbortAction([=]() { delete new_schema; });
 
     auto *const update_redo = txn->StageWrite(db_oid_, PgClass::CLASS_TABLE_OID, set_class_schema_pri_);
@@ -1547,7 +1551,7 @@ Column PgCoreImpl::MakeColumn(storage::ProjectedRow *const pr, const storage::Pr
   const auto *const col_expr = PgAttribute::ADSRC.Get(delta, pr_map);
 
   // See the warning in DatabaseCatalog::GetTypeOidForType. The below line needs to change if you modify that.
-  const auto type = static_cast<type::TypeId>(col_type.UnderlyingValue());
+  const auto type = static_cast<execution::sql::SqlTypeId>(col_type.UnderlyingValue());
 
   // TODO(WAN): Why are we deserializing expressions to make a catalog column? This is potentially busted.
   // Our JSON library is also not the most performant.
@@ -1558,7 +1562,8 @@ Column PgCoreImpl::MakeColumn(storage::ProjectedRow *const pr, const storage::Pr
   NOISEPAGE_ASSERT(deserialized.non_owned_exprs_.empty(), "Congrats, you get to refactor the catalog API.");
 
   const std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
-  Column col = (type == type::TypeId::VARCHAR || type == type::TypeId::VARBINARY || type == type::TypeId::DECIMAL)
+  Column col = (type == execution::sql::SqlTypeId::Varchar || type == execution::sql::SqlTypeId::Varbinary ||
+                type == execution::sql::SqlTypeId::Decimal)
                    ? Column(name, type, col_mod, col_null, *expr)
                    : Column(name, type, col_null, *expr);
 

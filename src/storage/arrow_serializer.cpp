@@ -41,7 +41,7 @@ void ArrowSerializer::AssembleMetadataBuffer(std::ofstream &outfile, flatbuf::Me
 }
 
 void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
-                                         std::vector<type::TypeId> *col_types,
+                                         std::vector<execution::sql::SqlTypeId> *col_types,
                                          flatbuffers::FlatBufferBuilder *flatbuf_builder) {
   RawBlock *block = *data_table_.GetBlocks().begin();
   const BlockLayout &layout = data_table_.GetBlockLayout();
@@ -68,25 +68,25 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
     if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
       uint8_t byte_width = data_table_.accessor_.GetBlockLayout().AttrSize(col_id);
       switch ((*col_types)[col_id.UnderlyingValue()]) {
-        case type::TypeId::BOOLEAN:
+        case execution::sql::SqlTypeId::Boolean:
           type = flatbuf::Type_Bool;
           type_offset = flatbuf::CreateBool(*flatbuf_builder).Union();
           break;
-        case type::TypeId::TINYINT:
+        case execution::sql::SqlTypeId::TinyInt:
           NOISEPAGE_FALLTHROUGH;
-        case type::TypeId::SMALLINT:
+        case execution::sql::SqlTypeId::SmallInt:
           NOISEPAGE_FALLTHROUGH;
-        case type::TypeId::INTEGER:
+        case execution::sql::SqlTypeId::Integer:
           NOISEPAGE_FALLTHROUGH;
-        case type::TypeId::BIGINT:
+        case execution::sql::SqlTypeId::BigInt:
           type = flatbuf::Type_Int;
           type_offset = flatbuf::CreateInt(*flatbuf_builder, 8 * byte_width, true).Union();
           break;
-        case type::TypeId::TIMESTAMP:
+        case execution::sql::SqlTypeId::Timestamp:
           type = flatbuf::Type_Timestamp;
           type_offset = flatbuf::CreateTimestamp(*flatbuf_builder, flatbuf::TimeUnit_MICROSECOND).Union();
           break;
-        case type::TypeId::REAL:
+        case execution::sql::SqlTypeId::Double:
           type = flatbuf::Type_Decimal;  // TODO(Matt): why isn't this Type_FloatingPoint?
           type_offset = flatbuf::CreateFloatingPoint(*flatbuf_builder, flatbuf::Precision_DOUBLE).Union();
           break;
@@ -155,7 +155,7 @@ void ArrowSerializer::WriteDictionaryMessage(std::ofstream &outfile, int64_t dic
   outfile.flush();
 }
 
-void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type::TypeId> *col_types) {
+void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<execution::sql::SqlTypeId> *col_types) {
   flatbuffers::FlatBufferBuilder flatbuf_builder;
   std::ofstream outfile(file_name, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
   std::unordered_map<col_id_t, int64_t> dictionary_ids;

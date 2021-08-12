@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "storage/index/index_builder.h"
 namespace noisepage::planner {
 class CreateDatabasePlanNode;
 class CreateNamespacePlanNode;

@@ -83,7 +83,7 @@ class IndexUtil {
    * value for the second element does not guarantee an optimal index.
    */
   static std::pair<bool, bool> SatisfiesPredicateWithIndex(
-      catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+      catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const parser::AliasType &tbl_alias,
       catalog::index_oid_t index_oid, const std::vector<AnnotatedExpression> &predicates, bool allow_cves,
       planner::IndexScanType *scan_type,
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds);
@@ -106,7 +106,7 @@ class IndexUtil {
    * all the predicates' indexable columns that we suport are covered by the given index (schema)
    */
   static std::pair<bool, bool> CheckPredicates(
-      const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+      const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const parser::AliasType &tbl_alias,
       const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
       const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
       bool allow_cves, planner::IndexScanType *idx_scan_type,

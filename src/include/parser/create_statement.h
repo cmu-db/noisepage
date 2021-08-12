@@ -12,6 +12,7 @@
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
+#include "storage/index/index_builder.h"
 
 namespace noisepage {
 namespace parser {
@@ -141,34 +142,35 @@ struct ColumnDefinition {
    * @param str type name
    * @return type ID
    */
-  static type::TypeId StrToValueType(char *str) {
-    type::TypeId value_type;
+  static execution::sql::SqlTypeId StrToValueType(
+      char *str) {  // TODO(Matt): compare with execution::sql::SqlTypeIdFromString to check redundancy
+    execution::sql::SqlTypeId value_type;
     // Transform column type
     if ((strcmp(str, "int") == 0) || (strcmp(str, "int4") == 0)) {
-      value_type = type::TypeId::INTEGER;
+      value_type = execution::sql::SqlTypeId::Integer;
     } else if ((strcmp(str, "varchar") == 0) || (strcmp(str, "bpchar") == 0) || (strcmp(str, "text") == 0)) {
-      value_type = type::TypeId::VARCHAR;
+      value_type = execution::sql::SqlTypeId::Varchar;
     } else if (strcmp(str, "int8") == 0) {
-      value_type = type::TypeId::BIGINT;
+      value_type = execution::sql::SqlTypeId::BigInt;
     } else if (strcmp(str, "int2") == 0) {
-      value_type = type::TypeId::SMALLINT;
+      value_type = execution::sql::SqlTypeId::SmallInt;
     } else if (strcmp(str, "timestamp") == 0) {
-      value_type = type::TypeId::TIMESTAMP;
+      value_type = execution::sql::SqlTypeId::Timestamp;
     } else if (strcmp(str, "bool") == 0) {
-      value_type = type::TypeId::BOOLEAN;
+      value_type = execution::sql::SqlTypeId::Boolean;
     } else if ((strcmp(str, "double") == 0) || (strcmp(str, "float8") == 0) || (strcmp(str, "real") == 0) ||
                (strcmp(str, "float4") == 0) || (strcmp(str, "numeric") == 0) || (strcmp(str, "decimal") == 0)) {
-      value_type = type::TypeId::REAL;
+      value_type = execution::sql::SqlTypeId::Double;
       // TODO(Matt): when we support fixed point DECIMAL properly:
 
       //    } else if ((strcmp(str, "numeric") == 0) || (strcmp(str, "decimal") == 0)) {
-      //      value_type = type::TypeId::DECIMAL;
+      //      value_type = execution::sql::SqlTypeId::Decimal;
     } else if (strcmp(str, "tinyint") == 0) {
-      value_type = type::TypeId::TINYINT;
+      value_type = execution::sql::SqlTypeId::TinyInt;
     } else if (strcmp(str, "varbinary") == 0) {
-      value_type = type::TypeId::VARBINARY;
+      value_type = execution::sql::SqlTypeId::Varbinary;
     } else if (strcmp(str, "date") == 0) {
-      value_type = type::TypeId::DATE;
+      value_type = execution::sql::SqlTypeId::Date;
     } else {
       PARSER_LOG_DEBUG("StrToValueType: Unsupported datatype: {}", str);
       throw PARSER_EXCEPTION("Unsupported datatype");
@@ -179,49 +181,49 @@ struct ColumnDefinition {
   /**
    * @return type ID
    */
-  type::TypeId GetValueType() {
+  execution::sql::SqlTypeId GetValueType() {
     switch (type_) {
       case DataType::INT:
       case DataType::INTEGER:
-        return type::TypeId::INTEGER;
+        return execution::sql::SqlTypeId::Integer;
       case DataType::TINYINT:
-        return type::TypeId::TINYINT;
+        return execution::sql::SqlTypeId::TinyInt;
       case DataType::SMALLINT:
-        return type::TypeId::SMALLINT;
+        return execution::sql::SqlTypeId::SmallInt;
       case DataType::BIGINT:
-        return type::TypeId::BIGINT;
+        return execution::sql::SqlTypeId::BigInt;
 
       case DataType::DECIMAL:
         // TODO(Matt): when we support fixed point DECIMAL properly:
 
-        //        return type::TypeId::DECIMAL;
+        //        return execution::sql::SqlTypeId::Decimal;
       case DataType::DOUBLE:
       case DataType::FLOAT:
-        return type::TypeId::REAL;
+        return execution::sql::SqlTypeId::Double;
 
       case DataType::BOOLEAN:
-        return type::TypeId::BOOLEAN;
+        return execution::sql::SqlTypeId::Boolean;
 
       case DataType::TIMESTAMP:
-        return type::TypeId::TIMESTAMP;
+        return execution::sql::SqlTypeId::Timestamp;
 
       case DataType::CHAR:
       case DataType::TEXT:
       case DataType::VARCHAR:
-        return type::TypeId::VARCHAR;
+        return execution::sql::SqlTypeId::Varchar;
 
       case DataType::VARBINARY:
-        return type::TypeId::VARBINARY;
+        return execution::sql::SqlTypeId::Varbinary;
 
       case DataType::DATE:
-        return type::TypeId::DATE;
+        return execution::sql::SqlTypeId::Date;
 
       case DataType::INVALID:
       case DataType::PRIMARY:
       case DataType::FOREIGN:
       case DataType::MULTIUNIQUE:
       default:
-        return type::TypeId::INVALID;
+        return execution::sql::SqlTypeId::Invalid;
     }
   }
 
@@ -411,15 +413,17 @@ class CreateStatement : public TableRefStatement {
    * @param unique true if index should be unique, false otherwise
    * @param index_name index name
    * @param index_attrs index attributes
+   * @param index_options index options
    */
   CreateStatement(std::unique_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<IndexAttr> index_attrs)
+                  std::vector<IndexAttr> index_attrs, const catalog::IndexOptions &index_options)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
         unique_index_(unique),
         index_name_(std::move(index_name)),
-        index_attrs_(std::move(index_attrs)) {}
+        index_attrs_(std::move(index_attrs)),
+        index_options_(index_options) {}
 
   /**
    * CREATE SCHEMA
@@ -504,6 +508,9 @@ class CreateStatement : public TableRefStatement {
   /** @return index attributes for [CREATE INDEX] */
   const std::vector<IndexAttr> &GetIndexAttributes() const { return index_attrs_; }
 
+  /** @return move index options for [CREATE INDEX] */
+  catalog::IndexOptions &&MoveIndexOptions() { return std::move(index_options_); }
+
   /** @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise */
   bool IsIfNotExists() { return if_not_exists_; }
 
@@ -544,6 +551,7 @@ class CreateStatement : public TableRefStatement {
   const bool unique_index_ = false;
   const std::string index_name_;
   const std::vector<IndexAttr> index_attrs_;
+  catalog::IndexOptions index_options_;
 
   // CREATE SCHEMA
   const bool if_not_exists_ = false;

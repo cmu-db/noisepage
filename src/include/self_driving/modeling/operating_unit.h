@@ -99,10 +99,13 @@ class ExecutionOperatingUnitFeature {
    * @param mem_factor Memory adjustment factor
    * @param num_loops Number of loops
    * @param num_concurrent Number of concurrent tasks (including current one)
+   * @param specific_feature0 A feature specific feature value
+   * @param specific_feature1 A (second) feature specific feature value
    */
   ExecutionOperatingUnitFeature(execution::translator_id_t translator_id, ExecutionOperatingUnitType feature,
                                 size_t num_rows, size_t key_size, size_t num_keys, size_t cardinality,
-                                double mem_factor, size_t num_loops, size_t num_concurrent)
+                                double mem_factor, size_t num_loops, size_t num_concurrent, size_t specific_feature0,
+                                size_t specific_feature1)
       : translator_id_(translator_id),
         feature_id_(feature_id_counter++),
         feature_(feature),
@@ -112,11 +115,12 @@ class ExecutionOperatingUnitFeature {
         cardinality_(cardinality),
         mem_factors_({mem_factor}),
         num_loops_(num_loops),
-        num_concurrent_(num_concurrent) {}
+        num_concurrent_(num_concurrent),
+        specific_feature0_(specific_feature0),
+        specific_feature1_(specific_feature1) {}
 
   /**
    * Constructor for ExecutionOperatingUnitFeature from an existing feature
-   * @note Does not copy num_rows, cardinality
    *
    * @param feature Newly created OU type
    * @param other Existing OU to copy information from
@@ -125,16 +129,18 @@ class ExecutionOperatingUnitFeature {
       : translator_id_(other.translator_id_),
         feature_id_(other.feature_id_),
         feature_(feature),
-        num_rows_(0),
+        num_rows_(other.num_rows_),
         key_size_(other.key_size_),
         num_keys_(other.num_keys_),
-        cardinality_(0),
+        cardinality_(other.cardinality_),
         mem_factors_(other.mem_factors_),
         num_loops_(other.num_loops_),
-        num_concurrent_(other.num_concurrent_) {}
+        num_concurrent_(other.num_concurrent_),
+        specific_feature0_(other.specific_feature0_),
+        specific_feature1_(other.specific_feature1_) {}
 
   /**
-   * Returns a vector of doubles consisting of 7 features starting with num_rows
+   * Returns a vector of doubles consisting of 9 features starting with num_rows
    */
   void GetAllAttributes(std::vector<double> *all_attributes) const {
     all_attributes->push_back(num_rows_);
@@ -144,6 +150,8 @@ class ExecutionOperatingUnitFeature {
     all_attributes->push_back(GetMemFactor());
     all_attributes->push_back(num_loops_);
     all_attributes->push_back(num_concurrent_);
+    all_attributes->push_back(specific_feature0_);
+    all_attributes->push_back(specific_feature1_);
   }
 
   /** @return The ID of the translator for this ExecutionOperatingUnitFeature. */
@@ -250,6 +258,16 @@ class ExecutionOperatingUnitFeature {
    */
   size_t GetNumLoops() const { return num_loops_; }
 
+  /**
+   * @return feature specific value 0
+   */
+  size_t GetSpecificFeature0() const { return specific_feature0_; }
+
+  /**
+   * @return feature specific value 1
+   */
+  size_t GetSpecificFeature1() const { return specific_feature1_; }
+
  private:
   /**
    * Set the estimated number of output tuples
@@ -297,6 +315,8 @@ class ExecutionOperatingUnitFeature {
   std::vector<double> mem_factors_;
   size_t num_loops_;
   size_t num_concurrent_;
+  size_t specific_feature0_;
+  size_t specific_feature1_;
 };
 
 /**

@@ -23,11 +23,12 @@ class SampleOutput {
    */
   void InitTestOutput() {
     // Sample output formats
-    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
-    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, pred->Copy()};
-    planner::OutputSchema::Column real_col{"dummy", type::TypeId::REAL, pred->Copy()};
-    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, pred->Copy()};
-    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, pred->Copy()};
+    auto pred = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                                  execution::sql::BoolVal(true));
+    planner::OutputSchema::Column int_col{"dummy", execution::sql::SqlTypeId::Integer, pred->Copy()};
+    planner::OutputSchema::Column real_col{"dummy", execution::sql::SqlTypeId::Double, pred->Copy()};
+    planner::OutputSchema::Column date_col{"dummy", execution::sql::SqlTypeId::Date, pred->Copy()};
+    planner::OutputSchema::Column string_col{"dummy", execution::sql::SqlTypeId::Varchar, pred->Copy()};
 
     // Create schemas with up to 10 integer columns.
     for (uint32_t i = 0; i < 10; i++) {
@@ -60,11 +61,12 @@ class SampleOutput {
 
  private:
   void InitTPCHOutput() {
-    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
-    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, pred->Copy()};
-    planner::OutputSchema::Column real_col{"dummy", type::TypeId::REAL, pred->Copy()};
-    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, pred->Copy()};
-    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, pred->Copy()};
+    auto pred = std::make_unique<parser::ConstantValueExpression>(execution::sql::SqlTypeId::Boolean,
+                                                                  execution::sql::BoolVal(true));
+    planner::OutputSchema::Column int_col{"dummy", execution::sql::SqlTypeId::Integer, pred->Copy()};
+    planner::OutputSchema::Column real_col{"dummy", execution::sql::SqlTypeId::Double, pred->Copy()};
+    planner::OutputSchema::Column date_col{"dummy", execution::sql::SqlTypeId::Date, pred->Copy()};
+    planner::OutputSchema::Column string_col{"dummy", execution::sql::SqlTypeId::Varchar, pred->Copy()};
     // Q1 (two strings, 7 reals, 1 int)
     {
       std::vector<planner::OutputSchema::Column> cols{};

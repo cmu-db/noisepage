@@ -241,7 +241,7 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
     // @prSet(insert_index_pr, attr_idx, val, true)
     const auto &col_expr = context->DeriveValue(*index_col.StoredExpression().Get(), this);
     uint16_t attr_offset = index_pm.at(index_col.Oid());
-    type::TypeId attr_type = index_col.Type();
+    execution::sql::SqlTypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
     auto *set_key_call = GetCodeGen()->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, true);
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));

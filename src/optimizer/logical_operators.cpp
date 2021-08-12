@@ -40,7 +40,8 @@ bool LeafOperator::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *LogicalGet::Copy() const { return new LogicalGet(*this); }
 
 Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                          std::vector<AnnotatedExpression> predicates, std::string table_alias, bool is_for_update) {
+                          std::vector<AnnotatedExpression> predicates, parser::AliasType table_alias,
+                          bool is_for_update) {
   auto *get = new LogicalGet();
   get->database_oid_ = database_oid;
   get->table_oid_ = table_oid;
@@ -63,7 +64,7 @@ common::hash_t LogicalGet::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, predicates_.begin(), predicates_.end());
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
   return hash;
 }
@@ -120,7 +121,7 @@ common::hash_t LogicalExternalFileGet::Hash() const {
 BaseOperatorNodeContents *LogicalQueryDerivedGet::Copy() const { return new LogicalQueryDerivedGet(*this); }
 
 Operator LogicalQueryDerivedGet::Make(
-    std::string table_alias,
+    parser::AliasType table_alias,
     std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new LogicalQueryDerivedGet();
   get->table_alias_ = std::move(table_alias);
@@ -137,7 +138,7 @@ bool LogicalQueryDerivedGet::operator==(const BaseOperatorNodeContents &r) {
 
 common::hash_t LogicalQueryDerivedGet::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(table_alias_));
   for (auto &iter : alias_to_expr_map_) {
     hash = common::HashUtil::CombineHashes(hash, std::hash<parser::AliasType>{}(iter.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));
@@ -847,12 +848,24 @@ bool LogicalCreateFunction::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 // LogicalCreateIndex
 //===--------------------------------------------------------------------===//
-BaseOperatorNodeContents *LogicalCreateIndex::Copy() const { return new LogicalCreateIndex(*this); }
+BaseOperatorNodeContents *LogicalCreateIndex::Copy() const {
+  auto *op = new LogicalCreateIndex();
+  op->database_oid_ = database_oid_;
+  op->namespace_oid_ = namespace_oid_;
+  op->table_oid_ = table_oid_;
+  op->index_type_ = index_type_;
+  op->unique_index_ = unique_index_;
+  op->index_name_ = index_name_;
+  op->index_attrs_ = index_attrs_;
+  op->index_options_ = catalog::IndexOptions(index_options_);
+  return op;
+}
 
 Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                                   catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique,
                                   std::string index_name,
-                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
+                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs,
+                                  catalog::IndexOptions index_options) {
   auto *op = new LogicalCreateIndex();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -861,6 +874,7 @@ Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::names
   op->unique_index_ = unique;
   op->index_name_ = std::move(index_name);
   op->index_attrs_ = std::move(index_attrs);
+  op->index_options_ = std::move(index_options);
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
 }
 
@@ -875,6 +889,7 @@ common::hash_t LogicalCreateIndex::Hash() const {
   for (const auto &attr : index_attrs_) {
     hash = common::HashUtil::CombineHashes(hash, attr->Hash());
   }
+  hash = common::HashUtil::CombineHashes(hash, index_options_.Hash());
   return hash;
 }
 
@@ -891,7 +906,7 @@ bool LogicalCreateIndex::operator==(const BaseOperatorNodeContents &r) {
   for (size_t i = 0; i < index_attrs_.size(); i++) {
     if (*(index_attrs_[i]) != *(node.index_attrs_[i])) return false;
   }
-  return (true);
+  return index_options_ == node.index_options_;
 }
 
 //===--------------------------------------------------------------------===//

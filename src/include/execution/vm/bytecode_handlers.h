@@ -322,9 +322,10 @@ VM_OP_HOT void OpTableVectorIteratorGetVPI(noisepage::execution::sql::VectorProj
 
 VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
                                    noisepage::execution::exec::ExecutionContext *exec_ctx,
+                                   uint32_t num_threads_override,
                                    const noisepage::execution::sql::TableVectorIterator::ScanFn scanner) {
   noisepage::execution::sql::TableVectorIterator::ParallelScan(table_oid, col_oids, num_oids, query_state, exec_ctx,
-                                                               scanner);
+                                                               num_threads_override, scanner);
 }
 
 // ---------------------------------------------------------

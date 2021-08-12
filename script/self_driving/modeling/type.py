@@ -90,13 +90,15 @@ class ExecutionFeature(enum.IntEnum):
     MEM_FACTOR = 10,
     NUM_LOOPS = 11,
     NUM_CONCURRENT = 12,
+    SPECIFIC_FEATURE0 = 13,
+    SPECIFIC_FEATURE1 = 14,
 
     # interval input features
-    TXNS_DEALLOCATED = 13,
-    TXNS_UNLINKED = 14,
-    BUFFER_UNLINKED = 15,
-    READONLY_UNLINKED = 16,
-    INTERVAL = 17,
+    TXNS_DEALLOCATED = 15,
+    TXNS_UNLINKED = 16,
+    BUFFER_UNLINKED = 17,
+    READONLY_UNLINKED = 18,
+    INTERVAL = 19,
 
 
 class ConcurrentCountingMode(enum.Enum):

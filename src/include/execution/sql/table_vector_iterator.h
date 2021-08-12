@@ -65,9 +65,10 @@ class EXPORT TableVectorIterator {
   /**
    * Initialize the temp table, returning true if the initialization succeeded
    * @param cte_table the CTE table to initialize
+   * @param schema schema of the CTE table since can't get it from the Catalog
    * @return True if the initialization succeeded; false otherwise
    */
-  bool InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table);
+  bool InitTempTable(common::ManagedPointer<storage::SqlTable> cte_table, const catalog::Schema &schema);
 
   /**
    * Initialize the iterator over a chunk of blocks [start, end), returning true if the iteration succeeded.
@@ -123,11 +124,12 @@ class EXPORT TableVectorIterator {
    *                 ThreadStateContainer for all thread states, where it is assumed that the
    *                 container has been configured for size, construction, and destruction
    *                 before this invocation.
+   * @param num_threads_override If non-zero, specifies the number of threads to use
    * @param scan_fn The callback function invoked for vectors of table input.
    * @param min_grain_size The minimum number of blocks to give a scan task.
    */
   static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
-                           exec::ExecutionContext *exec_ctx, ScanFn scan_fn,
+                           exec::ExecutionContext *exec_ctx, uint32_t num_threads_override, ScanFn scan_fn,
                            uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
  private:
@@ -147,7 +149,8 @@ class EXPORT TableVectorIterator {
 
   // True if the iterator has been initialized.
   bool initialized_{false};
-  bool Init(common::ManagedPointer<storage::SqlTable> table, uint32_t block_start, uint32_t block_end);
+  bool Init(common::ManagedPointer<storage::SqlTable> table, const catalog::Schema &schema, uint32_t block_start,
+            uint32_t block_end);
 };
 
 }  // namespace noisepage::execution::sql

@@ -80,18 +80,20 @@ class PgProcImpl {
   std::function<void(void)> GetTearDownFn(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
-   * @brief Create a procedure in the pg_proc table.
+   * @brief Create a procedure in the pg_proc table. See postgres' documentation for that the constraints are, or the
+   * assertions in pg_proc_impl.cpp.
    *
    * @param txn             The transaction to use.
    * @param oid             The OID to assign to the procedure.
    * @param procname        The name of the procedure.
    * @param language_oid    The OID for the language that this procedure is written in.
    * @param procns          The namespace that the procedure should be added to.
+   * @param variadic_type   type of the variadic arg (if any)
    * @param args            The names of the arguments to this procedure.
-   * @param arg_types       The types of the arguments to this procedure. Must be in the same order as in args.
-   *                        (only for in and inout arguments)
-   * @param all_arg_types   The types of all the arguments.
-   * @param arg_modes       The modes of the arguments. Must be in the same order as in args.
+   * @param arg_types       types of arguments to this proc in the same order as in args (only for in and inout
+   *        arguments)
+   * @param all_arg_types   types of all arguments only if there are args that are not IN
+   * @param arg_modes       modes of arguments in the same order as in args, only if they aren't all IN
    * @param rettype         The OID of the type of return value.
    * @param src             The source code of the procedure.
    * @param is_aggregate    True iff this is an aggregate procedure.
@@ -101,8 +103,8 @@ class PgProcImpl {
    */
   bool CreateProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t oid,
                        const std::string &procname, language_oid_t language_oid, namespace_oid_t procns,
-                       const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
-                       const std::vector<type_oid_t> &all_arg_types,
+                       type_oid_t variadic_type, const std::vector<std::string> &args,
+                       const std::vector<type_oid_t> &arg_types, const std::vector<type_oid_t> &all_arg_types,
                        const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
                        const std::string &src, bool is_aggregate);
 
@@ -145,12 +147,12 @@ class PgProcImpl {
    * @param dbc             The catalog that pg_proc is in.
    * @param procns          The namespace of the procedure to look in.
    * @param procname        The name of the procedure to look for.
-   * @param arg_types       The types of all arguments in this function.
+   * @param input_arg_types       The types of all arguments in this function.
    * @return                The OID of the procedure if found. Else INVALID_PROC_OID.
    */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                         common::ManagedPointer<DatabaseCatalog> dbc, namespace_oid_t procns,
-                        const std::string &procname, const std::vector<type_oid_t> &arg_types);
+                        const std::string &procname, const std::vector<type_oid_t> &input_arg_types);
 
   /** @brief Bootstrap all the builtin procedures in pg_proc. This assumes exclusive use of dbc->next_oid_. */
   void BootstrapProcs(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -173,7 +175,7 @@ class PgProcImpl {
    */
   void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn,
                             common::ManagedPointer<DatabaseCatalog> dbc, std::string &&func_name,
-                            type::TypeId func_ret_type, std::vector<type::TypeId> &&arg_types,
+                            execution::sql::SqlTypeId func_ret_type, std::vector<execution::sql::SqlTypeId> &&arg_types,
                             execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   const db_oid_t db_oid_;

@@ -14,17 +14,20 @@ CteScanIterator::CteScanIterator(noisepage::execution::exec::ExecutionContext *e
   // Create column metadata for every column.
   std::vector<catalog::Schema::Column> all_columns;
   for (uint32_t i = 0; i < num_schema_cols; i++) {
-    catalog::Schema::Column col("col" + std::to_string(i), static_cast<type::TypeId>(schema_cols_type[i]), false,
-                                parser::ConstantValueExpression(static_cast<type::TypeId>(schema_cols_type[i])),
-                                catalog::col_oid_t(schema_cols_ids[i]));
+    catalog::Schema::Column col(
+        "col" + std::to_string(i), static_cast<execution::sql::SqlTypeId>(schema_cols_type[i]), false,
+        parser::ConstantValueExpression(static_cast<execution::sql::SqlTypeId>(schema_cols_type[i])),
+        catalog::col_oid_t(schema_cols_ids[i]));
     all_columns.push_back(col);
     col_oids_.emplace_back(catalog::col_oid_t(schema_cols_ids[i]));
   }
 
   // Create the table in the catalog.
-  catalog::Schema cte_table_schema(all_columns);
-  cte_table_ = new storage::SqlTable(exec_ctx->GetAccessor()->GetBlockStore(), cte_table_schema);
-  exec_ctx->GetAccessor()->RegisterTempTable(table_oid, common::ManagedPointer(cte_table_));
+  cte_table_schema_ = catalog::Schema(all_columns);
+  cte_table_ = new storage::SqlTable(exec_ctx->GetAccessor()->GetBlockStore(), cte_table_schema_);
+  exec_ctx->GetAccessor()->RegisterTempTable(
+      table_oid, common::ManagedPointer(cte_table_),
+      common::ManagedPointer(reinterpret_cast<const catalog::Schema *>(&cte_table_schema_)));
 
   storage::SqlTable *cte_table_local = cte_table_;
 
@@ -66,7 +69,4 @@ storage::TupleSlot CteScanIterator::TableInsert() {
   return cte_table_->Insert(exec_ctx_->GetTxn(), table_redo_);
 }
 
-storage::SqlTable *CteScanIterator::GetTable() { return cte_table_; }
-
-catalog::table_oid_t CteScanIterator::GetTableOid() { return cte_table_oid_; }
 }  // namespace noisepage::execution::sql

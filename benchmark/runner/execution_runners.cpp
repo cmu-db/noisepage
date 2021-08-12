@@ -36,6 +36,7 @@
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_defs.h"
 #include "self_driving/modeling/operating_unit_recorder.h"
+#include "storage/index/bplustree.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "traffic_cop/traffic_cop_util.h"
@@ -167,9 +168,9 @@ auto DoNotOptimizeAway(const T &datum) -> typename std::enable_if<!DoNotOptimize
 
 #endif
 
-static std::string ConstructTableName(type::TypeId left_type, type::TypeId right_type, int64_t num_left,
-                                      int64_t num_right, size_t row, size_t car) {
-  std::vector<type::TypeId> types = {left_type, right_type};
+static std::string ConstructTableName(execution::sql::SqlTypeId left_type, execution::sql::SqlTypeId right_type,
+                                      int64_t num_left, int64_t num_right, size_t row, size_t car) {
+  std::vector<execution::sql::SqlTypeId> types = {left_type, right_type};
   std::vector<uint32_t> col_counts = {static_cast<uint32_t>(num_left), static_cast<uint32_t>(num_right)};
   return execution::sql::TableGenerator::GenerateTableName(types, col_counts, row, car);
 }
@@ -183,22 +184,23 @@ static std::string ConstructTableName(type::TypeId left_type, type::TypeId right
  *
  * is_predicate describes whether it's generating a predicate or just a projection.
  */
-static std::string ConstructSQLClause(type::TypeId left_type, type::TypeId right_type, int64_t num_left,
-                                      int64_t num_right, const std::string &joiner, const std::string &left_alias,
-                                      bool is_predicate, const std::string &right_alias) {
+static std::string ConstructSQLClause(execution::sql::SqlTypeId left_type, execution::sql::SqlTypeId right_type,
+                                      int64_t num_left, int64_t num_right, const std::string &joiner,
+                                      const std::string &left_alias, bool is_predicate,
+                                      const std::string &right_alias) {
   std::stringstream fragment;
 
-  std::vector<type::TypeId> types = {left_type, right_type};
+  std::vector<execution::sql::SqlTypeId> types = {left_type, right_type};
   std::vector<int64_t> number = {num_left, num_right};
   bool emit_alias = !left_alias.empty();
   bool wrote = false;
   for (size_t i = 0; i < types.size(); i++) {
-    if (types[i] == type::TypeId::INVALID) {
+    if (types[i] == execution::sql::SqlTypeId::Invalid) {
       // Skip invalid types (that means don't care)
       continue;
     }
 
-    auto type = type::TypeUtil::TypeIdToString(types[i]);
+    auto type = execution::sql::SqlTypeIdToString(types[i]);
     for (auto col = 1; col <= number[i]; col++) {
       if (wrote) {
         fragment << joiner;
@@ -223,8 +225,9 @@ static std::string ConstructSQLClause(type::TypeId left_type, type::TypeId right
   return fragment.str();
 }
 
-static std::string ConstructIndexScanPredicate(type::TypeId key_type, int64_t key_num, int64_t lookup_size) {
-  auto type = type::TypeUtil::TypeIdToString(key_type);
+static std::string ConstructIndexScanPredicate(execution::sql::SqlTypeId key_type, int64_t key_num,
+                                               int64_t lookup_size) {
+  auto type = execution::sql::SqlTypeIdToString(key_type);
   std::stringstream predicatess;
   for (auto j = 1; j <= key_num; j++) {
     if (lookup_size == 1) {
@@ -239,7 +242,8 @@ static std::string ConstructIndexScanPredicate(type::TypeId key_type, int64_t ke
   return predicatess.str();
 }
 
-static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int64_t lookup_size, int64_t num_iters,
+static void GenIdxScanParameters(execution::sql::SqlTypeId type_param, int64_t num_rows, int64_t lookup_size,
+                                 int64_t num_iters,
                                  std::vector<std::vector<parser::ConstantValueExpression>> *real_params) {
   std::mt19937 generator{};
   std::vector<std::pair<uint32_t, uint32_t>> bounds;
@@ -256,7 +260,7 @@ static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int6
 
     std::vector<parser::ConstantValueExpression> param;
     if (lookup_size == 1) {
-      if (type_param != type::TypeId::VARCHAR) {
+      if (type_param != execution::sql::SqlTypeId::Varchar) {
         param.emplace_back(type_param, execution::sql::Integer(low_key));
       } else {
         std::string val = std::to_string(low_key);
@@ -265,7 +269,7 @@ static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int6
       bounds.emplace_back(low_key, low_key);
     } else {
       auto high_key = low_key + lookup_size - 1;
-      if (type_param != type::TypeId::VARCHAR) {
+      if (type_param != execution::sql::SqlTypeId::Varchar) {
         param.emplace_back(type_param, execution::sql::Integer(low_key));
         param.emplace_back(type_param, execution::sql::Integer(high_key));
       } else {
@@ -409,7 +413,7 @@ class ExecutionRunners : public benchmark::Fixture {
               common::ManagedPointer<transaction::TransactionContext>, std::unique_ptr<planner::AbstractPlanNode>)>(
               PassthroughPlanChecker),
       common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params = nullptr,
-      common::ManagedPointer<std::vector<type::TypeId>> param_types = nullptr,
+      common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> param_types = nullptr,
       execution::exec::ExecutionSettings *exec_settings_arg = nullptr) {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
@@ -481,7 +485,8 @@ class ExecutionRunners : public benchmark::Fixture {
     return ret_val;
   }
 
-  void HandleBuildDropIndex(bool is_build, int64_t tbl_cols, int64_t num_rows, int64_t num_key, type::TypeId type) {
+  void HandleBuildDropIndex(bool is_build, int64_t tbl_cols, int64_t num_rows, int64_t num_key,
+                            execution::sql::SqlTypeId type) {
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
     auto catalog = db_main->GetCatalogLayer()->GetCatalog();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
@@ -495,6 +500,7 @@ class ExecutionRunners : public benchmark::Fixture {
 
     execution::sql::TableGenerator table_generator(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
     if (is_build) {
+      // This function builds a BPLUSTREE index
       table_generator.BuildExecutionRunnerIndex(type, tbl_cols, num_rows, num_key);
     } else {
       bool result = table_generator.DropExecutionRunnerIndex(type, tbl_cols, num_rows, num_key);
@@ -584,7 +590,7 @@ class ExecutionRunners : public benchmark::Fixture {
     selfdriving::PipelineOperatingUnits units;
     selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
-    pipe0_vec.emplace_back(execution::translator_id_t(1), type, num_elem, 4, 1, num_elem, 1, 0, 0);
+    pipe0_vec.emplace_back(execution::translator_id_t(1), type, num_elem, 4, 1, num_elem, 1, 0, 0, 0, 0);
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
     selfdriving::ExecOUFeatureVector ouvec;
@@ -719,7 +725,7 @@ void DbMainSetParam(T value) {
 void NetworkQueriesOutputRunners(pqxx::work *txn) {
   std::ostream null{nullptr};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER, type::TypeId::REAL};
+  auto types = {execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double};
   std::vector<int64_t> row_nums = {1, 3, 5, 7, 10, 50, 100, 500, 1000, 2000, 5000, 10000};
 
   bool metrics_enabled = db_main->GetSettingsManager()->GetBool(settings::Param::pipeline_metrics_enable);
@@ -730,7 +736,7 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
         // Scale # iterations accordingly
         // Want to warmup the first query
         int iters = 1;
-        if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
+        if (row == 1 && col == 1 && type == execution::sql::SqlTypeId::Integer) {
           iters += settings.warmup_iterations_num_;
         }
 
@@ -744,10 +750,10 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
           }
 
           std::stringstream query_ss;
-          std::string type_s = (type == type::TypeId::INTEGER) ? "int" : "real";
+          std::string type_s = (type == execution::sql::SqlTypeId::Integer) ? "int" : "real";
 
           query_ss << "SELECT nprunnersemit" << type_s << "(" << row << "," << col << ",";
-          if (type == type::TypeId::INTEGER)
+          if (type == execution::sql::SqlTypeId::Integer)
             query_ss << col << ",0)";
           else
             query_ss << "0," << col << ")";
@@ -781,7 +787,8 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
   std::ostream null{nullptr};
   std::vector<int> num_threads = {1, 2, 4, 8, 16};
   std::vector<uint32_t> num_cols = {1, 2, 4, 8, 15};
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<execution::sql::SqlTypeId> types = {execution::sql::SqlTypeId::Integer,
+                                                  execution::sql::SqlTypeId::BigInt};
   std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
                                     10000, 20000, 50000, 100000, 300000, 500000, 1000000};
 
@@ -799,7 +806,7 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
           // Scale # iterations accordingly
           // Want to warmup the first query
           int iters = 1;
-          if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
+          if (row == 1 && col == 1 && type == execution::sql::SqlTypeId::Integer) {
             iters += settings.warmup_iterations_num_;
           }
 
@@ -815,8 +822,8 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
             std::string create_query;
             {
               std::stringstream query_ss;
-              auto type_name = type::TypeUtil::TypeIdToString(type);
-              auto table_name = ConstructTableName(type, type::TypeId::INVALID, 15, 0, row, row);
+              auto type_name = execution::sql::SqlTypeIdToString(type);
+              auto table_name = ConstructTableName(type, execution::sql::SqlTypeId::Invalid, 15, 0, row, row);
               query_ss << "CREATE INDEX executionrunners__" << row << " ON " << table_name << "(";
               for (size_t j = 1; j <= col; j++) {
                 query_ss << type_name << j;
@@ -917,17 +924,17 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_OutputRunners)(benchmark::State &state
   for (auto i = 0; i < num_integers; i++) {
     std::stringstream col;
     col << "col" << i;
-    cols.emplace_back(col.str(), type::TypeId::INTEGER, nullptr);
+    cols.emplace_back(col.str(), execution::sql::SqlTypeId::Integer, nullptr);
   }
 
   for (auto i = 0; i < num_reals; i++) {
     std::stringstream col;
     col << "col" << i;
-    cols.emplace_back(col.str(), type::TypeId::REAL, nullptr);
+    cols.emplace_back(col.str(), execution::sql::SqlTypeId::Double, nullptr);
   }
 
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto real_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::REAL);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto real_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Double));
   auto tuple_size = int_size * num_integers + real_size * num_reals;
 
   auto txn = txn_manager_->BeginTransaction();
@@ -942,13 +949,13 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ0_OutputRunners)(benchmark::State &state
       db_oid, common::ManagedPointer(txn), callback, schema.get(), common::ManagedPointer(accessor), exec_settings,
       metrics_manager_, DISABLED, DISABLED);
 
-  auto exec_query =
-      execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16, exec_settings);
+  auto exec_query = execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16,
+                                                         exec_settings, txn->StartTime());
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT, row_num,
-                         tuple_size, num_col, 0, 1, 0, 0);
+                         tuple_size, num_col, 0, 1, 0, 0, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
   exec_query.SetPipelineOperatingUnits(std::move(units));
 
@@ -960,7 +967,7 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
   auto key_num = state->range(0);
   uint64_t tbl_cols = state->range(1);
   auto num_rows = state->range(2);
-  auto type = static_cast<type::TypeId>(state->range(3));
+  auto type = static_cast<execution::sql::SqlTypeId>(state->range(3));
   auto num_index = state->range(4);
   auto target = num_rows + 1;
   if (settings.skip_large_rows_runs_ && num_rows > settings.warmup_rows_limit_) {
@@ -971,17 +978,17 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
   if (noisepage::runner::ExecutionRunners::mode == execution::vm::ExecutionMode::Compiled) return;
 
   // Create the indexes for batch-insert
-  auto cols = ConstructSQLClause(type, type::TypeId::INVALID, key_num, 0, ", ", "", false, "");
-  auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, num_rows);
+  auto cols = ConstructSQLClause(type, execution::sql::SqlTypeId::Invalid, key_num, 0, ", ", "", false, "");
+  auto tbl_name = ConstructTableName(type, execution::sql::SqlTypeId::Invalid, tbl_cols, 0, num_rows, num_rows);
   for (auto i = 0; i < num_index; i++) {
-    auto settings = GetExecutionSettings(false);
+    auto execution_settings = GetExecutionSettings(false);
     auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
 
     std::stringstream query;
-    query << "CREATE INDEX idx" << i << " ON " << tbl_name << " (" << cols << ")";
+    query << "CREATE INDEX idx" << i << " ON " << tbl_name << " USING BPLUSTREE (" << cols << ")";
     auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
-                                       PassthroughPlanChecker, nullptr, nullptr, &settings);
-    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
+                                       PassthroughPlanChecker, nullptr, nullptr, &execution_settings);
+    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &execution_settings);
   }
 
   // Invoke GC to clean some data
@@ -1017,10 +1024,11 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
     selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
     auto feature_type = is_insert ? selfdriving::ExecutionOperatingUnitType::INDEX_INSERT
                                   : selfdriving::ExecutionOperatingUnitType::INDEX_DELETE;
-    auto type_size = type::TypeUtil::GetTypeSize(type);
+    auto type_size = execution::sql::GetSqlTypeIdSize(type);
     auto key_size = type_size * key_num;
-    pipe0_vec.emplace_back(execution::translator_id_t(1), feature_type, num_rows, key_size, key_num, num_index, 1, 0,
-                           0);
+    pipe0_vec.emplace_back(execution::translator_id_t(1), feature_type, num_rows, key_size, key_num, num_index, 1, 0, 0,
+                           storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                           storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
     selfdriving::PipelineOperatingUnits units;
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer<selfdriving::PipelineOperatingUnits>(&units));
@@ -1040,9 +1048,9 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
       OpStorageInterfaceGetTablePR(&tbl_pr, &si);
       for (uint64_t i = 0; i < tbl_cols; i++) {
         execution::sql::Integer value(target);
-        if (type == type::TypeId::INTEGER) {
+        if (type == execution::sql::SqlTypeId::Integer) {
           OpPRSetInt(tbl_pr, i, &value);
-        } else if (type == type::TypeId::BIGINT) {
+        } else if (type == execution::sql::SqlTypeId::BigInt) {
           OpPRSetBigInt(tbl_pr, i, &value);
         }
       }
@@ -1050,9 +1058,9 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
       OpStorageInterfaceTableInsert(&slot, &si);
     } else {
       bool has_more;
-      uint32_t col_oids[] = {1};
+      uint32_t col_oids2[] = {1};
       bool done = false;
-      execution::sql::TableVectorIterator tvi(exec_ctx.get(), tbl_oid.UnderlyingValue(), col_oids, 1);
+      execution::sql::TableVectorIterator tvi(exec_ctx.get(), tbl_oid.UnderlyingValue(), col_oids2, 1);
       OpTableVectorIteratorPerformInit(&tvi);
       OpTableVectorIteratorNext(&has_more, &tvi);
       while (has_more) {
@@ -1098,18 +1106,18 @@ void ExecutionRunners::ExecuteIndexOperation(benchmark::State *state, bool is_in
       for (auto col = 0; col < key_num; col++) {
         if (is_insert) {
           execution::sql::Integer val(0);
-          if (type == type::TypeId::INTEGER) {
+          if (type == execution::sql::SqlTypeId::Integer) {
             OpPRGetInt(&val, tbl_pr, col);
             OpPRSetInt(idx_pr, col, &val);
-          } else if (type == type::TypeId::BIGINT) {
+          } else if (type == execution::sql::SqlTypeId::BigInt) {
             OpPRGetBigInt(&val, tbl_pr, col);
             OpPRSetBigInt(idx_pr, col, &val);
           }
         } else {
           execution::sql::Integer value(target);
-          if (type == type::TypeId::INTEGER) {
+          if (type == execution::sql::SqlTypeId::Integer) {
             OpPRSetInt(idx_pr, col, &value);
-          } else if (type == type::TypeId::BIGINT) {
+          } else if (type == execution::sql::SqlTypeId::BigInt) {
             OpPRSetBigInt(idx_pr, col, &value);
           }
         }
@@ -1178,12 +1186,12 @@ void ExecutionRunners::ExecuteSeqScan(benchmark::State *state) {
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  type::TypeId mix_type;
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  execution::sql::SqlTypeId mix_type;
   if (varchar_mix == 1)
-    mix_type = type::TypeId::VARCHAR;
+    mix_type = execution::sql::SqlTypeId::Varchar;
   else
-    mix_type = type::TypeId::REAL;
+    mix_type = execution::sql::SqlTypeId::Double;
   size_t tuple_size = int_size * num_integers;
   size_t num_col = num_integers + num_mix;
 
@@ -1195,16 +1203,17 @@ void ExecutionRunners::ExecuteSeqScan(benchmark::State *state) {
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT, row,
-                         tuple_size, num_col, 0, 1, 0, 0);
+                         tuple_size, num_col, 0, 1, 0, 0, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::string query_final;
   {
     std::stringstream query;
-    auto cols = ConstructSQLClause(type::TypeId::INTEGER, mix_type, num_integers, num_mix, ", ", "", false, "");
-    auto tbl_name = ConstructTableName(type::TypeId::INTEGER, mix_type, tbl_ints, tbl_mix, row, car);
+    auto cols =
+        ConstructSQLClause(execution::sql::SqlTypeId::Integer, mix_type, num_integers, num_mix, ", ", "", false, "");
+    auto tbl_name = ConstructTableName(execution::sql::SqlTypeId::Integer, mix_type, tbl_ints, tbl_mix, row, car);
     query << "SELECT " << (cols) << " FROM " << tbl_name;
     query_final = query.str();
   }
@@ -1223,7 +1232,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ1_1_SeqScanRunners)(benchmark::State &st
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state) {
-  auto type = static_cast<type::TypeId>(state.range(0));
+  auto type = static_cast<execution::sql::SqlTypeId>(state.range(0));
   auto tbl_cols = state.range(1);
   size_t key_num = state.range(2);
   auto num_rows = state.range(3);
@@ -1255,14 +1264,16 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_0_IndexScanRunners)(benchmark::State &
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT, lookup_size,
-                         tuple_size, key_num, 0, 1, 0, 0);
+                         tuple_size, key_num, 0, 1, 0, 0, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::IDX_SCAN, num_rows,
-                         tuple_size, key_num, lookup_size, 1, 0, 0);
+                         tuple_size, key_num, lookup_size, 1, 0, 0,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::vector<parser::ConstantValueExpression> params;
-  std::vector<type::TypeId> param_types;
-  if (type != type::TypeId::VARCHAR) {
+  std::vector<execution::sql::SqlTypeId> param_types;
+  if (type != execution::sql::SqlTypeId::Varchar) {
     params.emplace_back(type, execution::sql::Integer(0));
   } else {
     std::string val = std::string("0");
@@ -1270,7 +1281,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_0_IndexScanRunners)(benchmark::State &
   }
   param_types.push_back(type);
   if (lookup_size > 1) {
-    if (type != type::TypeId::VARCHAR) {
+    if (type != execution::sql::SqlTypeId::Varchar) {
       params.emplace_back(type, execution::sql::Integer(0));
     } else {
       std::string val = std::string("0");
@@ -1283,14 +1294,14 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_0_IndexScanRunners)(benchmark::State &
   GenIdxScanParameters(type, num_rows, lookup_size, num_iters, &real_params);
 
   std::stringstream query;
-  auto cols = ConstructSQLClause(type, type::TypeId::INVALID, num_col, 0, ", ", "", false, "");
+  auto cols = ConstructSQLClause(type, execution::sql::SqlTypeId::Invalid, num_col, 0, ", ", "", false, "");
   std::string predicate = ConstructIndexScanPredicate(type, num_col, lookup_size);
-  auto table_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, num_rows);
+  auto table_name = ConstructTableName(type, execution::sql::SqlTypeId::Invalid, tbl_cols, 0, num_rows, num_rows);
   query << "SELECT " << cols << " FROM  " << table_name << " WHERE " << predicate;
   auto f = std::bind(&ExecutionRunners::IndexScanChecker, this, num_col, std::placeholders::_1, std::placeholders::_2);
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units), f,
                                      common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
-                                     common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
+                                     common::ManagedPointer<std::vector<execution::sql::SqlTypeId>>(&param_types));
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true, &real_params);
 
   state.SetItemsProcessed(state.range(2));
@@ -1298,7 +1309,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_0_IndexScanRunners)(benchmark::State &
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state) {
-  auto type = type::TypeId::INTEGER;
+  auto type = execution::sql::SqlTypeId::Integer;
   auto tbl_cols = 15;
   auto key_num = state.range(0);
   auto outer = state.range(1);
@@ -1325,7 +1336,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &
 
   // No warmup
   int num_iters = 1;
-  auto type_size = type::TypeUtil::GetTypeTrueSize(type);
+  auto type_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(type));
   auto tuple_size = type_size * key_num;
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
@@ -1334,22 +1345,24 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &
   // We only ever emit min(outer, inner) # of tuples
   // Even though there are no matches, it still might be a good idea to see what the relation is
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT,
-                         std::min(inner, outer), tuple_size, key_num, 0, 1, 0, 0);
+                         std::min(inner, outer), tuple_size, key_num, 0, 1, 0, 0, 0, 0);
 
   // Outer table scan happens
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, outer,
-                         tuple_size, key_num, outer, 1, 0, 0);
+                         tuple_size, key_num, outer, 1, 0, 0, 0, 0);
 
   // For each in outer, match 1 tuple in inner
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::IDX_SCAN, inner,
-                         tuple_size, key_num, 1, 1, outer, 0);
+                         tuple_size, key_num, 1, 1, outer, 0,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  auto cols = ConstructSQLClause(type, type::TypeId::INVALID, key_num, 0, ", ", "a", false, "");
-  auto predicate = ConstructSQLClause(type, type::TypeId::INVALID, key_num, 0, " AND ", "a", true, "b");
+  auto cols = ConstructSQLClause(type, execution::sql::SqlTypeId::Invalid, key_num, 0, ", ", "a", false, "");
+  auto predicate = ConstructSQLClause(type, execution::sql::SqlTypeId::Invalid, key_num, 0, " AND ", "a", true, "b");
 
-  auto outer_tbl = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, outer, outer);
-  auto inner_tbl = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, inner, inner);
+  auto outer_tbl = ConstructTableName(type, execution::sql::SqlTypeId::Invalid, tbl_cols, 0, outer, outer);
+  auto inner_tbl = ConstructTableName(type, execution::sql::SqlTypeId::Invalid, tbl_cols, 0, inner, inner);
 
   std::stringstream query;
   query << "SELECT " << cols << " FROM " << outer_tbl << " AS a, " << inner_tbl << " AS b WHERE " << predicate;
@@ -1374,20 +1387,21 @@ void ExecutionRunners::ExecuteInsert(benchmark::State *state) {
 
   // Create temporary table schema
   std::vector<catalog::Schema::Column> cols;
-  std::vector<std::pair<type::TypeId, int64_t>> info = {{type::TypeId::INTEGER, num_ints},
-                                                        {type::TypeId::REAL, num_reals}};
+  std::vector<std::pair<execution::sql::SqlTypeId, int64_t>> info = {{execution::sql::SqlTypeId::Integer, num_ints},
+                                                                     {execution::sql::SqlTypeId::Double, num_reals}};
   int col_no = 1;
   for (auto &i : info) {
     for (auto j = 1; j <= i.second; j++) {
       std::stringstream col_name;
       col_name << "col" << col_no++;
-      if (i.first == type::TypeId::INTEGER) {
+      if (i.first == execution::sql::SqlTypeId::Integer) {
         cols.emplace_back(
             col_name.str(), i.first, false,
-            noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0)));
+            noisepage::parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, execution::sql::Integer(0)));
       } else {
-        cols.emplace_back(col_name.str(), i.first, false,
-                          noisepage::parser::ConstantValueExpression(type::TypeId::REAL, execution::sql::Real(0.f)));
+        cols.emplace_back(
+            col_name.str(), i.first, false,
+            noisepage::parser::ConstantValueExpression(execution::sql::SqlTypeId::Double, execution::sql::Real(0.f)));
       }
     }
   }
@@ -1433,14 +1447,14 @@ void ExecutionRunners::ExecuteInsert(benchmark::State *state) {
     }
   }
 
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto real_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::REAL);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto real_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Double));
   auto tuple_size = int_size * num_ints + real_size * num_reals;
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::INSERT, num_rows,
-                         tuple_size, num_cols, num_rows, 1, 0, 0);
+                         tuple_size, num_cols, num_rows, 1, 0, 0, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   auto num_iters = 1 + ((num_rows <= settings.warmup_rows_limit_) ? settings.warmup_iterations_num_ : 0);
@@ -1477,9 +1491,9 @@ void ExecutionRunners::ExecuteUpdate(benchmark::State *state) {
 
   // A lookup size of 0 indicates a special query
   bool is_first_type = tbl_ints != 0;
-  auto type = is_first_type ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
+  auto type = is_first_type ? (execution::sql::SqlTypeId::Integer) : (execution::sql::SqlTypeId::BigInt);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto bigint_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
   auto tuple_size = is_first_type ? (int_size * update_keys) : (bigint_size * update_keys);
   auto num_col = is_first_type ? num_integers : num_bigints;
   auto idx_size = is_first_type ? (int_size * num_col) : (bigint_size * num_col);
@@ -1505,14 +1519,14 @@ void ExecutionRunners::ExecuteUpdate(benchmark::State *state) {
   // code will not do a DELETE followed by an INSERT on the underlying table since
   // the UPDATE statement does not update any indexed columns.
   std::stringstream query;
-  std::string tbl = ConstructTableName(type, type::TypeId::INVALID, tbl_ints + tbl_bigints, 0, row, row);
+  std::string tbl = ConstructTableName(type, execution::sql::SqlTypeId::Invalid, tbl_ints + tbl_bigints, 0, row, row);
   query << "UPDATE " << tbl << " SET ";
 
   std::vector<catalog::Schema::Column> cols;
   {
     uint64_t limit = is_first_type ? tbl_ints : tbl_bigints;
     limit = std::min(limit, static_cast<uint64_t>(num_col + update_keys));
-    auto type_name = type::TypeUtil::TypeIdToString(type);
+    auto type_name = execution::sql::SqlTypeIdToString(type);
     for (uint64_t j = num_col + 1; j <= limit; j++) {
       query << type_name << j << " = " << type_name << j;
       if (j != limit) query << ", ";
@@ -1526,13 +1540,15 @@ void ExecutionRunners::ExecuteUpdate(benchmark::State *state) {
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::UPDATE, car,
-                         tuple_size, update_keys, car, 1, 0, 0);
+                         tuple_size, update_keys, car, 1, 0, 0, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::IDX_SCAN, row,
-                         idx_size, num_col, car, 1, 0, 0);
+                         idx_size, num_col, car, 1, 0, 0,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::vector<parser::ConstantValueExpression> params;
-  std::vector<type::TypeId> param_types;
+  std::vector<execution::sql::SqlTypeId> param_types;
   params.emplace_back(type, execution::sql::Integer(0));
   param_types.push_back(type);
   if (car > 1) {
@@ -1547,7 +1563,7 @@ void ExecutionRunners::ExecuteUpdate(benchmark::State *state) {
   auto f = std::bind(&ExecutionRunners::UpdateIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
   equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
                                 common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
-                                common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
+                                common::ManagedPointer<std::vector<execution::sql::SqlTypeId>>(&param_types));
 
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false, &real_params);
   state->SetItemsProcessed(row);
@@ -1572,9 +1588,9 @@ void ExecutionRunners::ExecuteDelete(benchmark::State *state) {
   }
 
   // A lookup size of 0 indicates a special query
-  auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
+  auto type = tbl_ints != 0 ? (execution::sql::SqlTypeId::Integer) : (execution::sql::SqlTypeId::BigInt);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto bigint_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
   auto tbl_col = tbl_ints + tbl_bigints;
@@ -1603,15 +1619,19 @@ void ExecutionRunners::ExecuteDelete(benchmark::State *state) {
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::DELETE, car, tbl_size,
-                         tbl_col, car, 1, 0, 0);
+                         tbl_col, car, 1, 0, 0, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::INDEX_DELETE, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::IDX_SCAN, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::vector<parser::ConstantValueExpression> params;
-  std::vector<type::TypeId> param_types;
+  std::vector<execution::sql::SqlTypeId> param_types;
   params.emplace_back(type, execution::sql::Integer(0));
   param_types.push_back(type);
   if (car > 1) {
@@ -1621,13 +1641,13 @@ void ExecutionRunners::ExecuteDelete(benchmark::State *state) {
 
   GenIdxScanParameters(type, row, car, num_iters, &real_params);
   std::string predicate = ConstructIndexScanPredicate(type, num_col, car);
-  std::string tbl = ConstructTableName(type, type::TypeId::INVALID, tbl_col, 0, row, row);
+  std::string tbl = ConstructTableName(type, execution::sql::SqlTypeId::Invalid, tbl_col, 0, row, row);
   query << "DELETE FROM " << tbl << " WHERE " << predicate;
 
   auto f = std::bind(&ExecutionRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
   equery = OptimizeSqlStatement(query.str(), std::move(cost), std::move(units), f,
                                 common::ManagedPointer<std::vector<parser::ConstantValueExpression>>(&params),
-                                common::ManagedPointer<std::vector<type::TypeId>>(&param_types));
+                                common::ManagedPointer<std::vector<execution::sql::SqlTypeId>>(&param_types));
 
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false, &real_params);
   state->SetItemsProcessed(row);
@@ -1653,8 +1673,8 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ3_SortRunners)(benchmark::State &state) 
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto real_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::REAL);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto real_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Double));
   auto tuple_size = int_size * num_integers + real_size * num_reals;
   auto num_col = num_integers + num_reals;
 
@@ -1670,19 +1690,20 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ3_SortRunners)(benchmark::State &state) 
     output_num = car;
   }
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
-                         tuple_size, num_col, table_car, 1, 0, 0);
-  pipe0_vec.emplace_back(execution::translator_id_t(1), build_ou_type, row, tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, table_car, 1, 0, 0, 0, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), build_ou_type, row, tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SORT_ITERATE,
-                         output_num, tuple_size, num_col, car, 1, 0, 0);
+                         output_num, tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT, output_num,
-                         tuple_size, num_col, 0, 1, 0, 0);
+                         tuple_size, num_col, 0, 1, 0, 0, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
   std::stringstream query;
-  auto cols =
-      ConstructSQLClause(type::TypeId::INTEGER, type::TypeId::REAL, num_integers, num_reals, ", ", "", false, "");
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::REAL, tbl_ints, tbl_reals, row, table_car);
+  auto cols = ConstructSQLClause(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double, num_integers,
+                                 num_reals, ", ", "", false, "");
+  auto tbl_name = ConstructTableName(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Double, tbl_ints,
+                                     tbl_reals, row, table_car);
   query << "SELECT " << (cols) << " FROM " << tbl_name << " ORDER BY " << (cols);
   if (is_topk == 1) query << " LIMIT " << car;
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
@@ -1710,8 +1731,8 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ4_HashJoinSelfRunners)(benchmark::State 
   // Size of the scan tuple
   // Size of hash key size, probe key size
   // Size of output since only output 1 side
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto bigint_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
 
@@ -1720,24 +1741,25 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ4_HashJoinSelfRunners)(benchmark::State 
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   selfdriving::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::HASHJOIN_BUILD, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::HASHJOIN_PROBE, row,
-                         tuple_size, num_col, hj_output, 1, 0, 0);
+                         tuple_size, num_col, hj_output, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT, hj_output,
-                         tuple_size, num_col, 0, 1, 0, 0);
+                         tuple_size, num_col, 0, 1, 0, 0, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
   std::stringstream query;
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
-  auto cols =
-      ConstructSQLClause(type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints, ", ", "b", false, "");
-  auto predicate = ConstructSQLClause(type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints, " AND ",
-                                      tbl_name, true, "b");
+  auto tbl_name = ConstructTableName(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt, tbl_ints,
+                                     tbl_bigints, row, car);
+  auto cols = ConstructSQLClause(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt, num_integers,
+                                 num_bigints, ", ", "b", false, "");
+  auto predicate = ConstructSQLClause(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt,
+                                      num_integers, num_bigints, " AND ", tbl_name, true, "b");
   query << "SELECT " << cols << " FROM " << tbl_name << ", " << tbl_name << " as b WHERE " << predicate;
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::ForcedCostModel>(true), std::move(units));
   BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true);
@@ -1764,8 +1786,8 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::Sta
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  auto bigint_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::BigInt));
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
 
@@ -1773,28 +1795,28 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::Sta
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   selfdriving::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, build_row,
-                         tuple_size, num_col, build_car, 1, 0, 0);
+                         tuple_size, num_col, build_car, 1, 0, 0, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                         build_row, tuple_size, num_col, build_car, 1, 0, 0);
+                         build_row, tuple_size, num_col, build_car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, probe_row,
-                         tuple_size, num_col, probe_car, 1, 0, 0);
+                         tuple_size, num_col, probe_car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                         probe_row, tuple_size, num_col, matched_car, 1, 0, 0);
+                         probe_row, tuple_size, num_col, matched_car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT, matched_car,
-                         tuple_size, num_col, 0, 1, 0, 0);
+                         tuple_size, num_col, 0, 1, 0, 0, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
-  auto build_tbl =
-      ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, build_row, build_car);
-  auto probe_tbl =
-      ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, probe_row, probe_car);
+  auto build_tbl = ConstructTableName(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt, tbl_ints,
+                                      tbl_bigints, build_row, build_car);
+  auto probe_tbl = ConstructTableName(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt, tbl_ints,
+                                      tbl_bigints, probe_row, probe_car);
 
   std::stringstream query;
-  auto cols =
-      ConstructSQLClause(type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints, ", ", "b", false, "");
-  auto predicate = ConstructSQLClause(type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints, " AND ",
-                                      build_tbl, true, "b");
+  auto cols = ConstructSQLClause(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt, num_integers,
+                                 num_bigints, ", ", "b", false, "");
+  auto predicate = ConstructSQLClause(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt,
+                                      num_integers, num_bigints, " AND ", build_tbl, true, "b");
   query << "SELECT " << cols << " FROM " << build_tbl << ", " << probe_tbl << " as b WHERE " << predicate;
 
   auto f =
@@ -1821,11 +1843,11 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ5_0_AggregateRunners)(benchmark::State &
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
   size_t tuple_size = int_size * num_integers;
   size_t num_col = num_integers + num_varchars;
   for (auto i = 0; i < num_varchars; i++) {
-    selfdriving::OperatingUnitRecorder::AdjustKeyWithType(type::TypeId::VARCHAR, &tuple_size, &num_col);
+    selfdriving::OperatingUnitRecorder::AdjustKeyWithType(execution::sql::SqlTypeId::Varchar, &tuple_size, &num_col);
   }
   auto out_cols = num_col + 1;     // pulling the count(*) out
   auto out_size = tuple_size + 4;  // count(*) is an integer
@@ -1834,20 +1856,21 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ5_0_AggregateRunners)(benchmark::State &
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   selfdriving::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::AGGREGATE_BUILD, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car,
-                         out_size, out_cols, car, 1, 0, 0);
+                         out_size, out_cols, car, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT, car, out_size,
-                         out_cols, 0, 1, 0, 0);
+                         out_cols, 0, 1, 0, 0, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
   std::stringstream query;
-  auto cols =
-      ConstructSQLClause(type::TypeId::INTEGER, type::TypeId::VARCHAR, num_integers, num_varchars, ", ", "", false, "");
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::VARCHAR, tbl_ints, tbl_varchars, row, car);
+  auto cols = ConstructSQLClause(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Varchar, num_integers,
+                                 num_varchars, ", ", "", false, "");
+  auto tbl_name = ConstructTableName(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::Varchar, tbl_ints,
+                                     tbl_varchars, row, car);
   query << "SELECT COUNT(*), " << cols << " FROM " << tbl_name << " GROUP BY " << cols;
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
@@ -1868,7 +1891,7 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ5_1_AggregateRunners)(benchmark::State &
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
   auto tuple_size = int_size * num_integers;
   auto num_col = num_integers;
   auto out_cols = num_col;
@@ -1878,24 +1901,26 @@ BENCHMARK_DEFINE_F(ExecutionRunners, SEQ5_1_AggregateRunners)(benchmark::State &
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   selfdriving::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::SEQ_SCAN, row,
-                         tuple_size, num_col, car, 1, 0, 0);
+                         tuple_size, num_col, car, 1, 0, 0, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::AGGREGATE_BUILD, row,
-                         0, num_col, 1, 1, 0, 0);
+                         0, num_col, 1, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::AGGREGATE_ITERATE, 1,
-                         out_size, out_cols, 1, 1, 0, 0);
+                         out_size, out_cols, 1, 1, 0, 0, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::OUTPUT, 1, out_size,
-                         out_cols, 0, 1, 0, 0);
+                         out_cols, 0, 1, 0, 0, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
   std::stringstream query;
-  auto cols = ConstructSQLClause(type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, 0, ", ", "", false, "");
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, 0, row, car);
+  auto cols = ConstructSQLClause(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt, num_integers, 0,
+                                 ", ", "", false, "");
+  auto tbl_name =
+      ConstructTableName(execution::sql::SqlTypeId::Integer, execution::sql::SqlTypeId::BigInt, tbl_ints, 0, row, car);
 
   {
     query << "SELECT ";
     for (int i = 1; i <= num_integers; i++) {
-      query << "SUM(" << (type::TypeUtil::TypeIdToString(type::TypeId::INTEGER)) << i << ")";
+      query << "SUM(" << (execution::sql::SqlTypeIdToString(execution::sql::SqlTypeId::Integer)) << i << ")";
       if (i != num_integers) query << ", ";
     }
 
@@ -1923,12 +1948,12 @@ void ExecutionRunners::ExecuteCreateIndex(benchmark::State *state) {
 
   // Only generate counters if executing in parallel
   auto exec_settings = GetParallelExecutionSettings(num_threads, num_threads != 0);
-  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  type::TypeId mix_type;
+  auto int_size = storage::AttrSizeBytes(execution::sql::GetSqlTypeIdSize(execution::sql::SqlTypeId::Integer));
+  execution::sql::SqlTypeId mix_type;
   if (varchar_mix == 1)
-    mix_type = type::TypeId::VARCHAR;
+    mix_type = execution::sql::SqlTypeId::Varchar;
   else
-    mix_type = type::TypeId::BIGINT;
+    mix_type = execution::sql::SqlTypeId::BigInt;
   size_t tuple_size = int_size * num_integers;
   size_t num_col = num_integers + num_mix;
 
@@ -1937,18 +1962,27 @@ void ExecutionRunners::ExecuteCreateIndex(benchmark::State *state) {
     selfdriving::OperatingUnitRecorder::AdjustKeyWithType(mix_type, &tuple_size, &num_col);
   }
 
-  auto cols = ConstructSQLClause(type::TypeId::INTEGER, mix_type, num_integers, num_mix, ", ", "", false, "");
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, mix_type, tbl_ints, tbl_mix, row, car);
+  auto cols =
+      ConstructSQLClause(execution::sql::SqlTypeId::Integer, mix_type, num_integers, num_mix, ", ", "", false, "");
+  auto tbl_name = ConstructTableName(execution::sql::SqlTypeId::Integer, mix_type, tbl_ints, tbl_mix, row, car);
 
   auto units = std::make_unique<selfdriving::PipelineOperatingUnits>();
   selfdriving::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::CREATE_INDEX, row,
-                         tuple_size, num_col, car, 1, 0, num_threads);
+                         tuple_size, num_col, car, 1, 0, num_threads,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                         storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
+  if (num_threads != 0) {
+    pipe0_vec.emplace_back(execution::translator_id_t(1), selfdriving::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
+                           row, tuple_size, num_col, car, 1, 0, num_threads,
+                           storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_UPPER_THRESHOLD,
+                           storage::index::BPlusTreeBase::DEFAULT_INNER_NODE_SIZE_LOWER_THRESHOLD);
+  }
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::stringstream query;
   std::string idx_name("runner_idx");
-  query << "CREATE INDEX " << idx_name << " ON " << tbl_name << " (" << cols << ")";
+  query << "CREATE INDEX " << idx_name << " ON " << tbl_name << " USING BPLUSTREE (" << cols << ")";
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
                                      PassthroughPlanChecker, nullptr, nullptr, &exec_settings);
   BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &exec_settings);
@@ -1973,13 +2007,13 @@ void InitializeRunnersState() {
   auto sql_val = execution::sql::Integer(limit);
   auto sql_false = execution::sql::BoolVal(false);
   param_map.find(settings::Param::block_store_size)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+      parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, sql_val);
   param_map.find(settings::Param::block_store_reuse)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+      parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, sql_val);
   param_map.find(settings::Param::record_buffer_segment_size)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+      parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, sql_val);
   param_map.find(settings::Param::record_buffer_segment_reuse)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+      parser::ConstantValueExpression(execution::sql::SqlTypeId::Integer, sql_val);
   param_map.find(settings::Param::block_store_size)->second.max_value_ = limit;
   param_map.find(settings::Param::block_store_reuse)->second.max_value_ = limit;
   param_map.find(settings::Param::record_buffer_segment_size)->second.max_value_ = limit;
@@ -1987,15 +2021,15 @@ void InitializeRunnersState() {
 
   // Set Network Port
   param_map.find(settings::Param::port)->second.value_ = parser::ConstantValueExpression(
-      type::TypeId::INTEGER, execution::sql::Integer(noisepage::runner::settings.port_));
+      execution::sql::SqlTypeId::Integer, execution::sql::Integer(noisepage::runner::settings.port_));
 
   // Need to disable metrics thread
   param_map.find(settings::Param::use_metrics_thread)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::BOOLEAN, sql_false);
+      parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, sql_false);
 
   // Need to disable WAL
   param_map.find(settings::Param::wal_enable)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::BOOLEAN, sql_false);
+      parser::ConstantValueExpression(execution::sql::SqlTypeId::Boolean, sql_false);
 
   auto db_main_builder = DBMain::Builder()
                              .SetUseGC(true)

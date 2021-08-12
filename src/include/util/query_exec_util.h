@@ -12,7 +12,6 @@
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
 #include "planner/plannodes/output_schema.h"
-#include "type/type_id.h"
 
 namespace noisepage::transaction {
 class TransactionContext;
@@ -143,7 +142,7 @@ class QueryExecUtil {
    * @return true if success
    */
   bool ExecuteDML(const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                  common::ManagedPointer<std::vector<type::TypeId>> param_types, TupleFunction tuple_fn,
+                  common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> param_types, TupleFunction tuple_fn,
                   common::ManagedPointer<metrics::MetricsManager> metrics,
                   std::unique_ptr<optimizer::AbstractCostModel> cost, std::optional<execution::query_id_t> override_qid,
                   const execution::exec::ExecutionSettings &exec_settings);
@@ -160,7 +159,7 @@ class QueryExecUtil {
    */
   bool CompileQuery(const std::string &statement,
                     common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-                    common::ManagedPointer<std::vector<type::TypeId>> param_types,
+                    common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> param_types,
                     std::unique_ptr<optimizer::AbstractCostModel> cost,
                     std::optional<execution::query_id_t> override_qid,
                     const execution::exec::ExecutionSettings &exec_settings);
@@ -198,7 +197,7 @@ class QueryExecUtil {
    */
   std::unique_ptr<network::Statement> PlanStatement(
       const std::string &query, common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params,
-      common::ManagedPointer<std::vector<type::TypeId>> param_types,
+      common::ManagedPointer<std::vector<execution::sql::SqlTypeId>> param_types,
       std::unique_ptr<optimizer::AbstractCostModel> cost);
 
   /**

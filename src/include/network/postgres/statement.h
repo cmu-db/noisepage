@@ -11,7 +11,6 @@
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
-#include "type/type_id.h"
 
 namespace noisepage::network {
 
@@ -42,7 +41,7 @@ class Statement {
    * @param param_types types of the values to be bound
    */
   Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
-            std::vector<type::TypeId> &&param_types);
+            std::vector<execution::sql::SqlTypeId> &&param_types);
 
   /**
    * @return true if the statement is empty
@@ -62,7 +61,7 @@ class Statement {
   /**
    * @return vector of the statements parameters (if any)
    */
-  const std::vector<type::TypeId> &ParamTypes() const { return param_types_; }
+  const std::vector<execution::sql::SqlTypeId> &ParamTypes() const { return param_types_; }
 
   /**
    * @return QueryType of the root statement of the ParseResult
@@ -114,7 +113,7 @@ class Statement {
    * @param desired_param_types output from the binder if Statement has parameters to fast-path convert for future
    * bindings
    */
-  void SetDesiredParamTypes(std::vector<type::TypeId> &&desired_param_types) {
+  void SetDesiredParamTypes(std::vector<execution::sql::SqlTypeId> &&desired_param_types) {
     desired_param_types_ = std::move(desired_param_types);
     NOISEPAGE_ASSERT(desired_param_types_.size() == param_types_.size(), "");
   }
@@ -124,7 +123,7 @@ class Statement {
    * @return output from the binder if Statement has parameters to fast-path convert for future
    * bindings
    */
-  const std::vector<type::TypeId> &GetDesiredParamTypes() const { return desired_param_types_; }
+  const std::vector<execution::sql::SqlTypeId> &GetDesiredParamTypes() const { return desired_param_types_; }
 
   /**
    * Remove the cached objects related to query execution for this Statement. This should be done any time there is a
@@ -139,7 +138,7 @@ class Statement {
  private:
   const std::string query_text_;
   const std::unique_ptr<parser::ParseResult> parse_result_ = nullptr;
-  const std::vector<type::TypeId> param_types_;
+  const std::vector<execution::sql::SqlTypeId> param_types_;
   common::ManagedPointer<parser::SQLStatement> root_statement_ = nullptr;
   enum QueryType type_ = QueryType::QUERY_INVALID;
 
@@ -148,7 +147,7 @@ class Statement {
   // same query text. The exception to this that DDL changes can break these cached objects.
   std::unique_ptr<optimizer::OptimizeResult> optimize_result_ = nullptr;              // generated in the Bind phase
   std::unique_ptr<execution::compiler::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
-  std::vector<type::TypeId> desired_param_types_;                                     // generated in the Bind phase
+  std::vector<execution::sql::SqlTypeId> desired_param_types_;                        // generated in the Bind phase
 };
 
 }  // namespace noisepage::network

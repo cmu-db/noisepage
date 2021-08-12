@@ -8,9 +8,9 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "execution/sql/sql.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "self_driving/modeling/operating_unit.h"
-#include "type/type_id.h"
 
 namespace noisepage::catalog {
 class CatalogAccessor;
@@ -75,7 +75,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param key_size
    * @param num_key
    */
-  static void AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key);
+  static void AdjustKeyWithType(execution::sql::SqlTypeId type, size_t *key_size, size_t *num_key);
 
  private:
   /**
@@ -120,6 +120,21 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    */
   template <typename IndexPlanNode>
   void RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids, catalog::table_oid_t table_oid);
+
+  /**
+   * Derive index specific features from the index schema
+   * @param schema Schema to derive features from
+   * @return pair of index specific features
+   */
+  std::pair<size_t, size_t> DeriveIndexSpecificFeatures(const catalog::IndexSchema &schema);
+
+  /**
+   * Derive a valid value for the num_concurrent for a create index
+   * @param schema Schema of index being built
+   * @param tbl_oid Table OID of table being used
+   * @return estimate of num_concurrent
+   */
+  size_t DeriveIndexBuildThreads(const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid);
 
   template <typename Translator>
   void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
@@ -221,7 +236,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Arithmetic features for a given plan
    */
-  std::vector<std::pair<type::TypeId, ExecutionOperatingUnitType>> arithmetic_feature_types_;
+  std::vector<std::pair<execution::sql::SqlTypeId, ExecutionOperatingUnitType>> arithmetic_feature_types_;
 
   /**
    * Structure for storing features of a pipeline

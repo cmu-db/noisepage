@@ -267,7 +267,7 @@ void PlanGenerator::Visit(const ExternalFileScan *op) {
   switch (op->GetFormat()) {
     case parser::ExternalFileFormat::CSV: {
       // First construct the output column descriptions
-      std::vector<type::TypeId> value_types;
+      std::vector<execution::sql::SqlTypeId> value_types;
       std::vector<planner::OutputSchema::Column> cols;
 
       auto idx = 0;
@@ -989,8 +989,9 @@ void PlanGenerator::Visit(const CreateIndex *create_index) {
   for (const auto &col : schema->GetColumns()) {
     cols.emplace_back(col);
   }
-  auto idx_schema = std::make_unique<catalog::IndexSchema>(std::move(cols), schema->Type(), schema->Unique(),
-                                                           schema->Primary(), schema->Exclusion(), schema->Immediate());
+  auto idx_schema =
+      std::make_unique<catalog::IndexSchema>(std::move(cols), schema->Type(), schema->Unique(), schema->Primary(),
+                                             schema->Exclusion(), schema->Immediate(), schema->GetIndexOptions());
   auto out_schema = std::make_unique<planner::OutputSchema>();
 
   output_plan_ = planner::CreateIndexPlanNode::Builder()
@@ -1034,7 +1035,7 @@ void PlanGenerator::Visit(const CreateTable *create_table) {
     parser::ConstantValueExpression null_val{val_type, execution::sql::Val(true)};
     auto &val = col->GetDefaultExpression() != nullptr ? *col->GetDefaultExpression() : null_val;
 
-    if (val_type == type::TypeId::VARCHAR || val_type == type::TypeId::VARBINARY) {
+    if (val_type == execution::sql::SqlTypeId::Varchar || val_type == execution::sql::SqlTypeId::Varbinary) {
       cols.emplace_back(col->GetColumnName(), val_type, col->GetTypeModifier(), col->IsNullable(), val);
     } else {
       cols.emplace_back(col->GetColumnName(), val_type, col->IsNullable(), val);

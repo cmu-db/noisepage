@@ -10,10 +10,9 @@
 #include "common/constants.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
+#include "execution/sql/sql.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "type/type_id.h"
-#include "type/type_util.h"
 
 namespace noisepage {
 class StorageTestUtil;
@@ -45,11 +44,11 @@ class Schema {
      * @param nullable true if the column is nullable, false otherwise
      * @param default_value for the column
      */
-    Column(std::string name, const type::TypeId type, const bool nullable,
+    Column(std::string name, const execution::sql::SqlTypeId type, const bool nullable,
            const parser::AbstractExpression &default_value)
         : name_(std::move(name)),
           type_(type),
-          attr_length_(type::TypeUtil::GetTypeSize(type_)),
+          attr_length_(execution::sql::GetSqlTypeIdSize(type_)),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
           default_value_(default_value.Copy()) {
@@ -64,11 +63,11 @@ class Schema {
      * @param nullable true if the column is nullable, false otherwise
      * @param default_value for the column
      */
-    Column(std::string name, const type::TypeId type, const int32_t type_modifier, const bool nullable,
+    Column(std::string name, const execution::sql::SqlTypeId type, const int32_t type_modifier, const bool nullable,
            const parser::AbstractExpression &default_value)
         : name_(std::move(name)),
           type_(type),
-          attr_length_(type::TypeUtil::GetTypeSize(type_)),
+          attr_length_(execution::sql::GetSqlTypeIdSize(type_)),
           type_modifier_(type_modifier),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
@@ -76,6 +75,7 @@ class Schema {
       Validate();
     }
 
+    // TODO(Matt): what is this constructor for and why doesn't it call Validate()?
     /**
      * Instantiates a Column object, primary to be used for building a Schema object (non VARLEN attributes)
      * @param name column name
@@ -84,17 +84,17 @@ class Schema {
      * @param default_value for the column
      * @param oid col_oid for the column, must be unique for each column in the table
      */
-    Column(std::string name, const type::TypeId type, const bool nullable,
+    Column(std::string name, const execution::sql::SqlTypeId type, const bool nullable,
            const parser::AbstractExpression &default_value, const col_oid_t oid)
         : name_(std::move(name)),
           type_(type),
-          attr_length_(type::TypeUtil::GetTypeSize(type_)),
+          attr_length_(execution::sql::GetSqlTypeIdSize(type_)),
           nullable_(nullable),
           oid_(oid),
           default_value_(default_value.Copy()) {
       // TODO(Rohan,Gautam,Preetansh): We need to manually set the max varlen size here
       //  as we cannot get this from Output schema for now
-      type_modifier_ = -1;
+      Validate();
     }
 
     /**
@@ -152,7 +152,7 @@ class Schema {
     /**
      * @return SQL type for this column
      */
-    type::TypeId Type() const { return type_; }
+    execution::sql::SqlTypeId Type() const { return type_; }
 
     /**
      * @return internal unique identifier for this column
@@ -223,24 +223,26 @@ class Schema {
 
    private:
     bool ShouldHaveTypeModifier() const {
-      return type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY || type_ == type::TypeId::DECIMAL;
+      return type_ == execution::sql::SqlTypeId::Varchar || type_ == execution::sql::SqlTypeId::Varbinary ||
+             type_ == execution::sql::SqlTypeId::Decimal;
     }
 
     void Validate() const {
-      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      NOISEPAGE_ASSERT(default_value_ == nullptr || default_value_->GetReturnValueType() != type::TypeId::INVALID ||
-                           (default_value_->GetReturnValueType() == type::TypeId::INVALID &&
+      NOISEPAGE_ASSERT(type_ != execution::sql::SqlTypeId::Invalid, "Attribute type cannot be INVALID.");
+      NOISEPAGE_ASSERT(default_value_ == nullptr ||
+                           default_value_->GetReturnValueType() != execution::sql::SqlTypeId::Invalid ||
+                           (default_value_->GetReturnValueType() == execution::sql::SqlTypeId::Invalid &&
                             common::ManagedPointer(default_value_)
                                 .CastManagedPointerTo<parser::ConstantValueExpression>()
                                 ->IsNull()),
                        "Default value either: 1) shouldn't exist 2) shouldn't have INVALID type 3) UNLESS it's NULL.");
       // TODO(Matt): I don't love that last part that NULL default values come out of the parser with TypeId::INVALID.
 
-      if (type_ == type::TypeId::VARCHAR || type_ == type::TypeId::VARBINARY) {
+      if (type_ == execution::sql::SqlTypeId::Varchar || type_ == execution::sql::SqlTypeId::Varbinary) {
         NOISEPAGE_ASSERT(attr_length_ == storage::VARLEN_COLUMN, "Invalid attribute length.");
         NOISEPAGE_ASSERT(type_modifier_ == -1 || type_modifier_ > 0,
                          "Type modifier should be -1 (no limit), or a positive integer.");
-      } else if (type_ == type::TypeId::DECIMAL) {
+      } else if (type_ == execution::sql::SqlTypeId::Decimal) {
         NOISEPAGE_ASSERT(attr_length_ == 16, "Invalid attribute length.");
         NOISEPAGE_ASSERT(type_modifier_ > 0, "Type modifier should be a  positive integer.");
       } else {
@@ -251,7 +253,7 @@ class Schema {
     }
 
     std::string name_;
-    type::TypeId type_;
+    execution::sql::SqlTypeId type_;
     uint16_t attr_length_;
     int32_t type_modifier_ = -1;  // corresponds to Postgres' atttypmod int4: atttypmod records type-specific data
                                   // supplied at table creation time (for example, the maximum length of a varchar

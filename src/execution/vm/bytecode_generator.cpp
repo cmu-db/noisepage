@@ -708,11 +708,13 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   LocalVar query_state = VisitExpressionForRValue(call->Arguments()[2]);
   // The fourth argument should be the execution context.
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
-  // The fifth argument is the scan function as an identifier.
-  const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
+  // The fifth argument is the number of threads for override
+  LocalVar num_threads_override = VisitExpressionForRValue(call->Arguments()[4]);
+  // The sixth argument is the scan function as an identifier.
+  const auto scan_fn_name = call->Arguments()[5]->As<ast::IdentifierExpr>()->Name();
   // Emit the bytecode.
   GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
+                                      exec_ctx, num_threads_override, LookupFuncIdByName(scan_fn_name.GetData()));
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {

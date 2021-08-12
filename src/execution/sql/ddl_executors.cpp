@@ -56,7 +56,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     key_cols.reserve(primary_key_info.primary_key_cols_.size());
     for (const auto &parser_col : primary_key_info.primary_key_cols_) {
       const auto &table_col = schema.GetColumn(parser_col);
-      if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+      if (table_col.Type() == execution::sql::SqlTypeId::Varchar ||
+          table_col.Type() == execution::sql::SqlTypeId::Varbinary) {
         key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.TypeModifier(), table_col.Nullable(),
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
 
@@ -65,7 +66,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
       }
     }
-    catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true);
+    catalog::IndexOptions options;
+    catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BPLUSTREE, true, true, false, true, options);
 
     // Create the index, and use its return value as overall success result
     result = result &&
@@ -78,7 +80,8 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
     std::vector<catalog::IndexSchema::Column> key_cols;
     for (const auto &unique_col : unique_constraint.unique_cols_) {
       const auto &table_col = schema.GetColumn(unique_col);
-      if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
+      if (table_col.Type() == execution::sql::SqlTypeId::Varchar ||
+          table_col.Type() == execution::sql::SqlTypeId::Varbinary) {
         key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.TypeModifier(), table_col.Nullable(),
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
 
@@ -87,7 +90,9 @@ bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::Cre
                               parser::ColumnValueExpression(connection_db, table_oid, table_col.Oid()));
       }
     }
-    catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BPLUSTREE, true, false, false, true);
+    catalog::IndexOptions options;
+    catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BPLUSTREE, true, false, false, true,
+                                      options);
 
     // Create the index, and use its return value as overall success result
     result = result && CreateIndex(accessor, node->GetNamespaceOid(), unique_constraint.constraint_name_, table_oid,

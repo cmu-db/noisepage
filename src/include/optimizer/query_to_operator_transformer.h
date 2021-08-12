@@ -146,7 +146,7 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
    * @param table_alias_set The generated set of table alias
    */
   static void GenerateTableAliasSet(common::ManagedPointer<parser::AbstractExpression> expr,
-                                    std::unordered_set<std::string> *table_alias_set);
+                                    std::unordered_set<parser::AliasType> *table_alias_set);
 
   /**
    * Split conjunction expression tree into a vector of expressions with AND
