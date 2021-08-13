@@ -235,7 +235,7 @@ set(NOISEPAGE_INCLUDE_DIRECTORIES "")
 # Add compilation flags to NOISEPAGE_COMPILE_OPTIONS based on the current CMAKE_BUILD_TYPE.
 string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
-    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-O0" "-fno-omit-frame-pointer" "-fno-optimize-sibling-calls" "-Wfatal-errors")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-O0" "-fno-omit-frame-pointer" "-fno-optimize-sibling-calls")
 elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "FASTDEBUG")
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-O1" "-fno-omit-frame-pointer" "-fno-optimize-sibling-calls")
 elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "RELEASE")

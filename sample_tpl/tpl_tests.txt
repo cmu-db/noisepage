@@ -68,7 +68,6 @@ types/timestamps.tpl,false,0
 ################################################################################
 
 agg.tpl,true,10
-#agg-lambda.tpl,true,10             TODO(Kyle): Requires lambdas
 #agg-vec.tpl,true,10                doesn't work on prashanth's branch
 #agg-vec-filter.tpl,true,10         doesn't work on prashanth's branch
 cte_scan_temp_table_insert.tpl,true,11
