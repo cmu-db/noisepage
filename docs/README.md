@@ -109,9 +109,11 @@ If you run into issues, you may need your default `python` to point to a `python
    - Code has to pass all the checks for it to be merged!
 7. When your pull request passes all of the checks, post on Slack in `#pr-czar`.
 
-### Running tests locally
+See the [Pull Request Process](./dev_pr_process.md) document for a full rundown of the pull request procedure.
 
-#### unittests
+### Running Tests Locally
+
+#### Unit Tests
 
 You can run the `unittest` or `jumbotests` suite, they are equivalent. Inside your build folder, after running the build system generator:
 - `ninja unittest`: Compile and run each individual test in the `test/` folder.
@@ -126,6 +128,6 @@ The `ctest` runner calls `build-support/run-test.sh`, which handles setting up o
 You can also run the test binaries manually, but you will need to set the environment variables yourself. Right now, the variables that should be set are:
 - `LSAN_OPTIONS=suppressions=/absolute/path/to/noisepage/build-support/data/lsan_suppressions.txt`
 
-#### junit tests
+#### Integration Tests
 
 TODO(WAN): write this. possibly after updating the junit thing to make it a little easier for people to pick up.
