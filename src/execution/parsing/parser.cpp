@@ -451,7 +451,6 @@ ast::Expr *Parser::ParseLambdaExpr() {
   auto *fun = ParseFunctionLitExpr()->As<ast::FunctionLitExpr>();
 
   // Create declaration
-  //  ast::FunctionDecl *decl = node_factory_->NewFunctionDecl(position, name fun);
   auto *lambda = node_factory_->NewLambdaExpr(position, fun, std::move(captures));
 
   // Done

@@ -102,6 +102,10 @@ void UdfCodegen::Visit(ast::udf::AbstractAST *ast) {
   throw NOT_IMPLEMENTED_EXCEPTION("UdfCodegen::Visit(AbstractAST*)");
 }
 
+void UdfCodegen::Visit(ast::udf::StmtAST *ast) { UNREACHABLE("Not implemented"); }
+
+void UdfCodegen::Visit(ast::udf::ExprAST *ast) { UNREACHABLE("Not implemented"); }
+
 void UdfCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) {
   throw NOT_IMPLEMENTED_EXCEPTION("UdfCodegen::Visit(DynamicSQLStmtAST*)");
 }
@@ -162,10 +166,6 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
     SetExecutionResult(result);
   }
 }
-
-void UdfCodegen::Visit(ast::udf::StmtAST *ast) { UNREACHABLE("Not implemented"); }
-
-void UdfCodegen::Visit(ast::udf::ExprAST *ast) { UNREACHABLE("Not implemented"); }
 
 void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   if (ast->Name() == INTERNAL_DECL_ID) {
