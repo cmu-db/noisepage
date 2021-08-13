@@ -180,6 +180,7 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
     NOISEPAGE_ASSERT(result, "Oid insertion should be unique");
   }
 
+  delete[] buffer;
   return true;
 }
 
