@@ -77,22 +77,13 @@ static constexpr const char DECL_TYPE_ID_RECORD[] = "record";
 std::unique_ptr<execution::ast::udf::FunctionAST> PLpgSQLParser::Parse(
     const std::vector<std::string> &param_names, const std::vector<execution::sql::SqlTypeId> &param_types,
     const std::string &func_body) {
-  auto* ctx = pg_query_parse_init();
-  auto result = pg_query_parse_plpgsql(func_body.c_str());
-
-  if (result.error != nullptr) {
-    pg_query_parse_finish(ctx);
-    const auto message = fmt::format("PL/pgSQL parser : {}", result.error->message);
-    pg_query_free_plpgsql_parse_result(result);
-    throw PARSER_EXCEPTION(message);
+  PLpgSQLParseResult result{pg_query_parse_plpgsql(func_body.c_str())};
+  if ((*result).error != nullptr) {
+    throw PARSER_EXCEPTION(fmt::format("PL/pgSQL parser : {}", (*result).error->message));
   }
 
   // The result is a list, we need to wrap it
-  const auto ast_json_str = fmt::format("{{ \"{}\" : {} }}", K_FUNCTION_LIST, result.plpgsql_funcs);
-
-  // Now finished with the raw parse result from pg_query
-  pg_query_parse_finish(ctx);
-  pg_query_free_plpgsql_parse_result(result);
+  const auto ast_json_str = fmt::format("{{ \"{}\" : {} }}", K_FUNCTION_LIST, (*result).plpgsql_funcs);
 
   const nlohmann::json ast_json = nlohmann::json::parse(ast_json_str);
   const auto function_list = ast_json[K_FUNCTION_LIST];
