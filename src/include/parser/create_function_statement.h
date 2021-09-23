@@ -9,12 +9,9 @@
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
 
-// TODO(WAN): this file is messy
 namespace noisepage::parser {
 /** Base function parameter. */
 struct BaseFunctionParameter {
-  // TODO(WAN): there used to be a FuncParamMode that was never used?
-
   /** Parameter data types. */
   enum class DataType {
     INT,
@@ -57,9 +54,9 @@ struct BaseFunctionParameter {
       case DataType::CHAR:
         return execution::sql::SqlTypeId::Invalid;
       case DataType::DOUBLE:
-        return execution::sql::SqlTypeId::Decimal;
+        return execution::sql::SqlTypeId::Double;
       case DataType::FLOAT:
-        return execution::sql::SqlTypeId::Decimal;
+        return execution::sql::SqlTypeId::Double;
       case DataType::DECIMAL:
         return execution::sql::SqlTypeId::Decimal;
       case DataType::VARCHAR:

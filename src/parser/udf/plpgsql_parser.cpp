@@ -60,6 +60,7 @@ static constexpr const char DECL_TYPE_ID_BIGINT[] = "bigint";
 static constexpr const char DECL_TYPE_ID_REAL[] = "real";
 static constexpr const char DECL_TYPE_ID_FLOAT[] = "float";
 static constexpr const char DECL_TYPE_ID_DOUBLE[] = "double";
+static constexpr const char DECL_TYPE_ID_FLOAT8[] = "float8";
 
 /** Arbitrary-precision floating point */
 static constexpr const char DECL_TYPE_ID_NUMERIC[] = "numeric";
@@ -594,7 +595,7 @@ std::optional<execution::sql::SqlTypeId> PLpgSQLParser::TypeNameToType(const std
     type = execution::sql::SqlTypeId::BigInt;
   } else if (type_name == DECL_TYPE_ID_REAL || type_name == DECL_TYPE_ID_FLOAT) {
     type = execution::sql::SqlTypeId::Real;
-  } else if (type_name == DECL_TYPE_ID_DOUBLE) {
+  } else if (type_name == DECL_TYPE_ID_DOUBLE || type_name == DECL_TYPE_ID_FLOAT8) {
     type = execution::sql::SqlTypeId::Double;
   } else if (type_name == DECL_TYPE_ID_NUMERIC || type_name == DECL_TYPE_ID_DECIMAL) {
     type = execution::sql::SqlTypeId::Decimal;

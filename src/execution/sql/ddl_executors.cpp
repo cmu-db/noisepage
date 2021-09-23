@@ -99,8 +99,10 @@ bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::
                         codegen.PointerType(codegen.BuiltinType(ast::BuiltinType::ExecutionContext))));
 
   for (auto i = 0UL; i < node->GetFunctionParameterNames().size(); i++) {
+    const auto raw = node->GetFunctionParameterTypes()[i];
+    (void)raw;
     const auto name = node->GetFunctionParameterNames()[i];
-    const auto type = parser::ReturnType::DataTypeToTypeId(node->GetFunctionParameterTypes()[i]);
+    const auto type = parser::BaseFunctionParameter::DataTypeToTypeId(node->GetFunctionParameterTypes()[i]);
     fn_params.emplace_back(
         codegen.MakeField(ast_context->GetIdentifier(name), codegen.TplType(execution::sql::GetTypeId(type))));
   }

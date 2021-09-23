@@ -1706,7 +1706,6 @@ std::unique_ptr<FuncParameter> PostgresParser::FunctionParameterTransform(ParseR
                                                                           FunctionParameter *root) {
   // TODO(WAN): significant code duplication, refactor out char* -> DataType
   char *name = (reinterpret_cast<value *>(root->arg_type_->names_->tail->data.ptr_value)->val_.str_);
-  std::cout << name << std::endl;
   auto data_type = TypeNameToDataType(name);
   if (!data_type.has_value()) {
     PARSER_LOG_AND_THROW("FunctionParameterTransform", "DataType", name);
