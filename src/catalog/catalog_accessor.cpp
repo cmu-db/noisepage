@@ -266,7 +266,10 @@ type_oid_t CatalogAccessor::TypeNameToType(const std::string &type_name) {
   } else if (type_name == "bool") {
     type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Boolean);
   } else if (type_name == "float4") {
-    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Real);
+    // NOTE(Kyle): The "regular" SQL frontend always promotes
+    // FLOAT / REAL to DOUBLE PRECISION / FLOAT8, so we do the
+    // same here to remain consistent
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double);
   } else if (type_name == "float8") {
     type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double);
   } else if (type_name == "numeric") {

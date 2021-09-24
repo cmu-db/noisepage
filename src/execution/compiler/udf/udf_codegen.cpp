@@ -406,6 +406,17 @@ sql::SqlTypeId UdfCodegen::ResolveTypeForLiteralExpression(const ast::LitExpr *e
   }
 }
 
+/** @return `true` if the given type is an integral type */
+static bool IsIntegral(sql::SqlTypeId type) {
+  return type == sql::SqlTypeId::TinyInt || type == sql::SqlTypeId::SmallInt || type == sql::SqlTypeId::Integer ||
+         type == sql::SqlTypeId::BigInt;
+}
+
+/** @return `true` if the given type is a floating-point type */
+static bool IsFloatingPoint(sql::SqlTypeId type) {
+  return type == sql::SqlTypeId::Real || type == sql::SqlTypeId::Double;
+}
+
 sql::SqlTypeId UdfCodegen::ResolveTypeForBinaryExpression(const ast::BinaryOpExpr *expr) const {
   NOISEPAGE_ASSERT(expr->IsBinaryOpExpr(), "Broken precondition");
   const auto *binary = expr->SafeAs<ast::BinaryOpExpr>();
@@ -420,7 +431,13 @@ sql::SqlTypeId UdfCodegen::ResolveTypeForBinaryExpression(const ast::BinaryOpExp
       if (left == right) {
         return left;
       }
-      UNREACHABLE("Implicit conversions not supported");
+      if (IsFloatingPoint(left) && IsIntegral(right)) {
+        return left;
+      }
+      if (IsIntegral(left) && IsFloatingPoint(right)) {
+        return right;
+      }
+      UNREACHABLE("Unsupported types for arithmetic operations");
     default:
       break;
   }

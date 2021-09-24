@@ -53,9 +53,12 @@ struct BaseFunctionParameter {
         return execution::sql::SqlTypeId::BigInt;
       case DataType::CHAR:
         return execution::sql::SqlTypeId::Invalid;
-      case DataType::DOUBLE:
-        return execution::sql::SqlTypeId::Double;
       case DataType::FLOAT:
+        // NOTE(Kyle): The "regular" SQL frontend automatically
+        // promotes FLOAT / REAL to DOUBLE PRECISION / FLOAT8;
+        // we do the same here to remain consistent
+        return execution::sql::SqlTypeId::Double;
+      case DataType::DOUBLE:
         return execution::sql::SqlTypeId::Double;
       case DataType::DECIMAL:
         return execution::sql::SqlTypeId::Decimal;

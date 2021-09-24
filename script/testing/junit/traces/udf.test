@@ -876,3 +876,180 @@ statement ok
 DROP FUNCTION proc_call_args();
 
 statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_promotion()
+
+statement ok
+
+
+statement ok
+-- Able to (silently) promote REAL to DOUBLE PRECISION
+
+statement ok
+CREATE FUNCTION proc_promotion() RETURNS REAL AS $$ DECLARE x INT := 1; y REAL := 1.0; t REAL; BEGIN t = x * y; RETURN FLOOR(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query  rowsort
+SELECT proc_promotion();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_promotion();
+
+statement ok
+
+
+statement ok
+-- Able to (silently) promote FLOAT to DOUBLE PRECISION
+
+statement ok
+CREATE FUNCTION proc_promotion() RETURNS FLOAT AS $$ DECLARE x INT := 1; y FLOAT := 1.0; t FLOAT; BEGIN t = x * y; RETURN FLOOR(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_promotion();
+
+statement ok
+
+
+statement ok
+-- Promotion does not affect correct operation of DOUBLE PRECISION
+
+statement ok
+CREATE FUNCTION proc_promotion() RETURNS DOUBLE PRECISION AS $$ DECLARE x INT := 1; y DOUBLE PRECISION := 1.0; t DOUBLE PRECISION; BEGIN t = x * y; RETURN FLOOR(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_promotion();
+
+statement ok
+
+
+statement ok
+-- Promotion does not affect correct operation of FLOAT8
+
+statement ok
+CREATE FUNCTION proc_promotion() RETURNS DOUBLE PRECISION AS $$ DECLARE x INT := 1; y DOUBLE PRECISION := 1.0; t DOUBLE PRECISION; BEGIN t = x * y; RETURN FLOOR(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_promotion();
+
+statement ok
+
+
+statement ok
+-- Promotion works as expected with UDF arguments
+
+statement ok
+CREATE FUNCTION proc_promotion(x FLOAT) RETURNS FLOAT AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion(1337.0);
+----
+1337
+
+
+statement ok
+DROP FUNCTION proc_promotion(FLOAT);
+
+statement ok
+
+
+statement ok
+-- Promotion works as expected with UDF arguments
+
+statement ok
+CREATE FUNCTION proc_promotion(x REAL) RETURNS REAL AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query  rowsort
+SELECT proc_promotion(1337.0);
+----
+1337
+
+
+statement ok
+DROP FUNCTION proc_promotion(REAL);
+
+statement ok
+
+
+statement ok
+-- Promotion works as expected with UDF arguments
+
+statement ok
+CREATE FUNCTION proc_promotion(x DOUBLE PRECISION) RETURNS DOUBLE PRECISION AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion(1337.0);
+----
+1337
+
+
+statement ok
+DROP FUNCTION proc_promotion(DOUBLE PRECISION);
+
+statement ok
+
+
+statement ok
+-- Promotion works as expected with UDF arguments
+
+statement ok
+CREATE FUNCTION proc_promotion(x FLOAT8) RETURNS FLOAT8 AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion(1337.0);
+----
+1337
+
+
+statement ok
+DROP FUNCTION proc_promotion(FLOAT8);
+
+statement ok

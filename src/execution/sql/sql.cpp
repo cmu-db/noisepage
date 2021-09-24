@@ -350,6 +350,9 @@ TypeId GetTypeId(SqlTypeId frontend_type) {
     case SqlTypeId::BigInt:
       execution_type_id = execution::sql::TypeId::BigInt;
       break;
+    case SqlTypeId::Real:
+      execution_type_id = execution::sql::TypeId::Float;
+      break;
     case SqlTypeId::Double:
       execution_type_id = execution::sql::TypeId::Double;
       break;

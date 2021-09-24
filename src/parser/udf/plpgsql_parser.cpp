@@ -59,7 +59,7 @@ static constexpr const char DECL_TYPE_ID_BIGINT[] = "bigint";
 /** Variable-precision floating point */
 static constexpr const char DECL_TYPE_ID_REAL[] = "real";
 static constexpr const char DECL_TYPE_ID_FLOAT[] = "float";
-static constexpr const char DECL_TYPE_ID_DOUBLE[] = "double";
+static constexpr const char DECL_TYPE_ID_DOUBLE[] = "double precision";
 static constexpr const char DECL_TYPE_ID_FLOAT8[] = "float8";
 
 /** Arbitrary-precision floating point */
@@ -586,6 +586,7 @@ bool PLpgSQLParser::HasEnclosingQuery(ParseResult *parse_result) {
 std::optional<execution::sql::SqlTypeId> PLpgSQLParser::TypeNameToType(const std::string &type_name) {
   // TODO(Kyle): This is awkward control flow because we
   // model RECORD types with the SqlTypeId::Invalid type
+
   execution::sql::SqlTypeId type;
   if (type_name == DECL_TYPE_ID_SMALLINT) {
     type = execution::sql::SqlTypeId::SmallInt;
@@ -594,7 +595,11 @@ std::optional<execution::sql::SqlTypeId> PLpgSQLParser::TypeNameToType(const std
   } else if (type_name == DECL_TYPE_ID_BIGINT) {
     type = execution::sql::SqlTypeId::BigInt;
   } else if (type_name == DECL_TYPE_ID_REAL || type_name == DECL_TYPE_ID_FLOAT) {
-    type = execution::sql::SqlTypeId::Real;
+    // NOTE(Kyle): We perform a sneaky trick here: the "normal"
+    // SQL frontend automatically promotes all floating-point
+    // types to DOUBLE PRECISION (FLOAT8); we do the same thing
+    // here to remain consistent across the entire system.
+    type = execution::sql::SqlTypeId::Double;
   } else if (type_name == DECL_TYPE_ID_DOUBLE || type_name == DECL_TYPE_ID_FLOAT8) {
     type = execution::sql::SqlTypeId::Double;
   } else if (type_name == DECL_TYPE_ID_NUMERIC || type_name == DECL_TYPE_ID_DECIMAL) {

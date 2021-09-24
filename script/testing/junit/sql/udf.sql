@@ -452,3 +452,106 @@ $$ LANGUAGE PLPGSQL;
 SELECT proc_call_args();
 
 DROP FUNCTION proc_call_args();
+
+-- ----------------------------------------------------------------------------
+-- proc_promotion()
+
+-- Able to (silently) promote REAL to DOUBLE PRECISION
+CREATE FUNCTION proc_promotion() RETURNS REAL AS $$ \
+DECLARE                                             \
+  x INT := 1;                                       \
+  y REAL := 1.0;                                    \
+  t REAL;                                           \
+BEGIN                                               \
+  t = x * y;                                        \
+  RETURN FLOOR(t);                                  \
+END                                                 \
+$$ LANGUAGE PLPGSQL; 
+
+SELECT proc_promotion();
+DROP FUNCTION proc_promotion();
+
+-- Able to (silently) promote FLOAT to DOUBLE PRECISION
+CREATE FUNCTION proc_promotion() RETURNS FLOAT AS $$ \
+DECLARE                                              \
+  x INT := 1;                                        \
+  y FLOAT := 1.0;                                    \
+  t FLOAT;                                           \
+BEGIN                                                \
+  t = x * y;                                         \
+  RETURN FLOOR(t);                                   \
+END                                                  \
+$$ LANGUAGE PLPGSQL; 
+
+SELECT proc_promotion();
+DROP FUNCTION proc_promotion();
+
+-- Promotion does not affect correct operation of DOUBLE PRECISION
+CREATE FUNCTION proc_promotion() RETURNS DOUBLE PRECISION AS $$ \
+DECLARE                                                         \
+  x INT := 1;                                                   \
+  y DOUBLE PRECISION := 1.0;                                    \
+  t DOUBLE PRECISION;                                           \
+BEGIN                                                           \
+  t = x * y;                                                    \
+  RETURN FLOOR(t);                                              \
+END                                                             \
+$$ LANGUAGE PLPGSQL; 
+
+SELECT proc_promotion();
+DROP FUNCTION proc_promotion();
+
+-- Promotion does not affect correct operation of FLOAT8
+CREATE FUNCTION proc_promotion() RETURNS DOUBLE PRECISION AS $$ \
+DECLARE                                                         \
+  x INT := 1;                                                   \
+  y DOUBLE PRECISION := 1.0;                                    \
+  t DOUBLE PRECISION;                                           \
+BEGIN                                                           \
+  t = x * y;                                                    \
+  RETURN FLOOR(t);                                              \
+END                                                             \
+$$ LANGUAGE PLPGSQL; 
+
+SELECT proc_promotion();
+DROP FUNCTION proc_promotion();
+
+-- Promotion works as expected with UDF arguments
+CREATE FUNCTION proc_promotion(x FLOAT) RETURNS FLOAT AS $$ \
+BEGIN                                                       \
+  RETURN x;                                                 \
+END                                                         \
+$$ LANGUAGE PLPGSQL; 
+
+SELECT proc_promotion(1337.0);
+DROP FUNCTION proc_promotion(FLOAT);
+
+-- Promotion works as expected with UDF arguments
+CREATE FUNCTION proc_promotion(x REAL) RETURNS REAL AS $$ \
+BEGIN                                                     \
+  RETURN x;                                               \
+END                                                       \
+$$ LANGUAGE PLPGSQL; 
+
+SELECT proc_promotion(1337.0);
+DROP FUNCTION proc_promotion(REAL);
+
+-- Promotion works as expected with UDF arguments
+CREATE FUNCTION proc_promotion(x DOUBLE PRECISION) RETURNS DOUBLE PRECISION AS $$ \
+BEGIN                                                                             \
+  RETURN x;                                                                       \
+END                                                                               \
+$$ LANGUAGE PLPGSQL; 
+
+SELECT proc_promotion(1337.0);
+DROP FUNCTION proc_promotion(DOUBLE PRECISION);
+
+-- Promotion works as expected with UDF arguments
+CREATE FUNCTION proc_promotion(x FLOAT8) RETURNS FLOAT8 AS $$ \
+BEGIN                                                         \
+  RETURN x;                                                   \
+END                                                           \
+$$ LANGUAGE PLPGSQL; 
+
+SELECT proc_promotion(1337.0);
+DROP FUNCTION proc_promotion(FLOAT8);
