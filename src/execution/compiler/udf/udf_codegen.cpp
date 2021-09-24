@@ -110,63 +110,6 @@ void UdfCodegen::Visit(ast::udf::DynamicSQLStmtAST *ast) {
   throw NOT_IMPLEMENTED_EXCEPTION("UdfCodegen::Visit(DynamicSQLStmtAST*)");
 }
 
-void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
-  const auto &args = ast->Args();
-
-  // Evaluate all arguments to call
-  std::vector<ast::Expr *> arguments{};
-  arguments.reserve(ast->Args().size());
-  std::transform(args.cbegin(), args.cend(), std::back_inserter(arguments),
-                 [this](const std::unique_ptr<ast::udf::ExprAST> &expr) { return EvaluateExpression(expr.get()); });
-
-  NOISEPAGE_ASSERT(std::all_of(arguments.cbegin(), arguments.cend(),
-                               [](const ast::Expr *arg) {
-                                 auto *builtin = arg->GetType()->SafeAs<ast::BuiltinType>();
-                                 return builtin != nullptr && builtin->IsSqlValueType();
-                               }),
-                   "Invalid argument type in function call");
-
-  // Get argument types
-  std::vector<catalog::type_oid_t> argument_types{};
-  std::transform(arguments.cbegin(), arguments.cend(), std::back_inserter(argument_types),
-                 [this](const ast::Expr *expr) {
-                   return GetCatalogTypeOidFromSQLType(expr->GetType()->SafeAs<ast::BuiltinType>()->GetKind());
-                 });
-
-  const auto proc_oid = accessor_->GetProcOid(ast->Callee(), argument_types);
-  if (proc_oid == catalog::INVALID_PROC_OID) {
-    throw BINDER_EXCEPTION(fmt::format("Invalid function call '{}'", ast->Callee()),
-                           common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
-  }
-
-  auto context = accessor_->GetFunctionContext(proc_oid);
-  if (context->IsBuiltin()) {
-    ast::Expr *result = codegen_->CallBuiltin(context->GetBuiltin(), arguments);
-    SetExecutionResult(result);
-  } else {
-    // NOTE(Kyle): This is an unfortunate operation because it
-    // requires shifting all elements in the vector, but we
-    // don't typically see functions with super-high arity
-    arguments.insert(arguments.begin(), GetExecutionContext());
-    auto it = SymbolTable().find(ast->Callee());
-    ast::Identifier ident_expr;
-    if (it != SymbolTable().end()) {
-      ident_expr = it->second;
-    } else {
-      auto file = reinterpret_cast<ast::File *>(
-          ast::AstClone::Clone(context->GetFile(), codegen_->GetAstContext()->GetNodeFactory(),
-                               context->GetASTContext(), codegen_->GetAstContext().Get()));
-      for (auto decl : file->Declarations()) {
-        aux_decls_.push_back(decl);
-      }
-      ident_expr = codegen_->MakeFreshIdentifier(file->Declarations().back()->Name().GetString());
-      SymbolTable()[file->Declarations().back()->Name().GetString()] = ident_expr;
-    }
-    ast::Expr *result = codegen_->Call(ident_expr, arguments);
-    SetExecutionResult(result);
-  }
-}
-
 void UdfCodegen::Visit(ast::udf::DeclStmtAST *ast) {
   if (ast->Name() == INTERNAL_DECL_ID) {
     return;
@@ -372,6 +315,100 @@ void UdfCodegen::Visit(ast::udf::MemberExprAST *ast) {
   ast::Expr *object = EvaluateExpression(ast->Object());
   ast::Expr *access = codegen_->AccessStructMember(object, codegen_->MakeIdentifier(ast->FieldName()));
   SetExecutionResult(access);
+}
+
+/* ----------------------------------------------------------------------------
+  Code Generation: Function Calls
+---------------------------------------------------------------------------- */
+
+void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
+  const auto &args = ast->Args();
+
+  // Evaluate all arguments to call
+  std::vector<ast::Expr *> arguments{};
+  arguments.reserve(ast->Args().size());
+  std::transform(args.cbegin(), args.cend(), std::back_inserter(arguments),
+                 [this](const std::unique_ptr<ast::udf::ExprAST> &expr) { return EvaluateExpression(expr.get()); });
+
+  // Each argument must be one of:
+  //  - A full-evaluated expression
+  //  - An identifier expression
+
+  NOISEPAGE_ASSERT(std::all_of(arguments.cbegin(), arguments.cend(),
+                               [](const ast::Expr *arg) {
+                                 return CallArgumentIsValid(arg);
+                               }),
+                   "Invalid argument type in function call");
+
+  // Get argument types
+  std::vector<catalog::type_oid_t> argument_types{};
+  std::transform(arguments.cbegin(), arguments.cend(), std::back_inserter(argument_types),
+                 [this](const ast::Expr *expr) {
+                   return GetCatalogTypeOidFromSQLType(expr->GetType()->SafeAs<ast::BuiltinType>()->GetKind());
+                 });
+
+  const auto proc_oid = accessor_->GetProcOid(ast->Callee(), argument_types);
+  if (proc_oid == catalog::INVALID_PROC_OID) {
+    throw BINDER_EXCEPTION(fmt::format("Invalid function call '{}'", ast->Callee()),
+                           common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+
+  auto context = accessor_->GetFunctionContext(proc_oid);
+  if (context->IsBuiltin()) {
+    ast::Expr *result = codegen_->CallBuiltin(context->GetBuiltin(), arguments);
+    SetExecutionResult(result);
+  } else {
+    // NOTE(Kyle): This is an unfortunate operation because it
+    // requires shifting all elements in the vector, but we
+    // don't typically see functions with super-high arity
+    arguments.insert(arguments.begin(), GetExecutionContext());
+    auto it = SymbolTable().find(ast->Callee());
+    ast::Identifier ident_expr;
+    if (it != SymbolTable().end()) {
+      ident_expr = it->second;
+    } else {
+      auto file = reinterpret_cast<ast::File *>(
+          ast::AstClone::Clone(context->GetFile(), codegen_->GetAstContext()->GetNodeFactory(),
+                               context->GetASTContext(), codegen_->GetAstContext().Get()));
+      for (auto decl : file->Declarations()) {
+        aux_decls_.push_back(decl);
+      }
+      ident_expr = codegen_->MakeFreshIdentifier(file->Declarations().back()->Name().GetString());
+      SymbolTable()[file->Declarations().back()->Name().GetString()] = ident_expr;
+    }
+    ast::Expr *result = codegen_->Call(ident_expr, arguments);
+    SetExecutionResult(result);
+  }
+}
+
+ast::Type* UdfCodegen::ResolveType(const ast::Expr* expr) const {
+  switch (expr->GetKind()) {
+  case ast::AstNode::Kind::LitExpr:
+    return ResolveTypeForLiteralExpression(expr);
+  case ast::AstNode::Kind::BinaryOpExpr: {
+    return ResolveTypeForBinaryExpression(expr);
+  case ast::AstNode::Kind::IdentifierExpr:
+    return ResolveTypeForIdentifierExpression(expr);
+  default:
+    UNREACHABLE("Function call argument type cannot be resolved");
+  }
+}
+
+ast::Type* ResolveTypeForLiteralExpression(const ast::Expr* expr) const {
+  NOISEPAGE_ASSERT(expr->IsLitExpr(), "Broken precondition.");
+  return expr->GetType();
+}
+
+ast::Type* ResolveTypeForBinaryExpression(const ast::Expr* expr) const {
+    NOISEPAGE_ASSERT(expr->IsBinaryOpEx(), "Broken precondition");
+    const auto* binary = expr->SafeAs<ast::BinaryOpExpr>();
+    const ast::Type* left = ResolveType(binary->Left());
+    const ast::Type* right = ResolveType(binary->Right());
+}
+
+ast::Type* ResolveTypeForIdentifierExpression(const ast::Expr* expr) const {
+  NOISEPAGE_ASSERT(expr->IsIdentifierExpr(), "Broken precondition.");
+  const Identifier name = expr->GetName();
 }
 
 /* ----------------------------------------------------------------------------

@@ -417,3 +417,5 @@ SELECT proc_predicate(1);
 SELECT proc_predicate(2);
 
 DROP FUNCTION proc_predicate();
+
+CREATE FUNCTION foo() RETURNS INT AS $$ DECLARE x INT := 1; y INT := 2; z INT := 3; BEGIN RETURN x * y + z; END $$ LANGUAGE PLPGSQL;

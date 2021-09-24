@@ -238,6 +238,23 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
 
  private:
   /* --------------------------------------------------------------------------
+    Code Generation: Function Calls
+  -------------------------------------------------------------------------- */
+
+  /**
+   * Resolve the type of an expression.
+   * @param expr The expression
+   * @return The resolved type
+   */
+  ast::Type* ResolveType(const ast::Expr* expr) const;
+
+  ast::Type* ResolveTypeForLiteralExpression(const ast::Expr* expr) const;
+
+  ast::Type* ResolveTypeForBinaryExpression(const ast::Expr* expr) const;
+
+  ast::Type* ResolveTypeForIdentifierExpression(const ast::Expr* expr) const;
+
+  /* --------------------------------------------------------------------------
     Code Generation: For-S Loops
   -------------------------------------------------------------------------- */
 
