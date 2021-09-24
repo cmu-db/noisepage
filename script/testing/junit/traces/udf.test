@@ -777,3 +777,45 @@ statement ok
 DROP FUNCTION proc_call_select();
 
 statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_predicate()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_predicate(threshold INT) RETURNS INT AS $$ DECLARE c INT; BEGIN SELECT COUNT(x) FROM integers WHERE x > threshold INTO c; RETURN c; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_predicate(0);
+----
+3
+
+
+query I rowsort
+SELECT proc_predicate(1);
+----
+2
+
+
+query I rowsort
+SELECT proc_predicate(2);
+----
+1
+
+
+statement ok
+
+
+statement error
+DROP FUNCTION proc_predicate();
+
+statement ok

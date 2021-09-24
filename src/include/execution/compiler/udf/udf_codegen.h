@@ -403,9 +403,11 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
   /**
    * Run the optimizer on an embedded SQL query.
    * @param parsed_query The result of parsing the query
+   * @param variable_refs The vector of variable references within query
    * @return The optimized result
    */
-  std::unique_ptr<optimizer::OptimizeResult> OptimizeEmbeddedQuery(parser::ParseResult *parsed_query);
+  std::unique_ptr<optimizer::OptimizeResult> OptimizeEmbeddedQuery(
+      parser::ParseResult *parsed_query, const std::vector<parser::udf::VariableRef> &variable_refs);
 
   /**
    * Determine if the function described by the given metdata is a

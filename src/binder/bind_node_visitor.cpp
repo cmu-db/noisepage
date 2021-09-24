@@ -770,8 +770,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression>
   for (auto i = 0UL; i < expr->GetChildrenSize(); ++i) {
     auto child = expr->GetChild(i);
     if (child->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto index = child.CastManagedPointerTo<parser::ColumnValueExpression>()->GetParamIdx();
-      if (index >= 0) {
+      const auto index = child.CastManagedPointerTo<parser::ColumnValueExpression>()->GetParamIdx();
+      if (index > parser::ColumnValueExpression::INVALID_PARAM_INDEX) {
         // replace with PVE
         std::unique_ptr<parser::AbstractExpression> pve = std::make_unique<parser::ParameterValueExpression>(index);
         pve->SetReturnValueType(child->GetReturnValueType());

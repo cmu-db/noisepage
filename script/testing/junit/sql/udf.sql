@@ -399,3 +399,21 @@ DROP FUNCTION proc_call_callee();
 DROP FUNCTION proc_call_ret();
 DROP FUNCTION proc_call_assign();
 DROP FUNCTION proc_call_select();
+
+-- ----------------------------------------------------------------------------
+-- proc_predicate()
+
+CREATE FUNCTION proc_predicate(threshold INT) RETURNS INT AS $$ \
+DECLARE                                                         \
+  c INT;                                                        \
+BEGIN                                                           \
+  SELECT COUNT(x) FROM integers WHERE x > threshold INTO c;     \
+  RETURN c;                                                     \
+END                                                             \
+$$ LANGUAGE PLPGSQL;                                            
+
+SELECT proc_predicate(0);
+SELECT proc_predicate(1);
+SELECT proc_predicate(2);
+
+DROP FUNCTION proc_predicate();

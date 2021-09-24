@@ -36,6 +36,9 @@ class ColumnValueExpression : public AbstractExpression {
   friend class noisepage::TpccPlanTest;
 
  public:
+  /** Denotes an invalid parameter index */
+  static constexpr const std::int32_t INVALID_PARAM_INDEX{-1};
+
   /**
    * This constructor is called only in postgresparser, setting the column name,
    * and optionally setting the table name and alias.
@@ -146,10 +149,10 @@ class ColumnValueExpression : public AbstractExpression {
   /** @return column oid */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
-  /** @return parameter index */
+  /** @return The parameter index */
   std::int32_t GetParamIdx() const { return param_idx_; }
 
-  /** @brief set the parameter index */
+  /** @brief Set the parameter index */
   void SetParamIdx(const std::size_t param_idx) { param_idx_ = static_cast<std::int32_t>(param_idx); }
 
   /**
@@ -241,7 +244,7 @@ class ColumnValueExpression : public AbstractExpression {
   catalog::col_oid_t column_oid_ = catalog::INVALID_COLUMN_OID;
 
   /** parameter index */
-  std::int32_t param_idx_{-1};
+  std::int32_t param_idx_{INVALID_PARAM_INDEX};
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(ColumnValueExpression);

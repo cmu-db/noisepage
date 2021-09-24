@@ -301,7 +301,8 @@ void Sema::VisitIdentifierExpr(ast::IdentifierExpr *node) {
 }
 
 void Sema::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
-  throw std::runtime_error("Should never perform semantic checking on implicit cast expressions");
+  // TODO(Kyle): Why did we throw here before?
+  Visit(node->Input());
 }
 
 void Sema::VisitIndexExpr(ast::IndexExpr *node) {

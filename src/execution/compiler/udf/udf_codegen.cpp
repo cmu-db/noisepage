@@ -393,7 +393,7 @@ void UdfCodegen::Visit(ast::udf::ForSStmtAST *ast) {
   const auto variable_refs = BindQueryAndGetVariableRefs(ast->Query());
 
   // Optimize the embedded query
-  auto optimize_result = OptimizeEmbeddedQuery(ast->Query());
+  auto optimize_result = OptimizeEmbeddedQuery(ast->Query(), variable_refs);
   auto plan = optimize_result->GetPlanNode();
 
   // Start construction of the lambda expression
@@ -576,7 +576,7 @@ void UdfCodegen::Visit(ast::udf::SQLStmtAST *ast) {
   const auto variable_refs = BindQueryAndGetVariableRefs(ast->Query());
 
   // Optimize the query and generate get a reference to the plan
-  auto optimize_result = OptimizeEmbeddedQuery(ast->Query());
+  auto optimize_result = OptimizeEmbeddedQuery(ast->Query(), variable_refs);
   auto plan = optimize_result->GetPlanNode();
 
   // Construct a lambda that writes the output of the query
@@ -905,12 +905,23 @@ std::vector<parser::udf::VariableRef> UdfCodegen::BindQueryAndGetVariableRefs(pa
   return visitor.BindAndGetUDFVariableRefs(common::ManagedPointer{query}, common::ManagedPointer{udf_ast_context_});
 }
 
-std::unique_ptr<optimizer::OptimizeResult> UdfCodegen::OptimizeEmbeddedQuery(parser::ParseResult *parsed_query) {
+std::unique_ptr<optimizer::OptimizeResult> UdfCodegen::OptimizeEmbeddedQuery(
+    parser::ParseResult *parsed_query, const std::vector<parser::udf::VariableRef> &variable_refs) {
+  // For each variable reference, we provide a dummy ConstantValueExpression
+  std::vector<parser::ConstantValueExpression> parameters{};
+  parameters.reserve(variable_refs.size());
+  std::transform(variable_refs.cbegin(), variable_refs.cend(), std::back_inserter(parameters),
+                 [](const parser::udf::VariableRef &v) -> parser::ConstantValueExpression {
+                   return parser::ConstantValueExpression{sql::SqlTypeId::Integer, sql::Integer{0}};
+                 });
+
+  // Optimize the query
   optimizer::StatsStorage stats{};
   const std::uint64_t optimizer_timeout = 1000000;
   return trafficcop::TrafficCopUtil::Optimize(
       accessor_->GetTxn(), common::ManagedPointer(accessor_), common::ManagedPointer(parsed_query), db_oid_,
-      common::ManagedPointer(&stats), std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout, nullptr);
+      common::ManagedPointer(&stats), std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout,
+      common::ManagedPointer{&parameters});
 }
 
 // Static
@@ -932,6 +943,10 @@ ast::Builtin UdfCodegen::AddParamBuiltinForParameterType(sql::SqlTypeId paramete
     case sql::SqlTypeId::BigInt:
       return ast::Builtin::AddParamBigInt;
     case sql::SqlTypeId::Decimal:
+      return ast::Builtin::AddParamDouble;
+    case sql::SqlTypeId::Real:
+      return ast::Builtin::AddParamReal;
+    case sql::SqlTypeId::Double:
       return ast::Builtin::AddParamDouble;
     case sql::SqlTypeId::Date:
       return ast::Builtin::AddParamDate;

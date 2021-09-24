@@ -56,6 +56,9 @@ class VariableRef {
   /** @return The index of the variable reference */
   std::size_t Index() const { return index_; }
 
+  /** @return A string representation of the variable reference */
+  std::string ToString() const { return fmt::format("{} {} {}", table_name_.c_str(), column_name_.c_str(), index_); }
+
  private:
   /** The type of this variable reference */
   const VariableRefType type_;
