@@ -404,11 +404,16 @@ ast::Type* ResolveTypeForBinaryExpression(const ast::Expr* expr) const {
     const auto* binary = expr->SafeAs<ast::BinaryOpExpr>();
     const ast::Type* left = ResolveType(binary->Left());
     const ast::Type* right = ResolveType(binary->Right());
+    switch (binary->Op()) {
+      default:
+        break;
+    }
+    UNREACHABLE("Binary operation not supported");
 }
 
 ast::Type* ResolveTypeForIdentifierExpression(const ast::Expr* expr) const {
   NOISEPAGE_ASSERT(expr->IsIdentifierExpr(), "Broken precondition.");
-  const Identifier name = expr->GetName();
+  return GetVariableType(expr->GetName().GetString());
 }
 
 /* ----------------------------------------------------------------------------
