@@ -13,6 +13,7 @@
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
 #include "execution/exec/execution_settings.h"
+#include "execution/parsing/token.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/statistics/stats_storage.h"
@@ -57,28 +58,32 @@ const char *UdfCodegen::GetReturnParamString() { return "return_val"; }
 
 void UdfCodegen::GenerateUDF(ast::udf::AbstractAST *ast) { ast->Accept(this); }
 
-catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(ast::BuiltinType::Kind type) {
+catalog::type_oid_t UdfCodegen::GetCatalogTypeOidFromSQLType(sql::SqlTypeId type) {
+  return accessor_->GetTypeOidFromTypeId(type);
+}
+
+catalog::type_oid_t UdfCodegen::GetCatalogTypeFromBuiltinKind(ast::BuiltinType::Kind type) {
   switch (type) {
     case ast::BuiltinType::Kind::Boolean: {
-      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Boolean);
+      return GetCatalogTypeOidFromSQLType(sql::SqlTypeId::Boolean);
     }
     case ast::BuiltinType::Kind::Integer: {
-      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Integer);
+      return GetCatalogTypeOidFromSQLType(sql::SqlTypeId::Integer);
     }
     case ast::BuiltinType::Kind::Real: {
-      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Real);
+      return GetCatalogTypeOidFromSQLType(sql::SqlTypeId::Real);
     }
     case ast::BuiltinType::Kind::Decimal: {
-      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Decimal);
+      return GetCatalogTypeOidFromSQLType(sql::SqlTypeId::Decimal);
     }
     case ast::BuiltinType::Kind::StringVal: {
-      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Varchar);
+      return GetCatalogTypeOidFromSQLType(sql::SqlTypeId::Varchar);
     }
     case ast::BuiltinType::Kind::Date: {
-      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Date);
+      return GetCatalogTypeOidFromSQLType(sql::SqlTypeId::Date);
     }
     case ast::BuiltinType::Kind::Timestamp: {
-      return accessor_->GetTypeOidFromTypeId(sql::SqlTypeId::Timestamp);
+      return GetCatalogTypeOidFromSQLType(sql::SqlTypeId::Timestamp);
     }
     default:
       NOISEPAGE_ASSERT(false, "Invalid SQL type in function call");
@@ -324,28 +329,17 @@ void UdfCodegen::Visit(ast::udf::MemberExprAST *ast) {
 void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
   const auto &args = ast->Args();
 
-  // Evaluate all arguments to call
+  // Generate code to evaluate call arguments
   std::vector<ast::Expr *> arguments{};
   arguments.reserve(ast->Args().size());
   std::transform(args.cbegin(), args.cend(), std::back_inserter(arguments),
                  [this](const std::unique_ptr<ast::udf::ExprAST> &expr) { return EvaluateExpression(expr.get()); });
 
-  // Each argument must be one of:
-  //  - A full-evaluated expression
-  //  - An identifier expression
-
-  NOISEPAGE_ASSERT(std::all_of(arguments.cbegin(), arguments.cend(),
-                               [](const ast::Expr *arg) {
-                                 return CallArgumentIsValid(arg);
-                               }),
-                   "Invalid argument type in function call");
-
-  // Get argument types
   std::vector<catalog::type_oid_t> argument_types{};
-  std::transform(arguments.cbegin(), arguments.cend(), std::back_inserter(argument_types),
-                 [this](const ast::Expr *expr) {
-                   return GetCatalogTypeOidFromSQLType(expr->GetType()->SafeAs<ast::BuiltinType>()->GetKind());
-                 });
+  argument_types.reserve(arguments.size());
+  std::transform(
+      arguments.cbegin(), arguments.cend(), std::back_inserter(argument_types),
+      [this](const ast::Expr *expr) -> catalog::type_oid_t { return GetCatalogTypeOidFromSQLType(ResolveType(expr)); });
 
   const auto proc_oid = accessor_->GetProcOid(ast->Callee(), argument_types);
   if (proc_oid == catalog::INVALID_PROC_OID) {
@@ -381,39 +375,62 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
   }
 }
 
-ast::Type* UdfCodegen::ResolveType(const ast::Expr* expr) const {
+sql::SqlTypeId UdfCodegen::ResolveType(const ast::Expr *expr) const {
   switch (expr->GetKind()) {
-  case ast::AstNode::Kind::LitExpr:
-    return ResolveTypeForLiteralExpression(expr);
-  case ast::AstNode::Kind::BinaryOpExpr: {
-    return ResolveTypeForBinaryExpression(expr);
-  case ast::AstNode::Kind::IdentifierExpr:
-    return ResolveTypeForIdentifierExpression(expr);
-  default:
-    UNREACHABLE("Function call argument type cannot be resolved");
+    case ast::AstNode::Kind::LitExpr:
+      return ResolveTypeForLiteralExpression(expr->SafeAs<ast::LitExpr>());
+    case ast::AstNode::Kind::BinaryOpExpr:
+      return ResolveTypeForBinaryExpression(expr->SafeAs<ast::BinaryOpExpr>());
+    case ast::AstNode::Kind::IdentifierExpr:
+      return ResolveTypeForIdentifierExpression(expr->SafeAs<ast::IdentifierExpr>());
+    default:
+      UNREACHABLE("Function call argument type cannot be resolved");
   }
 }
 
-ast::Type* ResolveTypeForLiteralExpression(const ast::Expr* expr) const {
+sql::SqlTypeId UdfCodegen::ResolveTypeForLiteralExpression(const ast::LitExpr *expr) const {
   NOISEPAGE_ASSERT(expr->IsLitExpr(), "Broken precondition.");
-  return expr->GetType();
+  // TODO(Kyle): What to do about the ambiguity here?
+  // e.g. a literal might be a float vs double
+  switch (expr->GetLiteralKind()) {
+    case ast::LitExpr::LitKind::Boolean:
+      return sql::SqlTypeId::Boolean;
+    case ast::LitExpr::LitKind::Float:
+      return sql::SqlTypeId::Double;
+    case ast::LitExpr::LitKind::Int:
+      return sql::SqlTypeId::Integer;
+    case ast::LitExpr::LitKind::String:
+      return sql::SqlTypeId::Varchar;
+    default:
+      UNREACHABLE("Invalid type");
+  }
 }
 
-ast::Type* ResolveTypeForBinaryExpression(const ast::Expr* expr) const {
-    NOISEPAGE_ASSERT(expr->IsBinaryOpEx(), "Broken precondition");
-    const auto* binary = expr->SafeAs<ast::BinaryOpExpr>();
-    const ast::Type* left = ResolveType(binary->Left());
-    const ast::Type* right = ResolveType(binary->Right());
-    switch (binary->Op()) {
-      default:
-        break;
-    }
-    UNREACHABLE("Binary operation not supported");
+sql::SqlTypeId UdfCodegen::ResolveTypeForBinaryExpression(const ast::BinaryOpExpr *expr) const {
+  NOISEPAGE_ASSERT(expr->IsBinaryOpExpr(), "Broken precondition");
+  const auto *binary = expr->SafeAs<ast::BinaryOpExpr>();
+  sql::SqlTypeId left = ResolveType(binary->Left());
+  sql::SqlTypeId right = ResolveType(binary->Right());
+  switch (binary->Op()) {
+    // Basic arithmetic operators
+    case parsing::Token::Type::PLUS:
+    case parsing::Token::Type::MINUS:
+    case parsing::Token::Type::STAR:
+    case parsing::Token::Type::SLASH:
+      if (left == right) {
+        return left;
+      }
+      UNREACHABLE("Implicit conversions not supported");
+    default:
+      break;
+  }
+  UNREACHABLE("Binary operation not supported");
 }
 
-ast::Type* ResolveTypeForIdentifierExpression(const ast::Expr* expr) const {
+sql::SqlTypeId UdfCodegen::ResolveTypeForIdentifierExpression(const ast::IdentifierExpr *expr) const {
   NOISEPAGE_ASSERT(expr->IsIdentifierExpr(), "Broken precondition.");
-  return GetVariableType(expr->GetName().GetString());
+  // Just lookup the type for the variable with which it was declared
+  return GetVariableType(expr->Name().GetString());
 }
 
 /* ----------------------------------------------------------------------------

@@ -815,7 +815,64 @@ SELECT proc_predicate(2);
 statement ok
 
 
-statement error
-DROP FUNCTION proc_predicate();
+statement ok
+DROP FUNCTION proc_predicate(INT);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_call_args()
+
+statement ok
+
+
+statement ok
+-- Argument to call can be an expression
+
+statement ok
+CREATE FUNCTION proc_call_args() RETURNS INT AS $$ DECLARE x INT := 1; y INT := 2; z INT := 3; BEGIN RETURN ABS(x * y + z); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_call_args();
+----
+5
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_call_args();
+
+statement ok
+
+
+statement ok
+-- Argument to call can be an identifier
+
+statement ok
+CREATE FUNCTION proc_call_args() RETURNS INT AS $$ DECLARE x INT := 1; y INT := 2; z INT := 3; r INT; BEGIN r = x * y + z; RETURN ABS(r); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_call_args();
+----
+5
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_call_args();
 
 statement ok

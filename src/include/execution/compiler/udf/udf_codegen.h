@@ -246,13 +246,28 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    * @param expr The expression
    * @return The resolved type
    */
-  ast::Type* ResolveType(const ast::Expr* expr) const;
+  sql::SqlTypeId ResolveType(const ast::Expr *expr) const;
 
-  ast::Type* ResolveTypeForLiteralExpression(const ast::Expr* expr) const;
+  /**
+   * Resolve the type of a literal expression in a function call argument.
+   * @param expr The literal expression
+   * @return The resolved type of the literal expression
+   */
+  sql::SqlTypeId ResolveTypeForLiteralExpression(const ast::LitExpr *expr) const;
 
-  ast::Type* ResolveTypeForBinaryExpression(const ast::Expr* expr) const;
+  /**
+   * Resolve the type of a binary expression in a function call argument.
+   * @param expr The binary expression
+   * @return The resolved type of the binary expression
+   */
+  sql::SqlTypeId ResolveTypeForBinaryExpression(const ast::BinaryOpExpr *expr) const;
 
-  ast::Type* ResolveTypeForIdentifierExpression(const ast::Expr* expr) const;
+  /**
+   * Resolve the type of an identifier expression in a function call argument.
+   * @param expr The identifier expression
+   * @return The resolved type of the identifier expression
+   */
+  sql::SqlTypeId ResolveTypeForIdentifierExpression(const ast::IdentifierExpr *expr) const;
 
   /* --------------------------------------------------------------------------
     Code Generation: For-S Loops
@@ -386,7 +401,14 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    * @param type The SQL type of interest
    * @return The corresponding catalog type
    */
-  catalog::type_oid_t GetCatalogTypeOidFromSQLType(execution::ast::BuiltinType::Kind type);
+  catalog::type_oid_t GetCatalogTypeOidFromSQLType(execution::sql::SqlTypeId type);
+
+  /**
+   * Translate a builtin type Kind to its corresponding catalog type.
+   * @param type The builtin type of interst
+   * @return The corresponding catalog type
+   */
+  catalog::type_oid_t GetCatalogTypeFromBuiltinKind(execution::ast::BuiltinType::Kind type);
 
   /** @return A mutable reference to the symbol table */
   std::unordered_map<std::string, execution::ast::Identifier> &SymbolTable() { return symbol_table_; }

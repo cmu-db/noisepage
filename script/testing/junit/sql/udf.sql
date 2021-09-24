@@ -416,6 +416,39 @@ SELECT proc_predicate(0);
 SELECT proc_predicate(1);
 SELECT proc_predicate(2);
 
-DROP FUNCTION proc_predicate();
+DROP FUNCTION proc_predicate(INT);
 
-CREATE FUNCTION foo() RETURNS INT AS $$ DECLARE x INT := 1; y INT := 2; z INT := 3; BEGIN RETURN x * y + z; END $$ LANGUAGE PLPGSQL;
+-- ----------------------------------------------------------------------------
+-- proc_call_args()
+
+-- Argument to call can be an expression
+CREATE FUNCTION proc_call_args() RETURNS INT AS $$ \
+DECLARE                                            \
+  x INT := 1;                                      \
+  y INT := 2;                                      \
+  z INT := 3;                                      \
+BEGIN                                              \
+  RETURN ABS(x * y + z);                           \
+END                                                \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_call_args();
+
+DROP FUNCTION proc_call_args();
+
+-- Argument to call can be an identifier
+CREATE FUNCTION proc_call_args() RETURNS INT AS $$ \
+DECLARE                                            \
+  x INT := 1;                                      \
+  y INT := 2;                                      \
+  z INT := 3;                                      \
+  r INT;                                           \
+BEGIN                                              \
+  r = x * y + z;                                   \
+  RETURN ABS(r);                                   \
+END                                                \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_call_args();
+
+DROP FUNCTION proc_call_args();
