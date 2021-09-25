@@ -555,3 +555,33 @@ $$ LANGUAGE PLPGSQL;
 
 SELECT proc_promotion(1337.0);
 DROP FUNCTION proc_promotion(FLOAT8);
+
+-- ----------------------------------------------------------------------------
+-- proc_cast()
+
+-- CAST works in assignment expression
+CREATE FUNCTION proc_cast() RETURNS FLOAT AS $$ \
+DECLARE                                         \
+  x FLOAT;                                      \
+BEGIN                                           \
+  x = CAST(1 AS FLOAT);                         \
+  RETURN x;                                     \
+END                                             \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_cast();
+DROP FUNCTION proc_cast();
+
+-- TODO(Kyle): this is a great example of a function that
+-- we can't currently compile because we only resort to a
+-- full handoff to the SQL execution infrastructure in the
+-- case of assignment expressions. For everything else, in 
+-- this case a RETURN statement, we don't yet have the
+-- ability to defer this to the SQL engine, and we also can't
+-- handle it in the "builtin" manner, so we just fail.
+
+-- CREATE FUNCTION proc_cast() RETURNS FLOAT AS $$ \
+-- BEGIN                                           \
+--   RETURN CAST(1 AS FLOAT);                      \
+-- END                                             \
+-- $$ LANGUAGE PLPGSQL;

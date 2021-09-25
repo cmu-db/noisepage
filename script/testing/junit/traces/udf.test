@@ -1053,3 +1053,63 @@ statement ok
 DROP FUNCTION proc_promotion(FLOAT8);
 
 statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_cast()
+
+statement ok
+
+
+statement ok
+-- CAST works in assignment expression
+
+statement ok
+CREATE FUNCTION proc_cast() RETURNS FLOAT AS $$ DECLARE x FLOAT; BEGIN x = CAST(1 AS FLOAT); RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_cast();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_cast();
+
+statement ok
+
+
+statement ok
+-- TODO(Kyle): this is a great example of a function that
+
+statement ok
+-- we can't currently compile because we only resort to a
+
+statement ok
+-- full handoff to the SQL execution infrastructure in the
+
+statement ok
+-- case of assignment expressions. For everything else, in
+
+statement ok
+-- this case a RETURN statement, we don't yet have the
+
+statement ok
+-- ability to defer this to the SQL engine, and we also can't
+
+statement ok
+-- handle it in the "builtin" manner, so we just fail.
+
+statement ok
+
+
+statement ok
+-- CREATE FUNCTION proc_cast() RETURNS FLOAT AS $$ -- BEGIN --   RETURN CAST(1 AS FLOAT); -- END -- $$ LANGUAGE PLPGSQL;
+
+statement ok
