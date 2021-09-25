@@ -34,6 +34,7 @@ namespace noisepage::execution::ast {
   /* SQL Functions */                                                   \
   F(Like, like)                                                         \
   F(DatePart, datePart)                                                 \
+  F(Random, random)                                                     \
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \

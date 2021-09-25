@@ -2793,6 +2793,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(Random) : {
+    auto *result = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
+    OpRandom(result);
+    DISPATCH_NEXT();
+  }
+
   OP(InitCap) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());

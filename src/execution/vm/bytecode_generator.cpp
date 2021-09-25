@@ -774,6 +774,11 @@ void BytecodeGenerator::VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::B
   GetExecutionResult()->SetDestination(dest);
 }
 
+void BytecodeGenerator::VisitBuiltinRandomFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  GetEmitter()->Emit(Bytecode::Random, ret);
+}
+
 void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) {
   // The first argument to all calls is a pointer to the TVI
   LocalVar iter = VisitExpressionForRValue(call->Arguments()[0]);
@@ -2859,6 +2864,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::DatePart: {
       VisitBuiltinDateFunctionCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::Random: {
+      VisitBuiltinRandomFunctionCall(call, builtin);
       break;
     }
     case ast::Builtin::RegisterThreadWithMetricsManager: {

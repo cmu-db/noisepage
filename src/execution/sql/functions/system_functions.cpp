@@ -10,4 +10,9 @@ void SystemFunctions::Version(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Stri
   *result = StringVal(version);
 }
 
+void SystemFunctions::Random(Real *result) {
+  // TODO(Kyle): Actually generate a random value
+  *result = Real(1.0);
+}
+
 }  // namespace noisepage::execution::sql

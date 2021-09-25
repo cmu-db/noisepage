@@ -1113,3 +1113,18 @@ statement ok
 -- CREATE FUNCTION proc_cast() RETURNS FLOAT AS $$ -- BEGIN --   RETURN CAST(1 AS FLOAT); -- END -- $$ LANGUAGE PLPGSQL;
 
 statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_random()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_random() RETURNS FLOAT AS $$ DECLARE x FLOAT; BEGIN x = (SELECT RANDOM()); RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok

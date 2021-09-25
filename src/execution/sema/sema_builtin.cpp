@@ -3199,6 +3199,13 @@ void Sema::CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin) {
   call->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Nil));
 }
 
+void Sema::CheckBuiltinRandomCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCount(call, 0)) {
+    return;
+  }
+  call->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Kind::Real));
+}
+
 void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
   ast::BuiltinType::Kind sql_type;
 
@@ -4134,6 +4141,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::TestCatalogIndexLookup: {
       CheckBuiltinTestCatalogIndexLookup(call);
+      break;
+    }
+    case ast::Builtin::Random: {
+      CheckBuiltinRandomCall(call, builtin);
       break;
     }
     default:

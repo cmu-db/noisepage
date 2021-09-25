@@ -529,6 +529,7 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   // Other functions.
   create_fn("date_part", INVALID_TYPE_OID, {"date", "date_part_type"}, {DATE, INT}, INT);
   create_fn("version", INVALID_TYPE_OID, {}, {}, STR);
+  create_fn("random", INVALID_TYPE_OID, {}, {}, REAL);
 
   CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersemitint", PgLanguage::INTERNAL_LANGUAGE_OID,
                   PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, INVALID_TYPE_OID,
@@ -643,6 +644,7 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   // Other functions.
   create_fn("date_part", INT, {execution::sql::SqlTypeId::Date, INT}, execution::ast::Builtin::DatePart, false);
   create_fn("version", VAR, {}, execution::ast::Builtin::Version, true);
+  create_fn("random", REAL, {}, execution::ast::Builtin::Random, false);
 
   create_fn("nprunnersemitint", INT, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitInt, true);
   create_fn("nprunnersemitreal", REAL, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitReal, true);

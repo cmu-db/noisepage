@@ -772,6 +772,7 @@ namespace noisepage::execution::vm {
                                                                                                                       \
   /* Miscellaneous functions. */                                                                                      \
   F(Version, OperandType::Local, OperandType::Local)                                                                  \
+  F(Random, OperandType::Local)                                                                                       \
                                                                                                                       \
   /* Parameter support. */                                                                                            \
   F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \

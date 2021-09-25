@@ -1903,6 +1903,10 @@ VM_OP_WARM void OpVersion(noisepage::execution::exec::ExecutionContext *ctx,
   noisepage::execution::sql::SystemFunctions::Version(ctx, result);
 }
 
+VM_OP_WARM void OpRandom(noisepage::execution::sql::Real *result) {
+  noisepage::execution::sql::SystemFunctions::Random(result);
+}
+
 VM_OP_WARM void OpInitCap(noisepage::execution::sql::StringVal *result,
                           noisepage::execution::exec::ExecutionContext *ctx,
                           const noisepage::execution::sql::StringVal *str) {
