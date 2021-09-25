@@ -1,5 +1,7 @@
 #include "execution/sql/functions/system_functions.h"
 
+#include <random>
+
 #include "common/version.h"
 #include "execution/exec/execution_context.h"
 
@@ -11,8 +13,11 @@ void SystemFunctions::Version(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Stri
 }
 
 void SystemFunctions::Random(Real *result) {
-  // TODO(Kyle): Actually generate a random value
-  *result = Real(1.0);
+  // TODO(Kyle): Static locals are kind of gross, where
+  // should state for this type of one-off thing live?
+  static std::mt19937 generator{std::random_device{}()};  // NOLINT
+  static std::uniform_real_distribution<> distribution{0, 1};
+  *result = Real(distribution(generator));
 }
 
 }  // namespace noisepage::execution::sql
