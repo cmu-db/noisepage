@@ -306,6 +306,48 @@ statement ok
 
 
 statement ok
+-- Nested conditional control flow
+
+statement ok
+CREATE FUNCTION conditional(x INT, y INT) RETURNS INT AS $$ BEGIN IF x > 1 THEN IF y > 1 THEN RETURN 1; ELSE RETURN 2; END IF; ELSE IF y > 1 THEN RETURN 3; ELSE RETURN 4; END IF; END IF; RETURN 0; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT conditional(1, 1);
+----
+4
+
+
+query I rowsort
+SELECT conditional(1, 2);
+----
+3
+
+
+query I rowsort
+SELECT conditional(2, 1);
+----
+2
+
+
+query I rowsort
+SELECT conditional(2, 2);
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION conditional(INT, INT);
+
+statement ok
+
+
+statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
@@ -1174,5 +1216,164 @@ statement ok
 
 statement ok
 DROP FUNCTION proc_is_not_null(INT);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_length()
+
+statement ok
+
+
+statement ok
+-- Assignment of LENGTH to temporary
+
+statement ok
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ DECLARE r INT; BEGIN r = LENGTH(t); RETURN r; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_length('hello');
+----
+5
+
+
+statement ok
+DROP FUNCTION proc_length(VARCHAR);
+
+statement ok
+
+
+statement ok
+-- Direct RETURN of LENGTH
+
+statement ok
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ BEGIN RETURN LENGTH(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_length('hello');
+----
+5
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_length(VARCHAR);
+
+statement ok
+
+
+statement ok
+-- Use of LENGTH() in conditional
+
+statement ok
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ BEGIN IF LENGTH(t) > 1 THEN RETURN 1; ELSE RETURN 2; END IF; RETURN 0; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_length('a');
+----
+2
+
+
+query I rowsort
+SELECT proc_length('ab');
+----
+1
+
+
+query I rowsort
+SELECT proc_length('abc');
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_length(VARCHAR);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_substr()
+
+statement ok
+
+
+statement ok
+-- Able to pass all arguments through
+
+statement ok
+CREATE FUNCTION proc_substr(t VARCHAR, i INT, l INT) RETURNS VARCHAR AS $$ BEGIN RETURN SUBSTR(t, i, l); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query T rowsort
+SELECT proc_substr('hello', 1, 1);
+----
+h
+
+
+query T rowsort
+SELECT proc_substr('hello', 1, 2);
+----
+he
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_substr(VARCHAR, INT, INT);
+
+statement ok
+
+
+statement ok
+-- Able to specify a literal value
+
+statement ok
+CREATE FUNCTION proc_substr(t VARCHAR, i INT) RETURNS VARCHAR AS $$ BEGIN RETURN SUBSTR(t, i, 1); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query T rowsort
+SELECT proc_substr('hello', 1);
+----
+h
+
+
+query T rowsort
+SELECT proc_substr('hello', 2);
+----
+e
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_substr(VARCHAR, INT);
 
 statement ok

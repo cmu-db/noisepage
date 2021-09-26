@@ -269,6 +269,13 @@ class UdfCodegen : ast::udf::ASTNodeVisitor {
    */
   sql::SqlTypeId ResolveTypeForIdentifierExpression(const ast::IdentifierExpr *expr) const;
 
+  /**
+   * Resolve the type of a call expression in a function call argument.
+   * @param expr The call expression
+   * @return The resolved type of the call expression
+   */
+  sql::SqlTypeId ResolveTypeForCallExpression(const ast::CallExpr *expr) const;
+
   /* --------------------------------------------------------------------------
     Code Generation: For-S Loops
   -------------------------------------------------------------------------- */

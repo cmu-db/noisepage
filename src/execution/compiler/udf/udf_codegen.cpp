@@ -278,6 +278,10 @@ void UdfCodegen::Visit(ast::udf::BinaryExprAST *ast) {
 }
 
 void UdfCodegen::Visit(ast::udf::IfStmtAST *ast) {
+  // TODO(Kyle): It would be nice to add support for IF .. ELSIF .. ELSE
+  // constructs, but the current TPL architecture does not have native
+  // support for code generation of this type of control flow, so I am
+  // going to punt on it for now.
   ast::Expr *condition = EvaluateExpression(ast->Condition());
   If branch(fb_, condition);
   ast->Then()->Accept(this);
@@ -360,6 +364,10 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
 
   auto context = accessor_->GetFunctionContext(proc_oid);
   if (context->IsBuiltin()) {
+    if (context->IsExecCtxRequired()) {
+      // If this builtin requires an execution context, provide it
+      arguments.insert(arguments.begin(), GetExecutionContext());
+    }
     ast::Expr *result = codegen_->CallBuiltin(context->GetBuiltin(), arguments);
     SetExecutionResult(result);
   } else {
@@ -387,6 +395,8 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
 }
 
 sql::SqlTypeId UdfCodegen::ResolveType(const ast::Expr *expr) const {
+  const auto t = expr->GetKind();
+  (void)t;
   switch (expr->GetKind()) {
     case ast::AstNode::Kind::LitExpr:
       return ResolveTypeForLiteralExpression(expr->SafeAs<ast::LitExpr>());
@@ -394,6 +404,8 @@ sql::SqlTypeId UdfCodegen::ResolveType(const ast::Expr *expr) const {
       return ResolveTypeForBinaryExpression(expr->SafeAs<ast::BinaryOpExpr>());
     case ast::AstNode::Kind::IdentifierExpr:
       return ResolveTypeForIdentifierExpression(expr->SafeAs<ast::IdentifierExpr>());
+    case ast::AstNode::Kind::CallExpr:
+      return ResolveTypeForCallExpression(expr->SafeAs<ast::CallExpr>());
     default:
       UNREACHABLE("Function call argument type cannot be resolved");
   }
@@ -459,6 +471,30 @@ sql::SqlTypeId UdfCodegen::ResolveTypeForIdentifierExpression(const ast::Identif
   NOISEPAGE_ASSERT(expr->IsIdentifierExpr(), "Broken precondition.");
   // Just lookup the type for the variable with which it was declared
   return GetVariableType(expr->Name().GetString());
+}
+
+sql::SqlTypeId UdfCodegen::ResolveTypeForCallExpression(const ast::CallExpr *expr) const {
+  const ast::Type *type = expr->GetType();
+  NOISEPAGE_ASSERT(type->IsSqlValueType(), "Invalid type");
+  const ast::BuiltinType *builtin = type->SafeAs<ast::BuiltinType>();
+  switch (builtin->GetKind()) {
+    case ast::BuiltinType::Kind::Boolean:
+      return sql::SqlTypeId::Boolean;
+    case ast::BuiltinType::Kind::Integer:
+      return sql::SqlTypeId::Integer;
+    case ast::BuiltinType::Kind::Real:
+      return sql::SqlTypeId::Real;
+    case ast::BuiltinType::Kind::Decimal:
+      return sql::SqlTypeId::Decimal;
+    case ast::BuiltinType::Kind::StringVal:
+      return sql::SqlTypeId::Varchar;
+    case ast::BuiltinType::Kind::Date:
+      return sql::SqlTypeId::Date;
+    case ast::BuiltinType::Kind::Timestamp:
+      return sql::SqlTypeId::Timestamp;
+    default:
+      UNREACHABLE("Invalid type");
+  }
 }
 
 /* ----------------------------------------------------------------------------

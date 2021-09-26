@@ -442,6 +442,9 @@ std::optional<std::unique_ptr<execution::ast::udf::ExprAST>> PLpgSQLParser::TryP
         }
         args.push_back(std::move(*argument));
       }
+      for (const auto &a : args) {
+        std::cout << execution::ast::udf::NodeTypeToShortString(a->GetType()) << std::endl;
+      }
       return std::make_optional(
           std::make_unique<execution::ast::udf::CallExprAST>(func_expr->GetFuncName(), std::move(args)));
     }

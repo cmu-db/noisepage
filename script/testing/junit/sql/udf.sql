@@ -121,6 +121,33 @@ SELECT x, conditional(x) FROM integers;
 
 DROP FUNCTION conditional(INT);
 
+-- Nested conditional control flow
+CREATE FUNCTION conditional(x INT, y INT) RETURNS INT AS $$ \
+BEGIN                                                       \
+  IF x > 1 THEN                                             \
+    IF y > 1 THEN                                           \
+      RETURN 1;                                             \
+    ELSE                                                    \
+      RETURN 2;                                             \
+    END IF;                                                 \
+  ELSE                                                      \
+    IF y > 1 THEN                                           \
+      RETURN 3;                                             \
+    ELSE                                                    \
+      RETURN 4;                                             \
+    END IF;                                                 \
+  END IF;                                                   \
+  RETURN 0;                                                 \
+END                                                         \
+$$ LANGUAGE PLPGSQL;
+
+SELECT conditional(1, 1);
+SELECT conditional(1, 2);
+SELECT conditional(2, 1);
+SELECT conditional(2, 2);
+
+DROP FUNCTION conditional(INT, INT);
+
 -- ----------------------------------------------------------------------------
 -- proc_while()
 
@@ -624,3 +651,75 @@ SELECT proc_is_not_null(1);
 SELECT proc_is_not_null(NULL);
 
 DROP FUNCTION proc_is_not_null(INT);
+
+-- ----------------------------------------------------------------------------
+-- proc_length()
+
+-- Assignment of LENGTH to temporary
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ \
+DECLARE                                                  \
+  r INT;                                                 \
+BEGIN                                                    \
+  r = LENGTH(t);                                         \
+  RETURN r;                                              \
+END                                                      \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_length('hello');
+DROP FUNCTION proc_length(VARCHAR);
+
+-- Direct RETURN of LENGTH
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ \
+BEGIN                                                    \
+  RETURN LENGTH(t);                                      \
+END                                                      \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_length('hello');
+
+DROP FUNCTION proc_length(VARCHAR);
+
+-- Use of LENGTH() in conditional
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ \
+BEGIN                                                    \
+  IF LENGTH(t) > 1 THEN                                  \
+    RETURN 1;                                            \
+  ELSE                                                   \
+    RETURN 2;                                            \
+  END IF;                                                \
+  RETURN 0;                                              \
+END                                                      \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_length('a');
+SELECT proc_length('ab');
+SELECT proc_length('abc');
+
+DROP FUNCTION proc_length(VARCHAR);
+
+-- ----------------------------------------------------------------------------
+-- proc_substr()
+
+-- Able to pass all arguments through
+CREATE FUNCTION proc_substr(t VARCHAR, i INT, l INT) RETURNS VARCHAR AS $$ \
+BEGIN                                                                      \
+  RETURN SUBSTR(t, i, l);                                                  \
+END                                                                        \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_substr('hello', 1, 1);
+SELECT proc_substr('hello', 1, 2);
+
+DROP FUNCTION proc_substr(VARCHAR, INT, INT);
+
+-- Able to specify a literal value
+CREATE FUNCTION proc_substr(t VARCHAR, i INT) RETURNS VARCHAR AS $$ \
+BEGIN                                                               \
+  RETURN SUBSTR(t, i, 1);                                           \
+END                                                                 \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_substr('hello', 1);
+SELECT proc_substr('hello', 2);
+
+DROP FUNCTION proc_substr(VARCHAR, INT);

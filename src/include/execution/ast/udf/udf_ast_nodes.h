@@ -8,11 +8,20 @@
 
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_defs.h"
+#include "parser/parse_result.h"
 
+#include "execution/ast/udf/node_types.h"
 #include "execution/ast/udf/udf_ast_node_visitor.h"
 #include "execution/sql/value.h"
 
 namespace noisepage::execution::ast::udf {
+
+/**
+ * Get the string representation of a node type.
+ * @param type The node type
+ * @return The string representation
+ */
+std::string NodeTypeToShortString(NodeType type);
 
 /**
  * The AbstractAST class serves as a base class for all AST nodes.
@@ -20,8 +29,12 @@ namespace noisepage::execution::ast::udf {
 class AbstractAST {
  public:
   /**
-   * Destroy the AST node.
+   * Construct a new AbstractAST node instance.
+   * @param type The type of the node
    */
+  explicit AbstractAST(NodeType type) : type_{type} {}
+
+  /** Destroy the AST node. */
   virtual ~AbstractAST() = default;
 
   /**
@@ -29,17 +42,28 @@ class AbstractAST {
    * @param visitor The visitor
    */
   virtual void Accept(ASTNodeVisitor *visitor) { visitor->Visit(this); }
+
+  /** @return The type of the AST node */
+  NodeType GetType() const { return type_; }
+
+ private:
+  /** The type of the AST node */
+  NodeType type_;
 };
 
 /**
- * The StmtAST class serves as the base class for all statement nodes.
+ * The ExprAST class serves as the base class for all expression nodes.
  */
-class StmtAST : public AbstractAST {
+class ExprAST : public AbstractAST {
  public:
   /**
-   * Destroy the AST node.
+   * Construct a new ExprAST instance.
+   * @param type The type of the expression node
    */
-  ~StmtAST() override = default;
+  explicit ExprAST(NodeType type) : AbstractAST{type} {}
+
+  /** Destroy the AST node. */
+  ~ExprAST() override = default;
 
   /**
    * AST visitor pattern.
@@ -49,14 +73,18 @@ class StmtAST : public AbstractAST {
 };
 
 /**
- * The ExprAST class serves as the base class for all expression nodes.
+ * The StmtAST class serves as the base class for all statement nodes.
  */
-class ExprAST : public StmtAST {
+class StmtAST : public AbstractAST {
  public:
   /**
-   * Destroy the AST node.
+   * Construct a new StmtAST instance.
+   * @param type The type of the statement node
    */
-  ~ExprAST() override = default;
+  explicit StmtAST(NodeType type) : AbstractAST{type} {}
+
+  /** Destroy the AST node. */
+  ~StmtAST() override = default;
 
   /**
    * AST visitor pattern.
@@ -74,7 +102,8 @@ class ValueExprAST : public ExprAST {
    * Construct a new ValueExprAST instance.
    * @param value The AbstractExpression that represents the value
    */
-  explicit ValueExprAST(std::unique_ptr<parser::AbstractExpression> &&value) : value_(std::move(value)) {}
+  explicit ValueExprAST(std::unique_ptr<parser::AbstractExpression> &&value)
+      : ExprAST{NodeType::VALUE_EXPR}, value_(std::move(value)) {}
 
   /**
    * AST visitor pattern.
@@ -104,7 +133,7 @@ class IsNullExprAST : public ExprAST {
    * @param child The child expression
    */
   IsNullExprAST(bool is_null_check, std::unique_ptr<ExprAST> &&child)
-      : is_null_check_{is_null_check}, child_{std::move(child)} {}
+      : ExprAST{NodeType::IS_NULL_EXPR}, is_null_check_{is_null_check}, child_{std::move(child)} {}
 
   /**
    * AST visitor pattern.
@@ -138,7 +167,7 @@ class VariableExprAST : public ExprAST {
    * Construct a new VariableExprAST instance.
    * @param name The name of the variable
    */
-  explicit VariableExprAST(std::string name) : name_{std::move(name)} {}
+  explicit VariableExprAST(std::string name) : ExprAST{NodeType::VARIABLE_EXPR}, name_{std::move(name)} {}
 
   /**
    * AST visitor pattern.
@@ -165,7 +194,7 @@ class MemberExprAST : public ExprAST {
    * @param field The name of the field in the structure
    */
   MemberExprAST(std::unique_ptr<VariableExprAST> &&object, std::string field)
-      : object_{std::move(object)}, field_(std::move(field)) {}
+      : ExprAST{NodeType::MEMBER_EXPR}, object_{std::move(object)}, field_(std::move(field)) {}
 
   /**
    * AST visitor pattern.
@@ -202,7 +231,7 @@ class BinaryExprAST : public ExprAST {
    * @param rhs The expression on the right-hand side of the operation
    */
   BinaryExprAST(parser::ExpressionType op, std::unique_ptr<ExprAST> &&lhs, std::unique_ptr<ExprAST> &&rhs)
-      : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
+      : ExprAST{NodeType::BINARY_EXPR}, op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
   /**
    * AST visitor pattern.
@@ -247,7 +276,7 @@ class CallExprAST : public ExprAST {
    * @param args The arguments to the function call
    */
   CallExprAST(std::string callee, std::vector<std::unique_ptr<ExprAST>> &&args)
-      : callee_{std::move(callee)}, args_{std::move(args)} {}
+      : ExprAST{NodeType::CALL_EXPR}, callee_{std::move(callee)}, args_{std::move(args)} {}
 
   /**
    * AST visitor pattern.
@@ -281,7 +310,8 @@ class SeqStmtAST : public StmtAST {
    * Construct a new SeqStmtAST instance.
    * @param statements The collection of statements in the sequence
    */
-  explicit SeqStmtAST(std::vector<std::unique_ptr<StmtAST>> &&statements) : statements_(std::move(statements)) {}
+  explicit SeqStmtAST(std::vector<std::unique_ptr<StmtAST>> &&statements)
+      : StmtAST{NodeType::SEQ_STMT}, statements_(std::move(statements)) {}
 
   /**
    * AST visitor pattern.
@@ -313,7 +343,7 @@ class DeclStmtAST : public StmtAST {
    * @param initial The initial value in the declaration
    */
   DeclStmtAST(std::string name, sql::SqlTypeId type, std::unique_ptr<ExprAST> &&initial)
-      : name_{std::move(name)}, type_(type), initial_{std::move(initial)} {}
+      : StmtAST{NodeType::DECL_STMT}, name_{std::move(name)}, type_(type), initial_{std::move(initial)} {}
 
   /**
    * AST visitor pattern.
@@ -357,7 +387,10 @@ class IfStmtAST : public StmtAST {
    */
   IfStmtAST(std::unique_ptr<ExprAST> &&cond_expr, std::unique_ptr<StmtAST> &&then_stmt,
             std::unique_ptr<StmtAST> &&else_stmt)
-      : cond_expr_{std::move(cond_expr)}, then_stmt_{std::move(then_stmt)}, else_stmt_{std::move(else_stmt)} {}
+      : StmtAST{NodeType::IF_STMT},
+        cond_expr_{std::move(cond_expr)},
+        then_stmt_{std::move(then_stmt)},
+        else_stmt_{std::move(else_stmt)} {}
 
   /**
    * AST visitor pattern.
@@ -418,7 +451,8 @@ class ForIStmtAST : public StmtAST {
    */
   ForIStmtAST(std::string variable, std::unique_ptr<ExprAST> lower, std::unique_ptr<ExprAST> upper,
               std::unique_ptr<ExprAST> step, std::unique_ptr<StmtAST> body)
-      : variable_{std::move(variable)},
+      : StmtAST{NodeType::FORI_STMT},
+        variable_{std::move(variable)},
         lower_{std::move(lower)},
         upper_{std::move(upper)},
         step_{std::move(step)},
@@ -485,7 +519,10 @@ class ForSStmtAST : public StmtAST {
    */
   ForSStmtAST(std::vector<std::string> &&variables, std::unique_ptr<parser::ParseResult> &&query,
               std::unique_ptr<StmtAST> body)
-      : variables_{std::move(variables)}, query_{std::move(query)}, body_{std::move(body)} {}
+      : StmtAST{NodeType::FORS_STMT},
+        variables_{std::move(variables)},
+        query_{std::move(query)},
+        body_{std::move(body)} {}
 
   /**
    * AST visitor pattern.
@@ -530,7 +567,7 @@ class WhileStmtAST : public StmtAST {
    * @param body The loop body statement
    */
   WhileStmtAST(std::unique_ptr<ExprAST> &&condition, std::unique_ptr<StmtAST> &&body)
-      : condition_{std::move(condition)}, body_{std::move(body)} {}
+      : StmtAST{NodeType::WHILE_STMT}, condition_{std::move(condition)}, body_{std::move(body)} {}
 
   /**
    * AST visitor pattern.
@@ -567,7 +604,8 @@ class RetStmtAST : public StmtAST {
    * Construct a new RetStmtAST instance.
    * @param ret_expr The `return` expression
    */
-  explicit RetStmtAST(std::unique_ptr<ExprAST> &&ret_expr) : ret_expr_{std::move(ret_expr)} {}
+  explicit RetStmtAST(std::unique_ptr<ExprAST> &&ret_expr)
+      : StmtAST{NodeType::RET_STMT}, ret_expr_{std::move(ret_expr)} {}
 
   /**
    * AST visitor pattern.
@@ -589,7 +627,7 @@ class RetStmtAST : public StmtAST {
 /**
  * The AssignStmtAST class represents an assignment statement.
  */
-class AssignStmtAST : public ExprAST {
+class AssignStmtAST : public StmtAST {
  public:
   /**
    * Construct a new AssignStmtAST instance.
@@ -597,7 +635,7 @@ class AssignStmtAST : public ExprAST {
    * @param src The expression that represents the source of the assignment
    */
   AssignStmtAST(std::unique_ptr<VariableExprAST> &&dst, std::unique_ptr<ExprAST> &&src)
-      : dst_{std::move(dst)}, src_{std::move(src)} {}
+      : StmtAST{NodeType::ASSIGN_STMT}, dst_{std::move(dst)}, src_{std::move(src)} {}
 
   /**
    * AST visitor pattern.
@@ -637,7 +675,7 @@ class SQLStmtAST : public StmtAST {
    * to which results of the query are bound
    */
   SQLStmtAST(std::unique_ptr<parser::ParseResult> &&query, std::vector<std::string> &&variables)
-      : query_{std::move(query)}, variables_{std::move(variables)} {}
+      : StmtAST{NodeType::SQL_STMT}, query_{std::move(query)}, variables_{std::move(variables)} {}
 
   /**
    * AST visitor pattern.
@@ -673,7 +711,7 @@ class DynamicSQLStmtAST : public StmtAST {
    * @param name The name of the variable to which results are bound
    */
   DynamicSQLStmtAST(std::unique_ptr<ExprAST> &&query, std::string name)
-      : query_{std::move(query)}, name_{std::move(name)} {}
+      : StmtAST{NodeType::DYNAMIC_SQL_STMT}, query_{std::move(query)}, name_{std::move(name)} {}
 
   /**
    * AST visitor pattern.
@@ -708,7 +746,8 @@ class FunctionAST : public AbstractAST {
    */
   FunctionAST(std::unique_ptr<StmtAST> &&body, std::vector<std::string> parameter_names,
               std::vector<sql::SqlTypeId> parameter_types)
-      : body_{std::move(body)},
+      : AbstractAST{NodeType::FUNCTION},
+        body_{std::move(body)},
         parameter_names_{std::move(parameter_names)},
         parameter_types_{std::move(parameter_types)} {
     NOISEPAGE_ASSERT(parameter_names_.size() == parameter_types_.size(), "Parameter Name and Type Mismatch");
