@@ -585,3 +585,38 @@ DROP FUNCTION proc_cast();
 --   RETURN CAST(1 AS FLOAT);                      \
 -- END                                             \
 -- $$ LANGUAGE PLPGSQL;
+
+-- ----------------------------------------------------------------------------
+-- proc_is_null()
+
+CREATE FUNCTION proc_is_null(x INT) RETURNS INT AS $$ \
+DECLARE                                               \
+  r INT;                                              \
+BEGIN                                                 \
+  IF x IS NULL THEN                                   \
+    r = 1;                                            \
+  ELSE                                                \
+    r = 2;                                            \
+  END IF;                                             \
+  RETURN r;                                           \
+END                                                   \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_is_null(1);
+DROP FUNCTION proc_is_null(INT);
+
+CREATE FUNCTION proc_is_null(x INT) RETURNS INT AS $$ \
+DECLARE                                               \
+  r INT;                                              \
+BEGIN                                                 \
+  IF x IS NOT NULL THEN                               \
+    r = 1;                                            \
+  ELSE                                                \
+    r = 2;                                            \
+  END IF;                                             \
+  RETURN r;                                           \
+END                                                   \
+$$ LANGUAGE PLPGSQL;
+
+SELECT proc_is_null(1);
+DROP FUNCTION proc_is_null(INT);

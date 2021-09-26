@@ -355,7 +355,7 @@ class EXPORT CatalogAccessor {
   /**
    * Gets the OID of a procedure from pg_proc given a requested name and resolved argument types.
    * This lookup will return the first one found through a sequential scan through
-   * the current search path
+   * the current search path.
    * @param procname name of the proc to lookup
    * @param arg_types vector of types of arguments of procedure to look up
    * @return The OID of the resolved procedure if found, else `INVALID_PROC_OID`

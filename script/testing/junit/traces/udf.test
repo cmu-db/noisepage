@@ -1119,12 +1119,42 @@ statement ok
 -- ----------------------------------------------------------------------------
 
 statement ok
--- proc_random()
+-- proc_is_null()
 
 statement ok
 
 
 statement ok
-CREATE FUNCTION proc_random() RETURNS FLOAT AS $$ DECLARE x FLOAT; BEGIN x = (SELECT RANDOM()); RETURN x; END $$ LANGUAGE PLPGSQL;
+CREATE FUNCTION proc_is_null(x INT) RETURNS INT AS $$ DECLARE r INT; BEGIN IF x IS NULL THEN r = 1; ELSE r = 2; END IF; RETURN r; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_is_null(1);
+----
+2
+
+
+statement ok
+DROP FUNCTION proc_is_null(INT);
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_is_null(x INT) RETURNS INT AS $$ DECLARE r INT; BEGIN IF x IS NOT NULL THEN r = 1; ELSE r = 2; END IF; RETURN r; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_is_null(1);
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_is_null(INT);
 
 statement ok

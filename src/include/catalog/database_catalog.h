@@ -349,5 +349,25 @@ class DatabaseCatalog {
   template <typename ClassOid, typename Ptr>
   bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid, const Ptr *pointer,
                        col_oid_t class_col);
+
+  /* --------------------------------------------------------------------------
+    Function Lookup
+  -------------------------------------------------------------------------- */
+
+  /**
+   * Determine if the vector of argument types contains an untyped NULL.
+   * @param arg_types The vector of argument types
+   * @return `true` if the vector contains an untyped NULL type, `false` otherwise
+   */
+  bool ContainsUntypedNull(const std::vector<type_oid_t> &arg_types);
+
+  /**
+   * Swap the first untyped NULL argument type in `arg_types` with `type`.
+   * @param arg_types The vector of argument types that is mutated
+   * @param type The type that is swapped in for the untyped NULL
+   * @return The modified vector
+   */
+  std::vector<type_oid_t> ReplaceFirstUntypedNullWith(const std::vector<type_oid_t> &arg_types,
+                                                      execution::sql::SqlTypeId type);
 };
 }  // namespace noisepage::catalog

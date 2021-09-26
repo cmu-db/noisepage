@@ -209,6 +209,8 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return GetProcOid(procname, types);
 }
 
+proc_oid_t GetProcOid(const std::string &procname, const std::vector<execution::sql::SqlTypeId> &arg_types);
+
 proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<type_oid_t> &arg_types) {
   proc_oid_t ret;
   for (auto ns_oid : search_path_) {

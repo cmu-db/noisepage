@@ -468,6 +468,26 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
+  // Handle the case where an untyped NULL is passed as an argument to the function;
+  // in this case, we enumerate all possible combinations of types for the NULL argument
+  if (ContainsUntypedNull(arg_types)) {
+    // TODO(Kyle): This is a brittle hack
+    for (int8_t type_value = static_cast<int8_t>(execution::sql::SqlTypeId::Boolean);
+         type_value <= static_cast<int8_t>(execution::sql::SqlTypeId::Varbinary); ++type_value) {
+      const execution::sql::SqlTypeId type = static_cast<execution::sql::SqlTypeId>(type_value);
+      const std::vector<type_oid_t> swapped = ReplaceFirstUntypedNullWith(arg_types, type);
+      // Recursively invoke this function; there may be further untyped NULLs
+      const proc_oid_t oid = GetProcOid(txn, procns, procname, swapped);
+      if (oid != INVALID_PROC_OID) {
+        return oid;
+      }
+    }
+
+    // All of the potential types were swapped and no match was found
+    return INVALID_PROC_OID;
+  }
+
+  // Base case: all of the types are fully specified
   return pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types);
 }
 
@@ -475,6 +495,32 @@ template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
   return pg_core_.SetClassPointer(txn, oid, pointer, class_col);
+}
+
+bool DatabaseCatalog::ContainsUntypedNull(const std::vector<type_oid_t> &arg_types) {
+  const type_oid_t null_oid = GetTypeOidForType(execution::sql::SqlTypeId::Invalid);
+  return std::any_of(arg_types.cbegin(), arg_types.cend(), [null_oid](const type_oid_t t) { return t == null_oid; });
+}
+
+std::vector<type_oid_t> DatabaseCatalog::ReplaceFirstUntypedNullWith(const std::vector<type_oid_t> &arg_types,
+                                                                     execution::sql::SqlTypeId type) {
+  NOISEPAGE_ASSERT(ContainsUntypedNull(arg_types), "Broken precondition");
+  const type_oid_t null_oid = GetTypeOidForType(execution::sql::SqlTypeId::Invalid);
+  auto it = std::find(arg_types.cbegin(), arg_types.cend(), null_oid);
+  NOISEPAGE_ASSERT(it != arg_types.cend(), "Broken invariant");
+  const std::size_t index = std::distance(arg_types.cbegin(), it);
+
+  // Manually construct the modified vector
+  std::vector<type_oid_t> modified{};
+  modified.reserve(arg_types.size());
+  for (std::size_t i = 0; i < arg_types.size(); ++i) {
+    if (i == index) {
+      modified.push_back(GetTypeOidForType(type));
+    } else {
+      modified.push_back(arg_types.at(i));
+    }
+  }
+  return modified;
 }
 
 // Template instantiations.
