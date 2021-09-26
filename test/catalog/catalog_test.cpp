@@ -234,30 +234,53 @@ TEST_F(CatalogTests, ProcTest2) {
   // Look for proc that we added, with fully-specified types
   EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, arg_types));
 
-  // Look for the same proc, but with the first type unspecified
-  EXPECT_EQ(proc_oid,
+  // Look for the same proc, but with the first type unspecified (should fail)
+  EXPECT_EQ(catalog::INVALID_PROC_OID,
             accessor->GetProcOid(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
                                             accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer)}));
 
-  // Look for the same proc, but with the second type unspecified
-  EXPECT_EQ(proc_oid,
+  // Look for the same proc, but with the second type unspecified (should fail)
+  EXPECT_EQ(catalog::INVALID_PROC_OID,
             accessor->GetProcOid(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
                                             accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)}));
 
-  // Look for the same proc, but with both types unspecified
-  EXPECT_EQ(proc_oid,
+  // Look for the same proc, but with both types unspecified (should fail)
+  EXPECT_EQ(catalog::INVALID_PROC_OID,
             accessor->GetProcOid(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
                                             accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)}));
 
-  // Look for a proc with one fixed, incorrect parameter
-  EXPECT_EQ(catalog::INVALID_PROC_OID,
-            accessor->GetProcOid(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
-                                            accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Real)}));
+  // Look for the same proc, but with types resolved
+  const auto r0 = accessor->ResolveProcArgumentTypes(
+      procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
+                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer)});
+  EXPECT_EQ(1, r0.size());
+  EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, r0.front()));
+
+  // Look for the same proc, but with types resolved
+  const auto r1 = accessor->ResolveProcArgumentTypes(
+      procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
+                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)});
+  EXPECT_EQ(1, r1.size());
+  EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, r1.front()));
+
+  // Look for the same proc, but with types resolved
+  const auto r2 = accessor->ResolveProcArgumentTypes(
+      procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
+                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)});
+  EXPECT_EQ(1, r2.size());
+  EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, r2.front()));
 
   // Look for a proc with one fixed, incorrect parameter
-  EXPECT_EQ(catalog::INVALID_PROC_OID,
-            accessor->GetProcOid(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Real),
-                                            accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)}));
+  const auto r3 =
+      accessor->ResolveProcArgumentTypes(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
+                                                    accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Real)});
+  EXPECT_TRUE(r3.empty());
+
+  // Look for a proc with one fixed, incorrect parameter
+  const auto r4 = accessor->ResolveProcArgumentTypes(
+      procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Real),
+                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)});
+  EXPECT_TRUE(r4.empty());
 
   EXPECT_TRUE(accessor->DropProcedure(proc_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

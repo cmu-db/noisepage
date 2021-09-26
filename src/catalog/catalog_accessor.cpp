@@ -209,8 +209,6 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return GetProcOid(procname, types);
 }
 
-proc_oid_t GetProcOid(const std::string &procname, const std::vector<execution::sql::SqlTypeId> &arg_types);
-
 proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<type_oid_t> &arg_types) {
   proc_oid_t ret;
   for (auto ns_oid : search_path_) {
@@ -220,6 +218,26 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
     }
   }
   return catalog::INVALID_PROC_OID;
+}
+
+std::vector<std::vector<type_oid_t>> CatalogAccessor::ResolveProcArgumentTypes(
+    const std::string &procname, const std::vector<std::string> &arg_types) const {
+  // Transform the string type identifiers to internal type IDs
+  std::vector<type_oid_t> types{};
+  types.reserve(arg_types.size());
+  std::transform(arg_types.cbegin(), arg_types.cend(), std::back_inserter(types),
+                 [this](const std::string &name) { return TypeNameToType(name); });
+  return ResolveProcArgumentTypes(procname, arg_types);
+}
+
+std::vector<std::vector<type_oid_t>> CatalogAccessor::ResolveProcArgumentTypes(
+    const std::string &procname, const std::vector<type_oid_t> &arg_types) const {
+  std::vector<std::vector<type_oid_t>> types{};
+  for (auto ns_oid : search_path_) {
+    const auto resolved = dbc_->ResolveProcArgumentTypes(txn_, ns_oid, procname, arg_types);
+    types.insert(types.cend(), resolved.cbegin(), resolved.cend());
+  }
+  return types;
 }
 
 common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetFunctionContext(proc_oid_t proc_oid) {
@@ -240,7 +258,7 @@ optimizer::TableStats CatalogAccessor::GetTableStatistics(table_oid_t table_oid)
   return dbc_->GetTableStatistics(txn_, table_oid);
 }
 
-type_oid_t CatalogAccessor::GetTypeOidFromTypeId(execution::sql::SqlTypeId type) {
+type_oid_t CatalogAccessor::GetTypeOidFromTypeId(execution::sql::SqlTypeId type) const {
   return dbc_->GetTypeOidForType(type);
 }
 
@@ -257,7 +275,7 @@ void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::Man
   temp_schemas_[table_oid] = schema;
 }
 
-type_oid_t CatalogAccessor::TypeNameToType(const std::string &type_name) {
+type_oid_t CatalogAccessor::TypeNameToType(const std::string &type_name) const {
   type_oid_t type;
   if (type_name == "int2") {
     type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::SmallInt);

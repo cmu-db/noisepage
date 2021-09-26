@@ -341,7 +341,18 @@ void UdfCodegen::Visit(ast::udf::CallExprAST *ast) {
       arguments.cbegin(), arguments.cend(), std::back_inserter(argument_types),
       [this](const ast::Expr *expr) -> catalog::type_oid_t { return GetCatalogTypeOidFromSQLType(ResolveType(expr)); });
 
-  const auto proc_oid = accessor_->GetProcOid(ast->Callee(), argument_types);
+  // Resolve the argument types to handle the case where an untyped NULL is passed
+  const auto resolved_types = accessor_->ResolveProcArgumentTypes(ast->Callee(), argument_types);
+  if (resolved_types.empty()) {
+    throw BINDER_EXCEPTION(fmt::format("Procedure '{}' not registered", ast->Callee()),
+                           common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  } else if (resolved_types.size() > 1) {
+    throw BINDER_EXCEPTION(fmt::format("Procedure call '{}' is ambiguous", ast->Callee()),
+                           common::ErrorCode::ERRCODE_PLPGSQL_ERROR);
+  }
+
+  // This lookup should now always succeed
+  const auto proc_oid = accessor_->GetProcOid(ast->Callee(), resolved_types.front());
   if (proc_oid == catalog::INVALID_PROC_OID) {
     throw BINDER_EXCEPTION(fmt::format("Invalid function call '{}'", ast->Callee()),
                            common::ErrorCode::ERRCODE_PLPGSQL_ERROR);

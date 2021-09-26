@@ -823,7 +823,16 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
     arg_types.push_back(catalog_accessor_->GetTypeOidFromTypeId(child->GetReturnValueType()));
   }
 
-  auto proc_oid = catalog_accessor_->GetProcOid(expr->GetFuncName(), arg_types);
+  // Resolve the argument types to handle the case where an untyped NULL is passed
+  const auto resolved_types = catalog_accessor_->ResolveProcArgumentTypes(expr->GetFuncName(), arg_types);
+  if (resolved_types.empty()) {
+    throw BINDER_EXCEPTION("Procedure not registered", common::ErrorCode::ERRCODE_UNDEFINED_FUNCTION);
+  } else if (resolved_types.size() > 1) {
+    throw BINDER_EXCEPTION("Procedure call is ambiguous", common::ErrorCode::ERRCODE_UNDEFINED_FUNCTION);
+  }
+
+  // This lookup should now always succeed
+  auto proc_oid = catalog_accessor_->GetProcOid(expr->GetFuncName(), resolved_types.front());
   if (proc_oid == catalog::INVALID_PROC_OID) {
     throw BINDER_EXCEPTION("Procedure not registered", common::ErrorCode::ERRCODE_UNDEFINED_FUNCTION);
   }

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -363,6 +364,24 @@ class EXPORT CatalogAccessor {
   proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &arg_types);
 
   /**
+   * Resolve procedure argument types.
+   * @param procname The name of the procedure
+   * @param arg_types A vector of the string representation of the argument types
+   * @return A collection of all sets of arguments for which this procedure is resolved
+   */
+  std::vector<std::vector<type_oid_t>> ResolveProcArgumentTypes(const std::string &procname,
+                                                                const std::vector<std::string> &arg_types) const;
+
+  /**
+   * Resolve procedure argument types.
+   * @param procname The name of the procedure
+   * @param arg_types A vector of the string representation of the argument types
+   * @return A collection of all sets of arguments for which this procedure is resolved
+   */
+  std::vector<std::vector<type_oid_t>> ResolveProcArgumentTypes(const std::string &procname,
+                                                                const std::vector<type_oid_t> &arg_types) const;
+
+  /**
    * Gets the proc context pointer column of proc_oid
    * @param proc_oid The proc_oid whose pointer column we are getting here
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
@@ -397,7 +416,7 @@ class EXPORT CatalogAccessor {
    * @param type
    * @return type_oid of type in pg_type
    */
-  type_oid_t GetTypeOidFromTypeId(execution::sql::SqlTypeId type);
+  type_oid_t GetTypeOidFromTypeId(execution::sql::SqlTypeId type) const;
 
   /**
    * @return BlockStore to be used for CREATE operations
@@ -475,7 +494,7 @@ class EXPORT CatalogAccessor {
    * @param type_name The type name
    * @return The internal catalog type identifier for the type
    */
-  type_oid_t TypeNameToType(const std::string &type_name);
+  type_oid_t TypeNameToType(const std::string &type_name) const;
 };
 
 }  // namespace noisepage::catalog
