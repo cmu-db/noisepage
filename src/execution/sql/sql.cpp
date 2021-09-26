@@ -286,6 +286,8 @@ std::string SqlTypeIdToString(SqlTypeId type) {
       return "Varchar";
     case SqlTypeId::Varbinary:
       return "Varbinary";
+    case SqlTypeId::Invalid:
+      return "Invalid";
     default:
       // All cases handled
       UNREACHABLE("Impossible type");

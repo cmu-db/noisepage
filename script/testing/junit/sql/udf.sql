@@ -603,20 +603,24 @@ END                                                   \
 $$ LANGUAGE PLPGSQL;
 
 SELECT proc_is_null(1);
+SELECT proc_is_null(NULL);
+
 DROP FUNCTION proc_is_null(INT);
 
-CREATE FUNCTION proc_is_null(x INT) RETURNS INT AS $$ \
-DECLARE                                               \
-  r INT;                                              \
-BEGIN                                                 \
-  IF x IS NOT NULL THEN                               \
-    r = 1;                                            \
-  ELSE                                                \
-    r = 2;                                            \
-  END IF;                                             \
-  RETURN r;                                           \
-END                                                   \
+CREATE FUNCTION proc_is_not_null(x INT) RETURNS INT AS $$ \
+DECLARE                                                   \
+  r INT;                                                  \
+BEGIN                                                     \
+  IF x IS NOT NULL THEN                                   \
+    r = 1;                                                \
+  ELSE                                                    \
+    r = 2;                                                \
+  END IF;                                                 \
+  RETURN r;                                               \
+END                                                       \
 $$ LANGUAGE PLPGSQL;
 
-SELECT proc_is_null(1);
-DROP FUNCTION proc_is_null(INT);
+SELECT proc_is_not_null(1);
+SELECT proc_is_not_null(NULL);
+
+DROP FUNCTION proc_is_not_null(INT);

@@ -412,11 +412,18 @@ class EXPORT CatalogAccessor {
   optimizer::TableStats GetTableStatistics(table_oid_t table_oid);
 
   /**
-   * Returns the type oid of the given TypeId in pg_type
-   * @param type
-   * @return type_oid of type in pg_type
+   * Returns the type oid of the given TypeId in pg_type.
+   * @param type The queried type
+   * @return The corresponding type_oid_t
    */
   type_oid_t GetTypeOidFromTypeId(execution::sql::SqlTypeId type) const;
+
+  /**
+   * Returns the SQL type ID of the given type_oid_t.
+   * @param type The queried type
+   * @return The corresponding SQL type ID
+   */
+  execution::sql::SqlTypeId GetTypeIdFromTypeOid(type_oid_t type) const;
 
   /**
    * @return BlockStore to be used for CREATE operations

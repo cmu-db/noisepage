@@ -151,6 +151,9 @@ class DatabaseCatalog {
   /** @return The type_oid_t that corresponds to the internal TypeId. */
   type_oid_t GetTypeOidForType(execution::sql::SqlTypeId type) const;
 
+  /** @return The SQL type ID that corresponds to the type_oid_t */
+  execution::sql::SqlTypeId GetTypeForTypeOid(type_oid_t type) const;
+
   /** @brief Get a list of all of the constraints for the specified table. */
   std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
                                                table_oid_t table);

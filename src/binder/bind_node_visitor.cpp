@@ -816,8 +816,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
   BINDER_LOG_TRACE("Visiting FunctionExpression ...");
   SqlNodeVisitor::Visit(expr);
 
-  std::vector<catalog::type_oid_t> arg_types;
   auto children = expr->GetChildren();
+  std::vector<catalog::type_oid_t> arg_types{};
   arg_types.reserve(children.size());
   for (const auto &child : children) {
     arg_types.push_back(catalog_accessor_->GetTypeOidFromTypeId(child->GetReturnValueType()));
@@ -837,8 +837,21 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::FunctionExpression> e
     throw BINDER_EXCEPTION("Procedure not registered", common::ErrorCode::ERRCODE_UNDEFINED_FUNCTION);
   }
 
-  auto func_context = catalog_accessor_->GetFunctionContext(proc_oid);
+  // The function is now resolved; we need to perform one further substitution
+  // here to handle the case where a literal untyped NULL is provided as an
+  // argument to the function call. In this case, the execution engine has no
+  // way to model the untyped NULL, so we need to replace this with a typed NULL
+  // from the function call argument that was resolved above
+  for (std::size_t i = 0; i < children.size(); ++i) {
+    auto child = children[i];
+    if (child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT &&
+        child->GetReturnValueType() == execution::sql::SqlTypeId::Invalid) {
+      auto cve = child.CastManagedPointerTo<parser::ConstantValueExpression>();
+      cve->SetValue(catalog_accessor_->GetTypeIdFromTypeOid(resolved_types.front()[0]), execution::sql::Val(true));
+    }
+  }
 
+  auto func_context = catalog_accessor_->GetFunctionContext(proc_oid);
   expr->SetProcOid(proc_oid);
   expr->SetReturnValueType(func_context->GetFunctionReturnType());
 }

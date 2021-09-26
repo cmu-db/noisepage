@@ -1015,4 +1015,18 @@ TEST_F(CatalogTests, StatisticTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
+TEST_F(CatalogTests, TypeRoundTrip) {
+  // Ensure that types always round-trip
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+  for (int8_t type_raw = static_cast<int8_t>(execution::sql::SqlTypeId::Boolean);
+       type_raw <= static_cast<int8_t>(execution::sql::SqlTypeId::Varbinary); ++type_raw) {
+    const execution::sql::SqlTypeId type = static_cast<execution::sql::SqlTypeId>(type_raw);
+    const catalog::type_oid_t oid = accessor->GetTypeOidFromTypeId(type);
+    EXPECT_EQ(type, accessor->GetTypeIdFromTypeOid(oid));
+  }
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
 }  // namespace noisepage

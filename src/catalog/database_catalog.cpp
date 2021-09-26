@@ -317,6 +317,42 @@ type_oid_t DatabaseCatalog::GetTypeOidForType(const execution::sql::SqlTypeId ty
   return type_oid_t(static_cast<uint8_t>(type));
 }
 
+execution::sql::SqlTypeId DatabaseCatalog::GetTypeForTypeOid(type_oid_t type) const {
+  // NOTE(Kyle): This is a disgusting hack
+  switch (type.UnderlyingValue()) {
+    case 0:
+      return execution::sql::SqlTypeId::Boolean;
+    case 1:
+      return execution::sql::SqlTypeId::TinyInt;
+    case 2:
+      return execution::sql::SqlTypeId::SmallInt;
+    case 3:
+      return execution::sql::SqlTypeId::Integer;
+    case 4:
+      return execution::sql::SqlTypeId::BigInt;
+    case 5:
+      return execution::sql::SqlTypeId::Real;
+    case 6:
+      return execution::sql::SqlTypeId::Double;
+    case 7:
+      return execution::sql::SqlTypeId::Decimal;
+    case 8:
+      return execution::sql::SqlTypeId::Date;
+    case 9:
+      return execution::sql::SqlTypeId::Timestamp;
+    case 10:
+      return execution::sql::SqlTypeId::Char;
+    case 11:
+      return execution::sql::SqlTypeId::Varchar;
+    case 12:
+      return execution::sql::SqlTypeId::Varbinary;
+    case 255:
+      return execution::sql::SqlTypeId::Invalid;
+    default:
+      UNREACHABLE("Impossible type_oid_t");
+  }
+}
+
 void DatabaseCatalog::BootstrapTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                      const table_oid_t table_oid, const namespace_oid_t ns_oid, const std::string &name,
                                      const Schema &schema, const common::ManagedPointer<storage::SqlTable> table_ptr) {

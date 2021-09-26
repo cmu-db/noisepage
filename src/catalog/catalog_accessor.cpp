@@ -262,6 +262,10 @@ type_oid_t CatalogAccessor::GetTypeOidFromTypeId(execution::sql::SqlTypeId type)
   return dbc_->GetTypeOidForType(type);
 }
 
+execution::sql::SqlTypeId CatalogAccessor::GetTypeIdFromTypeOid(type_oid_t type) const {
+  return dbc_->GetTypeForTypeOid(type);
+}
+
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
   // TODO(Matt): at some point we may decide to adjust the source  (i.e. each DatabaseCatalog has one), stick it in a
   // pg_tablespace table, or we may eliminate the concept entirely. This works for now to allow CREATE nodes to bind a
