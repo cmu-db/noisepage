@@ -43,6 +43,7 @@ std::string NodeTypeToShortString(NodeType type) {
       return "FUNCTION";
     default:
       NOISEPAGE_ASSERT(false, "Impossible node type");
+      return "INVALID";
   }
 }
 
