@@ -35,6 +35,7 @@ LINUX_BUILD_PACKAGES=(\
   "wget" \
   "zlib1g-dev" \
   "time" \
+  "maven" \
 )
 LINUX_TEST_PACKAGES=(\
   "ant" \
@@ -152,7 +153,7 @@ install_pip() {
 install_linux() {
   # Update apt-get.
   apt-get -y update
-  
+
   # Install packages. Note that word splitting is desired behavior.
   if [ "$INSTALL_TYPE" == "build" ] || [ "$INSTALL_TYPE" = "all" ]; then
     apt-get -y install $( IFS=$' '; echo "${LINUX_BUILD_PACKAGES[*]}" )
