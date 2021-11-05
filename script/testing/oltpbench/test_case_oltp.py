@@ -79,15 +79,15 @@ class TestCaseOLTPBench(TestCase):
             self.test_output_file = os.path.join(self.test_result_dir,
                                                  "oltpbench.log")
 
-        # oltpbench historgrams results - json format
+        # oltpbench histograms results - json format
         self.test_histograms_json_file = self.args.get("test_json_histograms")
         if not self.test_histograms_json_file:
             self.test_histograms_json_file = "oltp_histograms_" + self.filename_suffix + ".json"
         self.test_histogram_path = os.path.join(
-            constants.OLTPBENCH_GIT_LOCAL_PATH, self.test_histograms_json_file)
+            constants.OLTPBENCH_GIT_FINAL_PATH, self.test_histograms_json_file)
 
         # oltpbench initiate database and load data
-        self.oltp_flag = "--histograms --execute={EXECUTE} -s {BUCKETS}".format(
+        self.oltp_flag = "--execute={EXECUTE} -s {BUCKETS}".format(
             EXECUTE=self.db_execute, BUCKETS=self.buckets)
 
         # oltpbench test command
@@ -98,7 +98,7 @@ class TestCaseOLTPBench(TestCase):
             XML=self.xml_config,
             FLAGS=self.oltp_flag,
             HISTOGRAMS=self.test_histogram_path)
-        self.test_command_cwd = constants.OLTPBENCH_GIT_LOCAL_PATH
+        self.test_command_cwd = constants.OLTPBENCH_GIT_FINAL_PATH
 
     def run_pre_test(self):
         self._config_xml_file()
@@ -149,9 +149,9 @@ class TestCaseOLTPBench(TestCase):
     def _config_xml_file(self):
         xml = ElementTree.parse(self.xml_template)
         root = xml.getroot()
-        root.find("dbtype").text = constants.OLTPBENCH_DEFAULT_DBTYPE
+        root.find("type").text = constants.OLTPBENCH_DEFAULT_DBTYPE
         root.find("driver").text = constants.OLTPBENCH_DEFAULT_DRIVER
-        root.find("DBUrl").text = self._get_db_url()
+        root.find("url").text = self._get_db_url()
         root.find("username").text = constants.OLTPBENCH_DEFAULT_USERNAME
         root.find("password").text = constants.OLTPBENCH_DEFAULT_PASSWORD
         root.find("isolation").text = str(self.transaction_isolation)
@@ -199,9 +199,7 @@ class TestCaseOLTPBench(TestCase):
         with open(self.test_histogram_path) as oltp_result_file:
             test_result = json.load(oltp_result_file)
         unexpected_result = test_result.get("unexpected", {}).get("HISTOGRAM")
-        if unexpected_result and unexpected_result.keys():
+        if unexpected_result:
             for test in unexpected_result.keys():
                 if unexpected_result[test] != 0:
                     raise RuntimeError(str(unexpected_result))
-        else:
-            raise RuntimeError(str(unexpected_result))

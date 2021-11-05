@@ -1,3 +1,4 @@
+import glob
 import os
 import re
 from decimal import Decimal
@@ -130,6 +131,24 @@ def parse_oltpbench_files(results_dir):
     metrics : dict
         The summary measurements that were gathered from the test.
     """
+
+    def hack_rename(old_glob_target, new_name):
+        """
+        Wan wants to avoid a rabbit hole of refactoring.
+        Therefore the new OLTPBench files are being renamed to match old expectations here.
+        """
+        matches = glob.glob(old_glob_target)
+        assert len(matches) == 1
+        os.rename(matches[0], new_name)
+
+    hack_rename(f'{results_dir}/*.results.csv', f'{results_dir}/oltpbench.res')
+    hack_rename(f'{results_dir}/*.raw.csv', f'{results_dir}/oltpbench.csv')
+    hack_rename(f'{results_dir}/*.samples.csv', f'{results_dir}/oltpbench.samples')
+    hack_rename(f'{results_dir}/*.summary.json', f'{results_dir}/oltpbench.summary')
+    hack_rename(f'{results_dir}/*.params.json', f'{results_dir}/oltpbench.params')
+    hack_rename(f'{results_dir}/*.metrics.json', f'{results_dir}/oltpbench.metrics')
+    hack_rename(f'{results_dir}/*.config.xml', f'{results_dir}/oltpbench.expconfig')
+
     config_parameters = parse_config_file(results_dir + '/oltpbench.expconfig')
     metadata, timestamp, benchmark_type, summary_parameters, metrics = parse_summary_file(
         results_dir + '/oltpbench.summary')
@@ -168,22 +187,10 @@ def _parse_db_metadata():
 
     Warnings
     --------
-    Giant hack that parses a hardcoded constant NOISEPAGE_VERSION
-    in src/include/common/version.h.
+    Giant hack that hardcodes version number.
 
     If the hack is unsuccessful, it defaults to UNKNOWN_RESULT.
     """
-    regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
-    curr_dir = os.path.dirname(os.path.realpath(__file__))
-    # TODO(WAN): Don't do this. We support SELECT VERSION(), do that instead.
-    version_file_relative = '../../../../src/include/common/version.h'
-    version_file = os.path.join(curr_dir, version_file_relative)
-    db_metadata = {'noisepage': {'db_version': UNKNOWN_RESULT}}
-    try:
-        with open(version_file) as f:
-            match = re.search(regex, f.read())
-            db_metadata['noisepage']['db_version'] = match.group(1)
-    except Exception as err:
-        LOG.error(err)
+    return {'noisepage': {'db_version': '1.0.0'}}
 
-    return db_metadata
+
