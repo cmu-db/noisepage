@@ -124,6 +124,11 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
         metric->Swap();
         break;
       }
+      case MetricsComponent::COMPILATION: {
+        const auto &metric = metrics_store.second->compilation_metric_;
+        metric->Swap();
+        break;
+      }
     }
   }
 }
@@ -204,6 +209,10 @@ void MetricsManager::ToCSV(uint8_t component) const {
     }
     case MetricsComponent::QUERY_TRACE: {
       OpenFiles<QueryTraceMetricRawData>(&outfiles);
+      break;
+    }
+    case MetricsComponent::COMPILATION: {
+      OpenFiles<CompilationMetricRawData>(&outfiles);
       break;
     }
   }

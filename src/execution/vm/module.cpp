@@ -7,7 +7,11 @@
 #include <string>
 #include <utility>
 
+#include "common/resource_tracker.h"
+#include "common/thread_context.h"
 #include "loggers/execution_logger.h"
+#include "metrics/metrics_store.h"
+#include "self_driving/modeling/compilation_operating_unit.h"
 
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak.h"
@@ -22,18 +26,19 @@ namespace noisepage::execution::vm {
 class Module::AsyncCompileTask : public tbb::task {
  public:
   // Construct an asynchronous compilation task to compile the the module
-  explicit AsyncCompileTask(Module *module) : module_(module) {}
+  explicit AsyncCompileTask(Module *module, execution::query_id_t query_id) : module_(module), query_id_(query_id) {}
 
   // Execute
   tbb::task *execute() override {
     // This simply invokes Module::CompileToMachineCode() asynchronously.
-    module_->CompileToMachineCode();
+    module_->CompileToMachineCode(query_id_);
     // Done. There's no next task, so return null.
     return nullptr;
   }
 
  private:
   Module *module_;
+  execution::query_id_t query_id_;
 };
 
 // ---------------------------------------------------------
@@ -49,6 +54,7 @@ Module::Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<
       jit_module_(std::move(llvm_module)),
       functions_(std::make_unique<std::atomic<void *>[]>(bytecode_module_->GetFunctionCount())),
       bytecode_trampolines_(std::make_unique<Trampoline[]>(bytecode_module_->GetFunctionCount())),
+      compiled_flag_(std::make_unique<std::once_flag>()),
       metadata_(std::move(metadata)) {
   // Create the trampolines for all bytecode functions
   for (const auto &func : bytecode_module_->GetFunctionsInfo()) {
@@ -265,17 +271,34 @@ void Module::CreateFunctionTrampoline(FunctionId func_id) {
   bytecode_trampolines_[func_id] = std::move(trampoline);
 }
 
-void Module::CompileToMachineCode() {
-  std::call_once(compiled_flag_, [this]() {
+void Module::CompileToMachineCode(execution::query_id_t query_id) {
+  std::call_once(*compiled_flag_, [this, query_id]() {
     // Exit if the module has already been compiled. This might happen if
     // requested to execute in adaptive mode by concurrent threads.
     if (jit_module_ != nullptr) {
       return;
     }
 
+    common::ResourceTracker tracker;
+    bool metrics_enabled = false;
+    if (common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::COMPILATION)) {
+      metrics_enabled = true;
+      tracker.Start();
+    }
+
     // JIT the module.
     LLVMEngine::CompilerOptions options;
     jit_module_ = LLVMEngine::Compile(*bytecode_module_, options);
+
+    if (metrics_enabled) {
+      tracker.Stop();
+
+      auto feature = selfdriving::CompilationOperatingUnit(bytecode_module_.get());
+      const auto &metrics = tracker.GetMetrics();
+      common::thread_context.metrics_store_->RecordCompilationData(query_id, bytecode_module_->GetName(), feature,
+                                                                   metrics);
+    }
 
     // JIT completed successfully. For each function in the module, pull out its
     // compiled implementation into the function cache, atomically replacing any
@@ -288,9 +311,19 @@ void Module::CompileToMachineCode() {
   });
 }
 
-void Module::CompileToMachineCodeAsync() {
-  auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(this);
+void Module::CompileToMachineCodeAsync(execution::query_id_t query_id) {
+  auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(this, query_id);
   tbb::task::enqueue(*compile_task);
+}
+
+void Module::ResetCompiledModule() {
+  compiled_flag_ = std::make_unique<std::once_flag>();
+  jit_module_ = nullptr;
+
+  const auto num_functions = bytecode_module_->GetFunctionCount();
+  for (uint32_t idx = 0; idx < num_functions; idx++) {
+    functions_[idx] = bytecode_trampolines_[idx].GetCode();
+  }
 }
 
 }  // namespace noisepage::execution::vm

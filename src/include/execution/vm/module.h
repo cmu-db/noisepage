@@ -14,6 +14,10 @@
 #include "execution/vm/module_metadata.h"
 #include "execution/vm/vm_defs.h"
 
+namespace noisepage::runner {
+class CompilationRunner_Compilation_Benchmark;
+}  // namespace noisepage::runner
+
 namespace noisepage::execution::vm {
 
 namespace test {
@@ -74,13 +78,15 @@ class Module {
    * an interpreted version and a compiled version.
    * @tparam Ret Ret The C/C++ return type of the function
    * @tparam ArgTypes ArgTypes The C/C++ argument types to the function
+   * @param query_id Query Identifier of the caller
    * @param name The name of the function the caller wants.
    * @param exec_mode The mode of the function that the caller wants.
    * @param[out] func The function wrapper we use to wrap the TPL function.
    * @return True if the function was found and the output parameter was set.
    */
   template <typename Ret, typename... ArgTypes>
-  bool GetFunction(const std::string &name, ExecutionMode exec_mode, std::function<Ret(ArgTypes...)> *func);
+  bool GetFunction(execution::query_id_t query_id, const std::string &name, ExecutionMode exec_mode,
+                   std::function<Ret(ArgTypes...)> *func);
 
   /**
    * Return the raw function implementation for the function in this module with the given function
@@ -106,9 +112,18 @@ class Module {
   /** @return The non-essential metadata for this module. */
   const ModuleMetadata &GetMetadata() const { return metadata_; }
 
+  /**
+   * Resets the compilation module. This will effectively force the module to be
+   * recompiled the next time it is required. @note that this function is not
+   * thread-safe. It is the caller's responsibility to ensure that only 1 thread
+   * is invoking this function and the module is not in use by any other thread.
+   */
+  void ResetCompiledModule();
+
  private:
   friend class VM;                            // For the VM to access raw bytecode.
   friend class test::BytecodeTrampolineTest;  // For the tests to check private methods.
+  friend class noisepage::runner::CompilationRunner_Compilation_Benchmark;
 
   // This class encapsulates the ability to asynchronously JIT compile a module.
   class AsyncCompileTask;
@@ -151,11 +166,11 @@ class Module {
   }
 
   // Compile this module into machine code. This is a blocking call.
-  void CompileToMachineCode();
+  void CompileToMachineCode(execution::query_id_t query_id);
 
   // Compile this module into machine code. This is a non-blocking call that
   // triggers a compilation in the background.
-  void CompileToMachineCodeAsync();
+  void CompileToMachineCodeAsync(execution::query_id_t query_id);
 
  private:
   // The module containing all TBC (i.e., bytecode) for the TPL program.
@@ -174,7 +189,7 @@ class Module {
   std::unique_ptr<Trampoline[]> bytecode_trampolines_;
 
   // Flag to indicate if the JIT compilation has occurred.
-  std::once_flag compiled_flag_;
+  std::unique_ptr<std::once_flag> compiled_flag_;
 
   ModuleMetadata metadata_;  ///< Non-essential metadata about the TPL module.
 };
@@ -199,7 +214,7 @@ inline void CopyAll(uint8_t *buffer, const HeadT &head, const RestT &... rest) {
 }  // namespace detail
 
 template <typename Ret, typename... ArgTypes>
-inline bool Module::GetFunction(const std::string &name, const ExecutionMode exec_mode,
+inline bool Module::GetFunction(execution::query_id_t query_id, const std::string &name, const ExecutionMode exec_mode,
                                 std::function<Ret(ArgTypes...)> *func) {
   // Lookup function
   const FunctionInfo *func_info = bytecode_module_->LookupFuncInfoByName(name);
@@ -217,7 +232,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
 
   switch (exec_mode) {
     case ExecutionMode::Adaptive: {
-      CompileToMachineCodeAsync();
+      CompileToMachineCodeAsync(query_id);
       FALLTHROUGH;
     }
     case ExecutionMode::Interpret: {
@@ -246,7 +261,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
       break;
     }
     case ExecutionMode::Compiled: {
-      CompileToMachineCode();
+      CompileToMachineCode(query_id);
       *func = [this, func_info](ArgTypes... args) -> Ret {
         void *raw_func = functions_[func_info->GetId()].load(std::memory_order_relaxed);
         auto *jit_f = reinterpret_cast<Ret (*)(ArgTypes...)>(raw_func);

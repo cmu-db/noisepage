@@ -14,6 +14,7 @@
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
 #include "metrics/bind_command_metric.h"
+#include "metrics/compilation_metric.h"
 #include "metrics/execute_command_metric.h"
 #include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
@@ -226,6 +227,19 @@ class MetricsStore {
   }
 
   /**
+   * Record compilation metric
+   * @param query_id query identifier
+   * @param module_name name of the module
+   * @param feature CompilationOperatingUnit describing the module
+   * @param resource_metrics resource metrics
+   */
+  void RecordCompilationData(execution::query_id_t query_id, const std::string &module_name,
+                             const selfdriving::CompilationOperatingUnit &feature,
+                             const common::ResourceTracker::Metrics &resource_metrics) {
+    compilation_metric_->RecordCompilationMetric(query_id, module_name, feature, resource_metrics);
+  }
+
+  /**
    * @param component metrics component to test
    * @return true if metrics enabled for this component, false otherwise
    */
@@ -274,6 +288,7 @@ class MetricsStore {
   std::unique_ptr<PipelineMetric> pipeline_metric_;
   std::unique_ptr<BindCommandMetric> bind_command_metric_;
   std::unique_ptr<ExecuteCommandMetric> execute_command_metric_;
+  std::unique_ptr<CompilationMetric> compilation_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
   const std::array<std::vector<bool>, NUM_COMPONENTS> &samples_mask_;

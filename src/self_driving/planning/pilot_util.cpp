@@ -24,7 +24,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "self_driving/forecasting/workload_forecast.h"
 #include "self_driving/model_server/model_server_manager.h"
-#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/execution_operating_unit.h"
 #include "self_driving/planning/action/create_index_action.h"
 #include "self_driving/planning/action/drop_index_action.h"
 #include "self_driving/planning/inference_results.h"

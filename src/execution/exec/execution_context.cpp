@@ -7,7 +7,7 @@
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
 #include "replication/primary_replication_manager.h"
-#include "self_driving/modeling/operating_unit.h"
+#include "self_driving/modeling/execution_operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
 #include "storage/recovery/recovery_manager.h"
 #include "transaction/transaction_context.h"

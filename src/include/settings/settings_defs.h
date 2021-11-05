@@ -371,6 +371,14 @@ SETTING_int(
     noisepage::settings::Callbacks::MetricsPipelineSampleRate
 )
 
+SETTING_bool(
+    compilation_metrics_enable,
+    "Metrics collection for compilation of queries (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::MetricsCompilation
+)
+
 SETTING_int(
   logging_metrics_sample_rate,
   "Sampling rate of metrics collection for logging.",
@@ -419,6 +427,14 @@ SETTING_bool(
     false,
     true,
     noisepage::settings::Callbacks::ClearQueryCache
+)
+
+SETTING_bool(
+    enable_compilation_cache,
+    "Enable caching compiled modules of ExecutableQuery objects",
+    true,
+    true,
+    noisepage::settings::Callbacks::NoOp
 )
 
 

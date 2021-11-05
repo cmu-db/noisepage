@@ -72,6 +72,10 @@ class Callbacks {
   static void MetricsPipeline(void *old_value, void *new_value, DBMain *db_main,
                               common::ManagedPointer<common::ActionContext> action_context);
 
+  /** Enable or disable metrics collection for compilation */
+  static void MetricsCompilation(void *old_value, void *new_value, DBMain *db_Main,
+                                 common::ManagedPointer<common::ActionContext> action_context);
+
   /** Update the sampling interval for logging. */
   static void MetricsLoggingSampleRate(void *old_value, void *new_value, DBMain *db_main,
                                        common::ManagedPointer<common::ActionContext> action_context);

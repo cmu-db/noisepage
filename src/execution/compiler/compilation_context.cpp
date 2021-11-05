@@ -46,6 +46,7 @@
 #include "execution/compiler/operator/update_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/exec/execution_settings.h"
+#include "execution/vm/module.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
@@ -73,6 +74,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "self_driving/modeling/compilation_operating_unit.h"
 #include "self_driving/modeling/operating_unit_recorder.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -122,6 +124,17 @@ ast::FunctionDecl *CompilationContext::GenerateTearDownFunction() {
     }
   }
   return builder.Finish();
+}
+
+std::unique_ptr<selfdriving::CompilationOperatingUnits> CompilationContext::GenerateCompilationOperatingUnits(
+    const std::vector<std::unique_ptr<ExecutableQuery::Fragment>> &fragments) {
+  auto units = std::make_unique<selfdriving::CompilationOperatingUnits>();
+  for (const auto &fragment : fragments) {
+    auto module = fragment->GetModule();
+    auto bytecode_module = module->GetBytecodeModule();
+    units->RecordCompilationModule(bytecode_module);
+  }
+  return units;
 }
 
 void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
@@ -194,7 +207,9 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
 
   // Compile and finish.
   fragments.emplace_back(main_builder.Compile(query_->GetExecutionSettings().GetCompilerSettings()));
-  query_->Setup(std::move(fragments), query_state_.GetSize(), codegen_.ReleasePipelineOperatingUnits());
+  auto units = GenerateCompilationOperatingUnits(fragments);
+  query_->Setup(std::move(fragments), query_state_.GetSize(), codegen_.ReleasePipelineOperatingUnits(),
+                std::move(units));
 }
 
 // static

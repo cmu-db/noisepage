@@ -70,6 +70,9 @@ class OpUnit(enum.IntEnum):
     BIND_COMMAND = 40,
     EXECUTE_COMMAND = 41
 
+    # Compilation
+    COMPILATION = 42
+
 
 class ExecutionFeature(enum.IntEnum):
     # Debugging information
@@ -99,6 +102,13 @@ class ExecutionFeature(enum.IntEnum):
     BUFFER_UNLINKED = 17,
     READONLY_UNLINKED = 18,
     INTERVAL = 19,
+
+    # Compilation input features
+    NAME = 20,
+    CODE_SIZE = 21,
+    DATA_SIZE = 22,
+    FUNCTIONS_SIZE = 23,
+    STATIC_LOCALS_SIZE = 24
 
 
 class ConcurrentCountingMode(enum.Enum):

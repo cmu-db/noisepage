@@ -152,6 +152,10 @@ class CompilationContext {
   void PrepareOut(const planner::AbstractPlanNode &plan, Pipeline *pipeline);
 
  private:
+  // Generate the CompilationOperatingUnit for all modules
+  std::unique_ptr<selfdriving::CompilationOperatingUnits> GenerateCompilationOperatingUnits(
+      const std::vector<std::unique_ptr<ExecutableQuery::Fragment>> &fragments);
+
   // Unique ID used as a prefix for all generated functions to ensure uniqueness.
   uint32_t unique_id_;
 

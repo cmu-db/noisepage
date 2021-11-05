@@ -82,6 +82,9 @@ class EXPORT ExecutionSettings {
   /** @return True if parallel query execution is enabled. */
   constexpr bool GetIsParallelQueryExecutionEnabled() const { return is_parallel_execution_enabled_; }
 
+  /** @return True if compilation cache is enabled. */
+  bool GetIsCompilationCacheEnabled() const { return is_compilation_cache_enabled_; }
+
   /** @return True if counters are enabled. */
   bool GetIsCountersEnabled() const { return is_counters_enabled_; }
 
@@ -104,6 +107,7 @@ class EXPORT ExecutionSettings {
   bool is_pipeline_metrics_enabled_{common::Constants::IS_PIPELINE_METRICS_ENABLED};
   int number_of_parallel_execution_threads_{common::Constants::NUM_PARALLEL_EXECUTION_THREADS};
   bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
+  bool is_compilation_cache_enabled_{true};
   compiler::CompilerSettings compiler_settings_{};  ///< The settings for compiling the TPL input.
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.

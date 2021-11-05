@@ -88,7 +88,8 @@ TEST_F(CompilerTest, CompileFromSource) {
 
     // The function should exist
     std::function<int64_t()> test_fn;
-    EXPECT_TRUE(module->GetFunction("test", vm::ExecutionMode::Interpret, &test_fn));
+    execution::query_id_t qid(0);
+    EXPECT_TRUE(module->GetFunction(qid, "test", vm::ExecutionMode::Interpret, &test_fn));
 
     // And should return what we expect
     EXPECT_EQ(i * 10, test_fn());

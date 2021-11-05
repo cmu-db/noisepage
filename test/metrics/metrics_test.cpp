@@ -439,5 +439,18 @@ TEST_F(MetricsTests, ToggleSettings) {
                              callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::QUERY_TRACE));
+
+  // Compilation metrics
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::COMPILATION));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(13));
+  settings_manager_->SetBool(settings::Param::compilation_metrics_enable, true, common::ManagedPointer(action_context),
+                             callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::COMPILATION));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(14));
+  settings_manager_->SetBool(settings::Param::compilation_metrics_enable, false, common::ManagedPointer(action_context),
+                             callback);
+  EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
+  EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::COMPILATION));
 }
 }  // namespace noisepage::metrics

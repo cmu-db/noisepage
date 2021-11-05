@@ -18,6 +18,7 @@ class BytecodeGeneratorTest : public TplTest {
 
 // NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, SimpleTest) {
+  execution::query_id_t qid(0);
   {
     auto src = "fun test() -> bool { return true }";
     auto compiler = ModuleCompiler();
@@ -25,7 +26,7 @@ TEST_F(BytecodeGeneratorTest, SimpleTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<bool()> func;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &func));
+    EXPECT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &func));
     EXPECT_TRUE(func());
   }
 
@@ -36,7 +37,7 @@ TEST_F(BytecodeGeneratorTest, SimpleTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<bool()> func;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &func));
+    EXPECT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &func));
     EXPECT_FALSE(func());
   }
 
@@ -52,7 +53,7 @@ TEST_F(BytecodeGeneratorTest, SimpleTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<uint32_t(uint32_t)> mul_20;
-    EXPECT_TRUE(module->GetFunction("mul20", ExecutionMode::Interpret, &mul_20))
+    EXPECT_TRUE(module->GetFunction(qid, "mul20", ExecutionMode::Interpret, &mul_20))
         << "Function 'mul20' not found in module";
 
     EXPECT_EQ(20u, mul_20(1));
@@ -68,6 +69,7 @@ TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
   // Generate function: f(true) = -10, f(false) = 10
   //
 
+  execution::query_id_t qid(0);
   {
     auto src = R"(
     fun test(c: bool) -> int32 {
@@ -82,7 +84,8 @@ TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<int32_t(bool)> f;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
+    EXPECT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &f))
+        << "Function 'test' not found in module";
     EXPECT_EQ(10, f(false));
     EXPECT_EQ(-10, f(true));
   }
@@ -104,7 +107,8 @@ TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<bool()> f;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
+    EXPECT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &f))
+        << "Function 'test' not found in module";
     EXPECT_FALSE(f());
   }
 }
@@ -112,6 +116,7 @@ TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
 // NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, SimpleArithmeticTest) {
   const auto gen_compare_func = [](auto arg_type_name, auto dummy_arg, auto op, auto cb) {
+    execution::query_id_t qid(0);
     using Type = decltype(dummy_arg);
     auto src = fmt::format(R"(
       fun test(a: {0}, b: {0}) -> {0} {{
@@ -124,7 +129,8 @@ TEST_F(BytecodeGeneratorTest, SimpleArithmeticTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<Type(Type, Type)> fn;
-    ASSERT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &fn)) << "Function 'test' not found in module";
+    ASSERT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &fn))
+        << "Function 'test' not found in module";
 
     // Test the function
     cb(fn);
@@ -167,7 +173,9 @@ TEST_F(BytecodeGeneratorTest, ComparisonTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<bool(Type, Type)> fn;
-    ASSERT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &fn)) << "Function 'test' not found in module";
+    execution::query_id_t qid(0);
+    ASSERT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &fn))
+        << "Function 'test' not found in module";
 
     // Test the function
     cb(fn);
@@ -219,7 +227,8 @@ TEST_F(BytecodeGeneratorTest, ParameterPassingTest) {
   };
 
   std::function<bool(S *)> f;
-  EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
+  execution::query_id_t qid(0);
+  EXPECT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
   S s{.a_ = 0, .b_ = 0};
   EXPECT_TRUE(f(&s));
@@ -229,6 +238,7 @@ TEST_F(BytecodeGeneratorTest, ParameterPassingTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
+  execution::query_id_t qid(0);
   {
     auto src = R"(
     fun test() -> nil {
@@ -262,7 +272,9 @@ TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
     ASSERT_TRUE(module != nullptr);
 
     std::function<int32_t()> f;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
+    execution::query_id_t qid(0);
+    EXPECT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &f))
+        << "Function 'test' not found in module";
 
     EXPECT_EQ(10, f());
   }
@@ -278,7 +290,8 @@ TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
     auto module = compiler.CompileToModule(src);
 
     std::function<int32_t()> f;
-    EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
+    EXPECT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &f))
+        << "Function 'test' not found in module";
 
     EXPECT_EQ(800, f());
   }
@@ -310,7 +323,8 @@ TEST_F(BytecodeGeneratorTest, FunctionTest) {
   };
 
   std::function<bool(S *)> f;
-  EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
+  execution::query_id_t qid(0);
+  EXPECT_TRUE(module->GetFunction(qid, "test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
   S s{.a_ = 0, .b_ = 0};
   EXPECT_TRUE(f(&s));
