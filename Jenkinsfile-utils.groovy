@@ -347,7 +347,6 @@ void stageNightlyMicrobenchmark() {
     ''', label:'Microbenchmark'
 
     archiveArtifacts 'script/testing/*.json'
-    junit 'script/testing/*.xml'
     stagePost()
 }
 
