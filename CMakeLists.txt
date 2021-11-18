@@ -868,7 +868,7 @@ file(GLOB_RECURSE
 function(add_test_util_lib TYPE)
     string(TOLOWER ${TYPE} TYPE_LOWER)
     add_library(noisepage_test_util_${TYPE_LOWER} ${TYPE} ${NOISEPAGE_TEST_UTIL_SRCS})
-    add_custom_command(TARGET noisepage_test_util_${TYPE_LOWER} DEPENDS gtest gtest_main gmock gmock_main)
+    add_custom_command(TARGET noisepage_test_util_${TYPE_LOWER} DEPENDS gtest gtest_main)
     target_compile_options(noisepage_test_util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
     # Inject the source directory path into the translation units for test utility lib
     target_compile_definitions(noisepage_test_util_${TYPE_LOWER} PRIVATE NOISEPAGE_BUILD_ROOT=${CMAKE_BINARY_DIR})
@@ -878,7 +878,7 @@ function(add_test_util_lib TYPE)
             ${CMAKE_BINARY_DIR}/_deps/src/googletest/googletest/include/
             )
     target_link_libraries(noisepage_test_util_${TYPE_LOWER} PUBLIC
-            ${CMAKE_BINARY_DIR}/lib/libgtest.a ${CMAKE_BINARY_DIR}/lib/libgmock.a
+            ${CMAKE_BINARY_DIR}/lib/libgtest.a
             util_${TYPE_LOWER} pqxx)
     set_target_properties(noisepage_test_util_${TYPE_LOWER} PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 endfunction()
@@ -917,7 +917,6 @@ function(add_noisepage_test
     add_executable(${TEST_NAME} ${EXCLUDE_OPTION} ${TEST_SOURCES})
 
     target_compile_options(${TEST_NAME} PRIVATE "-Werror" "-Wall" "-fvisibility=hidden")
-    target_link_libraries(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR}/lib/libgmock_main.a)
     if (${NOISEPAGE_ENABLE_SHARED})
         target_link_libraries(${TEST_NAME} PRIVATE noisepage_test_util_shared)
     else ()
@@ -1119,10 +1118,10 @@ file(GLOB_RECURSE
         )
 
 add_library(noisepage_benchmark_util STATIC ${NOISEPAGE_BENCHMARK_UTIL_SRCS})
-add_custom_command(TARGET noisepage_benchmark_util DEPENDS gtest gtest_main gmock gmock_main)
+add_custom_command(TARGET noisepage_benchmark_util DEPENDS gtest gtest_main)
 target_compile_options(noisepage_benchmark_util PRIVATE "-Werror" "-Wall")
 target_include_directories(noisepage_benchmark_util PUBLIC ${PROJECT_SOURCE_DIR}/benchmark/include)
-target_link_libraries(noisepage_benchmark_util PUBLIC ${CMAKE_BINARY_DIR}/lib/libgmock_main.a noisepage_test_util_static benchmark)
+target_link_libraries(noisepage_benchmark_util PUBLIC noisepage_test_util_static benchmark)
 set_target_properties(noisepage_benchmark_util PROPERTIES CXX_EXTENSIONS OFF)
 
 set(NOISEPAGE_BENCHMARKS "")
