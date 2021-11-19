@@ -16,7 +16,6 @@
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "test_util/procbench/procbench_query.h"
-#include "test_util/ssb/star_schema_query.h"
 
 namespace noisepage::procbench {
 
@@ -95,19 +94,23 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
 }
 
 void Workload::LoadTables(execution::exec::ExecutionContext *exec_ctx, const std::string &directory) {
+  EXECUTION_LOG_INFO("Loading tables for ProcBench benchmark...");
   execution::sql::TableReader table_reader{exec_ctx, block_store_.Get(), ns_oid_};
   for (const auto &table_name : PROCBENCH_TABLE_NAMES) {
-    const std::string schema_path = fmt::format("{}{}.schema", directory, table_name);
     const std::string data_path = fmt::format("{}{}.data", directory, table_name);
+    const std::string schema_path = fmt::format("{}{}.schema", directory, table_name);
     const auto num_rows = table_reader.ReadTable(schema_path, data_path);
     EXECUTION_LOG_INFO("Wrote {} rows on table {}.", num_rows, table_name);
   }
+  EXECUTION_LOG_INFO("Done.");
 }
 
 void Workload::LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor) {
+  EXECUTION_LOG_INFO("Loading queries for ProcBench benchmark...");
   // Executable query and plan node are stored as a tuple as the entry of vector
   (void)accessor;
   // query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ1(accessor, exec_settings_));
+  EXECUTION_LOG_INFO("Done.");
 }
 
 void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_id,

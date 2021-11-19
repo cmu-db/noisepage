@@ -138,7 +138,7 @@ void TableReader::WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *
 
 void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, execution::sql::SqlTypeId type,
                                 csv::CSVField *field) {
-  if (*field == NULL_STRING) {
+  if (*field == NULL_STRING || field->is_null()) {
     insert_pr->SetNull(col_offset);
     return;
   }
@@ -190,7 +190,7 @@ void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_o
       break;
     }
     default:
-      UNREACHABLE("Unsupported type. Add it here first!!!");
+      UNREACHABLE("Unsupported type.");
   }
 }
 

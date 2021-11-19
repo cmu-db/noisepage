@@ -79,41 +79,47 @@ BENCHMARK_DEFINE_F(ProcbenchRunner, Runner)(benchmark::State &state) {
   workload_ = std::make_unique<procbench::Workload>(common::ManagedPointer<DBMain>(db_main_), procbench_database_name_,
                                                     procbench_table_root_);
 
-  int8_t num_thread_start;
-  uint32_t query_num_start, repeat_num;
-  if (single_test_run_) {
-    query_num_start = workload_->GetQueryCount();
-    num_thread_start = total_num_threads_;
-    repeat_num = 1;
-  } else {
-    query_num_start = 1;
-    num_thread_start = 1;
-    repeat_num = 2;
-  }
+  //   int8_t num_thread_start;
+  //   uint32_t query_num_start, repeat_num;
+  //   if (single_test_run_) {
+  //     query_num_start = workload_->GetQueryCount();
+  //     num_thread_start = total_num_threads_;
+  //     repeat_num = 1;
+  //   } else {
+  //     query_num_start = 1;
+  //     num_thread_start = 1;
+  //     repeat_num = 2;
+  //   }
 
-  auto total_query_num = workload_->GetQueryCount() + 1;
-  for (uint32_t query_num = query_num_start; query_num < total_query_num; query_num += 4) {
-    for (auto num_threads = num_thread_start; num_threads <= total_num_threads_; num_threads += 3) {
-      for (uint32_t repeat = 0; repeat < repeat_num; ++repeat) {
-        for (auto avg_interval_us : avg_interval_us_) {
-          // Let GC clean up
-          std::this_thread::sleep_for(std::chrono::seconds(2));
+  //   auto total_query_num = workload_->GetQueryCount() + 1;
+  //   for (uint32_t query_num = query_num_start; query_num < total_query_num; query_num += 4) {
+  //     for (auto num_threads = num_thread_start; num_threads <= total_num_threads_; num_threads += 3) {
+  //       for (uint32_t repeat = 0; repeat < repeat_num; ++repeat) {
+  //         for (auto avg_interval_us : avg_interval_us_) {
+  //           // Let GC clean up
+  //           std::this_thread::sleep_for(std::chrono::seconds(2));
 
-          common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
-          thread_pool.Startup();
+  //           common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
+  //           thread_pool.Startup();
 
-          for (int8_t i = 0; i < num_threads; i++) {
-            thread_pool.SubmitTask([this, i, avg_interval_us, query_num] {
-              workload_->Execute(i, execution_us_per_worker_, avg_interval_us, query_num, exec_mode_);
-            });
-          }
+  //           for (int8_t i = 0; i < num_threads; i++) {
+  //             thread_pool.SubmitTask([this, i, avg_interval_us, query_num] {
+  //               workload_->Execute(i, execution_us_per_worker_, avg_interval_us, query_num, exec_mode_);
+  //             });
+  //           }
 
-          thread_pool.WaitUntilAllFinished();
-          thread_pool.Shutdown();
-        }
-      }
-    }
-  }
+  //           thread_pool.WaitUntilAllFinished();
+  //           thread_pool.Shutdown();
+  //         }
+  //       }
+  //     }
+  //   }
+
+  const auto start = std::chrono::high_resolution_clock::now();
+  std::this_thread::sleep_for(std::chrono::seconds{1});
+  const auto stop = std::chrono::high_resolution_clock::now();
+  const auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start).count();
+  state.SetIterationTime(duration);
 
   // Free the workload here so we don't need to use the loggers anymore
   workload_.reset();
