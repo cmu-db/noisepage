@@ -21,20 +21,8 @@ namespace noisepage::runner {
  */
 class ProcbenchRunner : public benchmark::Fixture {
  public:
-  /** Defines the number of terminals (workers threads) */
-  const int8_t total_num_threads_ = 1;
-
-  /** Time (us) to run per terminal (worker thread) */
-  const uint64_t execution_us_per_worker_ = 20000000;
-
-  /** The average intervals in microseconds */
-  std::vector<uint64_t> avg_interval_us_ = {10, 20, 50, 100, 200, 500, 1000};
-
   /** The execution mode for the execution engine */
   const execution::vm::ExecutionMode exec_mode_ = execution::vm::ExecutionMode::Interpret;
-
-  /** Flag indicating if only a single test run should be run */
-  const bool single_test_run_ = true;
 
   /** The main database instance */
   std::unique_ptr<DBMain> db_main_;
@@ -79,46 +67,14 @@ BENCHMARK_DEFINE_F(ProcbenchRunner, Runner)(benchmark::State &state) {
   workload_ = std::make_unique<procbench::Workload>(common::ManagedPointer<DBMain>(db_main_), procbench_database_name_,
                                                     procbench_table_root_);
 
-  //   int8_t num_thread_start;
-  //   uint32_t query_num_start, repeat_num;
-  //   if (single_test_run_) {
-  //     query_num_start = workload_->GetQueryCount();
-  //     num_thread_start = total_num_threads_;
-  //     repeat_num = 1;
-  //   } else {
-  //     query_num_start = 1;
-  //     num_thread_start = 1;
-  //     repeat_num = 2;
-  //   }
-
-  //   auto total_query_num = workload_->GetQueryCount() + 1;
-  //   for (uint32_t query_num = query_num_start; query_num < total_query_num; query_num += 4) {
-  //     for (auto num_threads = num_thread_start; num_threads <= total_num_threads_; num_threads += 3) {
-  //       for (uint32_t repeat = 0; repeat < repeat_num; ++repeat) {
-  //         for (auto avg_interval_us : avg_interval_us_) {
-  //           // Let GC clean up
-  //           std::this_thread::sleep_for(std::chrono::seconds(2));
-
-  //           common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
-  //           thread_pool.Startup();
-
-  //           for (int8_t i = 0; i < num_threads; i++) {
-  //             thread_pool.SubmitTask([this, i, avg_interval_us, query_num] {
-  //               workload_->Execute(i, execution_us_per_worker_, avg_interval_us, query_num, exec_mode_);
-  //             });
-  //           }
-
-  //           thread_pool.WaitUntilAllFinished();
-  //           thread_pool.Shutdown();
-  //         }
-  //       }
-  //     }
-  //   }
-
   const auto start = std::chrono::high_resolution_clock::now();
-  std::this_thread::sleep_for(std::chrono::seconds{1});
+
+  // Execute the workload
+  workload_->Execute(6, execution::vm::ExecutionMode::Interpret);
+
   const auto stop = std::chrono::high_resolution_clock::now();
   const auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start).count();
+
   state.SetIterationTime(duration);
 
   // Free the workload here so we don't need to use the loggers anymore

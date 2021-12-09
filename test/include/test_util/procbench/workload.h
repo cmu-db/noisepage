@@ -47,14 +47,9 @@ class Workload {
 
   /**
    * Function to invoke for a single worker thread to invoke the ProcBench queries.
-   * @param worker_id 1-indexed thread ID
-   * @param execution_us_per_worker
-   * @param avg_interval_us
-   * @param query_id The identifier for the query to invoke
    * @param exec_mode The execution mode
    */
-  void Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_id,
-               execution::vm::ExecutionMode exec_mode);
+  void Execute(std::size_t query_number, execution::vm::ExecutionMode exec_mode);
 
   /** @return The number of queries in the workload. */
   uint32_t GetQueryCount() { return query_and_plan_.size(); }
@@ -72,6 +67,13 @@ class Workload {
    * @param accessor The catalog accessor instance
    */
   void LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor);
+
+  /**
+   * Get the index for the specified query number
+   * @param query_number The query number
+   * @return The index
+   */
+  std::size_t QueryNumberToIndex(std::size_t query_number) const;
 
  private:
   /** The database server instance */
@@ -94,6 +96,8 @@ class Workload {
   std::vector<
       std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>>
       query_and_plan_;
+  /** Translate a query number of corresponding index */
+  std::unordered_map<std::size_t, std::size_t> query_number_to_index_;
 };
 
 }  // namespace noisepage::procbench

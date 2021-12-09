@@ -19,6 +19,9 @@
 
 namespace noisepage::procbench {
 
+/** Query identifiers */
+static constexpr const std::size_t Q6_ID = 6;
+
 /** ProcBench table names */
 static const std::vector<std::string> PROCBENCH_TABLE_NAMES{"call_center",
                                                             "catalog_page",
@@ -107,67 +110,56 @@ void Workload::LoadTables(execution::exec::ExecutionContext *exec_ctx, const std
 
 void Workload::LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor) {
   EXECUTION_LOG_INFO("Loading queries for ProcBench benchmark...");
+
   // Executable query and plan node are stored as a tuple as the entry of vector
-  (void)accessor;
-  // query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ1(accessor, exec_settings_));
+  query_and_plan_.emplace_back(ProcbenchQuery::MakeExecutableQ6(accessor, exec_settings_));
+  query_number_to_index_[Q6_ID] = query_and_plan_.size() - 1;
+
   EXECUTION_LOG_INFO("Done.");
 }
 
-void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_id,
-                       execution::vm::ExecutionMode mode) {
-  // Shuffle the queries randomly for each thread
-  const auto total_query_num = query_and_plan_.size();
-  std::vector<uint32_t> index{};
-  index.resize(total_query_num);
-  std::iota(index.begin(), index.end(), 0);
-  std::shuffle(index.begin(), index.end(), std::mt19937(time(nullptr) + worker_id));
-
-  // Get the sleep time range distribution
-  std::mt19937 generator{};
-  std::uniform_int_distribution<uint64_t> distribution(avg_interval_us - avg_interval_us / 2,
-                                                       avg_interval_us + avg_interval_us / 2);
+void Workload::Execute(std::size_t query_number, execution::vm::ExecutionMode mode) {
+  // The total number of queries to be executed
+  const std::size_t query_index = QueryNumberToIndex(query_number);
 
   // Register to the metrics manager
   db_main_->GetMetricsManager()->RegisterThread();
-  uint32_t counter = 0;
-  uint64_t end_time = metrics::MetricsUtil::Now() + execution_us_per_worker;
-  while (metrics::MetricsUtil::Now() < end_time) {
-    // Executing all the queries on by one in round robin
-    auto txn = txn_manager_->BeginTransaction();
-    auto accessor =
-        catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
 
-    auto output_schema = std::get<1>(query_and_plan_[index[counter]])->GetOutputSchema().Get();
-    // Uncomment this line and change output.cpp:90 to EXECUTION_LOG_INFO to print output
-    // execution::exec::OutputPrinter printer(output_schema);
-    execution::exec::NoOpResultConsumer printer;
+  // Execute the selected query
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor =
+      catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
 
-    auto exec_ctx = execution::exec::ExecutionContextBuilder()
-                        .WithDatabaseOID(db_oid_)
-                        .WithExecutionSettings(exec_settings_)
-                        .WithTxnContext(common::ManagedPointer{txn})
-                        .WithOutputSchema(common::ManagedPointer{output_schema})
-                        .WithOutputCallback(printer)
-                        .WithCatalogAccessor(common::ManagedPointer{accessor})
-                        .WithMetricsManager(db_main_->GetMetricsManager())
-                        .WithReplicationManager(DISABLED)
-                        .WithRecoveryManager(DISABLED)
-                        .Build();
+  // Get the output schema for the query
+  auto *output_schema = std::get<1>(query_and_plan_.at(query_index))->GetOutputSchema().Get();
 
-    std::get<0>(query_and_plan_[index[counter]])
-        ->Run(common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx), mode);
+  // Construct an execution context for the query
+  execution::exec::NoOpResultConsumer printer;
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithExecutionSettings(exec_settings_)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithOutputSchema(common::ManagedPointer{output_schema})
+                      .WithOutputCallback(printer)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main_->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
-    // Only execute up to query_num number of queries for this thread in round-robin
-    counter = counter == query_id - 1 ? 0 : counter + 1;
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-    // Sleep to create different execution frequency patterns
-    auto random_sleep_time = distribution(generator);
-    std::this_thread::sleep_for(std::chrono::microseconds(random_sleep_time));
-  }
+  // Execute the query
+  std::cout << "Executing...\n";
+  std::get<0>(query_and_plan_.at(query_index))
+      ->Run(common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx), mode);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  std::cout << "Done.\n";
 
   // Unregister from the metrics manager
   db_main_->GetMetricsManager()->UnregisterThread();
+}
+
+std::size_t Workload::QueryNumberToIndex(std::size_t query_number) const {
+  return query_number_to_index_.at(query_number);
 }
 
 }  // namespace noisepage::procbench

@@ -96,6 +96,13 @@ class ExpressionMaker {
   }
 
   /**
+   * Create a column value expression
+   */
+  ManagedExpression CVE(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, execution::sql::SqlTypeId type) {
+    return MakeManaged(std::make_unique<parser::ColumnValueExpression>(table_oid, column_oid, type));
+  }
+
+  /**
    * Create a derived value expression
    */
   ManagedExpression DVE(execution::sql::SqlTypeId type, int tuple_idx, int value_idx) {
