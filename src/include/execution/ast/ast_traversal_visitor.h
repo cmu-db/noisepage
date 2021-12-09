@@ -211,6 +211,12 @@ inline void AstTraversalVisitor<Subclass>::VisitForStmt(ForStmt *node) {
 }
 
 template <typename Subclass>
+inline void AstTraversalVisitor<Subclass>::VisitBreakStmt(BreakStmt *node) {
+  PROCESS_NODE(node);
+  // TODO(Kyle): Implement this??
+}
+
+template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitForInStmt(ForInStmt *node) {
   PROCESS_NODE(node);
   RECURSE(Visit(node->Target()));
@@ -230,6 +236,12 @@ inline void AstTraversalVisitor<Subclass>::VisitMapTypeRepr(MapTypeRepr *node) {
   PROCESS_NODE(node);
   RECURSE(Visit(node->KeyType()));
   RECURSE(Visit(node->ValType()));
+}
+
+template <typename Subclass>
+inline void AstTraversalVisitor<Subclass>::VisitLambdaTypeRepr(LambdaTypeRepr *node) {
+  PROCESS_NODE(node);
+  // TODO(Kyle): Implement this??
 }
 
 template <typename Subclass>
@@ -292,6 +304,12 @@ inline void AstTraversalVisitor<Subclass>::VisitIndexExpr(IndexExpr *node) {
   PROCESS_NODE(node);
   RECURSE(Visit(node->Object()));
   RECURSE(Visit(node->Index()));
+}
+
+template <typename Subclass>
+inline void AstTraversalVisitor<Subclass>::VisitLambdaExpr(LambdaExpr *node) {
+  PROCESS_NODE(node);
+  // TODO(Kyle): Implement this??
 }
 
 template <typename Subclass>

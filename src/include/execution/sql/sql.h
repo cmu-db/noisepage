@@ -129,8 +129,18 @@ uint16_t GetSqlTypeIdSize(SqlTypeId type);
  */
 std::size_t GetTypeIdAlignment(TypeId type);
 
+/**
+ * Parse a SQL type ID from a string.
+ * @param type_string The string representation of the type name
+ * @return The SQL type ID
+ */
 SqlTypeId SqlTypeIdFromString(const std::string &type_string);
 
+/**
+ * Convert a SQL type ID to a human-readable string.
+ * @param type The SQL type ID
+ * @return The string representation of the type
+ */
 std::string SqlTypeIdToString(SqlTypeId type);
 
 /**

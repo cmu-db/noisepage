@@ -166,6 +166,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinRandomCall(ast::CallExpr *call, ast::Builtin builtin);
 
   void CheckBuiltinReplicationCall(ast::CallExpr *call, ast::Builtin builtin);
 

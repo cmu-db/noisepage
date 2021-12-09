@@ -52,6 +52,7 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropNamespaceToPhysicalDropNamespace());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropTriggerToPhysicalDropTrigger());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropViewToPhysicalDropView());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalDropFunctionToPhysicalDropFunction());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalAnalyzeToPhysicalAnalyze());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCteScanToPhysicalCteScan());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalCteScanToPhysicalEmptyCteScan());

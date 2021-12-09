@@ -5,7 +5,7 @@
 
 #include "binder/bind_node_visitor.h"
 #include "execution/compiler/executable_query.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "parser/expression/derived_value_expression.h"
@@ -78,9 +78,17 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
               nullptr)
               ->TakePlanNodeOwnership();
 
-      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid_, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings_,
-          db_main_->GetMetricsManager(), DISABLED, DISABLED);
+      auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                          .WithDatabaseOID(db_oid_)
+                          .WithExecutionSettings(exec_settings_)
+                          .WithTxnContext(common::ManagedPointer{txn})
+                          .WithOutputSchema(execution::exec::ExecutionContext::NULL_OUTPUT_SCHEMA)
+                          .WithOutputCallback(execution::exec::ExecutionContext::NULL_OUTPUT_CALLBACK)
+                          .WithCatalogAccessor(common::ManagedPointer{accessor})
+                          .WithMetricsManager(db_main_->GetMetricsManager())
+                          .WithReplicationManager(DISABLED)
+                          .WithRecoveryManager(DISABLED)
+                          .Build();
 
       // generate executable query and emplace it into the vector; break down here
       auto exec_query = std::make_unique<execution::compiler::ExecutableQuery>(
@@ -114,16 +122,18 @@ void WorkloadCached::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per
     auto accessor =
         catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
     for (const auto &query : queries_.find(txn_names_[index[counter]])->second) {
-      execution::exec::ExecutionContext exec_ctx{db_oid_,
-                                                 common::ManagedPointer<transaction::TransactionContext>(txn),
-                                                 nullptr,
-                                                 nullptr,  // FIXME: Get the correct output later
-                                                 common::ManagedPointer<catalog::CatalogAccessor>(accessor),
-                                                 exec_settings_,
-                                                 db_main_->GetMetricsManager(),
-                                                 DISABLED,
-                                                 DISABLED};
-      query->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
+      auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                          .WithDatabaseOID(db_oid_)
+                          .WithExecutionSettings(exec_settings_)
+                          .WithTxnContext(common::ManagedPointer{txn})
+                          .WithOutputSchema(execution::exec::ExecutionContext::NULL_OUTPUT_SCHEMA)
+                          .WithOutputCallback(execution::exec::ExecutionContext::NULL_OUTPUT_CALLBACK)
+                          .WithCatalogAccessor(common::ManagedPointer{accessor})
+                          .WithMetricsManager(db_main_->GetMetricsManager())
+                          .WithReplicationManager(DISABLED)
+                          .WithRecoveryManager(DISABLED)
+                          .Build();
+      query->Run(common::ManagedPointer{exec_ctx}, mode);
     }
     counter = counter == num_queries - 1 ? 0 : counter + 1;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

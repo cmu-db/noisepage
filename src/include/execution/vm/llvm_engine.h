@@ -225,7 +225,7 @@ class LLVMEngine {
   /**
    * Process-wide LLVM engine settings.
    *
-   * TODO(Kyle): I'm not particularly happy with this setup - an inline
+   * NOTE(Kyle): I'm not particularly happy with this setup - an inline
    * static variable (essentially just a global with scoping) for managing
    * the settings for the LLVM engine. The ownership model should be
    * relatively simple - the LLVMEngine should own its settings, but

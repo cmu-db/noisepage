@@ -104,10 +104,12 @@ class SchemaReader {
    */
   SchemaReader()
       : type_names_{{"tinyint", execution::sql::SqlTypeId::TinyInt}, {"smallint", execution::sql::SqlTypeId::SmallInt},
-                    {"int", execution::sql::SqlTypeId::Integer},     {"bigint", execution::sql::SqlTypeId::BigInt},
-                    {"bool", execution::sql::SqlTypeId::Boolean},    {"real", execution::sql::SqlTypeId::Double},
+                    {"integer", execution::sql::SqlTypeId::Integer}, {"int", execution::sql::SqlTypeId::Integer},
+                    {"bigint", execution::sql::SqlTypeId::BigInt},   {"bool", execution::sql::SqlTypeId::Boolean},
+                    {"real", execution::sql::SqlTypeId::Double},     {"float8", execution::sql::SqlTypeId::Double},
                     {"decimal", execution::sql::SqlTypeId::Double},  {"varchar", execution::sql::SqlTypeId::Varchar},
-                    {"varlen", execution::sql::SqlTypeId::Varchar},  {"date", execution::sql::SqlTypeId::Date}} {}
+                    {"char", execution::sql::SqlTypeId::Char},       {"varlen", execution::sql::SqlTypeId::Varchar},
+                    {"date", execution::sql::SqlTypeId::Date}} {}
 
   /**
    * Reads table metadata

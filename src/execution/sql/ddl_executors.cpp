@@ -5,14 +5,26 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/postgres/pg_language.h"
 #include "common/macros.h"
+#include "execution/ast/ast_pretty_print.h"
+#include "execution/ast/context.h"
+#include "execution/ast/udf/udf_ast_context.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/function_builder.h"
+#include "execution/compiler/udf/udf_codegen.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sema/sema.h"
+#include "loggers/execution_logger.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/udf/plpgsql_parser.h"
 #include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_function_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
@@ -31,6 +43,118 @@ bool DDLExecutors::CreateNamespaceExecutor(const common::ManagedPointer<planner:
                                            const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
   // Request permission from the Catalog to see if this a valid namespace name
   return accessor->CreateNamespace(node->GetNamespaceName()) != catalog::INVALID_NAMESPACE_OID;
+}
+
+bool DDLExecutors::CreateFunctionExecutor(const common::ManagedPointer<planner::CreateFunctionPlanNode> node,
+                                          const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  NOISEPAGE_ASSERT(node->GetUDFLanguage() == parser::PLType::PL_PGSQL, "Unsupported language");
+  NOISEPAGE_ASSERT(!node->GetFunctionBody().empty(), "Unsupported function body contents");
+
+  const auto &parameter_types = node->GetFunctionParameterTypes();
+
+  std::vector<execution::sql::SqlTypeId> param_type_ids{};
+  std::transform(
+      parameter_types.cbegin(), parameter_types.cend(), std::back_inserter(param_type_ids),
+      [](const parser::BaseFunctionParameter::DataType &t) { return parser::FuncParameter::DataTypeToTypeId(t); });
+
+  std::vector<catalog::type_oid_t> param_types{};
+  std::transform(parameter_types.cbegin(), parameter_types.cend(), std::back_inserter(param_types),
+                 [&accessor](const parser::BaseFunctionParameter::DataType &t) {
+                   return accessor->GetTypeOidFromTypeId(parser::FuncParameter::DataTypeToTypeId(t));
+                 });
+
+  const auto return_type = accessor->GetTypeOidFromTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType()));
+  auto proc_id =
+      accessor->CreateProcedure(node->GetFunctionName(), catalog::postgres::PgLanguage::PLPGSQL_LANGUAGE_OID,
+                                node->GetNamespaceOid(), catalog::INVALID_TYPE_OID, node->GetFunctionParameterNames(),
+                                param_types, {}, {}, return_type, node->GetFunctionBody().front(), false);
+  if (proc_id == catalog::INVALID_PROC_OID) {
+    return false;
+  }
+
+  // Make the context here using the body
+  ast::udf::UdfAstContext udf_ast_context{};
+
+  // TODO(Kyle): Revisit this after clearing up what the
+  // preferred way to report errors is in the system, both
+  // within components and between components...
+  parser::udf::PLpgSQLParser udf_parser{common::ManagedPointer{&udf_ast_context}};
+  std::unique_ptr<ast::udf::FunctionAST> ast{};
+  try {
+    ast = udf_parser.Parse(node->GetFunctionParameterNames(), param_type_ids, node->GetFunctionBody().front());
+  } catch (const ParserException &parser_error) {
+    PARSER_LOG_ERROR(parser_error.what());
+    return false;
+  }
+
+  auto region = std::make_unique<util::Region>(node->GetFunctionName());
+  sema::ErrorReporter error_reporter{region.get()};
+
+  auto ast_context = std::make_unique<ast::Context>(region.get(), &error_reporter);
+
+  compiler::CodeGen codegen{ast_context.get(), accessor.Get()};
+  util::RegionVector<ast::FieldDecl *> fn_params{codegen.GetAstContext()->GetRegion()};
+  fn_params.emplace_back(
+      codegen.MakeField(codegen.MakeFreshIdentifier("executionCtx"),
+                        codegen.PointerType(codegen.BuiltinType(ast::BuiltinType::ExecutionContext))));
+
+  for (auto i = 0UL; i < node->GetFunctionParameterNames().size(); i++) {
+    const auto raw = node->GetFunctionParameterTypes()[i];
+    (void)raw;
+    const auto name = node->GetFunctionParameterNames()[i];
+    const auto type = parser::BaseFunctionParameter::DataTypeToTypeId(node->GetFunctionParameterTypes()[i]);
+    fn_params.emplace_back(
+        codegen.MakeField(ast_context->GetIdentifier(name), codegen.TplType(execution::sql::GetTypeId(type))));
+  }
+
+  auto name = node->GetFunctionName();
+  compiler::FunctionBuilder fb{
+      &codegen, codegen.MakeFreshIdentifier(name), std::move(fn_params),
+      codegen.TplType(execution::sql::GetTypeId(parser::ReturnType::DataTypeToTypeId(node->GetReturnType())))};
+
+  // Run UDF code generation
+  ast::File *file;
+  try {
+    file = compiler::udf::UdfCodegen::Run(accessor.Get(), &fb, &udf_ast_context, &codegen, node->GetDatabaseOid(),
+                                          ast.get());
+  } catch (const BinderException &binder_error) {
+    EXECUTION_LOG_ERROR(binder_error.what());
+    return false;
+  } catch (const ExecutionException &execution_error) {
+    EXECUTION_LOG_ERROR(execution_error.what());
+    return false;
+  }
+
+  {
+    sema::Sema type_check{codegen.GetAstContext().Get()};
+    type_check.GetErrorReporter()->Reset();
+    if (type_check.Run(file)) {
+      EXECUTION_LOG_ERROR("Errors: \n {}", type_check.GetErrorReporter()->SerializeErrors());
+      return false;
+    }
+  }
+
+  // TODO(Kyle): We are recomputing the types here because we lost
+  // them to a std::move() above when we generate the AST, can we
+  // avoid duplicating this work? Would need to change the APIs.
+
+  std::vector<sql::SqlTypeId> types{};
+  types.reserve(node->GetFunctionParameterTypes().size());
+  std::transform(node->GetFunctionParameterTypes().cbegin(), node->GetFunctionParameterTypes().cend(),
+                 std::back_inserter(types), [](const parser::BaseFunctionParameter::DataType &type) -> sql::SqlTypeId {
+                   return parser::FuncParameter::DataTypeToTypeId(type);
+                 });
+
+  auto udf_context = std::make_unique<functions::FunctionContext>(
+      node->GetFunctionName(), parser::ReturnType::DataTypeToTypeId(node->GetReturnType()), std::move(types),
+      std::move(region), std::move(ast_context), file);
+
+  // TODO(Kyle): We used to manually register an abort action here to destroy the
+  // function context in the event the transaction aborts, but this is already
+  // done in the catalog (in the call to CatalogAccessor::SetFunctionContext), is
+  // this the "ownership model" for transaction abort that we want?
+
+  return accessor->SetFunctionContext(proc_id, udf_context.release());
 }
 
 bool DDLExecutors::CreateTableExecutor(const common::ManagedPointer<planner::CreateTablePlanNode> node,
@@ -160,6 +284,11 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
   NOISEPAGE_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
   return true;
+}
+
+bool DDLExecutors::DropFunctionExecutor(common::ManagedPointer<planner::DropFunctionPlanNode> node,
+                                        common::ManagedPointer<catalog::CatalogAccessor> accessor) {
+  return accessor->DropProcedure(node->GetProcedureOid());
 }
 
 }  // namespace noisepage::execution::sql

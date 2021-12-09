@@ -312,9 +312,45 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   return pg_core_.GetIndexes(txn, table);
 }
 
-type_oid_t DatabaseCatalog::GetTypeOidForType(const execution::sql::SqlTypeId type) {
+type_oid_t DatabaseCatalog::GetTypeOidForType(const execution::sql::SqlTypeId type) const {
   // TODO(WAN): WARNING! Do not change this seeing PgCoreImpl::MakeColumn and PgCoreImpl::CreateColumn.
   return type_oid_t(static_cast<uint8_t>(type));
+}
+
+execution::sql::SqlTypeId DatabaseCatalog::GetTypeForTypeOid(type_oid_t type) const {
+  // NOTE(Kyle): This is a disgusting hack
+  switch (type.UnderlyingValue()) {
+    case 0:
+      return execution::sql::SqlTypeId::Boolean;
+    case 1:
+      return execution::sql::SqlTypeId::TinyInt;
+    case 2:
+      return execution::sql::SqlTypeId::SmallInt;
+    case 3:
+      return execution::sql::SqlTypeId::Integer;
+    case 4:
+      return execution::sql::SqlTypeId::BigInt;
+    case 5:
+      return execution::sql::SqlTypeId::Real;
+    case 6:
+      return execution::sql::SqlTypeId::Double;
+    case 7:
+      return execution::sql::SqlTypeId::Decimal;
+    case 8:
+      return execution::sql::SqlTypeId::Date;
+    case 9:
+      return execution::sql::SqlTypeId::Timestamp;
+    case 10:
+      return execution::sql::SqlTypeId::Char;
+    case 11:
+      return execution::sql::SqlTypeId::Varchar;
+    case 12:
+      return execution::sql::SqlTypeId::Varbinary;
+    case 255:
+      return execution::sql::SqlTypeId::Invalid;
+    default:
+      UNREACHABLE("Impossible type_oid_t");
+  }
 }
 
 void DatabaseCatalog::BootstrapTable(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -363,9 +399,14 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   return pg_core_.CreateIndexEntry(txn, ns_oid, table_oid, index_oid, name, schema);
 }
 
-bool DatabaseCatalog::SetFunctionContextPointer(common::ManagedPointer<transaction::TransactionContext> txn,
-                                                proc_oid_t proc_oid,
-                                                const execution::functions::FunctionContext *func_context) {
+common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
+    common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
+  return pg_proc_.GetProcCtxPtr(txn, proc_oid);
+}
+
+bool DatabaseCatalog::SetFunctionContext(common::ManagedPointer<transaction::TransactionContext> txn,
+                                         proc_oid_t proc_oid,
+                                         const execution::functions::FunctionContext *func_context) {
   NOISEPAGE_ASSERT(
       write_lock_.load() == txn->FinishTime(),
       "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
@@ -377,13 +418,6 @@ bool DatabaseCatalog::SetFunctionContextPointer(common::ManagedPointer<transacti
   });
 
   return pg_proc_.SetProcCtxPtr(txn, proc_oid, func_context);
-}
-
-common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
-    common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
-  auto proc_ctx = pg_proc_.GetProcCtxPtr(txn, proc_oid);
-  NOISEPAGE_ASSERT(proc_ctx != nullptr, "Dynamically added UDFs are currently not supported.");
-  return proc_ctx;
 }
 
 std::unique_ptr<optimizer::ColumnStatsBase> DatabaseCatalog::GetColumnStatistics(
@@ -451,7 +485,7 @@ proc_oid_t DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transac
                                             const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
-                                            const std::vector<postgres::PgProc::ArgModes> &arg_modes,
+                                            const std::vector<postgres::PgProc::ArgMode> &arg_modes,
                                             const type_oid_t rettype, const std::string &src, bool is_aggregate) {
   if (!TryLock(txn)) return INVALID_PROC_OID;
   const proc_oid_t proc_oid = proc_oid_t{next_oid_++};
@@ -470,13 +504,76 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
+  if (ContainsUntypedNull(arg_types)) {
+    // NOTE(Kyle): Should this be a harder error condition (i.e. assertion failure)?
+    return INVALID_PROC_OID;
+  }
   return pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types);
+}
+
+std::vector<std::vector<type_oid_t>> DatabaseCatalog::ResolveProcArgumentTypes(
+    common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns, const std::string &procname,
+    const std::vector<type_oid_t> &arg_types) {
+  std::vector<std::vector<type_oid_t>> result{};
+  ResolveProcArgumentTypes(txn, procns, procname, arg_types, &result);
+  return result;
+}
+
+void DatabaseCatalog::ResolveProcArgumentTypes(common::ManagedPointer<transaction::TransactionContext> txn,
+                                               namespace_oid_t procns, const std::string &procname,
+                                               const std::vector<type_oid_t> &arg_types,
+                                               std::vector<std::vector<type_oid_t>> *result) {
+  // If the provided collection of arguments does not contain
+  // an untyped NULL, all types are fully resolved, bottom out
+  if (!ContainsUntypedNull(arg_types)) {
+    if (pg_proc_.GetProcOid(txn, common::ManagedPointer(this), procns, procname, arg_types) != INVALID_PROC_OID) {
+      result->push_back(arg_types);
+    }
+    return;
+  }
+
+  // Handle the case where an untyped NULL is passed as an argument to the function;
+  // in this case, we enumerate all possible combinations of types for the NULL argument
+
+  // TODO(Kyle): This is a brittle hack
+  for (int8_t type_value = static_cast<int8_t>(execution::sql::SqlTypeId::Boolean);
+       type_value <= static_cast<int8_t>(execution::sql::SqlTypeId::Varbinary); ++type_value) {
+    const execution::sql::SqlTypeId type = static_cast<execution::sql::SqlTypeId>(type_value);
+    // Recursively invoke this function; there may be further untyped NULLs
+    ResolveProcArgumentTypes(txn, procns, procname, ReplaceFirstUntypedNullWith(arg_types, type), result);
+  }
 }
 
 template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
   return pg_core_.SetClassPointer(txn, oid, pointer, class_col);
+}
+
+bool DatabaseCatalog::ContainsUntypedNull(const std::vector<type_oid_t> &arg_types) const {
+  const type_oid_t null_oid = GetTypeOidForType(execution::sql::SqlTypeId::Invalid);
+  return std::any_of(arg_types.cbegin(), arg_types.cend(), [null_oid](const type_oid_t t) { return t == null_oid; });
+}
+
+std::vector<type_oid_t> DatabaseCatalog::ReplaceFirstUntypedNullWith(const std::vector<type_oid_t> &arg_types,
+                                                                     execution::sql::SqlTypeId type) const {
+  NOISEPAGE_ASSERT(ContainsUntypedNull(arg_types), "Broken precondition");
+  const type_oid_t null_oid = GetTypeOidForType(execution::sql::SqlTypeId::Invalid);
+  auto it = std::find(arg_types.cbegin(), arg_types.cend(), null_oid);
+  NOISEPAGE_ASSERT(it != arg_types.cend(), "Broken invariant");
+  const std::size_t index = std::distance(arg_types.cbegin(), it);
+
+  // Manually construct the modified vector
+  std::vector<type_oid_t> modified{};
+  modified.reserve(arg_types.size());
+  for (std::size_t i = 0; i < arg_types.size(); ++i) {
+    if (i == index) {
+      modified.push_back(GetTypeOidForType(type));
+    } else {
+      modified.push_back(arg_types.at(i));
+    }
+  }
+  return modified;
 }
 
 // Template instantiations.

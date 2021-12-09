@@ -8,8 +8,8 @@ namespace noisepage::execution::ast {
 // Function Declaration
 // ---------------------------------------------------------
 
-FunctionDecl::FunctionDecl(const SourcePosition &pos, Identifier name, FunctionLitExpr *func)
-    : Decl(Kind::FunctionDecl, pos, name, func->TypeRepr()), func_(func) {}
+FunctionDecl::FunctionDecl(const SourcePosition &pos, Identifier name, FunctionLitExpr *func, bool is_lambda)
+    : Decl(Kind::FunctionDecl, pos, name, func->TypeRepr()), func_(func), is_lambda_(is_lambda) {}
 
 // ---------------------------------------------------------
 // Structure Declaration
@@ -90,8 +90,8 @@ bool ComparisonOpExpr::IsLiteralCompareNil(Expr **result) const {
 // Function Literal Expressions
 // ---------------------------------------------------------
 
-FunctionLitExpr::FunctionLitExpr(FunctionTypeRepr *type_repr, BlockStmt *body)
-    : Expr(Kind::FunctionLitExpr, type_repr->Position()), type_repr_(type_repr), body_(body) {}
+FunctionLitExpr::FunctionLitExpr(FunctionTypeRepr *type_repr, BlockStmt *body, bool is_lambda)
+    : Expr(Kind::FunctionLitExpr, type_repr->Position()), type_repr_(type_repr), body_(body), is_lambda_(is_lambda) {}
 
 // ---------------------------------------------------------
 // Call Expression

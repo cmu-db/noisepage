@@ -34,6 +34,7 @@ namespace noisepage::execution::ast {
   /* SQL Functions */                                                   \
   F(Like, like)                                                         \
   F(DatePart, datePart)                                                 \
+  F(Random, random)                                                     \
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \
@@ -349,6 +350,18 @@ namespace noisepage::execution::ast {
   F(GetParamDate, getParamDate)                                         \
   F(GetParamTimestamp, getParamTimestamp)                               \
   F(GetParamString, getParamString)                                     \
+  F(StartNewParams, startNewParams)                                     \
+  F(FinishNewParams, finishNewParams)                                   \
+  F(AddParamBool, addParamBool)                                         \
+  F(AddParamTinyInt, addParamTinyInt)                                   \
+  F(AddParamSmallInt, addParamSmallInt)                                 \
+  F(AddParamInt, addParamInt)                                           \
+  F(AddParamBigInt, addParamBigInt)                                     \
+  F(AddParamReal, addParamReal)                                         \
+  F(AddParamDouble, addParamDouble)                                     \
+  F(AddParamDate, addParamDate)                                         \
+  F(AddParamTimestamp, addParamTimestamp)                               \
+  F(AddParamString, addParamString)                                     \
                                                                         \
   /* String functions */                                                \
   F(Lower, lower)                                                       \

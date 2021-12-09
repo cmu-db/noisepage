@@ -10,9 +10,9 @@
 
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
+#include "execution/vm/execution_mode.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module_metadata.h"
-#include "execution/vm/vm_defs.h"
 
 namespace noisepage::execution::vm {
 
@@ -62,7 +62,7 @@ class Module {
   /**
    * Look up a TPL function in this module by its name
    * @param name The name of the function to lookup
-   * @return A pointer to the function's info if it exists; null otherwise
+   * @return A pointer to the function's info if it exists; `nullptr` otherwise
    */
   const FunctionInfo *GetFuncInfoByName(const std::string &name) const {
     return bytecode_module_->LookupFuncInfoByName(name);

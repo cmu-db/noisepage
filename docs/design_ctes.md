@@ -1,8 +1,14 @@
-# Discussion Doc: Common Table Expression Implementation
+# Design Doc: Common Table Expressions
+
+### Overview
 
 This document provides an overview of some of the important features of our implementation of common table expressions (CTEs).
 
-## Known Limitations
+### Design
+
+TODO(Kyle): Fill this in.
+
+### Limitations
 
 Our current implementation of CTEs suffers from some known limitations which limits the queries we are able to execute. This section provides a comprehensive overview of the queries on which the system currently fails, a best-estimate of the underlying reason for the failure, and what might be required to address it.
 

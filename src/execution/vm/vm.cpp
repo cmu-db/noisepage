@@ -413,6 +413,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_ASSIGN(int64_t, 8);
 #undef GEN_ASSIGN
 
+  OP(AssignN) : {
+    auto *dest = frame->LocalAt<byte *>(READ_LOCAL_ID());
+    auto *src = frame->LocalAt<byte *>(READ_LOCAL_ID());
+    auto len = READ_UIMM4();
+    OpAssignN(dest, src, len);
+    DISPATCH_NEXT();
+  }
+
   OP(AssignImm4F) : {
     auto *dest = frame->LocalAt<float *>(READ_LOCAL_ID());
     OpAssignImm4F(dest, READ_IMM4F());
@@ -2328,6 +2336,38 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_PARAM_GET(String, StringVal)
 #undef GEN_PARAM_GET
 
+#define GEN_PARAM_ADD(Name, SqlType)                                            \
+  OP(AddParam##Name) : {                                                        \
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID()); \
+    auto *ret = frame->LocalAt<sql::SqlType *>(READ_LOCAL_ID());                \
+    OpAddParam##Name(exec_ctx, ret);                                            \
+    DISPATCH_NEXT();                                                            \
+  }
+
+  GEN_PARAM_ADD(Bool, BoolVal)
+  GEN_PARAM_ADD(TinyInt, Integer)
+  GEN_PARAM_ADD(SmallInt, Integer)
+  GEN_PARAM_ADD(Int, Integer)
+  GEN_PARAM_ADD(BigInt, Integer)
+  GEN_PARAM_ADD(Real, Real)
+  GEN_PARAM_ADD(Double, Real)
+  GEN_PARAM_ADD(DateVal, DateVal)
+  GEN_PARAM_ADD(TimestampVal, TimestampVal)
+  GEN_PARAM_ADD(String, StringVal)
+#undef GEN_PARAM_ADD
+
+  OP(StartNewParams) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpStartNewParams(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(FinishParams) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpFinishParams(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Trig functions
   // -------------------------------------------------------
@@ -2753,6 +2793,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(Random) : {
+    auto *result = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
+    OpRandom(result);
+    DISPATCH_NEXT();
+  }
+
   OP(InitCap) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
@@ -2794,7 +2840,7 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
     const LocalVar param = LocalVar::Decode(READ_LOCAL_ID());
     const void *param_ptr = caller->PtrToLocalAt(param);
     if (param.GetAddressMode() == LocalVar::AddressMode::Address) {
-      std::memcpy(raw_frame + param_info.GetOffset(), &param_ptr, param_info.GetSize());
+      std::memcpy(raw_frame + param_info.GetOffset(), &param_ptr, sizeof(void *));
     } else {
       std::memcpy(raw_frame + param_info.GetOffset(), param_ptr, param_info.GetSize());
     }

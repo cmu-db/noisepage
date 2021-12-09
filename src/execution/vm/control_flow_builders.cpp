@@ -40,6 +40,11 @@ void LoopBuilder::BindContinueTarget() {
   GetGenerator()->GetEmitter()->Bind(GetContinueLabel());
 }
 
+LoopBuilder *LoopBuilder::GetPrevLoop() const {
+  NOISEPAGE_ASSERT(prev_loop_ != nullptr, "Attempt to access a non-existent outer loop");
+  return prev_loop_;
+}
+
 // ---------------------------------------------------------
 // If-Then-Else Builders
 // ---------------------------------------------------------

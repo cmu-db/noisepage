@@ -9,13 +9,9 @@
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
 
-// TODO(WAN): this file is messy
-namespace noisepage {
-namespace parser {
+namespace noisepage::parser {
 /** Base function parameter. */
 struct BaseFunctionParameter {
-  // TODO(WAN): there used to be a FuncParamMode that was never used?
-
   /** Parameter data types. */
   enum class DataType {
     INT,
@@ -30,7 +26,8 @@ struct BaseFunctionParameter {
     VARCHAR,
     TEXT,
     BOOL,
-    BOOLEAN
+    BOOLEAN,
+    DATE
   };
 
   /** @param datatype data type of the parameter */
@@ -40,6 +37,44 @@ struct BaseFunctionParameter {
 
   /** @return data type of the parameter */
   DataType GetDataType() { return datatype_; }
+
+  /** @return internal type id of the parameter */
+  static execution::sql::SqlTypeId DataTypeToTypeId(DataType datatype) {
+    switch (datatype) {
+      case DataType::INT:
+        return execution::sql::SqlTypeId::Integer;
+      case DataType::INTEGER:
+        return execution::sql::SqlTypeId::Integer;
+      case DataType::TINYINT:
+        return execution::sql::SqlTypeId::TinyInt;
+      case DataType::SMALLINT:
+        return execution::sql::SqlTypeId::SmallInt;
+      case DataType::BIGINT:
+        return execution::sql::SqlTypeId::BigInt;
+      case DataType::CHAR:
+        return execution::sql::SqlTypeId::Invalid;
+      case DataType::FLOAT:
+        // NOTE(Kyle): The "regular" SQL frontend automatically
+        // promotes FLOAT / REAL to DOUBLE PRECISION / FLOAT8;
+        // we do the same here to remain consistent
+        return execution::sql::SqlTypeId::Double;
+      case DataType::DOUBLE:
+        return execution::sql::SqlTypeId::Double;
+      case DataType::DECIMAL:
+        return execution::sql::SqlTypeId::Decimal;
+      case DataType::VARCHAR:
+        return execution::sql::SqlTypeId::Varchar;
+      case DataType::TEXT:
+        return execution::sql::SqlTypeId::Varchar;
+      case DataType::BOOL:
+        return execution::sql::SqlTypeId::Boolean;
+      case DataType::BOOLEAN:
+        return execution::sql::SqlTypeId::Boolean;
+      case DataType::DATE:
+        return execution::sql::SqlTypeId::Date;
+    }
+    return execution::sql::SqlTypeId::Invalid;
+  }
 
  private:
   const DataType datatype_;
@@ -98,29 +133,19 @@ class CreateFunctionStatement : public SQLStatement {
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
-  /**
-   * @return true if this function should replace existing definitions
-   */
+  /** @return `true` if this function should replace existing definitions */
   bool ShouldReplace() { return replace_; }
 
-  /**
-   * @return function name
-   */
+  /** @return The function name */
   std::string GetFuncName() { return func_name_; }
 
-  /**
-   * @return return type
-   */
+  /** @return The function return type */
   common::ManagedPointer<ReturnType> GetFuncReturnType() { return common::ManagedPointer(return_type_); }
 
-  /**
-   * @return function body
-   */
+  /** @return The function body */
   std::vector<std::string> GetFuncBody() { return func_body_; }
 
-  /**
-   * @return function parameters
-   */
+  /** @return The function parameters */
   std::vector<common::ManagedPointer<FuncParameter>> GetFuncParameters() {
     std::vector<common::ManagedPointer<FuncParameter>> params;
     params.reserve(func_parameters_.size());
@@ -130,14 +155,10 @@ class CreateFunctionStatement : public SQLStatement {
     return params;
   }
 
-  /**
-   * @return programming language type
-   */
+  /** @return The programming language type */
   PLType GetPLType() { return pl_type_; }
 
-  /**
-   * @return as type (executable or query string)
-   */
+  /** @return As type (executable or query string) */
   AsType GetAsType() { return as_type_; }
 
  private:
@@ -150,5 +171,4 @@ class CreateFunctionStatement : public SQLStatement {
   const AsType as_type_;
 };
 
-}  // namespace parser
-}  // namespace noisepage
+}  // namespace noisepage::parser

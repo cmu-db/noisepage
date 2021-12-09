@@ -5,7 +5,6 @@
 #include "execution/sql/value.h"
 #include "metrics/metrics_manager.h"
 #include "metrics/metrics_store.h"
-#include "parser/expression/constant_value_expression.h"
 #include "replication/primary_replication_manager.h"
 #include "self_driving/modeling/operating_unit.h"
 #include "self_driving/modeling/operating_unit_util.h"
@@ -15,18 +14,19 @@
 namespace noisepage::execution::exec {
 
 OutputBuffer *ExecutionContext::OutputBufferNew() {
-  if (schema_ == nullptr) {
+  if (output_schema_ == nullptr) {
     return nullptr;
   }
 
   // Use C++ placement new
   auto size = sizeof(OutputBuffer);
   auto *buffer = reinterpret_cast<OutputBuffer *>(mem_pool_->Allocate(size));
-  new (buffer) OutputBuffer(mem_pool_.get(), schema_->GetColumns().size(), ComputeTupleSize(schema_), callback_);
+  new (buffer) OutputBuffer(mem_pool_.get(), output_schema_->GetColumns().size(), ComputeTupleSize(output_schema_),
+                            output_callback_);
   return buffer;
 }
 
-uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
+uint32_t ExecutionContext::ComputeTupleSize(common::ManagedPointer<const planner::OutputSchema> schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {
     auto alignment = sql::ValUtil::GetSqlAlignment(col.GetType());
@@ -106,7 +106,8 @@ void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
     common::thread_context.resource_tracker_.Stop();
     common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
     const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-    common::thread_context.metrics_store_->RecordExecutionData(name, len, execution_mode_, resource_metrics);
+    common::thread_context.metrics_store_->RecordExecutionData(name, len, static_cast<uint8_t>(execution_mode_),
+                                                               resource_metrics);
   }
 }
 
@@ -147,8 +148,8 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     NOISEPAGE_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
     selfdriving::ExecutionOperatingUnitFeatureVector features(ouvec->pipeline_features_->begin(),
                                                               ouvec->pipeline_features_->end());
-    common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,
-                                                              std::move(features), resource_metrics);
+    common::thread_context.metrics_store_->RecordPipelineData(
+        query_id, pipeline_id, static_cast<uint8_t>(execution_mode_), std::move(features), resource_metrics);
   }
 }
 
@@ -217,10 +218,6 @@ void ExecutionContext::InitializeParallelOUFeatureVector(selfdriving::ExecOUFeat
   for (auto &feature : *vec->pipeline_features_) {
     feature.SetNumConcurrent(num_concurrent_estimate_);
   }
-}
-
-const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t param_idx) const {
-  return (*params_)[param_idx];
 }
 
 void ExecutionContext::RegisterHook(size_t hook_idx, HookFn hook) {

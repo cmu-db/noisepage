@@ -44,6 +44,18 @@ ast::Expr *OperatorTranslator::GetOutput(WorkContext *context, uint32_t attr_idx
   return context->DeriveValue(*output_expression, this);
 }
 
+void OperatorTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
+  for (const auto &output_column : GetPlan().GetOutputSchema()->GetColumns()) {
+    GetCompilationContext()->LookupTranslator(*output_column.GetExpr())->DefineHelperFunctions(decls);
+  }
+}
+
+void OperatorTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
+  for (const auto &output_column : GetPlan().GetOutputSchema()->GetColumns()) {
+    GetCompilationContext()->LookupTranslator(*output_column.GetExpr())->DefineHelperStructs(decls);
+  }
+}
+
 ast::Expr *OperatorTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {
   // Check valid child.
   if (child_idx >= plan_.GetChildrenSize()) {
@@ -74,6 +86,18 @@ ast::Expr *OperatorTranslator::GetThreadStateContainer() const {
 
 ast::Expr *OperatorTranslator::GetMemoryPool() const {
   return GetCodeGen()->ExecCtxGetMemoryPool(GetExecutionContext());
+}
+
+ast::Identifier OperatorTranslator::MakeLocalIdentifier(std::string_view name) const {
+  const auto identifier = fmt::format("{}", name);
+  return GetCodeGen()->MakeFreshIdentifier(identifier);
+}
+
+ast::Identifier OperatorTranslator::MakeGlobalIdentifier(std::string_view name) const {
+  const auto identifier = GetCompilationContext()->HasOutputCallback()
+                              ? fmt::format("{}{}", GetCompilationContext()->GetFunctionPrefix(), name)
+                              : fmt::format("{}", name);
+  return GetCodeGen()->MakeFreshIdentifier(identifier);
 }
 
 void OperatorTranslator::GetAllChildOutputFields(const uint32_t child_index, const std::string &field_name_prefix,

@@ -196,6 +196,11 @@ class CodeGen {
   [[nodiscard]] ast::Expr *Float64Type() const;
 
   /**
+   * @return The type representation for a TPL lambda.
+   */
+  [[nodiscard]] ast::Expr *LambdaType(ast::Expr *fn_type);
+
+  /**
    * @return The type representation for the provided builtin type.
    */
   [[nodiscard]] ast::Expr *BuiltinType(ast::BuiltinType::Kind builtin_kind) const;
@@ -410,6 +415,12 @@ class CodeGen {
    * @return An expression accessing the desired struct member.
    */
   [[nodiscard]] ast::Expr *AccessStructMember(ast::Expr *object, ast::Identifier member);
+
+  /**
+   * Create a break statement.
+   * @return The statement.
+   */
+  [[nodiscard]] ast::Stmt *Break();
 
   /**
    * Create a return statement without a return value.

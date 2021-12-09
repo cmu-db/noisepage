@@ -1213,6 +1213,35 @@ bool LogicalDropView::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalDropFunction
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LogicalDropFunction::Copy() const { return new LogicalDropFunction(*this); }
+
+Operator LogicalDropFunction::Make(catalog::db_oid_t database_oid, catalog::proc_oid_t proc_oid, bool if_exists) {
+  auto *op = new LogicalDropFunction();
+  op->database_oid_ = database_oid;
+  op->proc_oid_ = proc_oid;
+  op->if_exists_ = if_exists;
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
+}
+
+common::hash_t LogicalDropFunction::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(proc_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+  return hash;
+}
+
+bool LogicalDropFunction::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetOpType() != OpType::LOGICALDROPFUNCTION) return false;
+  const LogicalDropFunction &node = *dynamic_cast<const LogicalDropFunction *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (proc_oid_ == node.proc_oid_) return false;
+  return if_exists_ == node.if_exists_;
+}
+
+//===--------------------------------------------------------------------===//
 // LogicalAnalyze
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalAnalyze::Copy() const { return new LogicalAnalyze(*this); }
@@ -1385,6 +1414,8 @@ const char *OperatorNodeContents<LogicalDropTrigger>::name = "LogicalDropTrigger
 template <>
 const char *OperatorNodeContents<LogicalDropView>::name = "LogicalDropView";
 template <>
+const char *OperatorNodeContents<LogicalDropFunction>::name = "LogicalDropFunction";
+template <>
 const char *OperatorNodeContents<LogicalAnalyze>::name = "LogicalAnalyze";
 template <>
 const char *OperatorNodeContents<LogicalCteScan>::name = "LogicalCteScan";
@@ -1460,6 +1491,8 @@ template <>
 OpType OperatorNodeContents<LogicalDropTrigger>::type = OpType::LOGICALDROPTRIGGER;
 template <>
 OpType OperatorNodeContents<LogicalDropView>::type = OpType::LOGICALDROPVIEW;
+template <>
+OpType OperatorNodeContents<LogicalDropFunction>::type = OpType::LOGICALDROPFUNCTION;
 template <>
 OpType OperatorNodeContents<LogicalAnalyze>::type = OpType::LOGICALANALYZE;
 template <>

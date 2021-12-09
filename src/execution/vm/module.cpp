@@ -51,8 +51,8 @@ Module::Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<
       bytecode_trampolines_(std::make_unique<Trampoline[]>(bytecode_module_->GetFunctionCount())),
       metadata_(std::move(metadata)) {
   // Create the trampolines for all bytecode functions
-  for (const auto &func : bytecode_module_->GetFunctionsInfo()) {
-    CreateFunctionTrampoline(func.GetId());
+  for (const auto *func : bytecode_module_->GetFunctionsInfo()) {
+    CreateFunctionTrampoline(func->GetId());
   }
 
   // If a compiled module wasn't provided, all internal function stubs point to
@@ -280,10 +280,10 @@ void Module::CompileToMachineCode() {
     // JIT completed successfully. For each function in the module, pull out its
     // compiled implementation into the function cache, atomically replacing any
     // previous implementation.
-    for (const auto &func_info : bytecode_module_->GetFunctionsInfo()) {
-      auto *jit_function = jit_module_->GetFunctionPointer(func_info.GetName());
-      NOISEPAGE_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
-      functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
+    for (const auto *func_info : bytecode_module_->GetFunctionsInfo()) {
+      auto *jit_function = jit_module_->GetFunctionPointer(func_info->GetName());
+      NOISEPAGE_ASSERT(jit_function != nullptr, "Function not found!");
+      functions_[func_info->GetId()].store(jit_function, std::memory_order_relaxed);
     }
   });
 }

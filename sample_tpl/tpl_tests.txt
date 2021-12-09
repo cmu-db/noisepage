@@ -10,6 +10,11 @@ array.tpl,false,44
 array-iterate.tpl,false,110
 array-iterate-2.tpl,false,110
 call.tpl,false,70
+closure0.tpl,false,2
+closure1.tpl,false,3
+closure2.tpl,false,6
+closure3.tpl,false,2
+closure4.tpl,false,8
 comments.tpl,false,46
 compare.tpl,false,200
 date-functions.tpl,false,0

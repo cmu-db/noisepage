@@ -8,9 +8,9 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/sql/ddl_executors.h"
-#include "execution/vm/vm_defs.h"
+#include "execution/vm/execution_mode.h"
 #include "loggers/common_logger.h"
 #include "metrics/metrics_manager.h"
 #include "network/network_defs.h"
@@ -190,7 +190,7 @@ bool QueryExecUtil::ExecuteDDL(const std::string &query, bool what_if) {
           // has run. We can't compile the query before the CreateIndexExecutor because codegen would have
           // no idea which index to insert into.
           execution::exec::ExecutionSettings settings{};
-          common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
+          const auto schema = out_plan->GetOutputSchema();
           auto exec_query = execution::compiler::CompilationContext::Compile(
               *out_plan, settings, accessor.get(), execution::compiler::CompilationMode::OneShot, std::nullopt,
               statement->OptimizeResult()->GetPlanMetaData());
@@ -236,8 +236,7 @@ bool QueryExecUtil::CompileQuery(const std::string &statement,
 
   const common::ManagedPointer<planner::AbstractPlanNode> out_plan = result->OptimizeResult()->GetPlanNode();
   NOISEPAGE_ASSERT(network::NetworkUtil::DMLQueryType(result->GetQueryType()), "ExecuteDML expects DML");
-  common::ManagedPointer<planner::OutputSchema> schema = out_plan->GetOutputSchema();
-
+  const auto schema = out_plan->GetOutputSchema();
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *out_plan, exec_settings, accessor.get(), execution::compiler::CompilationMode::OneShot, override_qid,
       result->OptimizeResult()->GetPlanMetaData());
@@ -254,7 +253,7 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
   NOISEPAGE_ASSERT(txn_ != nullptr, "Requires BeginTransaction() or UseTransaction()");
   ResetError();
   auto txn = common::ManagedPointer<transaction::TransactionContext>(txn_);
-  planner::OutputSchema *schema = schemas_[statement].get();
+  const planner::OutputSchema *schema = schemas_[statement].get();
 
   std::mutex sync_mutex;
   auto consumer = [&tuple_fn, &sync_mutex, schema](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
@@ -282,12 +281,27 @@ bool QueryExecUtil::ExecuteQuery(const std::string &statement, TupleFunction tup
   // TODO(wz2): May want to thread the replication manager or recovery manager through
   execution::exec::OutputCallback callback = consumer;
   auto accessor = catalog_->GetAccessor(txn, db_oid_, DISABLED);
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, txn, callback, schema, common::ManagedPointer(accessor), exec_settings, metrics, DISABLED, DISABLED);
 
-  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(params.Get()));
+  // TODO(Kyle): Making this copy is far from ideal...
+  const std::vector<parser::ConstantValueExpression> query_parameters =
+      static_cast<bool>(params) ? *params : std::vector<parser::ConstantValueExpression>{};
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithExecutionSettings(exec_settings)
+                      .WithTxnContext(txn)
+                      .WithOutputSchema(common::ManagedPointer{schema})
+                      .WithOutputCallback(std::move(callback))
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(metrics)
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .WithQueryParametersFrom(query_parameters)
+                      .Build();
 
   NOISEPAGE_ASSERT(!txn->MustAbort(), "Transaction should not be in must-abort state prior to executing");
+  // TODO(Kyle): Right now it looks like the QueryExecUtil always runs queries in interpreted
+  // execution mode, regardless of how the setting is updated throughout the rest of the system,
+  // is this the intended behavior..? (unlikely)
   exec_queries_[statement]->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   if (txn->MustAbort()) {
     // Return false to indicate that the query encountered a runtime error.

@@ -14,7 +14,7 @@
 #include "common/error/exception.h"
 #include "common/thread_context.h"
 #include "execution/compiler/compilation_context.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
 #include "execution/sql/ddl_executors.h"
@@ -36,10 +36,12 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
+#include "planner/plannodes/create_function_plan_node.h"
 #include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/create_namespace_plan_node.h"
 #include "planner/plannodes/create_table_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_function_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
@@ -219,7 +221,7 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
     return {ResultType::ERROR, error};
   }
 
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 TrafficCopResult TrafficCop::ExecuteShowStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -245,7 +247,7 @@ TrafficCopResult TrafficCop::ExecuteShowStatement(common::ManagedPointer<network
   execution::sql::StringVal result{param_val.c_str()};
 
   out->WriteDataRow(reinterpret_cast<const byte *>(&result), cols, {network::FieldFormat::text});
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 TrafficCopResult TrafficCop::ExecuteCreateStatement(
@@ -257,35 +259,44 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
   NOISEPAGE_ASSERT(
       query_type == network::QueryType::QUERY_CREATE_TABLE || query_type == network::QueryType::QUERY_CREATE_SCHEMA ||
           query_type == network::QueryType::QUERY_CREATE_INDEX || query_type == network::QueryType::QUERY_CREATE_DB ||
-          query_type == network::QueryType::QUERY_CREATE_VIEW || query_type == network::QueryType::QUERY_CREATE_TRIGGER,
+          query_type == network::QueryType::QUERY_CREATE_VIEW ||
+          query_type == network::QueryType::QUERY_CREATE_TRIGGER ||
+          query_type == network::QueryType::QUERY_CREATE_FUNCTION,
       "ExecuteCreateStatement called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_CREATE_TABLE: {
       if (execution::sql::DDLExecutors::CreateTableExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_DB: {
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
+      }
+      break;
+    }
+    case network::QueryType::QUERY_CREATE_FUNCTION: {
+      if (execution::sql::DDLExecutors::CreateFunctionExecutor(
+              physical_plan.CastManagedPointerTo<planner::CreateFunctionPlanNode>(), connection_ctx->Accessor())) {
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
@@ -311,13 +322,14 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
   NOISEPAGE_ASSERT(
       query_type == network::QueryType::QUERY_DROP_TABLE || query_type == network::QueryType::QUERY_DROP_SCHEMA ||
           query_type == network::QueryType::QUERY_DROP_INDEX || query_type == network::QueryType::QUERY_DROP_DB ||
-          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER,
+          query_type == network::QueryType::QUERY_DROP_VIEW || query_type == network::QueryType::QUERY_DROP_TRIGGER ||
+          query_type == network::QueryType::QUERY_DROP_FUNCTION,
       "ExecuteDropStatement called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_DROP_TABLE: {
       if (execution::sql::DDLExecutors::DropTableExecutor(
               physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
@@ -325,21 +337,28 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_INDEX: {
       if (execution::sql::DDLExecutors::DropIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0u};
+        return {ResultType::COMPLETE, 0U};
+      }
+      break;
+    }
+    case network::QueryType::QUERY_DROP_FUNCTION: {
+      if (execution::sql::DDLExecutors::DropFunctionExecutor(
+              physical_plan.CastManagedPointerTo<planner::DropFunctionPlanNode>(), connection_ctx->Accessor())) {
+        return {ResultType::COMPLETE, 0U};
       }
       break;
     }
@@ -399,7 +418,7 @@ TrafficCopResult TrafficCop::ExecuteExplainStatement(
   out->WriteDataRow(reinterpret_cast<const byte *const>(&plan_string_val), output_columns,
                     {network::FieldFormat::text});
 
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> TrafficCop::ParseQuery(
@@ -456,7 +475,7 @@ TrafficCopResult TrafficCop::BindQuery(
     return {ResultType::ERROR, error};
   }
 
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 TrafficCopResult TrafficCop::CodegenPhysicalPlan(
@@ -483,7 +502,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
-    return {ResultType::COMPLETE, 0u};
+    return {ResultType::COMPLETE, 0U};
   }
 
   // TODO(WAN): see #1047
@@ -521,7 +540,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
-  return {ResultType::COMPLETE, 0u};
+  return {ResultType::COMPLETE, 0U};
 }
 
 TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -584,11 +603,18 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     metrics = common::thread_context.metrics_store_->MetricsManager();
   }
 
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), exec_settings, metrics, replication_manager_, recovery_manager_);
-
-  exec_ctx->SetParams(portal->Parameters());
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(connection_ctx->GetDatabaseOid())
+                      .WithExecutionSettings(exec_settings)
+                      .WithTxnContext(connection_ctx->Transaction())
+                      .WithOutputSchema(physical_plan->GetOutputSchema())
+                      .WithOutputCallback(std::move(callback))
+                      .WithCatalogAccessor(connection_ctx->Accessor())
+                      .WithMetricsManager(metrics)
+                      .WithReplicationManager(replication_manager_)
+                      .WithRecoveryManager(recovery_manager_)
+                      .WithQueryParametersFrom(*portal->Parameters())
+                      .Build();
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 

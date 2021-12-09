@@ -272,8 +272,12 @@ std::string SqlTypeIdToString(SqlTypeId type) {
       return "Integer";
     case SqlTypeId::BigInt:
       return "BigInt";
+    case SqlTypeId::Real:
+      return "Real";
     case SqlTypeId::Double:
       return "Double";
+    case SqlTypeId::Decimal:
+      return "Decimal";
     case SqlTypeId::Date:
       return "Date";
     case SqlTypeId::Timestamp:
@@ -282,6 +286,8 @@ std::string SqlTypeIdToString(SqlTypeId type) {
       return "Varchar";
     case SqlTypeId::Varbinary:
       return "Varbinary";
+    case SqlTypeId::Invalid:
+      return "Invalid";
     default:
       // All cases handled
       UNREACHABLE("Impossible type");
@@ -329,8 +335,7 @@ SqlTypeId SqlTypeIdFromString(const std::string &type_string) {
 }
 
 TypeId GetTypeId(SqlTypeId frontend_type) {
-  execution::sql::TypeId execution_type_id;
-
+  TypeId execution_type_id;
   switch (frontend_type) {
     case SqlTypeId::Boolean:
       execution_type_id = execution::sql::TypeId::Boolean;
@@ -346,6 +351,9 @@ TypeId GetTypeId(SqlTypeId frontend_type) {
       break;
     case SqlTypeId::BigInt:
       execution_type_id = execution::sql::TypeId::BigInt;
+      break;
+    case SqlTypeId::Real:
+      execution_type_id = execution::sql::TypeId::Float;
       break;
     case SqlTypeId::Double:
       execution_type_id = execution::sql::TypeId::Double;

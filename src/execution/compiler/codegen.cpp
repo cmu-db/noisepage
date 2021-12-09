@@ -194,6 +194,10 @@ ast::Expr *CodeGen::Float32Type() const { return BuiltinType(ast::BuiltinType::F
 
 ast::Expr *CodeGen::Float64Type() const { return BuiltinType(ast::BuiltinType::Float64); }
 
+ast::Expr *CodeGen::LambdaType(ast::Expr *fn_type) {
+  return context_->GetNodeFactory()->NewLambdaType(position_, fn_type);
+}
+
 ast::Expr *CodeGen::PointerType(ast::Expr *base_type_repr) const {
   // Create the type representation
   auto *type_repr = context_->GetNodeFactory()->NewPointerType(position_, base_type_repr);
@@ -365,6 +369,12 @@ ast::Expr *CodeGen::UnaryOp(parsing::Token::Type op, ast::Expr *input) const {
 
 ast::Expr *CodeGen::AccessStructMember(ast::Expr *object, ast::Identifier member) {
   return context_->GetNodeFactory()->NewMemberExpr(position_, object, MakeExpr(member));
+}
+
+ast::Stmt *CodeGen::Break() {
+  ast::Stmt *break_stmt = context_->GetNodeFactory()->NewBreakStmt(position_);
+  NewLine();
+  return break_stmt;
 }
 
 ast::Stmt *CodeGen::Return() { return Return(nullptr); }

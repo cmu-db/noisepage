@@ -355,7 +355,7 @@ class SelectStatement : public SQLStatement {
   std::unique_ptr<SelectStatement> Copy();
 
   /** @return The columns targeted by SELECT */
-  const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() { return select_; }
+  const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() const { return select_; }
 
   /** @return `true` if "SELECT DISTINCT", `false` otherwise */
   bool IsSelectDistinct() const { return select_distinct_; }
@@ -462,7 +462,7 @@ class SelectStatement : public SQLStatement {
   // The depth of the SELECT statement
   int depth_{-1};
 
-  // A colletion of the temporary tables (CTEs) available to this SELECT
+  // A collection of the temporary tables (CTEs) available to this SELECT
   std::vector<std::unique_ptr<TableRef>> with_table_;
 
   /** @param select List of SELECT columns */

@@ -70,8 +70,7 @@ T ConstantValueExpression::Peek() const {
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
-                std::is_same_v<T, int64_t>) {  // NOLINT: bugprone-suspicious-semicolon: seems like a false positive
-    // because of constexpr
+                std::is_same_v<T, int64_t>) {  // NOLINT
     return static_cast<T>(GetInteger().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
@@ -103,6 +102,13 @@ T ConstantValueExpression::Peek() const {
   UNREACHABLE("Invalid type for Peek.");
 }
 
+const execution::sql::Val *ConstantValueExpression::SqlValue() const {
+  // TODO(Kyle): This solution is a bit hacky, we might want to
+  // consider revisiting (no pun intended) the way that we manage
+  // parameters provided to the execution context to resolve
+  return std::visit([](auto &&val) { return static_cast<const execution::sql::Val *>(&val); }, value_);
+}
+
 ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueExpression &other) {
   if (this != &other) {  // self-assignment check expected
     // AbstractExpression fields we need copied over
@@ -130,7 +136,6 @@ ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueE
 ConstantValueExpression::ConstantValueExpression(const ConstantValueExpression &other) : AbstractExpression(other) {
   if (std::holds_alternative<execution::sql::StringVal>(other.value_)) {
     auto string_val = execution::sql::ValueUtil::CreateStringVal(other.GetStringVal());
-
     value_ = string_val.first;
     buffer_ = std::move(string_val.second);
   } else {

@@ -67,9 +67,15 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   class RValueResultScope;
   class BytecodePositionScope;
 
-  // Allocate a new function ID
-  FunctionInfo *AllocateFunc(const std::string &func_name, ast::FunctionType *func_type);
+  /**
+   * Allocate a new function.
+   * @param function_name The function name
+   * @param function_type The function type
+   * @return A non-owning pointer to the allocated function
+   */
+  FunctionInfo *AllocateFunction(const std::string &function_name, ast::FunctionType *function_type);
 
+  // Visit a transaction abort call expression
   void VisitAbortTxn(ast::CallExpr *call);
 
   // ONLY FOR TESTING!
@@ -82,6 +88,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void VisitNullValueCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitSqlStringLikeCall(ast::CallExpr *call);
   void VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinRandomFunctionCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinTableIterParallelCall(ast::CallExpr *call);
   void VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin);
@@ -156,6 +163,9 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void VisitExpressionForTest(ast::Expr *expr, BytecodeLabel *then_label, BytecodeLabel *else_label,
                               TestFallthrough fallthrough);
 
+  // Visit the body of a break statement
+  void VisitBreakStatement(ast::BreakStmt *break_stmt);
+
   // Visit the body of an iteration statement
   void VisitIterationStatement(ast::IterationStmt *iteration, LoopBuilder *loop_builder);
 
@@ -187,7 +197,9 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void SetExecutionResult(ExpressionResultScope *exec_result) { execution_result_ = exec_result; }
 
   // Access the current function that's being generated. May be NULL.
-  FunctionInfo *GetCurrentFunction() { return &functions_.back(); }
+  FunctionInfo *GetCurrentFunction() { return functions_[current_fn_].get(); }
+
+  void EnterFunction(FunctionId id) { current_fn_ = id; }
 
  private:
   // The data section of the module
@@ -202,16 +214,23 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   std::unordered_map<ast::Identifier, LocalVar> static_string_cache_;
 
   // Information about all generated functions
-  std::vector<FunctionInfo> functions_;
+  std::vector<std::unique_ptr<FunctionInfo>> functions_;
+
+  // The ID of the current function.
+  FunctionId current_fn_{0};
 
   // Cache of function names to IDs for faster lookup
   std::unordered_map<std::string, FunctionId> func_map_;
+  std::unordered_map<std::string, std::vector<std::function<void(FunctionId)>>> deferred_function_create_actions_;
 
   // Emitter to write bytecode into the code section
   BytecodeEmitter emitter_;
 
   // RAII struct to capture semantics of expression evaluation
   ExpressionResultScope *execution_result_{nullptr};
+
+  // The loop builder for the current loop.
+  LoopBuilder *current_loop_{nullptr};
 };
 
 }  // namespace noisepage::execution::vm

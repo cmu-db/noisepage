@@ -11,8 +11,10 @@ class CreateNamespacePlanNode;
 class CreateTablePlanNode;
 class CreateIndexPlanNode;
 class CreateViewPlanNode;
+class CreateFunctionPlanNode;
 class DropDatabasePlanNode;
 class DropNamespacePlanNode;
+class DropFunctionPlanNode;
 class DropTablePlanNode;
 class DropIndexPlanNode;
 }  // namespace noisepage::planner
@@ -32,7 +34,7 @@ class DDLExecutors {
   DDLExecutors() = delete;
 
   /**
-   * @param node node to executed
+   * @param node node to execute
    * @param accessor accessor to use for execution
    * @return true if operation succeeded, false otherwise
    */
@@ -40,64 +42,80 @@ class DDLExecutors {
                                      common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
-   * @param node node to executed
+   * @param node node to execute
    * @param accessor accessor to use for execution
-   * @return true if operation succeeded, false otherwise
+   * @return `true` if operation succeeds, `false` otherwise
    */
   static bool CreateNamespaceExecutor(common::ManagedPointer<planner::CreateNamespacePlanNode> node,
                                       common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
-   * @param node node to executed
+   * @param node node to execute
+   * @param accessor accessor to use for execution
+   * @return `true` if the operation succeeds, `false` otherwise
+   */
+  static bool CreateFunctionExecutor(common::ManagedPointer<planner::CreateFunctionPlanNode> node,
+                                     common::ManagedPointer<catalog::CatalogAccessor> accessor);
+
+  /**
+   * @param node node to execute
    * @param accessor accessor to use for execution
    * @param connection_db database for the current connection
-   * @return true if operation succeeded, false otherwise
+   * @return `true` if operation succeeds, `false` otherwise
    */
   static bool CreateTableExecutor(common::ManagedPointer<planner::CreateTablePlanNode> node,
                                   common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                   catalog::db_oid_t connection_db);
 
   /**
-   * @param node node to executed
+   * @param node node to execute
    * @param accessor accessor to use for execution
-   * @return true if operation succeeded, false otherwise
+   * @return `true` if operation succeeds, `false` otherwise
    */
   static bool CreateIndexExecutor(common::ManagedPointer<planner::CreateIndexPlanNode> node,
                                   common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
-   * @param node node to executed
+   * @param node node to execute
    * @param accessor accessor to use for execution
    * @param connection_db database for the current connection
-   * @return true if operation succeeded, false otherwise
+   * @return `true` if operation succeeds, `false` otherwise
    */
   static bool DropDatabaseExecutor(common::ManagedPointer<planner::DropDatabasePlanNode> node,
                                    common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                    catalog::db_oid_t connection_db);
 
   /**
-   * @param node node to executed
+   * @param node node to execute
    * @param accessor accessor to use for execution
-   * @return true if operation succeeded, false otherwise
+   * @return `true` if operation succeeds, `false` otherwise
    */
   static bool DropNamespaceExecutor(common::ManagedPointer<planner::DropNamespacePlanNode> node,
                                     common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
-   * @param node node to executed
+   * @param node node to execute
    * @param accessor accessor to use for execution
-   * @return true if operation succeeded, false otherwise
+   * @return `true` if operation succeeds, `false` otherwise
    */
   static bool DropTableExecutor(common::ManagedPointer<planner::DropTablePlanNode> node,
                                 common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
   /**
-   * @param node node to executed
+   * @param node node to execute
    * @param accessor accessor to use for execution
-   * @return true if operation succeeded, false otherwise
+   * @return `true` if operation succeeds, `false` otherwise
    */
   static bool DropIndexExecutor(common::ManagedPointer<planner::DropIndexPlanNode> node,
                                 common::ManagedPointer<catalog::CatalogAccessor> accessor);
+
+  /**
+   * @param node node to execute
+   * @param accessor accessor to use for execution
+   * @return `true` if operation succeeds, `false` otherwise
+   */
+  static bool DropFunctionExecutor(common::ManagedPointer<planner::DropFunctionPlanNode> node,
+                                   common::ManagedPointer<catalog::CatalogAccessor> accessor);
 
  private:
   static bool CreateIndex(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns,

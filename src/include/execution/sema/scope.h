@@ -1,6 +1,8 @@
 #pragma once
 
-#include <llvm/ADT/DenseMap.h>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "execution/ast/identifier.h"
 #include "execution/util/execution_common.h"
@@ -68,6 +70,18 @@ class Scope {
   ast::Type *LookupLocal(ast::Identifier name) const;
 
   /**
+   * Get the kind of the scope.
+   * @return The kind
+   */
+  Kind GetKind() const;
+
+  /**
+   * Get the local variables for the scope.
+   * @return A collection of the scope's locals
+   */
+  std::vector<std::pair<ast::Identifier, ast::Type *>> GetLocals() const;
+
+  /**
    * @return the parent scope
    */
   Scope *Outer() const { return outer_; }
@@ -78,7 +92,7 @@ class Scope {
   // The scope kind.
   Kind scope_kind_;
   // The mapping of identifiers to their types.
-  llvm::DenseMap<ast::Identifier, ast::Type *> decls_;
+  std::unordered_map<ast::Identifier, ast::Type *> decls_;
 };
 
 }  // namespace sema

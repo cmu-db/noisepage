@@ -42,8 +42,11 @@ class SubqueryExpression : public AbstractExpression {
     return Copy();
   }
 
-  /** @return managed pointer to the sub-select */
+  /** @return A non-owning pointer to the sub-select */
   common::ManagedPointer<parser::SelectStatement> GetSubselect() { return common::ManagedPointer(subselect_); }
+
+  /** @return An owning pointer to the sub-select */
+  std::unique_ptr<parser::SelectStatement> ReleaseSubselect() { return std::move(subselect_); }
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 

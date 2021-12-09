@@ -7,25 +7,51 @@
 #include "test_util/fs_util.h"
 #include "test_util/tpch/workload.h"
 
+/**
+ * The local paths to the data directories.
+ * https://github.com/malin1993ml/tpl_tables and "bash gen_tpch.sh 0.1".
+ */
+static constexpr const char TPCH_TABLE_ROOT[] = "/home/turing/dev/tpl-tables/tables/";
+static constexpr const char SSB_TABLE_ROOT[] = "/home/turing/dev/tpl-tables/tables/";
+static constexpr const char TPCH_DATABASE_NAME[] = "tpch_runner_db";
+
 namespace noisepage::runner {
+
+/**
+ * TPCHRunner runs TPCH benchmarks.
+ */
 class TPCHRunner : public benchmark::Fixture {
  public:
-  const int8_t total_num_threads_ = 4;                 // defines the number of terminals (workers threads)
-  const uint64_t execution_us_per_worker_ = 20000000;  // Time (us) to run per terminal (worker thread)
-  std::vector<uint64_t> avg_interval_us_ = {10, 20, 50, 100, 200, 500, 1000};
-  const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
-  const bool single_test_run_ = false;
+  /** Defines the number of terminals (workers threads) */
+  const int8_t total_num_threads_ = 4;
 
+  /** Time (us) to run per terminal (worker thread) */
+  const uint64_t execution_us_per_worker_ = 20000000;
+
+  /** The average intervals in microseconds */
+  std::vector<uint64_t> avg_interval_us_ = {10, 20, 50, 100, 200, 500, 1000};
+
+  /** The execution mode for the execution engine */
+  const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
+
+  /** Flag indicating if only a single test run should be run */
+  const bool single_test_run_ = true;
+
+  /** The main database instance */
   std::unique_ptr<DBMain> db_main_;
+
+  /** The workload with loaded data and queries */
   std::unique_ptr<tpch::Workload> workload_;
 
-  // To get tpl_tables, https://github.com/malin1993ml/tpl_tables and "bash gen_tpch.sh 0.1".
-  const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
-  const std::string ssb_dir_ = "../../../SSB_Table_Generator/ssb_tables/";
-  const std::string tpch_database_name_ = "tpch_runner_db";
+  /** Local paths to data */
+  const std::string tpch_table_root_{TPCH_TABLE_ROOT};
+  const std::string ssb_dir_{SSB_TABLE_ROOT};
+  const std::string tpch_database_name_{TPCH_DATABASE_NAME};
 
+  /** The benchmark type */
   tpch::Workload::BenchmarkType type_ = tpch::Workload::BenchmarkType::TPCH;
 
+  /** Setup the database instance for benchmark. */
   void SetUp(const benchmark::State &state) final {
     auto db_main_builder = DBMain::Builder()
                                .SetUseGC(true)
@@ -38,7 +64,6 @@ class TPCHRunner : public benchmark::Fixture {
                                .SetRecordBufferSegmentSize(1000000)
                                .SetRecordBufferSegmentReuse(1000000)
                                .SetBytecodeHandlersPath(common::GetBinaryArtifactPath("bytecode_handlers_ir.bc"));
-
     db_main_ = db_main_builder.Build();
 
     auto metrics_manager = db_main_->GetMetricsManager();
@@ -46,6 +71,7 @@ class TPCHRunner : public benchmark::Fixture {
     metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
   }
 
+  /** Teardown the database instance after a benchmark */
   void TearDown(const benchmark::State &state) final {
     // free db main here so we don't need to use the loggers anymore
     db_main_.reset();
@@ -82,11 +108,13 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
   }
 
   auto total_query_num = workload_->GetQueryNum() + 1;
-  for (uint32_t query_num = query_num_start; query_num < total_query_num; query_num += 4)
-    for (auto num_threads = num_thread_start; num_threads <= total_num_threads_; num_threads += 3)
-      for (uint32_t repeat = 0; repeat < repeat_num; ++repeat)
+  for (uint32_t query_num = query_num_start; query_num < total_query_num; query_num += 4) {
+    for (auto num_threads = num_thread_start; num_threads <= total_num_threads_; num_threads += 3) {
+      for (uint32_t repeat = 0; repeat < repeat_num; ++repeat) {
         for (auto avg_interval_us : avg_interval_us_) {
-          std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+          // Let GC clean up
+          std::this_thread::sleep_for(std::chrono::seconds(2));
+
           common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};
           thread_pool.Startup();
 
@@ -99,10 +127,14 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
           thread_pool.WaitUntilAllFinished();
           thread_pool.Shutdown();
         }
+      }
+    }
+  }
 
-  // free the workload here so we don't need to use the loggers anymore
+  // Free the workload here so we don't need to use the loggers anymore
   workload_.reset();
 }
 
 BENCHMARK_REGISTER_F(TPCHRunner, Runner)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
+
 }  // namespace noisepage::runner

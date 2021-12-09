@@ -1,0 +1,1379 @@
+statement ok
+-- udf.sql
+
+statement ok
+-- Integration tests for user-defined functions.
+
+statement ok
+--
+
+statement ok
+-- Currently, these tests rely on the fact that we
+
+statement ok
+-- utilize Postgres as a reference implementation
+
+statement ok
+-- because all user-defined functions are implemented
+
+statement ok
+-- in the Postgres PL/SQL dialect, PL/pgSQL.
+
+statement ok
+
+
+statement ok
+-- Create test tables
+
+statement ok
+CREATE TABLE integers(x INT, y INT);
+
+statement ok
+INSERT INTO integers(x, y) VALUES (1, 1), (2, 2), (3, 3);
+
+statement ok
+
+
+statement ok
+CREATE TABLE strings(s TEXT);
+
+statement ok
+INSERT INTO strings(s) VALUES ('aaa'), ('bbb'), ('ccc');
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- return_constant()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_constant() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT return_constant();
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_constant();
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_constant_str() RETURNS TEXT AS $$ BEGIN RETURN 'hello, functions'; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query T rowsort
+SELECT return_constant_str();
+----
+hello, functions
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_constant_str();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- return_input()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_input(x INT) RETURNS INT AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query II rowsort
+SELECT x, return_input(x) FROM integers;
+----
+1
+1
+2
+2
+3
+3
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_input(INT);
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_input(x TEXT) RETURNS TEXT AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query TT rowsort
+SELECT s, return_input(s) FROM strings;
+----
+aaa
+aaa
+bbb
+bbb
+ccc
+ccc
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_input(TEXT);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- return_sum()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_sum(x INT, y INT) RETURNS INT AS $$ BEGIN RETURN x + y; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query III rowsort
+SELECT x, y, return_sum(x, y) FROM integers;
+----
+1
+1
+2
+2
+2
+4
+3
+3
+6
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_sum(INT, INT);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- return_prod()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION return_product(x INT, y INT) RETURNS INT AS $$ BEGIN RETURN x * y; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query III rowsort
+SELECT x, y, return_product(x, y) FROM integers;
+----
+1
+1
+1
+2
+2
+4
+3
+3
+9
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION return_product(INT, INT);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- integer_decl()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION integer_decl() RETURNS INT AS $$ DECLARE x INT := 0; BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT integer_decl();
+----
+0
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION integer_decl();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- conditional()
+
+statement ok
+--
+
+statement ok
+-- TODO(Kyle): The final RETURN 0 is unreachable, but we
+
+statement ok
+-- need this temporary hack to deal with missing logic in parser
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION conditional(x INT) RETURNS INT AS $$ BEGIN IF x > 1 THEN RETURN 1; ELSE RETURN 2; END IF; RETURN 0; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query II rowsort
+SELECT x, conditional(x) FROM integers;
+----
+1
+2
+2
+1
+3
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION conditional(INT);
+
+statement ok
+
+
+statement ok
+-- Nested conditional control flow
+
+statement ok
+CREATE FUNCTION conditional(x INT, y INT) RETURNS INT AS $$ BEGIN IF x > 1 THEN IF y > 1 THEN RETURN 1; ELSE RETURN 2; END IF; ELSE IF y > 1 THEN RETURN 3; ELSE RETURN 4; END IF; END IF; RETURN 0; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT conditional(1, 1);
+----
+4
+
+
+query I rowsort
+SELECT conditional(1, 2);
+----
+3
+
+
+query I rowsort
+SELECT conditional(2, 1);
+----
+2
+
+
+query I rowsort
+SELECT conditional(2, 2);
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION conditional(INT, INT);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_while()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_while() RETURNS INT AS $$ DECLARE x INT := 0; BEGIN WHILE x < 10 LOOP x = x + 1; END LOOP; RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_while();
+----
+10
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_while();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fori()
+
+statement ok
+--
+
+statement ok
+-- TODO(Kyle): for-loop control flow (integer variant) is not supported
+
+statement ok
+
+
+statement ok
+-- CREATE FUNCTION proc_fori() RETURNS INT AS $$ -- DECLARE --   x INT := 0; -- BEGIN --   FOR i IN 1..10 LOOP --     x = x + 1; --   END LOOP; --   RETURN x; -- END -- $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- SELECT x, proc_fori() FROM integers;
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_select_single_constant()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_select_single_constant() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT 1 INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_select_single_constant();
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_select_single_constant();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_select_mutliple_constants()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_select_multiple_constants() RETURNS INT AS $$ DECLARE x INT; y INT; BEGIN SELECT 1, 2 INTO x, y; RETURN x + y; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_select_multiple_constants();
+----
+3
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_select_multiple_constants();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_select_constant_assignment()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_select_constant_assignment() RETURNS INT AS $$ DECLARE x INT; y INT; BEGIN x = (SELECT 1); y = (SELECT 2); RETURN x + y; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_select_constant_assignment();
+----
+3
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_select_constant_assignment();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_embedded_agg_count()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_embedded_agg_count() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT COUNT(*) FROM integers INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_embedded_agg_count();
+----
+3
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_embedded_agg_count();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_embedded_agg_min()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_embedded_agg_min() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT MIN(x) FROM integers INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_embedded_agg_min();
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_embedded_agg_min();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_embedded_agg_max()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_embedded_agg_max() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT MAX(x) FROM integers INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT sql_embedded_agg_max();
+----
+3
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_embedded_agg_max();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- sql_embedded_agg_multi()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION sql_embedded_agg_multi() RETURNS INT AS $$ DECLARE minimum INT; maximum INT; BEGIN minimum = (SELECT MIN(x) FROM integers); maximum = (SELECT MAX(x) FROM integers); RETURN minimum + maximum; END; $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+DROP FUNCTION sql_embedded_agg_multi();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fors_constant_var()
+
+statement ok
+
+
+statement ok
+-- Select constant into a scalar variable
+
+statement ok
+CREATE FUNCTION proc_fors_constant_var() RETURNS INT AS $$ DECLARE v INT; x INT := 0; BEGIN FOR v IN SELECT 1 LOOP x = x + 1; END LOOP; RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_fors_constant_var();
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_fors_constant_var();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fors_constant_vars()
+
+statement ok
+
+
+statement ok
+-- Select multiple constants in scalar variables
+
+statement ok
+CREATE FUNCTION proc_fors_constant_vars() RETURNS INT AS $$ DECLARE x INT; y INT; z INT := 0; BEGIN FOR x, y IN SELECT 1, 2 LOOP z = z + 1; END LOOP; RETURN z; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_fors_constant_vars();
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_fors_constant_vars();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fors_rec()
+
+statement ok
+--
+
+statement ok
+-- TODO(Kyle): RECORD types not supported
+
+statement ok
+
+
+statement ok
+-- -- Bind query result to a RECORD type
+
+statement ok
+-- CREATE FUNCTION proc_fors_rec() RETURNS INT AS $$ -- DECLARE                                           \
+
+statement ok
+--   x INT := 0; --   v RECORD; -- BEGIN --   FOR v IN (SELECT z FROM temp) LOOP --     x = x + 1; --   END LOOP; --   RETURN x; -- END -- $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- SELECT proc_fors_rec() FROM integers;
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_fors_var()
+
+statement ok
+
+
+statement ok
+-- Bind query result directly to INT type
+
+statement ok
+CREATE FUNCTION proc_fors_var() RETURNS INT AS $$ DECLARE c INT := 0; v INT; BEGIN FOR v IN (SELECT x FROM integers) LOOP c = c + 1; END LOOP; RETURN c; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_fors_var();
+----
+3
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_fors_var();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_call_*()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_call_callee() RETURNS INT AS $$ BEGIN RETURN 1; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- Just RETURN the result of call
+
+statement ok
+CREATE FUNCTION proc_call_ret() RETURNS INT AS $$ BEGIN RETURN proc_call_callee(); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_call_ret();
+----
+1
+
+
+statement ok
+
+
+statement ok
+-- Assign the result of call to variable
+
+statement ok
+CREATE FUNCTION proc_call_assign() RETURNS INT AS $$ DECLARE v INT; BEGIN v = proc_call_callee(); RETURN v; END $$ LANGUAGE PLPGSQl;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_call_assign();
+----
+1
+
+
+statement ok
+
+
+statement ok
+-- SELECT the result of call into variable
+
+statement ok
+CREATE FUNCTION proc_call_select() RETURNS INT AS $$ DECLARE v INT; BEGIN SELECT proc_call_callee() INTO v; RETURN v; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_call_select();
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_call_callee();
+
+statement ok
+DROP FUNCTION proc_call_ret();
+
+statement ok
+DROP FUNCTION proc_call_assign();
+
+statement ok
+DROP FUNCTION proc_call_select();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_predicate()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_predicate(threshold INT) RETURNS INT AS $$ DECLARE c INT; BEGIN SELECT COUNT(x) FROM integers WHERE x > threshold INTO c; RETURN c; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_predicate(0);
+----
+3
+
+
+query I rowsort
+SELECT proc_predicate(1);
+----
+2
+
+
+query I rowsort
+SELECT proc_predicate(2);
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_predicate(INT);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_call_args()
+
+statement ok
+
+
+statement ok
+-- Argument to call can be an expression
+
+statement ok
+CREATE FUNCTION proc_call_args() RETURNS INT AS $$ DECLARE x INT := 1; y INT := 2; z INT := 3; BEGIN RETURN ABS(x * y + z); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_call_args();
+----
+5
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_call_args();
+
+statement ok
+
+
+statement ok
+-- Argument to call can be an identifier
+
+statement ok
+CREATE FUNCTION proc_call_args() RETURNS INT AS $$ DECLARE x INT := 1; y INT := 2; z INT := 3; r INT; BEGIN r = x * y + z; RETURN ABS(r); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_call_args();
+----
+5
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_call_args();
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_promotion()
+
+statement ok
+
+
+statement ok
+-- Able to (silently) promote REAL to DOUBLE PRECISION
+
+statement ok
+CREATE FUNCTION proc_promotion() RETURNS REAL AS $$ DECLARE x INT := 1; y REAL := 1.0; t REAL; BEGIN t = x * y; RETURN FLOOR(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query  rowsort
+SELECT proc_promotion();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_promotion();
+
+statement ok
+
+
+statement ok
+-- Able to (silently) promote FLOAT to DOUBLE PRECISION
+
+statement ok
+CREATE FUNCTION proc_promotion() RETURNS FLOAT AS $$ DECLARE x INT := 1; y FLOAT := 1.0; t FLOAT; BEGIN t = x * y; RETURN FLOOR(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_promotion();
+
+statement ok
+
+
+statement ok
+-- Promotion does not affect correct operation of DOUBLE PRECISION
+
+statement ok
+CREATE FUNCTION proc_promotion() RETURNS DOUBLE PRECISION AS $$ DECLARE x INT := 1; y DOUBLE PRECISION := 1.0; t DOUBLE PRECISION; BEGIN t = x * y; RETURN FLOOR(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_promotion();
+
+statement ok
+
+
+statement ok
+-- Promotion does not affect correct operation of FLOAT8
+
+statement ok
+CREATE FUNCTION proc_promotion() RETURNS DOUBLE PRECISION AS $$ DECLARE x INT := 1; y DOUBLE PRECISION := 1.0; t DOUBLE PRECISION; BEGIN t = x * y; RETURN FLOOR(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_promotion();
+
+statement ok
+
+
+statement ok
+-- Promotion works as expected with UDF arguments
+
+statement ok
+CREATE FUNCTION proc_promotion(x FLOAT) RETURNS FLOAT AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion(1337.0);
+----
+1337
+
+
+statement ok
+DROP FUNCTION proc_promotion(FLOAT);
+
+statement ok
+
+
+statement ok
+-- Promotion works as expected with UDF arguments
+
+statement ok
+CREATE FUNCTION proc_promotion(x REAL) RETURNS REAL AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query  rowsort
+SELECT proc_promotion(1337.0);
+----
+1337
+
+
+statement ok
+DROP FUNCTION proc_promotion(REAL);
+
+statement ok
+
+
+statement ok
+-- Promotion works as expected with UDF arguments
+
+statement ok
+CREATE FUNCTION proc_promotion(x DOUBLE PRECISION) RETURNS DOUBLE PRECISION AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion(1337.0);
+----
+1337
+
+
+statement ok
+DROP FUNCTION proc_promotion(DOUBLE PRECISION);
+
+statement ok
+
+
+statement ok
+-- Promotion works as expected with UDF arguments
+
+statement ok
+CREATE FUNCTION proc_promotion(x FLOAT8) RETURNS FLOAT8 AS $$ BEGIN RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_promotion(1337.0);
+----
+1337
+
+
+statement ok
+DROP FUNCTION proc_promotion(FLOAT8);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_cast()
+
+statement ok
+
+
+statement ok
+-- CAST works in assignment expression
+
+statement ok
+CREATE FUNCTION proc_cast() RETURNS FLOAT AS $$ DECLARE x FLOAT; BEGIN x = CAST(1 AS FLOAT); RETURN x; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query R rowsort
+SELECT proc_cast();
+----
+1
+
+
+statement ok
+DROP FUNCTION proc_cast();
+
+statement ok
+
+
+statement ok
+-- TODO(Kyle): this is a great example of a function that
+
+statement ok
+-- we can't currently compile because we only resort to a
+
+statement ok
+-- full handoff to the SQL execution infrastructure in the
+
+statement ok
+-- case of assignment expressions. For everything else, in
+
+statement ok
+-- this case a RETURN statement, we don't yet have the
+
+statement ok
+-- ability to defer this to the SQL engine, and we also can't
+
+statement ok
+-- handle it in the "builtin" manner, so we just fail.
+
+statement ok
+
+
+statement ok
+-- CREATE FUNCTION proc_cast() RETURNS FLOAT AS $$ -- BEGIN --   RETURN CAST(1 AS FLOAT); -- END -- $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_is_null()
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_is_null(x INT) RETURNS INT AS $$ DECLARE r INT; BEGIN IF x IS NULL THEN r = 1; ELSE r = 2; END IF; RETURN r; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_is_null(1);
+----
+2
+
+
+query I rowsort
+SELECT proc_is_null(NULL);
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_is_null(INT);
+
+statement ok
+
+
+statement ok
+CREATE FUNCTION proc_is_not_null(x INT) RETURNS INT AS $$ DECLARE r INT; BEGIN IF x IS NOT NULL THEN r = 1; ELSE r = 2; END IF; RETURN r; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_is_not_null(1);
+----
+1
+
+
+query I rowsort
+SELECT proc_is_not_null(NULL);
+----
+2
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_is_not_null(INT);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_length()
+
+statement ok
+
+
+statement ok
+-- Assignment of LENGTH to temporary
+
+statement ok
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ DECLARE r INT; BEGIN r = LENGTH(t); RETURN r; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_length('hello');
+----
+5
+
+
+statement ok
+DROP FUNCTION proc_length(VARCHAR);
+
+statement ok
+
+
+statement ok
+-- Direct RETURN of LENGTH
+
+statement ok
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ BEGIN RETURN LENGTH(t); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_length('hello');
+----
+5
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_length(VARCHAR);
+
+statement ok
+
+
+statement ok
+-- Use of LENGTH() in conditional
+
+statement ok
+CREATE FUNCTION proc_length(t VARCHAR) RETURNS INT AS $$ BEGIN IF LENGTH(t) > 1 THEN RETURN 1; ELSE RETURN 2; END IF; RETURN 0; END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query I rowsort
+SELECT proc_length('a');
+----
+2
+
+
+query I rowsort
+SELECT proc_length('ab');
+----
+1
+
+
+query I rowsort
+SELECT proc_length('abc');
+----
+1
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_length(VARCHAR);
+
+statement ok
+
+
+statement ok
+-- ----------------------------------------------------------------------------
+
+statement ok
+-- proc_substr()
+
+statement ok
+
+
+statement ok
+-- Able to pass all arguments through
+
+statement ok
+CREATE FUNCTION proc_substr(t VARCHAR, i INT, l INT) RETURNS VARCHAR AS $$ BEGIN RETURN SUBSTR(t, i, l); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query T rowsort
+SELECT proc_substr('hello', 1, 1);
+----
+h
+
+
+query T rowsort
+SELECT proc_substr('hello', 1, 2);
+----
+he
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_substr(VARCHAR, INT, INT);
+
+statement ok
+
+
+statement ok
+-- Able to specify a literal value
+
+statement ok
+CREATE FUNCTION proc_substr(t VARCHAR, i INT) RETURNS VARCHAR AS $$ BEGIN RETURN SUBSTR(t, i, 1); END $$ LANGUAGE PLPGSQL;
+
+statement ok
+
+
+query T rowsort
+SELECT proc_substr('hello', 1);
+----
+h
+
+
+query T rowsort
+SELECT proc_substr('hello', 2);
+----
+e
+
+
+statement ok
+
+
+statement ok
+DROP FUNCTION proc_substr(VARCHAR, INT);
+
+statement ok

@@ -59,12 +59,20 @@ class BytecodeEmitter {
   // -------------------------------------------------------
 
   /**
-   * Emit arbitrary assignment code
+   * Emit arbitrary assignment code.
    * @param bytecode assignment bytecode
    * @param dest destination variable
    * @param src source variable
    */
   void EmitAssign(Bytecode bytecode, LocalVar dest, LocalVar src);
+
+  /**
+   * Emit arbitrary assignment code.
+   * @param dest destination variable
+   * @param src source variable
+   * @param len length
+   */
+  void EmitAssignN(LocalVar dest, LocalVar src, uint32_t len);
 
   /**
    * Emit assignment code for 1 byte values.
@@ -162,10 +170,18 @@ class BytecodeEmitter {
 
   /**
    * Emit a function call
-   * @param func_id id of the function to call
-   * @param params parameters of the function
+   * @param func_id The ID of the function to call.
+   * @param params The parameters of the function.
    */
   void EmitCall(FunctionId func_id, const std::vector<LocalVar> &params);
+
+  /**
+   * Create a function that emits a function call.
+   * @param params The parameters of the function.
+   * @return A new callable that, when invoked with a FunctionID,
+   * emits a fuinction call into the bytecode stream.
+   */
+  std::function<void(FunctionId)> DeferredEmitCall(const std::vector<LocalVar> &params);
 
   /**
    * Emit a return bytecode
@@ -476,11 +492,24 @@ class BytecodeEmitter {
   void EmitConcat(LocalVar ret, LocalVar exec_ctx, LocalVar inputs, uint32_t num_inputs);
 
  private:
-  /** Copy a scalar immediate value into the bytecode stream */
+  /**
+   * Copy a scalar immediate value into the bytecode stream.
+   * @param val The scalar value to emit into the stream.
+   */
   template <typename T>
   auto EmitScalarValue(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
     bytecode_->insert(bytecode_->end(), sizeof(T), 0);
     *reinterpret_cast<T *>(&*(bytecode_->end() - sizeof(T))) = val;
+  }
+
+  /**
+   * Copy a scalar immediate value into the bytecode stream at specified index.
+   * @param val The scalar value to emit into the stream.
+   * @param index The index in the stream at which to emit the value.
+   */
+  template <typename T>
+  auto EmitScalarValue(const T val, std::size_t index) -> std::enable_if_t<std::is_arithmetic_v<T>> {
+    *reinterpret_cast<T *>(&*(bytecode_->begin() + index)) = val;
   }
 
   /** Emit a bytecode */

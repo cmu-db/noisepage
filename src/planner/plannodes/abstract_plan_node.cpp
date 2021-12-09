@@ -18,6 +18,7 @@
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
+#include "planner/plannodes/drop_function_plan_node.h"
 #include "planner/plannodes/drop_index_plan_node.h"
 #include "planner/plannodes/drop_namespace_plan_node.h"
 #include "planner/plannodes/drop_table_plan_node.h"
@@ -214,6 +215,10 @@ JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) 
 
     case PlanNodeType::DROP_VIEW: {
       plan_node = std::make_unique<DropViewPlanNode>();
+      break;
+    }
+    case PlanNodeType::DROP_FUNC: {
+      plan_node = std::make_unique<DropFunctionPlanNode>();
       break;
     }
     case PlanNodeType::EXPORT_EXTERNAL_FILE: {

@@ -425,11 +425,44 @@ ast::Expr *Parser::ParseUnaryOpExpr() {
   return ParsePrimaryExpr();
 }
 
+ast::Expr *Parser::ParseLambdaExpr() {
+  Expect(Token::Type::LAMBDA);
+
+  const SourcePosition &position = scanner_->CurrentPosition();
+
+  util::RegionVector<ast::Expr *> captures(Region());
+
+  Expect(Token::Type::LEFT_BRACKET);
+
+  while (Peek() != Token::Type::RIGHT_BRACKET) {
+    if (Matches(Token::Type::IDENTIFIER)) {
+      auto var = GetSymbol();
+      captures.push_back(new (Region()) ast::IdentifierExpr(position, var));
+    }
+
+    if (!Matches(Token::Type::COMMA)) {
+      break;
+    }
+  }
+
+  Expect(Token::Type::RIGHT_BRACKET);
+
+  // The function literal
+  auto *fun = ParseFunctionLitExpr()->As<ast::FunctionLitExpr>();
+
+  // Create declaration
+  auto *lambda = node_factory_->NewLambdaExpr(position, fun, std::move(captures));
+
+  // Done
+  return lambda;
+}
+
 ast::Expr *Parser::ParsePrimaryExpr() {
-  // PrimaryExpr = Operand | CallExpr | MemberExpr | IndexExpr ;
+  // PrimaryExpr = Operand | CallExpr | MemberExpr | IndexExpr | LambdaExpr ;
   // CallExpr = PrimaryExpr '(' (Expr)* ') ;
   // MemberExpr = PrimaryExpr '.' Expr
   // IndexExpr = PrimaryExpr '[' Expr ']'
+  // LambdaExpr = lambda (FunctionLitExpr)
 
   ast::Expr *result = ParseOperand();
 
@@ -538,6 +571,10 @@ ast::Expr *Parser::ParseOperand() {
       Expect(Token::Type::RIGHT_PAREN);
       return expr;
     }
+    case Token::Type::LAMBDA: {
+      return ParseLambdaExpr();
+      break;
+    }
     default: {
       break;
     }
@@ -583,6 +620,9 @@ ast::Expr *Parser::ParseType() {
     }
     case Token::Type::STRUCT: {
       return ParseStructType();
+    }
+    case Token::Type::LAMBDA: {
+      return ParseLambdaType();
     }
     default: {
       break;
@@ -726,6 +766,22 @@ ast::Expr *Parser::ParseMapType() {
   ast::Expr *value_type = ParseType();
 
   return node_factory_->NewMapType(position, key_type, value_type);
+}
+
+ast::Expr *Parser::ParseLambdaType() {
+  // LambdaType = 'lambda' '[' FunctionExpr ']' ;
+
+  const SourcePosition &position = scanner_->CurrentPosition();
+
+  Consume(Token::Type::LAMBDA);
+
+  Expect(Token::Type::LEFT_BRACKET);
+
+  ast::Expr *fn_type = ParseFunctionType();
+
+  Expect(Token::Type::RIGHT_BRACKET);
+
+  return node_factory_->NewLambdaType(position, fn_type);
 }
 
 }  // namespace noisepage::execution::parsing

@@ -304,6 +304,12 @@ class PlanGenerator : public OperatorVisitor {
   void Visit(const DropView *drop_view) override;
 
   /**
+   * Visit a DropFunction operator
+   * @param drop_function operator
+   */
+  void Visit(const DropFunction *drop_function) override;
+
+  /**
    * Visit a Analyze operator
    * @param analyze operator
    */

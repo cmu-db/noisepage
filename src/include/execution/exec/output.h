@@ -89,8 +89,9 @@ class EXPORT OutputBuffer {
 
  private:
   sql::MemoryPool *memory_pool_;
-  uint32_t num_tuples_;
-  uint32_t tuple_size_;
+  // TODO(Kyle): Tanuj made this atomic, does it need to be?
+  std::uint32_t num_tuples_;
+  std::uint32_t tuple_size_;
   byte *tuples_;
 
   /**
@@ -138,7 +139,7 @@ class OutputWriter {
    * @param out packet writer to use
    * @param field_formats reference to the field formats for this query
    */
-  OutputWriter(const common::ManagedPointer<planner::OutputSchema> schema,
+  OutputWriter(const common::ManagedPointer<const planner::OutputSchema> schema,
                const common::ManagedPointer<network::PostgresPacketWriter> out,
                const std::vector<network::FieldFormat> &field_formats)
       : schema_(schema), out_(out), field_formats_(field_formats) {}
@@ -165,8 +166,11 @@ class OutputWriter {
    * (parallel scan)
    */
   std::mutex output_synchronization_;
-  const common::ManagedPointer<planner::OutputSchema> schema_;
+  /** The output schema */
+  const common::ManagedPointer<const planner::OutputSchema> schema_;
+  /** The output writer */
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
+  /** The field formats */
   const std::vector<network::FieldFormat> &field_formats_;
 };
 

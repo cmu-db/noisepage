@@ -84,17 +84,22 @@ std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, query_id_t query_id, catalog::CatalogAccessor *accessor,
-                                       const CompilationMode mode, const exec::ExecutionSettings &settings)
+                                       const CompilationMode mode, const exec::ExecutionSettings &settings,
+                                       ast::LambdaExpr *output_callback)
     : unique_id_(unique_ids++),
       query_id_(query_id),
       query_(query),
       mode_(mode),
       codegen_(query_->GetContext(), accessor),
       query_state_var_(codegen_.MakeIdentifier("queryState")),
-      query_state_type_(codegen_.MakeIdentifier("QueryState")),
+      query_state_type_(codegen_.MakeIdentifier(
+          output_callback == nullptr ? "QueryState" : output_callback->GetName().GetString() + "QueryState")),
       query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }),
+      output_callback_(output_callback),
       counters_enabled_(settings.GetIsCountersEnabled()),
-      pipeline_metrics_enabled_(settings.GetIsPipelineMetricsEnabled()) {}
+      pipeline_metrics_enabled_((output_callback != nullptr) ? false : settings.GetIsPipelineMetricsEnabled()) {}
+
+// TODO(Kyle): Why disable pipeline metrics whenever we have an output callback?
 
 ast::FunctionDecl *CompilationContext::GenerateInitFunction() {
   const auto name = codegen_.MakeIdentifier(GetFunctionPrefix() + "_Init");
@@ -200,17 +205,19 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan,
 // static
 std::unique_ptr<ExecutableQuery> CompilationContext::Compile(
     const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
-    catalog::CatalogAccessor *accessor, const CompilationMode mode, std::optional<execution::query_id_t> override_qid,
-    common::ManagedPointer<planner::PlanMetaData> plan_meta_data) {
-  // The query we're generating code for.
-  auto query = std::make_unique<ExecutableQuery>(plan, exec_settings, accessor->GetTxn()->StartTime());
+    catalog::CatalogAccessor *accessor, CompilationMode mode, std::optional<execution::query_id_t> override_qid,
+    common::ManagedPointer<planner::PlanMetaData> plan_meta_data, ast::LambdaExpr *output_callback,
+    common::ManagedPointer<ast::Context> context) {
+  // The query for which we're generating code
+  auto query = std::make_unique<ExecutableQuery>(plan, exec_settings, accessor->GetTxn()->StartTime(), context.Get());
   if (override_qid.has_value()) {
     query->SetQueryId(override_qid.value());
   }
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), query->GetQueryId(), accessor, mode, exec_settings);
+  CompilationContext ctx{query.get(), query->GetQueryId(), accessor, mode, exec_settings, output_callback};
   ctx.GeneratePlan(plan, plan_meta_data);
+  query->SetQueryStateType(ctx.query_state_.GetType());
 
   // Done
   return query;
@@ -229,10 +236,8 @@ void CompilationContext::PrepareOut(const planner::AbstractPlanNode &plan, Pipel
 }
 
 void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline *pipeline) {
-  std::unique_ptr<OperatorTranslator> translator;
-
   NOISEPAGE_ASSERT(ops_.find(&plan) == ops_.end(), "plan already prepared");
-
+  std::unique_ptr<OperatorTranslator> translator;
   switch (plan.GetPlanNodeType()) {
     case planner::PlanNodeType::AGGREGATE: {
       const auto &aggregation = dynamic_cast<const planner::AggregatePlanNode &>(plan);
@@ -436,7 +441,14 @@ ExpressionTranslator *CompilationContext::LookupTranslator(const parser::Abstrac
   return nullptr;
 }
 
-std::string CompilationContext::GetFunctionPrefix() const { return "Query" + std::to_string(unique_id_); }
+std::string CompilationContext::GetFunctionPrefix() const {
+  // If an output callback is present, we prefix
+  // each function with the callback name
+  if (HasOutputCallback()) {
+    return fmt::format("{}Query{}", output_callback_->GetName().GetString(), std::to_string(unique_id_));
+  }
+  return fmt::format("Query{}", std::to_string(unique_id_));
+}
 
 util::RegionVector<ast::FieldDecl *> CompilationContext::QueryParams() const {
   ast::Expr *state_type = codegen_.PointerType(codegen_.MakeExpr(query_state_type_));

@@ -36,6 +36,7 @@ class TypeCastExpression : public AbstractExpression {
    * @returns copy of this
    */
   std::unique_ptr<AbstractExpression> Copy() const override;
+
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.

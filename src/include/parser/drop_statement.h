@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "binder/sql_node_visitor.h"
 #include "parser/sql_statement.h"
@@ -15,7 +16,7 @@ namespace parser {
 class DropStatement : public TableRefStatement {
  public:
   /** Drop statement type. */
-  enum class DropType { kDatabase, kTable, kSchema, kIndex, kView, kPreparedStatement, kTrigger };
+  enum class DropType { kDatabase, kTable, kSchema, kIndex, kView, kPreparedStatement, kTrigger, kFunction };
 
   /**
    * DROP DATABASE, DROP TABLE
@@ -35,6 +36,21 @@ class DropStatement : public TableRefStatement {
       : TableRefStatement(StatementType::DROP, std::move(table_info)),
         type_(DropType::kIndex),
         index_name_(std::move(index_name)) {}
+
+  /**
+   * DROP FUNCTION
+   * @param table_info table information
+   * @param function_name function name
+   * @param function_args function argument type identifiers
+   * @param if_exists `true` if `IF EXISTS` specified, `false` otherwise
+   */
+  DropStatement(std::unique_ptr<TableInfo> table_info, std::string function_name,
+                std::vector<std::string> &&function_args, bool if_exists)
+      : TableRefStatement(StatementType::DROP, std::move(table_info)),
+        type_(DropType::kFunction),
+        if_exists_(if_exists),
+        function_name_(std::move(function_name)),
+        function_args_(std::move(function_args)) {}
 
   /**
    * DROP SCHEMA
@@ -79,10 +95,19 @@ class DropStatement : public TableRefStatement {
   /** @return trigger name for [DROP TRIGGER] */
   std::string GetTriggerName() { return trigger_name_; }
 
+  /** @return function name for [DROP FUNCTION] */
+  std::string GetFunctionName() { return function_name_; }
+
+  /** @return function argument types for [DROP FUNCTION] */
+  const std::vector<std::string> &GetFunctionArguments() const { return function_args_; }
+
  private:
   const DropType type_;
 
-  // DROP DATABASE, SCHEMA
+  // TODO(Kyle): Maybe use a std::variant here to make
+  // the overloading of this type less wasteful?
+
+  // DROP DATABASE, SCHEMA, FUNCTION
   const bool if_exists_ = false;
 
   // DROP INDEX
@@ -93,6 +118,10 @@ class DropStatement : public TableRefStatement {
 
   // DROP TRIGGER
   const std::string trigger_name_;
+
+  // DROP FUNCTION
+  const std::string function_name_;
+  std::vector<std::string> function_args_;
 };
 
 }  // namespace parser

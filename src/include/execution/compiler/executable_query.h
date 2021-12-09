@@ -2,6 +2,7 @@
 
 #include <iosfwd>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -9,7 +10,7 @@
 #include "common/managed_pointer.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/exec_defs.h"
-#include "execution/vm/vm_defs.h"
+#include "execution/vm/execution_mode.h"
 #include "transaction/transaction_defs.h"
 
 namespace noisepage {
@@ -37,6 +38,7 @@ class Region;
 namespace vm {
 class Module;
 class ModuleMetadata;
+class FunctionInfo;
 }  // namespace vm
 }  // namespace execution
 
@@ -69,12 +71,25 @@ class ExecutableQuery {
    public:
     /**
      * Construct a fragment composed of the given functions from the given module.
+     *
+     * This constructor assumes that no file is present for the fragment.
+     *
      * @param functions The name of the functions to execute, in order.
      * @param teardown_fns The name of the teardown functions in the module, in order.
      * @param module The module that contains the functions.
      */
     Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,
              std::unique_ptr<vm::Module> module);
+
+    /**
+     * Construct a fragment composed of the given functions from the given module.
+     * @param functions The name of the functions to execute, in order.
+     * @param teardown_fns The name of the teardown functions in the module, in order.
+     * @param module The module that contains the functions.
+     * @param file The file associated with the fragment
+     */
+    Fragment(std::vector<std::string> &&functions, std::vector<std::string> &&teardown_fns,
+             std::unique_ptr<vm::Module> module, ast::File *file);
 
     /**
      * Destructor.
@@ -93,28 +108,50 @@ class ExecutableQuery {
      */
     bool IsCompiled() const { return module_ != nullptr; }
 
+    /** @return The functions in the fragment, in program execution order*/
+    const std::vector<std::string> &GetFunctions() const { return functions_; }
+
+    /**
+     * Get the metatdata for the bytecode function identified by `name`.
+     * @param name The name of the function to query.
+     * @return The function metadata for the specified function,
+     * or empty optional in the event that the function is not present
+     */
+    std::optional<const vm::FunctionInfo *> GetFunctionMetadata(const std::string &name) const;
+
+    /**
+     * @return The file.
+     */
+    ast::File *GetFile() { return file_; }
+
     /** @return The metadata of this module. */
     const vm::ModuleMetadata &GetModuleMetadata() const;
 
    private:
-    // The functions that must be run (in the provided order) to execute this
-    // query fragment.
+    // The functions that must be run (in the provided order)
+    // to execute this query fragment.
     std::vector<std::string> functions_;
 
-    std::vector<std::string> teardown_fn_;
+    // The functions that must be run (in the provided order)
+    // to tear down this query fragment.
+    std::vector<std::string> teardown_fns_;
 
     // The module.
     std::unique_ptr<vm::Module> module_;
+
+    // The file.
+    ast::File *file_;
   };
 
   /**
-   * Create a query object.
+   * Construct a new ExecutableQuery instance.
    * @param plan The physical plan.
-   * @param exec_settings The execution settings used for this query.
+   * @param exec_settings The execution settings used for this query
    * @param timestamp The start timestamp of the transaction that generates this ExecutableQuery
+   * @param context The AST context for the executable query; may be nullptr
    */
   ExecutableQuery(const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
-                  transaction::timestamp_t timestamp);
+                  transaction::timestamp_t timestamp, ast::Context *context = nullptr);
 
   /**
    * This class cannot be copied or moved.
@@ -153,7 +190,7 @@ class ExecutableQuery {
   /**
    * @return The AST context.
    */
-  ast::Context *GetContext() { return ast_context_.get(); }
+  ast::Context *GetContext() { return ast_context_; }
 
   /** @return The execution settings used for this query. */
   const exec::ExecutionSettings &GetExecutionSettings() const { return exec_settings_; }
@@ -169,26 +206,59 @@ class ExecutableQuery {
   /** @return The Query Identifier */
   query_id_t GetQueryId() { return query_id_; }
 
+  /** @brief Set the query state type */
+  void SetQueryStateType(ast::StructDecl *query_state_type) { query_state_type_ = query_state_type; }
+
+  /** @return The query state type */
+  ast::StructDecl *GetQueryStateType() const { return query_state_type_; }
+
+  /** @param query_text The SQL string for this query */
+  void SetQueryText(common::ManagedPointer<const std::string> query_text) { query_text_ = query_text; }
+
+  /** @return The SQL query string */
+  common::ManagedPointer<const std::string> GetQueryText() { return query_text_; }
+
+  /** @return All of the function names in the executable query, in program execution order. */
+  std::vector<std::string> GetFunctionNames() const;
+
+  /** @return The metadata for each TPL function in the executable query, in program execution order. */
+  std::vector<const vm::FunctionInfo *> GetFunctionMetadata() const;
+
+  /** @return All of the declarations in the executable query. */
+  std::vector<ast::Decl *> GetDecls() const;
+
   /** @return The query fragments in this module. */
   const std::vector<std::unique_ptr<Fragment>> &GetFragments() const { return fragments_; }
 
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
+
   // The execution settings used for code generation.
   const exec::ExecutionSettings &exec_settings_;
   // The start timestamp of the transaction that generates this ExecutableQuery
   const transaction::timestamp_t timestamp_;
-  std::unique_ptr<util::Region> errors_region_;
+
+  // The regions for context and errors
   std::unique_ptr<util::Region> context_region_;
+  std::unique_ptr<util::Region> errors_region_;
+
   // The AST error reporter.
   std::unique_ptr<sema::ErrorReporter> errors_;
+
   // The AST context used to generate the TPL AST.
-  std::unique_ptr<ast::Context> ast_context_;
+  ast::Context *ast_context_;
+  // Denotes whether or not the ExecutableQuery owns the AST context.
+  bool owns_ast_context_;
+
   // The compiled query fragments that make up the query.
   std::vector<std::unique_ptr<Fragment>> fragments_;
+
   // The query state size.
   std::size_t query_state_size_;
+
+  // The type of the query state.
+  ast::StructDecl *query_state_type_;
 
   // The pipeline operating units that were generated as part of this query.
   std::unique_ptr<selfdriving::PipelineOperatingUnits> pipeline_operating_units_;
@@ -197,8 +267,8 @@ class ExecutableQuery {
 
   /** Legacy constructor that creates a hardcoded fragment with main(ExecutionContext*)->int32. */
   ExecutableQuery(const std::string &contents, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file,
-                  size_t query_state_size, const exec::ExecutionSettings &exec_settings,
-                  transaction::timestamp_t timestamp);
+                  std::size_t query_state_size, const exec::ExecutionSettings &exec_settings,
+                  transaction::timestamp_t timestamp, ast::Context *context = nullptr);
   /**
    * Set Pipeline Operating Units for use by mini_runners
    * @param units Pipeline Operating Units
@@ -211,9 +281,14 @@ class ExecutableQuery {
    */
   void SetQueryId(query_id_t query_id) { query_id_ = query_id; }
 
+  // The name of the query
   std::string query_name_;
+  // The query identitifier
   query_id_t query_id_;
+  // TODO(Kyle): What is this for?
   static std::atomic<query_id_t> query_identifier;
+  // The text of the query
+  common::ManagedPointer<const std::string> query_text_;
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class noisepage::runner::ExecutionRunners;

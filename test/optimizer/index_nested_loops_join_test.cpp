@@ -8,6 +8,7 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/value.h"
 #include "execution/vm/module.h"
@@ -125,11 +126,17 @@ struct IdxJoinTest : public TerrierTest {
 
   void TearDown() override { TerrierTest::TearDown(); }
 
+  /** The connection context */
   network::ConnectionContext context_;
+  /** The catalog instance */
   common::ManagedPointer<catalog::Catalog> catalog_;
+  /** The transaction manager instance */
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  /** The traffic cop instance */
   common::ManagedPointer<trafficcop::TrafficCop> tcop_;
+  /** The database instance */
   std::unique_ptr<DBMain> db_main_;
+  /** The database OID */
   catalog::db_oid_t db_oid_;
 };
 
@@ -203,9 +210,18 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
+
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithExecutionSettings(exec_settings)
+                      .WithOutputSchema(common::ManagedPointer{out_plan->GetOutputSchema().Get()})
+                      .WithOutputCallback(callback_fn)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main_->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -326,9 +342,18 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
+
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithExecutionSettings(exec_settings)
+                      .WithOutputSchema(common::ManagedPointer{out_plan->GetOutputSchema().Get()})
+                      .WithOutputCallback(callback_fn)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main_->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -409,9 +434,17 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithExecutionSettings(exec_settings)
+                      .WithOutputSchema(common::ManagedPointer{out_plan->GetOutputSchema().Get()})
+                      .WithOutputCallback(callback_fn)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main_->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -478,9 +511,17 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithExecutionSettings(exec_settings)
+                      .WithOutputSchema(common::ManagedPointer{out_plan->GetOutputSchema().Get()})
+                      .WithOutputCallback(callback_fn)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main_->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -547,9 +588,17 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithExecutionSettings(exec_settings)
+                      .WithOutputSchema(common::ManagedPointer{out_plan->GetOutputSchema().Get()})
+                      .WithOutputCallback(callback_fn)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main_->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -629,9 +678,17 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
   execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager(), DISABLED, DISABLED);
+  auto exec_ctx = execution::exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid_)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithExecutionSettings(exec_settings)
+                      .WithOutputSchema(common::ManagedPointer{out_plan->GetOutputSchema().Get()})
+                      .WithOutputCallback(callback_fn)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main_->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .Build();
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),

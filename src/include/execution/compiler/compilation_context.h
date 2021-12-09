@@ -55,12 +55,15 @@ class CompilationContext {
    * @param mode The compilation mode.
    * @param override_qid Optional indicating how to override the plan's query id
    * @param plan_meta_data Query plan meta data (stores cardinality information)
+   * @param output_callback The lambda utilized as the output callback for the query
+   * @param context The AST context for the query
    */
   static std::unique_ptr<ExecutableQuery> Compile(
       const planner::AbstractPlanNode &plan, const exec::ExecutionSettings &exec_settings,
       catalog::CatalogAccessor *accessor, CompilationMode mode = CompilationMode::Interleaved,
       std::optional<execution::query_id_t> override_qid = std::nullopt,
-      common::ManagedPointer<planner::PlanMetaData> plan_meta_data = nullptr);
+      common::ManagedPointer<planner::PlanMetaData> plan_meta_data = nullptr,
+      ast::LambdaExpr *output_callback = nullptr, common::ManagedPointer<ast::Context> context = nullptr);
 
   /**
    * Register a pipeline in this context.
@@ -82,15 +85,14 @@ class CompilationContext {
    */
   void Prepare(const parser::AbstractExpression &expression);
 
-  /**
-   * @return The code generator instance.
-   */
+  /** @return The code generator instance. */
   CodeGen *GetCodeGen() { return &codegen_; }
 
-  /**
-   * @return The query state.
-   */
+  /** @return The query state. */
   StateDescriptor *GetQueryState() { return &query_state_; }
+
+  /** @return The identifier for the query state variable */
+  ast::Identifier GetQueryStateName() const { return query_state_var_; }
 
   /**
    * @return The translator for the given relational plan node; null if the provided plan node does
@@ -104,25 +106,23 @@ class CompilationContext {
    */
   ExpressionTranslator *LookupTranslator(const parser::AbstractExpression &expr) const;
 
-  /**
-   * @return A common prefix for all functions generated in this module.
-   */
+  /** @return A common prefix for all functions generated in this module. */
   std::string GetFunctionPrefix() const;
 
-  /**
-   * @return The list of parameters common to all query functions. For now, just the query state.
-   */
+  /** @return The list of parameters common to all query functions. For now, just the query state. */
   util::RegionVector<ast::FieldDecl *> QueryParams() const;
 
-  /**
-   * @return The slot in the query state where the execution context can be found.
-   */
+  /** @return The slot in the query state where the execution context can be found. */
   ast::Expr *GetExecutionContextPtrFromQueryState();
 
-  /**
-   * @return The compilation mode.
-   */
+  /** @return The compilation mode. */
   CompilationMode GetCompilationMode() const { return mode_; }
+
+  /** @return The output callback. */
+  ast::LambdaExpr *GetOutputCallback() const { return output_callback_; }
+
+  /** @return `true` if the compilation context has an output callback, `false` otherwise */
+  bool HasOutputCallback() const { return output_callback_ != nullptr; }
 
   /** @return True if we should collect counters in TPL, used for Lin's models. */
   bool IsCountersEnabled() const { return counters_enabled_; }
@@ -136,7 +136,8 @@ class CompilationContext {
  private:
   // Private to force use of static Compile() function.
   explicit CompilationContext(ExecutableQuery *query, query_id_t query_id_, catalog::CatalogAccessor *accessor,
-                              CompilationMode mode, const exec::ExecutionSettings &exec_settings);
+                              CompilationMode mode, const exec::ExecutionSettings &exec_settings,
+                              ast::LambdaExpr *output_callback = nullptr);
 
   // Given a plan node, compile it into a compiled query object.
   void GeneratePlan(const planner::AbstractPlanNode &plan,
@@ -174,6 +175,9 @@ class CompilationContext {
   // The query state and the slot in the state where the execution context is.
   StateDescriptor query_state_;
   StateDescriptor::Entry exec_ctx_;
+
+  // The output callback.
+  ast::LambdaExpr *output_callback_;
 
   // The operator and expression translators.
   std::unordered_map<const planner::AbstractPlanNode *, std::unique_ptr<OperatorTranslator>> ops_;

@@ -80,6 +80,15 @@ class LoopBuilder : public BreakableBlockBuilder {
   explicit LoopBuilder(BytecodeGenerator *generator) : BreakableBlockBuilder(generator) {}
 
   /**
+   * Construct a loop builder.
+   * @param generator The generator the loop writes.
+   * @param prev The previous (outer) loop in the current
+   * code generation context
+   */
+  explicit LoopBuilder(BytecodeGenerator *generator, LoopBuilder *prev = nullptr)
+      : BreakableBlockBuilder(generator), prev_loop_(prev) {}
+
+  /**
    * Destructor.
    */
   ~LoopBuilder() override;
@@ -104,6 +113,11 @@ class LoopBuilder : public BreakableBlockBuilder {
    */
   void BindContinueTarget();
 
+  /**
+   * Get the previous (outer) loop.
+   */
+  LoopBuilder *GetPrevLoop() const;
+
  private:
   /** @return The label associated with the header of the loop. */
   BytecodeLabel *GetHeaderLabel() { return &header_label_; }
@@ -114,6 +128,7 @@ class LoopBuilder : public BreakableBlockBuilder {
  private:
   BytecodeLabel header_label_;
   BytecodeLabel continue_label_;
+  LoopBuilder *prev_loop_;
 };
 
 /**

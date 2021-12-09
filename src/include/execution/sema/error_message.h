@@ -74,7 +74,7 @@ namespace sema {
   F(MissingArrayLength, "missing array length (either compile-time number or '*')", ())                               \
   F(NotASQLAggregate, "'%0' is not a SQL aggregator type", (ast::Type *))                                             \
   F(BadParallelScanFunction,                                                                                          \
-    "parallel scan function must have type (*ExecutionContext, *TableVectorIterator)->nil, "                          \
+    "parallel scan function must have type (*QueryState, *PipelineState, *TableVectorIterator)->nil, "                \
     "received '%0'",                                                                                                  \
     (ast::Type *))                                                                                                    \
   F(BadHookFunction,                                                                                                  \
@@ -95,7 +95,8 @@ namespace sema {
     "indexIteratorFree() expects (*IndexIterator) argument "                                                          \
     "types. Received type '%0' in position %1",                                                                       \
     (ast::Type *, uint32_t))                                                                                          \
-  F(IsValNullExpectsSqlValue, "@isValNull() expects a SQL value input, received type '%0'", (ast::Type *))
+  F(IsValNullExpectsSqlValue, "@isValNull() expects a SQL value input, received type '%0'", (ast::Type *))            \
+  F(NoScopeToBreak, "There is no scope to break from in position", ())
 
 /// Define the ErrorMessageId enumeration
 enum class ErrorMessageId : uint16_t {

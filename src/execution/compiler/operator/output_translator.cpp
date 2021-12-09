@@ -18,7 +18,8 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
                                    Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::OUTPUT),
       output_var_(GetCodeGen()->MakeFreshIdentifier("outRow")),
-      output_struct_(GetCodeGen()->MakeFreshIdentifier("OutputStruct")) {
+      output_struct_(GetCodeGen()->MakeFreshIdentifier(
+          "OutputStruct" + std::to_string(compilation_context->GetQueryId().UnderlyingValue()))) {
   // Prepare the child.
   compilation_context->Prepare(plan, pipeline);
 
@@ -28,6 +29,10 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
 }
 
 void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (HasOutputCallback()) {
+    return;
+  }
+
   auto exec_ctx = GetExecutionContext();
   auto *new_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferNew, {exec_ctx});
   function->Append(GetCodeGen()->Assign(output_buffer_.Get(GetCodeGen()), new_call));
@@ -36,6 +41,10 @@ void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, Functio
 }
 
 void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (HasOutputCallback()) {
+    return;
+  }
+
   auto out_buffer = output_buffer_.Get(GetCodeGen());
   ast::Expr *alloc_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFree, {out_buffer});
   function->Append(GetCodeGen()->MakeStmt(alloc_call));
@@ -43,20 +52,38 @@ void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionB
 
 void OutputTranslator::PerformPipelineWork(noisepage::execution::compiler::WorkContext *context,
                                            noisepage::execution::compiler::FunctionBuilder *function) const {
-  // First generate the call @resultBufferAllocRow(execCtx)
-  auto out_buffer = output_buffer_.Get(GetCodeGen());
-  ast::Expr *alloc_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferAllocOutRow, {out_buffer});
-  ast::Expr *cast_call = GetCodeGen()->PtrCast(output_struct_, alloc_call);
+  ast::Expr *cast_call;
+  if (HasOutputCallback()) {
+    auto output = GetCodeGen()->MakeFreshIdentifier("output_row");
+    auto *row_alloc = GetCodeGen()->DeclareVarNoInit(output, GetCodeGen()->MakeExpr(output_struct_));
+    function->Append(row_alloc);
+    cast_call = GetCodeGen()->AddressOf(GetCodeGen()->MakeExpr(output));
+  } else {
+    auto out_buffer = output_buffer_.Get(GetCodeGen());
+    ast::Expr *alloc_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferAllocOutRow, {out_buffer});
+    cast_call = GetCodeGen()->PtrCast(output_struct_, alloc_call);
+  }
+
   function->Append(GetCodeGen()->DeclareVar(output_var_, nullptr, cast_call));
   const auto child_translator = GetCompilationContext()->LookupTranslator(GetPlan());
 
   // Now fill up the output row
   // For each column in the output, set out.col_i = col_i
+  std::vector<ast::Expr *> callback_args{GetExecutionContext()};
   for (uint32_t attr_idx = 0; attr_idx < GetPlan().GetOutputSchema()->NumColumns(); attr_idx++) {
     ast::Identifier attr_name = GetCodeGen()->MakeIdentifier(OUTPUT_COL_PREFIX + std::to_string(attr_idx));
     ast::Expr *lhs = GetCodeGen()->AccessStructMember(GetCodeGen()->MakeExpr(output_var_), attr_name);
     ast::Expr *rhs = child_translator->GetOutput(context, attr_idx);
     function->Append(GetCodeGen()->Assign(lhs, rhs));
+    if (HasOutputCallback()) {
+      callback_args.push_back(lhs);
+    }
+  }
+
+  // If an output callback is present, append the callback invocation
+  if (HasOutputCallback()) {
+    auto *callback = GetCompilationContext()->GetOutputCallback();
+    function->Append(GetCodeGen()->Call(callback->As<ast::LambdaExpr>()->GetName(), callback_args));
   }
 
   CounterAdd(function, num_output_, 1);
@@ -79,6 +106,10 @@ void OutputTranslator::EndParallelPipelineWork(const Pipeline &pipeline, Functio
 }
 
 void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (GetCompilationContext()->GetOutputCallback() != nullptr) {
+    return;
+  }
+
   auto out_buffer = output_buffer_.Get(GetCodeGen());
   function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
 
@@ -104,5 +135,7 @@ void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *>
 
   decls->push_back(codegen->DeclareStruct(output_struct_, std::move(fields)));
 }
+
+bool OutputTranslator::HasOutputCallback() const { return GetCompilationContext()->HasOutputCallback(); }
 
 }  // namespace noisepage::execution::compiler

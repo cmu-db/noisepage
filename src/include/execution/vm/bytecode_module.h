@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iosfwd>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -28,7 +29,7 @@ class BytecodeModule {
    * @param static_locals All statically allocated variables in the data section.
    */
   BytecodeModule(std::string name, std::vector<uint8_t> &&code, std::vector<uint8_t> &&data,
-                 std::vector<FunctionInfo> &&functions, std::vector<LocalInfo> &&static_locals);
+                 std::vector<std::unique_ptr<FunctionInfo>> &&functions, std::vector<LocalInfo> &&static_locals);
 
   /**
    * This class cannot be copied or moved.
@@ -42,7 +43,7 @@ class BytecodeModule {
   const FunctionInfo *GetFuncInfoById(const FunctionId func_id) const {
     // Function IDs are dense, so the given ID must be in the range [0, # functions)
     NOISEPAGE_ASSERT(func_id < GetFunctionCount(), "Invalid function");
-    return &functions_[func_id];
+    return functions_[func_id].get();
   }
 
   /**
@@ -50,7 +51,8 @@ class BytecodeModule {
    *         no such function exists, a NULL pointer is returned.
    */
   const FunctionInfo *LookupFuncInfoByName(const std::string &name) const {
-    for (const FunctionInfo &info : functions_) {
+    for (const auto &function : functions_) {
+      const FunctionInfo &info = *function;
       if (info.GetName() == name) {
         return &info;
       }
@@ -92,7 +94,14 @@ class BytecodeModule {
   /**
    * @return A const-view of the metadata for all functions in this module.
    */
-  const std::vector<FunctionInfo> &GetFunctionsInfo() const { return functions_; }
+  std::vector<const FunctionInfo *> GetFunctionsInfo() const {
+    // TODO(Kyle): Cache these results?
+    std::vector<const FunctionInfo *> functions{};
+    functions.reserve(functions_.size());
+    std::transform(functions_.cbegin(), functions_.cend(), std::back_inserter(functions),
+                   [](const std::unique_ptr<FunctionInfo> &f) { return f.get(); });
+    return functions;
+  }
 
   /**
    * @return A const-view of the metadata for all static-locals in this module.
@@ -156,7 +165,7 @@ class BytecodeModule {
   // The raw static data for ALL static data stored contiguously.
   const std::vector<uint8_t> data_;
   // Metadata for all functions.
-  const std::vector<FunctionInfo> functions_;
+  const std::vector<std::unique_ptr<FunctionInfo>> functions_;
   // Metadata for all static data.
   const std::vector<LocalInfo> static_locals_;
 };

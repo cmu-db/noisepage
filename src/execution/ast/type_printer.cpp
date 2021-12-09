@@ -54,6 +54,11 @@ void TypePrinter::VisitPointerType(const PointerType *type) {
   Visit(type->GetBase());
 }
 
+void TypePrinter::VisitReferenceType(const ReferenceType *type) {
+  Os() << "&";
+  Visit(type->GetBase());
+}
+
 void TypePrinter::VisitStructType(const StructType *type) {
   Os() << "struct{";
   bool first = true;
@@ -83,6 +88,12 @@ void execution::ast::TypePrinter::VisitMapType(const MapType *type) {
   Visit(type->GetKeyType());
   Os() << "]";
   Visit(type->GetValueType());
+}
+
+void execution::ast::TypePrinter::VisitLambdaType(const LambdaType *type) {
+  Os() << "lambda[";
+  Visit(type->GetFunctionType());
+  Os() << "]";
 }
 
 }  // namespace

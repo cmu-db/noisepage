@@ -2,11 +2,17 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
+#include "execution/ast/udf/udf_ast_context.h"
 #include "execution/sql/sql.h"
+#include "parser/postgresparser.h"
+#include "parser/select_statement.h"
+#include "parser/udf/variable_ref.h"
 
 namespace noisepage {
 
@@ -46,6 +52,18 @@ class BindNodeVisitor final : public SqlNodeVisitor {
 
   /** Destructor. Must be defined due to forward declaration. */
   ~BindNodeVisitor() final;
+
+  /**
+   * Perform binding for a UDF.
+   * @param parse_result The result of parsing the UDF.
+   * @param udf_ast_context The AST context for the UDF.
+   * @return The map of UDF parameters:
+   *    Column Name -> (Parameter Name, Parameter Index)
+   * @throws BinderException on failure to bind query
+   */
+  std::vector<parser::udf::VariableRef> BindAndGetUDFVariableRefs(
+      common::ManagedPointer<parser::ParseResult> parse_result,
+      common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context);
 
   /**
    * Perform binding on the passed in tree. Bind the relation names to oids
@@ -101,6 +119,11 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   /** Current context of the query or subquery */
   common::ManagedPointer<BinderContext> context_ = nullptr;
 
+  /** Context for UDF AST */
+  common::ManagedPointer<execution::ast::udf::UdfAstContext> udf_ast_context_{};
+  /** Parameters for UDF */
+  std::vector<parser::udf::VariableRef> udf_variable_refs_;
+
   /** Catalog accessor */
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
 
@@ -136,6 +159,41 @@ class BindNodeVisitor final : public SqlNodeVisitor {
   void ValidateAndCorrectInsertValues(common::ManagedPointer<parser::InsertStatement> node,
                                       std::vector<common::ManagedPointer<parser::AbstractExpression>> *values,
                                       const catalog::Schema &table_schema);
+
+  /** @return `true` if we are binding within the context of a UDF, `false` otherwise */
+  bool BindingForUDF() const;
+
+  /**
+   * Determine if the given identifier names a UDF variable.
+   * @param identifier The variable identifier
+   * @return `true` if the variable is declared in the UDF
+   * for which binding is performed, `false` otherwise
+   */
+  bool IsUDFVariable(const std::string &identifier) const;
+
+  /**
+   * Determine if the given identifier names a variable
+   * reference that is already tracked.
+   * @param identifier The variable identifier
+   */
+  bool HaveUDFVariableRef(const std::string &identifier) const;
+
+  /**
+   * Add a UDF variable reference to the internal tracker.
+   * @param expr The expression
+   * @param table_name The name of the table associated with the reference
+   * @param column_name The name of the column associated with the reference
+   */
+  void AddUDFVariableReference(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                               const std::string &table_name, const std::string &column_name);
+
+  /**
+   * Add a UDF variable reference to the internal tracker.
+   * @param expr The expression
+   * @param column_name The name of the column associated with the reference
+   */
+  void AddUDFVariableReference(common::ManagedPointer<parser::ColumnValueExpression> expr,
+                               const std::string &column_name);
 
   /**
    * Set the serial number of the table alias to a unique number if it isn't already set

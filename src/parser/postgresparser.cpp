@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -48,6 +49,11 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   auto result = pg_query_parse(text);
 
   // Parse the query string with the Postgres parser.
+
+  // TODO(Kyle): Syntax "DROP FUNCTION fun;" fails in the
+  // Postgres parser, do we need to update the version to
+  // add support for the shorthand syntax?
+
   if (result.error != nullptr) {
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
 
@@ -61,7 +67,7 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   // Transform the Postgres parse tree to a Terrier representation.
   auto parse_result = std::make_unique<ParseResult>();
   try {
-    ListTransform(parse_result.get(), result.tree);
+    ListTransform(parse_result.get(), result.tree, query_string);
   } catch (const Exception &e) {
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
@@ -74,16 +80,54 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   return parse_result;
 }
 
-void PostgresParser::ListTransform(ParseResult *parse_result, List *root) {
+void PostgresParser::ListTransform(ParseResult *parse_result, List *root, const std::string &query_string) {
   if (root != nullptr) {
     for (auto cell = root->head; cell != nullptr; cell = cell->next) {
       auto node = static_cast<Node *>(cell->data.ptr_value);
-      parse_result->AddStatement(NodeTransform(parse_result, node));
+      parse_result->AddStatement(NodeTransform(parse_result, node, query_string));
     }
   }
 }
 
-std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_result, Node *node) {
+/**
+ * Get the data type for the specified type name.
+ * @param name The type name (as C-style string)
+ * @return The data type
+ */
+static std::optional<BaseFunctionParameter::DataType> TypeNameToDataType(const char *name) {
+  BaseFunctionParameter::DataType data_type;
+  if ((strcmp(name, "int") == 0) || (strcmp(name, "int4") == 0)) {
+    data_type = BaseFunctionParameter::DataType::INT;
+  } else if (strcmp(name, "varchar") == 0) {
+    data_type = BaseFunctionParameter::DataType::VARCHAR;
+  } else if (strcmp(name, "int8") == 0) {
+    data_type = BaseFunctionParameter::DataType::BIGINT;
+  } else if (strcmp(name, "int2") == 0) {
+    data_type = BaseFunctionParameter::DataType::SMALLINT;
+  } else if ((strcmp(name, "double") == 0) || (strcmp(name, "float8") == 0)) {
+    data_type = BaseFunctionParameter::DataType::DOUBLE;
+  } else if ((strcmp(name, "real") == 0) || (strcmp(name, "float4") == 0)) {
+    data_type = BaseFunctionParameter::DataType::FLOAT;
+  } else if ((strcmp(name, "decimal") == 0) || strcmp(name, "numeric") == 0) {
+    return BaseFunctionParameter::DataType::DECIMAL;
+  } else if (strcmp(name, "text") == 0) {
+    data_type = BaseFunctionParameter::DataType::TEXT;
+  } else if (strcmp(name, "bpchar") == 0) {
+    data_type = BaseFunctionParameter::DataType::CHAR;
+  } else if (strcmp(name, "tinyint") == 0) {
+    data_type = BaseFunctionParameter::DataType::TINYINT;
+  } else if (strcmp(name, "bool") == 0) {
+    data_type = BaseFunctionParameter::DataType::BOOL;
+  } else if (strcmp(name, "date") == 0) {
+    data_type = BaseFunctionParameter::DataType::DATE;
+  } else {
+    return std::nullopt;
+  }
+  return std::make_optional(data_type);
+}
+
+std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_result, Node *node,
+                                                            const std::string &query_string) {
   // TODO(WAN): Document what input is parsed to nullptr
   if (node == nullptr) {
     return nullptr;
@@ -104,7 +148,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       break;
     }
     case T_CreateFunctionStmt: {
-      result = CreateFunctionTransform(parse_result, reinterpret_cast<CreateFunctionStmt *>(node));
+      result = CreateFunctionTransform(parse_result, reinterpret_cast<CreateFunctionStmt *>(node), query_string);
       break;
     }
     case T_CreateSchemaStmt: {
@@ -128,7 +172,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       break;
     }
     case T_ExplainStmt: {
-      result = ExplainTransform(parse_result, reinterpret_cast<ExplainStmt *>(node));
+      result = ExplainTransform(parse_result, reinterpret_cast<ExplainStmt *>(node), query_string);
       break;
     }
     case T_IndexStmt: {
@@ -140,7 +184,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(ParseResult *parse_r
       break;
     }
     case T_PrepareStmt: {
-      result = PrepareTransform(parse_result, reinterpret_cast<PrepareStmt *>(node));
+      result = PrepareTransform(parse_result, reinterpret_cast<PrepareStmt *>(node), query_string);
       break;
     }
     case T_SelectStmt: {
@@ -1296,21 +1340,23 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateDatabaseTransform(Pa
 
 // Postgres.CreateFunctionStmt -> noisepage.CreateFunctionStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResult *parse_result,
-                                                                      CreateFunctionStmt *root) {
+                                                                      CreateFunctionStmt *root,
+                                                                      const std::string &query_string) {
   bool replace = root->replace_;
-  std::vector<std::unique_ptr<FuncParameter>> func_parameters;
-
-  for (auto cell = root->parameters_->head; cell != nullptr; cell = cell->next) {
-    auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
-    switch (node->type) {
-      case T_FunctionParameter: {
-        func_parameters.emplace_back(
-            FunctionParameterTransform(parse_result, reinterpret_cast<FunctionParameter *>(node)));
-        break;
-      }
-      default: {
-        // TODO(WAN): previous code just ignored it, is this right?
-        break;
+  std::vector<std::unique_ptr<FuncParameter>> func_parameters{};
+  if (root->parameters_ != nullptr) {
+    for (auto cell = root->parameters_->head; cell != nullptr; cell = cell->next) {
+      auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
+      switch (node->type) {
+        case T_FunctionParameter: {
+          func_parameters.emplace_back(
+              FunctionParameterTransform(parse_result, reinterpret_cast<FunctionParameter *>(node)));
+          break;
+        }
+        default: {
+          // TODO(WAN): previous code just ignored it, is this right?
+          break;
+        }
       }
     }
   }
@@ -1320,7 +1366,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
   // TODO(WAN): assumption from old code, can only pass one function name for now
   std::string func_name = (reinterpret_cast<value *>(root->funcname_->tail->data.ptr_value)->val_.str_);
 
-  std::vector<std::string> func_body;
+  std::vector<std::string> func_body{};
+  func_body.push_back(query_string);
+
   AsType as_type = AsType::INVALID;
   PLType pl_type = PLType::INVALID;
 
@@ -1334,7 +1382,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
         func_body.push_back(query_string);
       }
 
-      if (func_body.size() > 1) {
+      if (func_body.size() > 2) {
         as_type = AsType::EXECUTABLE;
       } else {
         as_type = AsType::QUERY_STRING;
@@ -1351,11 +1399,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
     }
   }
 
-  auto result =
-      std::make_unique<CreateFunctionStatement>(replace, std::move(func_name), std::move(func_body),
-                                                std::move(return_type), std::move(func_parameters), pl_type, as_type);
-
-  return result;
+  return std::make_unique<CreateFunctionStatement>(replace, std::move(func_name), std::move(func_body),
+                                                   std::move(return_type), std::move(func_parameters), pl_type,
+                                                   as_type);
 }
 
 // Postgres.IndexStmt -> noisepage.CreateStatement
@@ -1660,68 +1706,23 @@ std::unique_ptr<FuncParameter> PostgresParser::FunctionParameterTransform(ParseR
                                                                           FunctionParameter *root) {
   // TODO(WAN): significant code duplication, refactor out char* -> DataType
   char *name = (reinterpret_cast<value *>(root->arg_type_->names_->tail->data.ptr_value)->val_.str_);
-  parser::FuncParameter::DataType data_type;
-
-  if ((strcmp(name, "int") == 0) || (strcmp(name, "int4") == 0)) {
-    data_type = BaseFunctionParameter::DataType::INT;
-  } else if (strcmp(name, "varchar") == 0) {
-    data_type = BaseFunctionParameter::DataType::VARCHAR;
-  } else if (strcmp(name, "int8") == 0) {
-    data_type = BaseFunctionParameter::DataType::BIGINT;
-  } else if (strcmp(name, "int2") == 0) {
-    data_type = BaseFunctionParameter::DataType::SMALLINT;
-  } else if ((strcmp(name, "double") == 0) || (strcmp(name, "float8") == 0)) {
-    data_type = BaseFunctionParameter::DataType::DOUBLE;
-  } else if ((strcmp(name, "real") == 0) || (strcmp(name, "float4") == 0)) {
-    data_type = BaseFunctionParameter::DataType::FLOAT;
-  } else if (strcmp(name, "text") == 0) {
-    data_type = BaseFunctionParameter::DataType::TEXT;
-  } else if (strcmp(name, "bpchar") == 0) {
-    data_type = BaseFunctionParameter::DataType::CHAR;
-  } else if (strcmp(name, "tinyint") == 0) {
-    data_type = BaseFunctionParameter::DataType::TINYINT;
-  } else if (strcmp(name, "bool") == 0) {
-    data_type = BaseFunctionParameter::DataType::BOOL;
-  } else {
+  auto data_type = TypeNameToDataType(name);
+  if (!data_type.has_value()) {
     PARSER_LOG_AND_THROW("FunctionParameterTransform", "DataType", name);
   }
 
   auto param_name = root->name_ != nullptr ? root->name_ : "";
-  auto result = std::make_unique<FuncParameter>(data_type, param_name);
-  return result;
+  return std::make_unique<FuncParameter>(data_type.value(), param_name);
 }
 
 // Postgres.TypeName -> noisepage.ReturnType
 std::unique_ptr<ReturnType> PostgresParser::ReturnTypeTransform(ParseResult *parse_result, TypeName *root) {
   char *name = (reinterpret_cast<value *>(root->names_->tail->data.ptr_value)->val_.str_);
-  ReturnType::DataType data_type;
-
-  if ((strcmp(name, "int") == 0) || (strcmp(name, "int4") == 0)) {
-    data_type = BaseFunctionParameter::DataType::INT;
-  } else if (strcmp(name, "varchar") == 0) {
-    data_type = BaseFunctionParameter::DataType::VARCHAR;
-  } else if (strcmp(name, "int8") == 0) {
-    data_type = BaseFunctionParameter::DataType::BIGINT;
-  } else if (strcmp(name, "int2") == 0) {
-    data_type = BaseFunctionParameter::DataType::SMALLINT;
-  } else if ((strcmp(name, "double") == 0) || (strcmp(name, "float8") == 0)) {
-    data_type = BaseFunctionParameter::DataType::DOUBLE;
-  } else if ((strcmp(name, "real") == 0) || (strcmp(name, "float4") == 0)) {
-    data_type = BaseFunctionParameter::DataType::FLOAT;
-  } else if (strcmp(name, "text") == 0) {
-    data_type = BaseFunctionParameter::DataType::TEXT;
-  } else if (strcmp(name, "bpchar") == 0) {
-    data_type = BaseFunctionParameter::DataType::CHAR;
-  } else if (strcmp(name, "tinyint") == 0) {
-    data_type = BaseFunctionParameter::DataType::TINYINT;
-  } else if (strcmp(name, "bool") == 0) {
-    data_type = BaseFunctionParameter::DataType::BOOL;
-  } else {
+  auto data_type = TypeNameToDataType(name);
+  if (!data_type.has_value()) {
     PARSER_LOG_AND_THROW("ReturnTypeTransform", "ReturnType", name);
   }
-
-  auto result = std::make_unique<ReturnType>(data_type);
-  return result;
+  return std::make_unique<ReturnType>(data_type.value());
 }
 
 // Postgres.Node -> noisepage.AbstractExpression
@@ -1758,6 +1759,9 @@ std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(ParseResult *pa
 // Postgres.DropStmt -> noisepage.DropStatement
 std::unique_ptr<DropStatement> PostgresParser::DropTransform(ParseResult *parse_result, DropStmt *root) {
   switch (root->remove_type_) {
+    case ObjectType::OBJECT_FUNCTION: {
+      return DropFunctionTransform(parse_result, root);
+    }
     case ObjectType::OBJECT_INDEX: {
       return DropIndexTransform(parse_result, root);
     }
@@ -1784,6 +1788,37 @@ std::unique_ptr<DropStatement> PostgresParser::DropDatabaseTransform(ParseResult
 
   auto result = std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kDatabase, if_exists);
   return result;
+}
+
+// Postgres.DropStmt -> noisepage.DropStatement
+std::unique_ptr<DropStatement> PostgresParser::DropFunctionTransform(ParseResult *parse_result, DropStmt *root) {
+  // Grab the function name
+  auto objects = reinterpret_cast<List *>(root->objects_->head->data.ptr_value);
+  std::string function_name = reinterpret_cast<value *>(objects->head->data.ptr_value)->val_.str_;
+
+  // Grab the argument types from the function signature
+  std::vector<std::string> function_args{};
+
+  auto *arguments = reinterpret_cast<List *>(root->arguments_->head->data.ptr_value);
+  if (arguments != nullptr) {
+    function_args.reserve(arguments->length);
+    for (auto *cell = arguments->head; cell != nullptr; cell = cell->next) {
+      // The descriptor for some types consists of a head node with
+      // "pg_catalog" as the string value, so we need to skip over
+      auto *descriptor = reinterpret_cast<typname *>(cell->data.ptr_value)->names_;
+      if (descriptor->length > 1) {
+        std::string type = reinterpret_cast<value *>(descriptor->head->next->data.ptr_value)->val_.str_;
+        function_args.emplace_back(std::move(type));
+      } else {
+        std::string type = reinterpret_cast<value *>(descriptor->head->data.ptr_value)->val_.str_;
+        function_args.emplace_back(std::move(type));
+      }
+    }
+  }
+
+  const auto if_exists = root->missing_ok_;
+  return std::make_unique<DropStatement>(std::make_unique<TableInfo>("", "", ""), std::move(function_name),
+                                         std::move(function_args), if_exists);
 }
 
 // Postgres.DropStmt -> noisepage.DropStatement
@@ -1920,10 +1955,11 @@ std::vector<common::ManagedPointer<AbstractExpression>> PostgresParser::ParamLis
   return result;
 }
 
-std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ParseResult *parse_result, ExplainStmt *root) {
+std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ParseResult *parse_result, ExplainStmt *root,
+                                                                   const std::string &query_string) {
   static constexpr char k_format_tok[] = "format";
   std::unique_ptr<ExplainStatement> result;
-  auto query = NodeTransform(parse_result, root->query_);
+  auto query = NodeTransform(parse_result, root->query_, query_string);
   result = std::make_unique<ExplainStatement>(std::move(query));
 
   if (root->options_ != nullptr) {
@@ -2078,9 +2114,10 @@ std::vector<std::unique_ptr<UpdateClause>> PostgresParser::UpdateTargetTransform
 }
 
 // Postgres.PrepareStmt -> noisepage.PrepareStatement
-std::unique_ptr<PrepareStatement> PostgresParser::PrepareTransform(ParseResult *parse_result, PrepareStmt *root) {
+std::unique_ptr<PrepareStatement> PostgresParser::PrepareTransform(ParseResult *parse_result, PrepareStmt *root,
+                                                                   const std::string &query_string) {
   auto name = root->name_;
-  auto query = NodeTransform(parse_result, root->query_);
+  auto query = NodeTransform(parse_result, root->query_, query_string);
 
   // TODO(WAN): This should probably be populated?
   std::vector<common::ManagedPointer<ParameterValueExpression>> placeholders;

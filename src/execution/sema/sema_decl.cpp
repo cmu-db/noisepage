@@ -24,6 +24,9 @@ void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   }
 
   if (node->HasInitialValue()) {
+    if (node->Initial()->GetKind() == ast::AstNode::Kind::LambdaExpr) {
+      node->Initial()->As<ast::LambdaExpr>()->name_ = node->Name();
+    }
     initializer_type = Resolve(node->Initial());
   }
 

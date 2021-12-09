@@ -90,4 +90,24 @@ void Sema::VisitMapTypeRepr(ast::MapTypeRepr *node) {
   node->SetType(ast::MapType::Get(key_type, value_type));
 }
 
+void Sema::VisitLambdaTypeRepr(ast::LambdaTypeRepr *node) {
+  auto *fn_type = Resolve(node->FunctionType())->SafeAs<ast::FunctionType>();
+  if (fn_type == nullptr) {
+    return;
+  }
+
+  // Captures are passed to the function that implements the lambda
+  // by way of the final parameter to the function; the parameter is
+  // always specified as an Int32 pointer and then we emit the code
+  // necessary to dereference the pointers within the structure
+  // (relative to the base pointer) appropriately to extract captures
+
+  // TODO(Kyle): This seems like a potentially-expedient yet needlessly
+  // confusing (and potentially unsafe?) way to implement the passage
+  // the captures structure to the function that implements the closure
+  fn_type->GetParams().emplace_back(GetContext()->GetIdentifier("captures"),
+                                    GetBuiltinType(ast::BuiltinType::Kind::Int32)->PointerTo());
+  node->SetType(ast::LambdaType::Get(fn_type));
+}
+
 }  // namespace noisepage::execution::sema

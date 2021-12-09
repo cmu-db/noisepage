@@ -78,13 +78,13 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
                                  const namespace_oid_t procns, const type_oid_t variadic_type,
                                  const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                                  const std::vector<type_oid_t> &all_arg_types,
-                                 const std::vector<PgProc::ArgModes> &arg_modes, const type_oid_t rettype,
+                                 const std::vector<PgProc::ArgMode> &arg_modes, const type_oid_t rettype,
                                  const std::string &src, const bool is_aggregate) {
   NOISEPAGE_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
   NOISEPAGE_ASSERT(args.size() == arg_types.size(), "Every input arg needs a type.");
   NOISEPAGE_ASSERT(
       arg_modes.empty() || (!(std::all_of(arg_modes.cbegin(), arg_modes.cend(),
-                                          [](PgProc::ArgModes mode) { return mode == PgProc::ArgModes::IN; })) &&
+                                          [](PgProc::ArgMode mode) { return mode == PgProc::ArgMode::IN; })) &&
                             arg_modes.size() >= args.size()),
       "argmodes should be empty unless there are modes other than IN, in which case arg_modes must be at "
       "least equal to the size of args.");
@@ -168,7 +168,6 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
     name_pr->Set<storage::VarlenEntry, false>(name_map.at(indexkeycol_oid_t(2)), name_varlen, false);
 
     if (auto result = procs_name_index_->Insert(txn, *name_pr, tuple_slot); !result) {
-      delete[] buffer;
       return false;
     }
   }
@@ -186,7 +185,7 @@ bool PgProcImpl::CreateProcedure(const common::ManagedPointer<transaction::Trans
 }
 
 bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc) {
-  NOISEPAGE_ASSERT(proc != INVALID_PROC_OID, "Invalid oid passed");
+  NOISEPAGE_ASSERT(proc != INVALID_PROC_OID, "DropProcedure called with invalid procedure OID");
 
   const auto &name_pri = procs_name_index_->GetProjectedRowInitializer();
   const auto &oid_pri = procs_oid_index_->GetProjectedRowInitializer();
@@ -229,7 +228,9 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   auto &proc_pm = pg_proc_all_cols_prm_;
   auto name_varlen = *table_pr->Get<storage::VarlenEntry, false>(proc_pm[PgProc::PRONAME.oid_], nullptr);
   auto proc_ns = *table_pr->Get<namespace_oid_t, false>(proc_pm[PgProc::PRONAMESPACE.oid_], nullptr);
-  auto ctx_ptr = table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR.oid_]);
+
+  // Grab a pointer to the procedure context (if present)
+  auto *ptr_ptr = reinterpret_cast<void **>(table_pr->AccessWithNullCheck(proc_pm[PgProc::PRO_CTX_PTR.oid_]));
 
   // Delete from pg_proc_name_index.
   {
@@ -241,7 +242,8 @@ bool PgProcImpl::DropProcedure(const common::ManagedPointer<transaction::Transac
   }
 
   // Clean up the procedure context.
-  if (ctx_ptr != nullptr) {
+  if (ptr_ptr != nullptr) {
+    auto *ctx_ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
       deferred_action_manager->RegisterDeferredAction(
           [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; }); });
@@ -302,8 +304,7 @@ common::ManagedPointer<execution::functions::FunctionContext> PgProcImpl::GetPro
   NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *ptr_ptr = (reinterpret_cast<void **>(select_pr->AccessWithNullCheck(0)));
-  NOISEPAGE_ASSERT(nullptr != ptr_ptr,
-                   "GetFunctionContext called on an invalid OID or before SetFunctionContextPointer.");
+  NOISEPAGE_ASSERT(nullptr != ptr_ptr, "GetFunctionContext called on an invalid OID or before SetFunctionContext.");
   execution::functions::FunctionContext *ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
 
   delete[] buffer;
@@ -452,12 +453,12 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   auto create_fn = [&](const std::string &procname, const type_oid_t variadic_type,
                        const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                        type_oid_t rettype) {
-    std::vector<PgProc::ArgModes> arg_modes;
+    std::vector<PgProc::ArgMode> arg_modes;
     std::vector<type_oid_t> all_arg_types;
     if (variadic_type != INVALID_TYPE_OID) {
       all_arg_types = arg_types;
-      arg_modes.resize(arg_types.size(), PgProc::ArgModes::IN);  // we dont' support OUT or INOUT args right now
-      arg_modes.back() = PgProc::ArgModes::VARIADIC;             // variadic must be the last arg
+      arg_modes.resize(arg_types.size(), PgProc::ArgMode::IN);  // we dont' support OUT or INOUT args right now
+      arg_modes.back() = PgProc::ArgMode::VARIADIC;             // variadic must be the last arg
     }
     CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, procname, PgLanguage::INTERNAL_LANGUAGE_OID,
                     PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, variadic_type, args, arg_types, all_arg_types,
@@ -528,6 +529,7 @@ void PgProcImpl::BootstrapProcs(const common::ManagedPointer<transaction::Transa
   // Other functions.
   create_fn("date_part", INVALID_TYPE_OID, {"date", "date_part_type"}, {DATE, INT}, INT);
   create_fn("version", INVALID_TYPE_OID, {}, {}, STR);
+  create_fn("random", INVALID_TYPE_OID, {}, {}, REAL);
 
   CreateProcedure(txn, proc_oid_t{dbc->next_oid_++}, "nprunnersemitint", PgLanguage::INTERNAL_LANGUAGE_OID,
                   PgNamespace::NAMESPACE_DEFAULT_NAMESPACE_OID, INVALID_TYPE_OID,
@@ -561,7 +563,7 @@ void PgProcImpl::BootstrapProcContext(const common::ManagedPointer<transaction::
                    "GetProcOid returned no results during bootstrap. Something failed earlier.");
   const auto *const func_context = new execution::functions::FunctionContext(
       std::move(func_name), func_ret_type, std::move(arg_types), builtin, is_exec_ctx_required);
-  const auto retval UNUSED_ATTRIBUTE = dbc->SetFunctionContextPointer(txn, proc_oid, func_context);
+  const auto retval UNUSED_ATTRIBUTE = dbc->SetFunctionContext(txn, proc_oid, func_context);
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
@@ -642,6 +644,7 @@ void PgProcImpl::BootstrapProcContexts(const common::ManagedPointer<transaction:
   // Other functions.
   create_fn("date_part", INT, {execution::sql::SqlTypeId::Date, INT}, execution::ast::Builtin::DatePart, false);
   create_fn("version", VAR, {}, execution::ast::Builtin::Version, true);
+  create_fn("random", REAL, {}, execution::ast::Builtin::Random, false);
 
   create_fn("nprunnersemitint", INT, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitInt, true);
   create_fn("nprunnersemitreal", REAL, {INT, INT, INT, INT}, execution::ast::Builtin::NpRunnersEmitReal, true);

@@ -12,15 +12,19 @@ namespace noisepage::execution::compiler {
 
 namespace {
 constexpr char AGG_ATTR_PREFIX[] = "agg_term_attr";
+constexpr char AGG_ROW_VAR[] = "aggRow";
+constexpr char AGG_PAYLOAD_TYPE[] = "AggPayload";
+constexpr char AGG_VALUES_TYPE[] = "AggValues";
+constexpr char AGG_MERGE_FUNC[] = "MergeAggregates";
 }  // namespace
 
 StaticAggregationTranslator::StaticAggregationTranslator(const planner::AggregatePlanNode &plan,
                                                          CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, selfdriving::ExecutionOperatingUnitType::DUMMY),
-      agg_row_var_(GetCodeGen()->MakeFreshIdentifier("aggRow")),
-      agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
-      agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
-      merge_func_(GetCodeGen()->MakeFreshIdentifier("MergeAggregates")),
+      agg_row_var_(GetCodeGen()->MakeFreshIdentifier(AGG_ROW_VAR)),
+      agg_payload_type_(MakeGlobalIdentifier(AGG_PAYLOAD_TYPE)),
+      agg_values_type_(MakeGlobalIdentifier(AGG_VALUES_TYPE)),
+      merge_func_(MakeGlobalIdentifier(AGG_MERGE_FUNC)),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   NOISEPAGE_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
   NOISEPAGE_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");

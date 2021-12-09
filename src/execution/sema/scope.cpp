@@ -29,4 +29,18 @@ ast::Type *Scope::LookupLocal(ast::Identifier name) const {
   return (iter == decls_.end() ? nullptr : iter->second);
 }
 
+Scope::Kind Scope::GetKind() const { return scope_kind_; }
+
+std::vector<std::pair<ast::Identifier, ast::Type *>> Scope::GetLocals() const {
+  std::vector<std::pair<ast::Identifier, ast::Type *>> locals;
+  auto scope = this;
+  do {
+    for (auto it : scope->decls_) {
+      locals.emplace_back(it.first, it.second);
+    }
+    scope = scope->outer_;
+  } while (scope->scope_kind_ != Scope::Kind::Function);
+  return locals;
+}
+
 }  // namespace noisepage::execution::sema

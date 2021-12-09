@@ -69,7 +69,7 @@ std::unique_ptr<ExecutableQuery::Fragment> ExecutableQueryFragmentBuilder::Compi
     teardown_names.push_back(decl->Name().GetString());
   }
   return std::make_unique<ExecutableQuery::Fragment>(std::move(step_functions_), std::move(teardown_names),
-                                                     std::move(module));
+                                                     std::move(module), generated_file);
 }
 
 }  // namespace noisepage::execution::compiler

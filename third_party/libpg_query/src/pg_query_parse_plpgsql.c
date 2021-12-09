@@ -439,6 +439,7 @@ PgQueryPlpgsqlParseResult pg_query_parse_plpgsql(const char* input)
     result.plpgsql_funcs[strlen(result.plpgsql_funcs) - 2] = '\n';
     result.plpgsql_funcs[strlen(result.plpgsql_funcs) - 1] = ']';
 
+	free(parse_result.stderr_buffer);
 	pg_query_exit_memory_context(ctx);
 
 	return result;

@@ -143,6 +143,9 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
           return network::QueryType::QUERY_CREATE_VIEW;
       }
     }
+    case parser::StatementType::CREATE_FUNC: {
+      return network::QueryType::QUERY_CREATE_FUNCTION;
+    }
     case parser::StatementType::DROP: {
       const auto drop_type = statement.CastManagedPointerTo<parser::DropStatement>()->GetDropType();
       switch (drop_type) {
@@ -160,6 +163,8 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
           return network::QueryType::QUERY_DROP_PREPARED_STATEMENT;
         case parser::DropStatement::DropType::kTrigger:
           return network::QueryType::QUERY_DROP_TRIGGER;
+        case parser::DropStatement::DropType::kFunction:
+          return network::QueryType::QUERY_DROP_FUNCTION;
       }
     }
     case parser::StatementType::VARIABLE_SET:

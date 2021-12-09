@@ -77,6 +77,11 @@ class PostgresParser {
     }
   }
 
+  /**
+   * Determine if the function identified by `fun_name` is an aggregate function.
+   * @param fun_name The function name
+   * @return `true` if the function is an aggregation, `false` otherwise
+   */
   static bool IsAggregateFunction(const std::string &fun_name) {
     return (fun_name == "min" || fun_name == "max" || fun_name == "count" || fun_name == "avg" || fun_name == "sum");
   }
@@ -85,16 +90,19 @@ class PostgresParser {
    * Transforms the entire parsed nodes list into a corresponding SQLStatementList.
    * @param[in,out] parse_result the current parse result, which will be updated
    * @param root list of parsed nodes
+   * @param query_string the query string
    */
-  static void ListTransform(ParseResult *parse_result, List *root);
+  static void ListTransform(ParseResult *parse_result, List *root, const std::string &query_string);
 
   /**
    * Transforms a single node in the parse list into a noisepage SQLStatement object.
    * @param[in,out] parse_result the current parse result, which will be updated
    * @param node parsed node
+   * @param query_string the query string
    * @return SQLStatement corresponding to the parsed node
    */
-  static std::unique_ptr<SQLStatement> NodeTransform(ParseResult *parse_result, Node *node);
+  static std::unique_ptr<SQLStatement> NodeTransform(ParseResult *parse_result, Node *node,
+                                                     const std::string &query_string);
 
   static std::unique_ptr<AbstractExpression> ExprTransform(ParseResult *parse_result, Node *node, char *alias);
   static ExpressionType StringToExpressionType(const std::string &parser_str);
@@ -134,7 +142,8 @@ class PostgresParser {
   // CREATE statements
   static std::unique_ptr<SQLStatement> CreateTransform(ParseResult *parse_result, CreateStmt *root);
   static std::unique_ptr<SQLStatement> CreateDatabaseTransform(ParseResult *parse_result, CreateDatabaseStmt *root);
-  static std::unique_ptr<SQLStatement> CreateFunctionTransform(ParseResult *parse_result, CreateFunctionStmt *root);
+  static std::unique_ptr<SQLStatement> CreateFunctionTransform(ParseResult *parse_result, CreateFunctionStmt *root,
+                                                               const std::string &query_string);
   static std::unique_ptr<SQLStatement> CreateIndexTransform(ParseResult *parse_result, IndexStmt *root);
   static std::unique_ptr<SQLStatement> CreateSchemaTransform(ParseResult *parse_result, CreateSchemaStmt *root);
   static std::unique_ptr<SQLStatement> CreateTriggerTransform(ParseResult *parse_result, CreateTrigStmt *root);
@@ -160,6 +169,7 @@ class PostgresParser {
   // DROP statements
   static std::unique_ptr<DropStatement> DropTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropDatabaseTransform(ParseResult *parse_result, DropDatabaseStmt *root);
+  static std::unique_ptr<DropStatement> DropFunctionTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropIndexTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropSchemaTransform(ParseResult *parse_result, DropStmt *root);
   static std::unique_ptr<DropStatement> DropTableTransform(ParseResult *parse_result, DropStmt *root);
@@ -173,7 +183,8 @@ class PostgresParser {
                                                                                     List *root);
 
   // EXPLAIN statements
-  static std::unique_ptr<ExplainStatement> ExplainTransform(ParseResult *parse_result, ExplainStmt *root);
+  static std::unique_ptr<ExplainStatement> ExplainTransform(ParseResult *parse_result, ExplainStmt *root,
+                                                            const std::string &query_string);
 
   // INSERT statements
   static std::unique_ptr<InsertStatement> InsertTransform(ParseResult *parse_result, InsertStmt *root);
@@ -184,7 +195,8 @@ class PostgresParser {
       ParseResult *parse_result, List *root);
 
   // PREPARE statements
-  static std::unique_ptr<PrepareStatement> PrepareTransform(ParseResult *parse_result, PrepareStmt *root);
+  static std::unique_ptr<PrepareStatement> PrepareTransform(ParseResult *parse_result, PrepareStmt *root,
+                                                            const std::string &query_string);
 
   static std::unique_ptr<DeleteStatement> TruncateTransform(ParseResult *parse_result, TruncateStmt *truncate_stmt);
 

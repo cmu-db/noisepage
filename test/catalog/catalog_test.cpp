@@ -115,62 +115,174 @@ TEST_F(CatalogTests, LanguageTest) {
   txn_manager_->Abort(txn);
 }
 
-TEST_F(CatalogTests, ProcTest) {
+/** User-defined function */
+TEST_F(CatalogTests, ProcTest0) {
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
-  // Check visibility to me
   VerifyCatalogTables(*accessor);
 
-  auto lan_oid = accessor->CreateLanguage("test_language");
-  auto ns_oid = accessor->GetDefaultNamespace();
-
-  EXPECT_NE(lan_oid, catalog::INVALID_LANGUAGE_OID);
+  const auto language_oid = accessor->CreateLanguage("test_language");
+  const auto namespace_oid = accessor->GetDefaultNamespace();
+  EXPECT_NE(language_oid, catalog::INVALID_LANGUAGE_OID);
+  EXPECT_NE(namespace_oid, catalog::INVALID_NAMESPACE_OID);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  // Create the procedure
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
-  // create a sample proc
-  auto procname = "sample";
-  std::vector<std::string> args = {"arg1", "arg2", "arg3"};
-  std::vector<catalog::type_oid_t> arg_types = {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
-                                                accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Boolean),
-                                                accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::SmallInt)};
-  auto src = "int sample(arg1, arg2, arg3){return 2;}";
+  const std::string procname{"sample"};
+  const std::vector<std::string> args{"arg1", "arg2", "arg3"};
+  const std::vector<catalog::type_oid_t> arg_types{accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
+                                                   accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Boolean),
+                                                   accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::SmallInt)};
+  const std::string src{"int sample(arg1, arg2, arg3){return 2;}"};
 
-  auto proc_oid = accessor->CreateProcedure(
-      procname, lan_oid, ns_oid, catalog::INVALID_TYPE_OID, args, arg_types, {}, {},
+  const auto proc_oid = accessor->CreateProcedure(
+      procname, language_oid, namespace_oid, catalog::INVALID_TYPE_OID, args, arg_types, {}, {},
       catalog::type_oid_t(static_cast<uint8_t>(execution::sql::SqlTypeId::Integer)), src, false);
   EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
+
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  // Query the catalog for the procedure
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
-  // make sure we didn't find this proc that we never added
-  auto found_oid = accessor->GetProcOid("bad_proc", arg_types);
-  EXPECT_EQ(found_oid, catalog::INVALID_PROC_OID);
+  // Make sure we didn't find this proc that we never added
+  EXPECT_EQ(accessor->GetProcOid("bad_proc", arg_types), catalog::INVALID_PROC_OID);
 
-  // look for proc that we actually added
-  found_oid = accessor->GetProcOid(procname, arg_types);
+  // Look for proc that we actually added
+  EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, arg_types));
+  EXPECT_TRUE(accessor->DropProcedure(proc_oid));
 
-  auto sin_oid = accessor->GetProcOid("sin", {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double)});
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+/** Builtin procedure */
+TEST_F(CatalogTests, ProcTest1) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+
+  VerifyCatalogTables(*accessor);
+
+  const auto language_oid = accessor->CreateLanguage("test_language");
+  const auto namespace_oid = accessor->GetDefaultNamespace();
+  EXPECT_NE(language_oid, catalog::INVALID_LANGUAGE_OID);
+  EXPECT_NE(namespace_oid, catalog::INVALID_NAMESPACE_OID);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // The procedure should already exist
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+
+  const auto sin_oid = accessor->GetProcOid("sin", {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double)});
   EXPECT_NE(sin_oid, catalog::INVALID_PROC_OID);
 
+  // The function context should already exist
   auto sin_context = accessor->GetFunctionContext(sin_oid);
   EXPECT_TRUE(sin_context->IsBuiltin());
   EXPECT_EQ(sin_context->GetBuiltin(), execution::ast::Builtin::Sin);
   EXPECT_EQ(sin_context->GetFunctionReturnType(), execution::sql::SqlTypeId::Double);
-  auto sin_args = sin_context->GetFunctionArgsType();
+
+  auto sin_args = sin_context->GetFunctionArgTypes();
   EXPECT_EQ(sin_args.size(), 1);
   EXPECT_EQ(sin_args.back(), execution::sql::SqlTypeId::Double);
   EXPECT_EQ(sin_context->GetFunctionName(), "sin");
 
-  EXPECT_EQ(found_oid, proc_oid);
-  auto result = accessor->DropProcedure(found_oid);
-  EXPECT_TRUE(result);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+/** Untyped NULL arguments */
+TEST_F(CatalogTests, ProcTest2) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+
+  VerifyCatalogTables(*accessor);
+
+  const auto language_oid = accessor->CreateLanguage("test_language");
+  const auto namespace_oid = accessor->GetDefaultNamespace();
+  EXPECT_NE(language_oid, catalog::INVALID_LANGUAGE_OID);
+  EXPECT_NE(namespace_oid, catalog::INVALID_NAMESPACE_OID);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create the procedure
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+
+  const std::string procname{"foo"};
+  const std::vector<std::string> args{"a", "b"};
+  const std::vector<catalog::type_oid_t> arg_types{accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
+                                                   accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer)};
+  const std::string src{"int foo(a, b){ return 1337; }"};
+
+  const auto proc_oid = accessor->CreateProcedure(
+      procname, language_oid, namespace_oid, catalog::INVALID_TYPE_OID, args, arg_types, {}, {},
+      catalog::type_oid_t(static_cast<uint8_t>(execution::sql::SqlTypeId::Integer)), src, false);
+  EXPECT_NE(proc_oid, catalog::INVALID_PROC_OID);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Query the catalog for the procedure
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+
+  // Look for proc that we added, with fully-specified types
+  EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, arg_types));
+
+  // Look for the same proc, but with the first type unspecified (should fail)
+  EXPECT_EQ(catalog::INVALID_PROC_OID,
+            accessor->GetProcOid(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
+                                            accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer)}));
+
+  // Look for the same proc, but with the second type unspecified (should fail)
+  EXPECT_EQ(catalog::INVALID_PROC_OID,
+            accessor->GetProcOid(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
+                                            accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)}));
+
+  // Look for the same proc, but with both types unspecified (should fail)
+  EXPECT_EQ(catalog::INVALID_PROC_OID,
+            accessor->GetProcOid(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
+                                            accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)}));
+
+  // Look for the same proc, but with types resolved
+  const auto r0 = accessor->ResolveProcArgumentTypes(
+      procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
+                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer)});
+  EXPECT_EQ(1, r0.size());
+  EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, r0.front()));
+
+  // Look for the same proc, but with types resolved
+  const auto r1 = accessor->ResolveProcArgumentTypes(
+      procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer),
+                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)});
+  EXPECT_EQ(1, r1.size());
+  EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, r1.front()));
+
+  // Look for the same proc, but with types resolved
+  const auto r2 = accessor->ResolveProcArgumentTypes(
+      procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
+                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)});
+  EXPECT_EQ(1, r2.size());
+  EXPECT_EQ(proc_oid, accessor->GetProcOid(procname, r2.front()));
+
+  // Look for a proc with one fixed, incorrect parameter
+  const auto r3 =
+      accessor->ResolveProcArgumentTypes(procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid),
+                                                    accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Real)});
+  EXPECT_TRUE(r3.empty());
+
+  // Look for a proc with one fixed, incorrect parameter
+  const auto r4 = accessor->ResolveProcArgumentTypes(
+      procname, {accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Real),
+                 accessor->GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid)});
+  EXPECT_TRUE(r4.empty());
+
+  EXPECT_TRUE(accessor->DropProcedure(proc_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -899,6 +1011,20 @@ TEST_F(CatalogTests, StatisticTest) {
   EXPECT_NE(col_stats, nullptr);
   EXPECT_EQ(col_stats->GetNumRows(), 0);
   EXPECT_EQ(col_stats->GetColumnID(), col_oid);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+TEST_F(CatalogTests, TypeRoundTrip) {
+  // Ensure that types always round-trip
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
+  for (int8_t type_raw = static_cast<int8_t>(execution::sql::SqlTypeId::Boolean);
+       type_raw <= static_cast<int8_t>(execution::sql::SqlTypeId::Varbinary); ++type_raw) {
+    const execution::sql::SqlTypeId type = static_cast<execution::sql::SqlTypeId>(type_raw);
+    const catalog::type_oid_t oid = accessor->GetTypeOidFromTypeId(type);
+    EXPECT_EQ(type, accessor->GetTypeIdFromTypeOid(oid));
+  }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }

@@ -16,7 +16,7 @@
 
 #include "execution/ast/ast_dump.h"
 #include "execution/ast/ast_pretty_print.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
@@ -43,12 +43,24 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 
+/** Suppress warnings from unused variables */
+#define SUPPRESS_UNUSED(x) ((void)x)
+
 // ---------------------------------------------------------
 // CLI options
 // ---------------------------------------------------------
 
+/** Enumeration for requested execution modes */
+enum ExecuteOn { VM, JIT, ADAPTIVE, ALL };
+
 // clang-format off
 llvm::cl::OptionCategory TPL_OPTIONS_CATEGORY("TPL Compiler Options", "Options for controlling the TPL compilation process.");  // NOLINT
+llvm::cl::opt<ExecuteOn> EXECUTE_ON("execute-on", llvm::cl::desc("The execution mode"), llvm::cl::values(  // NOLINT
+  clEnumVal(VM, ""),
+  clEnumVal(JIT, ""),
+  clEnumVal(ADAPTIVE, ""),
+  clEnumVal(ALL, "")
+), llvm::cl::init(ALL), llvm::cl::cat(TPL_OPTIONS_CATEGORY));
 llvm::cl::opt<bool> PRINT_AST("print-ast", llvm::cl::desc("Print the programs AST"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<bool> PRINT_TBC("print-tbc", llvm::cl::desc("Print the generated TPL Bytecode"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<bool> PRETTY_PRINT("pretty-print", llvm::cl::desc("Pretty-print the source from the parsed AST"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
@@ -65,6 +77,68 @@ tbb::task_scheduler_init scheduler;
 namespace noisepage::execution {
 
 static constexpr const char *K_EXIT_KEYWORD = ".exit";
+
+/**
+ *
+ */
+static bool ShouldExecuteInMode(vm::ExecutionMode mode) {
+  auto mode_requested = [mode]() -> bool {
+    switch (mode) {
+      case vm::ExecutionMode::Interpret:
+        return EXECUTE_ON == VM;
+      case vm::ExecutionMode::Compiled:
+        return EXECUTE_ON == JIT;
+      case vm::ExecutionMode::Adaptive:
+        return EXECUTE_ON == ADAPTIVE;
+      default:
+        return false;
+    }
+  };
+  return EXECUTE_ON == ALL || mode_requested();
+}
+
+/**
+ * Execute
+ */
+static double ExecuteInMode(vm::Module *module, vm::ExecutionMode mode, exec::ExecutionContext *exec_ctx) {
+  const char *mode_identifier = [mode]() {
+    switch (mode) {
+      case vm::ExecutionMode::Interpret:
+        return "VM";
+      case vm::ExecutionMode::Compiled:
+        return "JIT";
+      case vm::ExecutionMode::Adaptive:
+        return "ADAPTIVE";
+      default:
+        UNREACHABLE("Unknown Execution Mode");
+    }
+  }();
+
+  double exec_ms{};
+  exec_ctx->SetExecutionMode(mode);
+  {
+    util::ScopedTimer<std::milli> timer(&exec_ms);
+
+    if (IS_SQL) {
+      std::function<int32_t(exec::ExecutionContext *)> main;
+      if (!module->GetFunction("main", mode, &main)) {
+        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext) - >int32");
+        return 0.0;
+      }
+      EXECUTION_LOG_INFO("{} main() returned: {}", mode_identifier, main(exec_ctx));
+    } else {
+      std::function<int32_t()> main;
+      if (!module->GetFunction("main", mode, &main)) {
+        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature () -> int32");
+        return 0.0;
+      }
+      EXECUTION_LOG_INFO("{} main() returned: {}", mode_identifier, main());
+    }
+  }
+
+  SUPPRESS_UNUSED(mode_identifier);
+  return exec_ms;
+}
 
 /**
  * Compile TPL source code contained in @em source and execute it in all execution modes once.
@@ -94,20 +168,30 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   exec::ExecutionSettings exec_settings{};
   exec::OutputPrinter printer(output_schema);
   exec::OutputCallback callback = printer;
-  exec::ExecutionContext exec_ctx{
-      db_oid,        common::ManagedPointer(txn),  callback, output_schema, common::ManagedPointer(accessor),
-      exec_settings, db_main->GetMetricsManager(), DISABLED, DISABLED};
+
   // Add dummy parameters for tests
-  std::vector<parser::ConstantValueExpression> params;
+  std::vector<parser::ConstantValueExpression> params{};
   params.emplace_back(execution::sql::SqlTypeId::Integer, sql::Integer(37));
   params.emplace_back(execution::sql::SqlTypeId::Double, sql::Real(37.73));
   params.emplace_back(execution::sql::SqlTypeId::Date, sql::DateVal(sql::Date::FromYMD(1937, 3, 7)));
   auto string_val = sql::ValueUtil::CreateStringVal(std::string_view("37 Strings"));
   params.emplace_back(execution::sql::SqlTypeId::Varchar, string_val.first, std::move(string_val.second));
-  exec_ctx.SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+
+  auto exec_ctx = exec::ExecutionContextBuilder()
+                      .WithDatabaseOID(db_oid)
+                      .WithExecutionSettings(exec_settings)
+                      .WithTxnContext(common::ManagedPointer{txn})
+                      .WithOutputSchema(common::ManagedPointer{output_schema})
+                      .WithOutputCallback(callback)
+                      .WithCatalogAccessor(common::ManagedPointer{accessor})
+                      .WithMetricsManager(db_main->GetMetricsManager())
+                      .WithReplicationManager(DISABLED)
+                      .WithRecoveryManager(DISABLED)
+                      .WithQueryParametersFrom(params)
+                      .Build();
 
   // Generate test tables
-  sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
+  sql::TableGenerator table_generator{exec_ctx.get(), db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
   table_generator.GenerateTestTables();
   // Comment out to make more tables available at runtime
   // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
@@ -122,12 +206,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   parsing::Scanner scanner(source.data(), source.length());
   parsing::Parser parser(&scanner, &context);
 
-  double parse_ms = 0.0,       // Time to parse the source
-      typecheck_ms = 0.0,      // Time to perform semantic analysis
-      codegen_ms = 0.0,        // Time to generate TBC
-      interp_exec_ms = 0.0,    // Time to execute the program in fully interpreted mode
-      adaptive_exec_ms = 0.0,  // Time to execute the program in adaptive mode
-      jit_exec_ms = 0.0;       // Time to execute the program in JIT excluding compilation time
+  double parse_ms = 0.0;      // Time to parse the source
+  double typecheck_ms = 0.0;  // Time to perform semantic analysis
+  double codegen_ms = 0.0;    // Time to generate TBC
 
   //
   // Parse
@@ -189,87 +270,33 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   auto module = std::make_unique<vm::Module>(std::move(bytecode_module), std::move(module_metadata));
 
   //
-  // Interpret
+  // Execution
   //
 
-  {
-    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Interpret));
-    util::ScopedTimer<std::milli> timer(&interp_exec_ms);
-
-    if (IS_SQL) {
-      std::function<int32_t(exec::ExecutionContext *)> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
-        return;
-      }
-      EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
-    } else {
-      std::function<int32_t()> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
-        return;
-      }
-      EXECUTION_LOG_INFO("VM main() returned: {}", main());
-    }
-  }
+  const double vm_ms = ShouldExecuteInMode(vm::ExecutionMode::Interpret)
+                           ? ExecuteInMode(module.get(), vm::ExecutionMode::Interpret, exec_ctx.get())
+                           : 0.0;
+  const double jit_ms = ShouldExecuteInMode(vm::ExecutionMode::Compiled)
+                            ? ExecuteInMode(module.get(), vm::ExecutionMode::Compiled, exec_ctx.get())
+                            : 0.0;
+  const double adaptive_ms = ShouldExecuteInMode(vm::ExecutionMode::Adaptive)
+                                 ? ExecuteInMode(module.get(), vm::ExecutionMode::Adaptive, exec_ctx.get())
+                                 : 0.0;
 
   //
-  // Adaptive
-  //
-
-  exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Adaptive));
-  util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
-
-  if (IS_SQL) {
-    std::function<int32_t(exec::ExecutionContext *)> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
-      EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
-      return;
-    }
-    EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
-  } else {
-    std::function<int32_t()> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
-      EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
-      return;
-    }
-    EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main());
-  }
-
-  //
-  // JIT
-  //
-  {
-    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Compiled));
-    util::ScopedTimer<std::milli> timer(&jit_exec_ms);
-
-    if (IS_SQL) {
-      std::function<int32_t(exec::ExecutionContext *)> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
-        return;
-      }
-      util::Timer<std::milli> x;
-      x.Start();
-      EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
-      x.Stop();
-      EXECUTION_LOG_INFO("Jit exec: {} ms", x.GetElapsed());
-    } else {
-      std::function<int32_t()> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
-        return;
-      }
-      EXECUTION_LOG_INFO("JIT main() returned: {}", main());
-    }
-  }
-
   // Dump stats
+  //
+
   EXECUTION_LOG_INFO(
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Interp. Exec.: {} ms, "
-      "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
-      parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
+      "JIT Exec.: {} ms, Adaptive Exec.: {} ms",
+      parse_ms, typecheck_ms, codegen_ms, vm_ms, jit_ms, adaptive_ms);
+
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  SUPPRESS_UNUSED(vm_ms);
+  SUPPRESS_UNUSED(jit_ms);
+  SUPPRESS_UNUSED(adaptive_ms);
 }
 
 /**

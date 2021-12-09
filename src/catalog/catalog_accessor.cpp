@@ -192,13 +192,22 @@ proc_oid_t CatalogAccessor::CreateProcedure(const std::string &procname, const l
                                             const std::vector<std::string> &args,
                                             const std::vector<type_oid_t> &arg_types,
                                             const std::vector<type_oid_t> &all_arg_types,
-                                            const std::vector<postgres::PgProc::ArgModes> &arg_modes,
+                                            const std::vector<postgres::PgProc::ArgMode> &arg_modes,
                                             const type_oid_t rettype, const std::string &src, const bool is_aggregate) {
   return dbc_->CreateProcedure(txn_, procname, language_oid, procns, variadic_type, args, arg_types, all_arg_types,
                                arg_modes, rettype, src, is_aggregate);
 }
 
 bool CatalogAccessor::DropProcedure(proc_oid_t proc_oid) { return dbc_->DropProcedure(txn_, proc_oid); }
+
+proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<std::string> &arg_types) {
+  // Transform the string type identifiers to internal type IDs
+  std::vector<type_oid_t> types{};
+  types.reserve(arg_types.size());
+  std::transform(arg_types.cbegin(), arg_types.cend(), std::back_inserter(types),
+                 [this](const std::string &name) { return TypeNameToType(name); });
+  return GetProcOid(procname, types);
+}
 
 proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::vector<type_oid_t> &arg_types) {
   proc_oid_t ret;
@@ -211,13 +220,33 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return catalog::INVALID_PROC_OID;
 }
 
-bool CatalogAccessor::SetFunctionContextPointer(proc_oid_t proc_oid,
-                                                const execution::functions::FunctionContext *func_context) {
-  return dbc_->SetFunctionContextPointer(txn_, proc_oid, func_context);
+std::vector<std::vector<type_oid_t>> CatalogAccessor::ResolveProcArgumentTypes(
+    const std::string &procname, const std::vector<std::string> &arg_types) const {
+  // Transform the string type identifiers to internal type IDs
+  std::vector<type_oid_t> types{};
+  types.reserve(arg_types.size());
+  std::transform(arg_types.cbegin(), arg_types.cend(), std::back_inserter(types),
+                 [this](const std::string &name) { return TypeNameToType(name); });
+  return ResolveProcArgumentTypes(procname, arg_types);
+}
+
+std::vector<std::vector<type_oid_t>> CatalogAccessor::ResolveProcArgumentTypes(
+    const std::string &procname, const std::vector<type_oid_t> &arg_types) const {
+  std::vector<std::vector<type_oid_t>> types{};
+  for (auto ns_oid : search_path_) {
+    const auto resolved = dbc_->ResolveProcArgumentTypes(txn_, ns_oid, procname, arg_types);
+    types.insert(types.cend(), resolved.cbegin(), resolved.cend());
+  }
+  return types;
 }
 
 common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetFunctionContext(proc_oid_t proc_oid) {
   return dbc_->GetFunctionContext(txn_, proc_oid);
+}
+
+bool CatalogAccessor::SetFunctionContext(proc_oid_t proc_oid,
+                                         const execution::functions::FunctionContext *func_context) {
+  return dbc_->SetFunctionContext(txn_, proc_oid, func_context);
 }
 
 std::unique_ptr<optimizer::ColumnStatsBase> CatalogAccessor::GetColumnStatistics(table_oid_t table_oid,
@@ -229,8 +258,12 @@ optimizer::TableStats CatalogAccessor::GetTableStatistics(table_oid_t table_oid)
   return dbc_->GetTableStatistics(txn_, table_oid);
 }
 
-type_oid_t CatalogAccessor::GetTypeOidFromTypeId(execution::sql::SqlTypeId type) {
+type_oid_t CatalogAccessor::GetTypeOidFromTypeId(execution::sql::SqlTypeId type) const {
   return dbc_->GetTypeOidForType(type);
+}
+
+execution::sql::SqlTypeId CatalogAccessor::GetTypeIdFromTypeOid(type_oid_t type) const {
+  return dbc_->GetTypeForTypeOid(type);
 }
 
 common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() const {
@@ -244,6 +277,38 @@ void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::Man
                                         const common::ManagedPointer<const catalog::Schema> schema) {
   temp_tables_[table_oid] = table;
   temp_schemas_[table_oid] = schema;
+}
+
+type_oid_t CatalogAccessor::TypeNameToType(const std::string &type_name) const {
+  type_oid_t type;
+  if (type_name == "int2") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::SmallInt);
+  } else if (type_name == "int4") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Integer);
+  } else if (type_name == "int8") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::BigInt);
+  } else if (type_name == "bool") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Boolean);
+  } else if (type_name == "float4") {
+    // NOTE(Kyle): The "regular" SQL frontend always promotes
+    // FLOAT / REAL to DOUBLE PRECISION / FLOAT8, so we do the
+    // same here to remain consistent
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double);
+  } else if (type_name == "float8") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Double);
+  } else if (type_name == "numeric") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Decimal);
+  } else if (type_name == "bpchar") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Char);
+  } else if (type_name == "varchar" || type_name == "text") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Varchar);
+  } else if (type_name == "varbinary") {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Varbinary);
+  } else {
+    type = GetTypeOidFromTypeId(execution::sql::SqlTypeId::Invalid);
+  }
+
+  return type;
 }
 
 }  // namespace noisepage::catalog

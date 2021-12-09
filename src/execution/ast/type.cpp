@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "execution/ast/context.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
@@ -85,10 +86,30 @@ const bool BuiltinType::SIGNED_FLAGS[] = {
 // Function Type
 // ---------------------------------------------------------
 
-FunctionType::FunctionType(util::RegionVector<Field> &&params, Type *ret)
+FunctionType::FunctionType(util::RegionVector<Field> &&params, Type *ret, bool is_lambda)
     : Type(ret->GetContext(), sizeof(void *), alignof(void *), TypeId::FunctionType),
       params_(std::move(params)),
-      ret_(ret) {}
+      ret_(ret),
+      is_lambda_(is_lambda) {}
+
+bool FunctionType::IsEqual(const FunctionType *other) {
+  if (other->params_.size() != params_.size()) {
+    return false;
+  }
+
+  for (auto i = 0UL; i < params_.size(); i++) {
+    if (params_[i].type_ != other->params_[i].type_) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void FunctionType::RegisterCapture() {
+  NOISEPAGE_ASSERT(captures_ != nullptr, "No capture given");
+  params_.emplace_back(GetContext()->GetIdentifier("captures"), captures_);
+}
 
 // ---------------------------------------------------------
 // Map Type
@@ -99,6 +120,13 @@ MapType::MapType(Type *key_type, Type *val_type)
            alignof(std::unordered_map<int32_t, int32_t>), TypeId::MapType),
       key_type_(key_type),
       val_type_(val_type) {}
+
+// ---------------------------------------------------------
+// Lambda Type
+// ---------------------------------------------------------
+
+LambdaType::LambdaType(FunctionType *fn_type)
+    : Type(fn_type->GetContext(), fn_type->GetSize(), fn_type->GetAlignment(), TypeId::LambdaType), fn_type_(fn_type) {}
 
 // ---------------------------------------------------------
 // Struct Type

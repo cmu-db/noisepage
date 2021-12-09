@@ -390,7 +390,7 @@ void HashJoinTranslator::CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *f
       FillProbeRow(ctx, function, codegen->MakeExpr(probe_row_var_));
       // joinConsumer(queryState, pipelineState, buildRow, probeRow);
       std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
-                                              codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
+                                              codegen->MakeExpr(GetPipeline()->GetPipelineStateName()),
                                               codegen->MakeExpr(build_row_var_), codegen->AddressOf(probe_row)};
       function->Append(codegen->Call(join_consumer_, args));
     } else {
@@ -462,7 +462,7 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
       }
       // joinConsumer(queryState, pipelineState, buildRow, probeRow);
       std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
-                                              codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
+                                              codegen->MakeExpr(GetPipeline()->GetPipelineStateName()),
                                               codegen->MakeExpr(build_row_var_), codegen->AddressOf(probe_row)};
       function->Append(codegen->Call(join_consumer_, args));
     }

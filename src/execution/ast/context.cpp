@@ -150,8 +150,10 @@ struct Context::Implementation {
   llvm::DenseMap<Identifier, Type *> builtin_types_;
   llvm::DenseMap<Identifier, Builtin> builtin_funcs_;
   llvm::DenseMap<Type *, PointerType *> pointer_types_;
+  llvm::DenseMap<Type *, ReferenceType *> reference_types_;
   llvm::DenseMap<std::pair<Type *, uint64_t>, ArrayType *> array_types_;
   llvm::DenseMap<std::pair<Type *, Type *>, MapType *> map_types_;
+  llvm::DenseMap<FunctionType *, LambdaType *> lambda_types_;
   llvm::DenseSet<StructType *, StructTypeKeyInfo> struct_types_;
   llvm::DenseSet<FunctionType *, FunctionTypeKeyInfo> func_types_;
 
@@ -232,6 +234,8 @@ Identifier Context::GetBuiltinType(BuiltinType::Kind kind) {
 
 PointerType *Type::PointerTo() { return PointerType::Get(this); }
 
+ReferenceType *Type::ReferenceTo() { return ReferenceType::Get(this); }
+
 // static
 BuiltinType *BuiltinType::Get(Context *ctx, BuiltinType::Kind kind) { return ctx->Impl()->builtin_types_list_[kind]; }
 
@@ -249,6 +253,19 @@ PointerType *PointerType::Get(Type *base) {
   }
 
   return pointer_type;
+}
+
+// static
+ReferenceType *ReferenceType::Get(Type *base) {
+  Context *ctx = base->GetContext();
+
+  ReferenceType *&reference_type = ctx->Impl()->reference_types_[base];
+
+  if (reference_type == nullptr) {
+    reference_type = new (ctx->GetRegion()) ReferenceType(base);
+  }
+
+  return reference_type;
 }
 
 // static
@@ -286,6 +303,19 @@ Field CreatePaddingElement(uint32_t id, uint32_t size, Context *ctx) {
 }
 
 };  // namespace
+
+// static
+LambdaType *LambdaType::Get(FunctionType *fn_type) {
+  Context *ctx = fn_type->GetContext();
+
+  LambdaType *&lambda_type = ctx->Impl()->lambda_types_[fn_type];
+
+  if (lambda_type == nullptr) {
+    lambda_type = new (ctx->GetRegion()) LambdaType(fn_type);
+  }
+
+  return lambda_type;
+}
 
 // static
 StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
@@ -380,7 +410,31 @@ FunctionType *FunctionType::Get(util::RegionVector<Field> &&params, Type *ret) {
   if (inserted) {
     // The function type was not in the cache, create the type now and insert it
     // into the cache
-    func_type = new (ctx->GetRegion()) FunctionType(std::move(params), ret);
+    func_type = new (ctx->GetRegion()) FunctionType(std::move(params), ret, false);
+    *iter = func_type;
+  } else {
+    func_type = *iter;
+  }
+
+  return func_type;
+}
+
+// static
+FunctionType *FunctionType::GetLambda(util::RegionVector<Field> &&params, Type *ret) {
+  Context *ctx = ret->GetContext();
+
+  const FunctionTypeKeyInfo::KeyTy key(ret, params);
+
+  auto insert_res = ctx->Impl()->func_types_.insert_as(nullptr, key);
+  auto iter = insert_res.first;
+  auto inserted = insert_res.second;
+
+  FunctionType *func_type = nullptr;
+
+  if (inserted) {
+    // The function type was not in the cache, create the type now and insert it
+    // into the cache
+    func_type = new (ctx->GetRegion()) FunctionType(std::move(params), ret, true);
     *iter = func_type;
   } else {
     func_type = *iter;

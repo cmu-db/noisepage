@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/error/exception.h"
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/bytecode_traits.h"
@@ -185,6 +186,10 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
       llvm_type = llvm::PointerType::getUnqual(GetLLVMType(ptr_type->GetBase()));
       break;
     }
+    case ast::Type::TypeId::ReferenceType: {
+      throw NOT_IMPLEMENTED_EXCEPTION("ReferenceType Not Implemented");
+      break;
+    }
     case ast::Type::TypeId::ArrayType: {
       auto *arr_type = type->As<ast::ArrayType>();
       llvm::Type *elem_type = GetLLVMType(arr_type->GetElementType());
@@ -196,7 +201,8 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
       break;
     }
     case ast::Type::TypeId::MapType: {
-      // TODO(pmenon): me
+      // TODO(Kyle): Implement this
+      throw NOT_IMPLEMENTED_EXCEPTION("MapType Not Implemented");
       break;
     }
     case ast::Type::TypeId::StructType: {
@@ -207,6 +213,14 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
       llvm_type = GetLLVMFunctionType(type->As<ast::FunctionType>());
       break;
     }
+    case ast::Type::TypeId::LambdaType: {
+      llvm_type = Int32Type()->getPointerTo();
+      break;
+    }
+    default: {
+      UNREACHABLE("Unknown Type");
+      break;
+    }
   }
 
   //
@@ -214,9 +228,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
   //
 
   NOISEPAGE_ASSERT(llvm_type != nullptr, "No LLVM type found!");
-
   iter->second = llvm_type;
-
   return llvm_type;
 }
 
@@ -277,8 +289,12 @@ llvm::FunctionType *LLVMEngine::TypeMap::GetLLVMFunctionType(const ast::Function
   //
 
   for (const auto &param_info : func_type->GetParams()) {
-    llvm::Type *param_type = GetLLVMType(param_info.type_);
-    param_types.push_back(param_type);
+    if (param_info.type_->IsSqlValueType()) {
+      param_types.push_back(GetLLVMType(param_info.type_->PointerTo()));
+    } else {
+      llvm::Type *param_type = GetLLVMType(param_info.type_);
+      param_types.push_back(param_type);
+    }
   }
 
   return llvm::FunctionType::get(return_type, param_types, false);
@@ -307,8 +323,8 @@ class LLVMEngine::FunctionLocalsMap {
 LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, llvm::Function *func, TypeMap *type_map,
                                                  llvm::IRBuilder<> *ir_builder)
     : ir_builder_(ir_builder) {
-  uint32_t local_idx = 0;
-
+  // The local variable index used throughout function body
+  std::size_t local_idx = 0;
   const auto &func_locals = func_info.GetLocals();
 
   // Make an allocation for the return value, if it's direct.
@@ -325,7 +341,15 @@ LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, 
     params_[param.GetOffset()] = &*arg_iter;
   }
 
-  // Allocate all local variables up front.
+  if (func_info.IsLambda()) {
+    auto capture_type = type_map->GetLLVMType(func_info.GetFuncType()->GetCapturesType()->PointerTo());
+    auto capture_local = func_locals[local_idx - 1];
+    auto capture_param = params_[capture_local.GetOffset()];
+    auto new_capture_param = ir_builder->CreateBitCast(capture_param, capture_type);
+    params_[capture_local.GetOffset()] = new_capture_param;
+  }
+
+  // Allocate all local variables up front
   for (; local_idx < func_info.GetLocals().size(); local_idx++) {
     const LocalInfo &local_info = func_locals[local_idx];
     llvm::Type *llvm_type = type_map->GetLLVMType(local_info.GetType());
@@ -336,7 +360,13 @@ LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, 
 
 llvm::Value *LLVMEngine::FunctionLocalsMap::GetArgumentById(LocalVar var) {
   if (auto iter = params_.find(var.GetOffset()); iter != params_.end()) {
-    return iter->second;
+    auto val = iter->second;
+    if ((var.GetAddressMode() == LocalVar::AddressMode::Address) && llvm::isa<llvm::Argument>(val)) {
+      auto new_val = ir_builder_->CreateAlloca(val->getType());
+      ir_builder_->CreateStore(val, new_val);
+      val = new_val;
+    }
+    return val;
   }
 
   if (auto iter = locals_.find(var.GetOffset()); iter != locals_.end()) {
@@ -538,9 +568,9 @@ void LLVMEngine::CompiledModuleBuilder::DeclareStaticLocals() {
 }
 
 void LLVMEngine::CompiledModuleBuilder::DeclareFunctions() {
-  for (const auto &func_info : tpl_module_.GetFunctionsInfo()) {
-    auto *func_type = llvm::cast<llvm::FunctionType>(type_map_->GetLLVMType(func_info.GetFuncType()));
-    llvm_module_->getOrInsertFunction(func_info.GetName(), func_type);
+  for (const auto *func_info : tpl_module_.GetFunctionsInfo()) {
+    auto *func_type = llvm::cast<llvm::FunctionType>(type_map_->GetLLVMType(func_info->GetFuncType()));
+    llvm_module_->getOrInsertFunction(func_info->GetName(), func_type);
   }
 }
 
@@ -626,6 +656,12 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_
 void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_info, llvm::IRBuilder<> *ir_builder) {
   llvm::LLVMContext &ctx = ir_builder->getContext();
   llvm::Function *func = llvm_module_->getFunction(func_info.GetName());
+  // The line below is flagged by `check-censored` target because of 'inline'
+  if (func->getName().str().find("inline") != std::string::npos) {  // NOLINT
+    func->setLinkage(llvm::Function::LinkOnceAnyLinkage);
+    func->addFnAttr(llvm::Attribute::AlwaysInline);
+  }
+
   llvm::BasicBlock *first_bb = llvm::BasicBlock::Create(ctx, "BB0", func);
   llvm::BasicBlock *entry_bb = llvm::BasicBlock::Create(ctx, "EntryBB", func, first_bb);
 
@@ -925,8 +961,8 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 
 void LLVMEngine::CompiledModuleBuilder::DefineFunctions() {
   llvm::IRBuilder<> ir_builder(*context_);
-  for (const auto &func_info : tpl_module_.GetFunctionsInfo()) {
-    DefineFunction(func_info, &ir_builder);
+  for (const auto *func_info : tpl_module_.GetFunctionsInfo()) {
+    DefineFunction(*func_info, &ir_builder);
   }
 }
 
@@ -1129,13 +1165,13 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   // all module functions into a handy cache.
   //
 
-  for (const auto &func : module.GetFunctionsInfo()) {
-    auto symbol = loader.getSymbol(func.GetName());
+  for (const auto *func : module.GetFunctionsInfo()) {
+    auto symbol = loader.getSymbol(func->GetName());
     if (symbol.getAddress() == 0) {
       // for Mac portability
-      symbol = loader.getSymbol("_" + func.GetName());
+      symbol = loader.getSymbol("_" + func->GetName());
     }
-    functions_[func.GetName()] = reinterpret_cast<void *>(symbol.getAddress());
+    functions_[func->GetName()] = reinterpret_cast<void *>(symbol.getAddress());
     NOISEPAGE_ASSERT(symbol.getAddress() != 0, "symbol came out to be badly defined or missing");
   }
 

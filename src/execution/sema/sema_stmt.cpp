@@ -24,6 +24,11 @@ void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
   if (source != node->Source()) {
     node->SetSource(source);
   }
+
+  if (src_type->IsFunctionType()) {
+    // this is a lambda function assignment
+    node->Source()->As<ast::LambdaExpr>()->name_ = node->Destination()->As<ast::IdentifierExpr>()->Name();
+  }
 }
 
 void Sema::VisitBlockStmt(ast::BlockStmt *node) {
@@ -57,6 +62,16 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
       return;
     }
     // If the resolved type isn't a boolean, it's an error
+    if (cond_type->IsSqlBooleanType()) {
+      auto context = GetContext();
+      auto factory = context->GetNodeFactory();
+      auto args = util::RegionVector<ast::Expr *>({node->Condition()}, context->GetRegion());
+      node->SetCondition(factory->NewBuiltinCallExpr(
+          factory->NewIdentifierExpr(node->Position(),
+                                     GetContext()->GetBuiltinFunction(execution::ast::Builtin::SqlToBool)),
+          std::move(args)));
+      cond_type = Resolve(node->Condition());
+    }
     if (!cond_type->IsBoolType()) {
       error_reporter_->Report(node->Condition()->Position(), ErrorMessages::kNonBoolForCondition);
     }
@@ -68,6 +83,22 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
 
   // The body
   Visit(node->Body());
+}
+
+void Sema::VisitBreakStmt(ast::BreakStmt *node) {
+  // Look for a loop in my scope stack
+  auto scope = GetCurrentScope();
+  bool found_loop = false;
+  while (scope != nullptr) {
+    found_loop |= scope->GetKind() == Scope::Kind::Loop;
+    if (found_loop) {
+      break;
+    }
+    scope = scope->Outer();
+  }
+  if (!found_loop) {
+    error_reporter_->Report(node->Position(), ErrorMessages::kNoScopeToBreak);
+  }
 }
 
 void Sema::VisitForInStmt(ast::ForInStmt *node) { NOISEPAGE_ASSERT(false, "Not supported"); }

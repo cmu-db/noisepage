@@ -640,6 +640,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatem
                                              .RegisterWithTxnContext(txn_context),
                                          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       break;
+    case parser::DropStatement::DropType::kFunction:
+      drop_expr = std::make_unique<OperatorNode>(
+          LogicalDropFunction::Make(db_oid_, accessor_->GetProcOid(op->GetFunctionName(), op->GetFunctionArguments()),
+                                    op->IsIfExists())
+              .RegisterWithTxnContext(txn_context),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kView:
     case parser::DropStatement::DropType::kPreparedStatement:

@@ -42,6 +42,7 @@ class DropIndex;
 class DropNamespace;
 class DropTrigger;
 class DropView;
+class DropFunction;
 class Analyze;
 class LogicalGet;
 class LogicalExternalFileGet;
@@ -77,6 +78,7 @@ class LogicalDropIndex;
 class LogicalDropNamespace;
 class LogicalDropTrigger;
 class LogicalDropView;
+class LogicalDropFunction;
 class LogicalAnalyze;
 class LogicalCteScan;
 
@@ -321,6 +323,12 @@ class OperatorVisitor {
   virtual void Visit(const DropView *drop_view) {}
 
   /**
+   * Visit a DropFunction operator
+   * @param drop_function operator
+   */
+  virtual void Visit(const DropFunction *drop_function) {}
+
+  /**
    * Visit a Analyze operator
    * @param analyze operator
    */
@@ -529,6 +537,12 @@ class OperatorVisitor {
    * @param logical_drop_view operator
    */
   virtual void Visit(const LogicalDropView *logical_drop_view) {}
+
+  /**
+   * Visit a LogicalDropFunction operator
+   * @param logical_drop_function
+   */
+  virtual void Visit(const LogicalDropFunction *logical_drop_function) {}
 
   /**
    * Visit a LogicalAnalyze operator

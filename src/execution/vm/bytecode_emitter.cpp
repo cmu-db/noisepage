@@ -25,6 +25,10 @@ void BytecodeEmitter::EmitAssign(Bytecode bytecode, LocalVar dest, LocalVar src)
   EmitAll(bytecode, dest, src);
 }
 
+void BytecodeEmitter::EmitAssignN(LocalVar dest, LocalVar src, uint32_t len) {
+  EmitAll(Bytecode::AssignN, dest, src.AddressOf(), len);
+}
+
 void BytecodeEmitter::EmitAssignImm1(LocalVar dest, int8_t val) { EmitAll(Bytecode::AssignImm1, dest, val); }
 
 void BytecodeEmitter::EmitAssignImm2(LocalVar dest, int16_t val) { EmitAll(Bytecode::AssignImm2, dest, val); }
@@ -60,6 +64,18 @@ void BytecodeEmitter::EmitCall(FunctionId func_id, const std::vector<LocalVar> &
   for (LocalVar local : params) {
     EmitImpl(local);
   }
+}
+
+std::function<void(FunctionId)> BytecodeEmitter::DeferredEmitCall(const std::vector<LocalVar> &params) {
+  NOISEPAGE_ASSERT(Bytecodes::GetNthOperandSize(Bytecode::Call, 1) == OperandSize::Short,
+                   "Expected argument count to be 2-byte short");
+  NOISEPAGE_ASSERT(params.size() < std::numeric_limits<uint16_t>::max(), "Too many parameters!");
+  auto bc_insert_index = bytecode_->size() + sizeof(Bytecode);
+  EmitAll(Bytecode::Call, std::numeric_limits<uint16_t>::max(), static_cast<uint16_t>(params.size()));
+  for (LocalVar local : params) {
+    EmitImpl(local);
+  }
+  return [=](FunctionId func_id) { EmitScalarValue(static_cast<uint16_t>(func_id), bc_insert_index); };
 }
 
 void BytecodeEmitter::EmitReturn() { EmitImpl(Bytecode::Return); }

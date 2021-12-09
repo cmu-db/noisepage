@@ -1185,6 +1185,30 @@ void LogicalDropViewToPhysicalDropView::Transform(common::ManagedPointer<Abstrac
   transformed->emplace_back(std::move(op));
 }
 
+LogicalDropFunctionToPhysicalDropFunction::LogicalDropFunctionToPhysicalDropFunction() {
+  type_ = RuleType::DROP_FUNCTION_TO_PHYSICAL;
+  match_pattern_ = new Pattern(OpType::LOGICALDROPFUNCTION);
+}
+
+bool LogicalDropFunctionToPhysicalDropFunction::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                                      OptimizationContext *context) const {
+  return true;
+}
+
+void LogicalDropFunctionToPhysicalDropFunction::Transform(
+    common::ManagedPointer<AbstractOptimizerNode> input,
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  auto df_op = input->Contents()->GetContentsAs<LogicalDropFunction>();
+  NOISEPAGE_ASSERT(input->GetChildren().empty(), "LogicalDropFunction should have 0 children");
+
+  auto op = std::make_unique<OperatorNode>(
+      DropFunction::Make(df_op->GetDatabaseOid(), df_op->GetFunctionOid(), df_op->GetIfExists())
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::vector<std::unique_ptr<AbstractOptimizerNode>>(), context->GetOptimizerContext()->GetTxn());
+  transformed->emplace_back(std::move(op));
+}
+
 LogicalAnalyzeToPhysicalAnalyze::LogicalAnalyzeToPhysicalAnalyze() {
   type_ = RuleType::ANALYZE_TO_PHYSICAL;
   match_pattern_ = new Pattern(OpType::LOGICALANALYZE);

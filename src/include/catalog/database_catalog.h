@@ -149,7 +149,10 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
   /** @return The type_oid_t that corresponds to the internal TypeId. */
-  type_oid_t GetTypeOidForType(execution::sql::SqlTypeId type);
+  type_oid_t GetTypeOidForType(execution::sql::SqlTypeId type) const;
+
+  /** @return The SQL type ID that corresponds to the type_oid_t */
+  execution::sql::SqlTypeId GetTypeForTypeOid(type_oid_t type) const;
 
   /** @brief Get a list of all of the constraints for the specified table. */
   std::vector<constraint_oid_t> GetConstraints(common::ManagedPointer<transaction::TransactionContext> txn,
@@ -169,19 +172,27 @@ class DatabaseCatalog {
                              language_oid_t language_oid, namespace_oid_t procns, type_oid_t variadic_type,
                              const std::vector<std::string> &args, const std::vector<type_oid_t> &arg_types,
                              const std::vector<type_oid_t> &all_arg_types,
-                             const std::vector<postgres::PgProc::ArgModes> &arg_modes, type_oid_t rettype,
+                             const std::vector<postgres::PgProc::ArgMode> &arg_modes, type_oid_t rettype,
                              const std::string &src, bool is_aggregate);
   /** @brief Drop the specified procedure. @see PgProcImpl::DropProcedure */
   bool DropProcedure(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc);
+
   /** @brief Get the OID of the specified procedure. @see PgProcImpl::GetProcOid */
   proc_oid_t GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
-  /** @brief Set the procedure context for the specified procedure. @see PgProcImpl::SetFunctionContextPointer */
-  bool SetFunctionContextPointer(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
-                                 const execution::functions::FunctionContext *func_context);
-  /** @brief Get the procedure context for the specified procedure. @see PgProcImpl::GetFunctionContext */
+
+  /** @brief Resolve all combinations of argument types for the procedure */
+  std::vector<std::vector<type_oid_t>> ResolveProcArgumentTypes(
+      common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns, const std::string &procname,
+      const std::vector<type_oid_t> &arg_types);
+
+  /** @brief Get the procedure context for the specified procedure. @see PgProcImpl::GetProcCtxPtr */
   common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(
       common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid);
+
+  /** @brief Set the procedure context for the specified procedure. @see PgProcImpl::SetProcCtxPtr */
+  bool SetFunctionContext(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+                          const execution::functions::FunctionContext *func_context);
 
   /** @brief Get the statistics for the specified column. @see PgStatisticImpl::GetColumnStatistics */
   std::unique_ptr<optimizer::ColumnStatsBase> GetColumnStatistics(
@@ -349,5 +360,37 @@ class DatabaseCatalog {
   template <typename ClassOid, typename Ptr>
   bool SetClassPointer(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid oid, const Ptr *pointer,
                        col_oid_t class_col);
+
+  /* --------------------------------------------------------------------------
+    Function Lookup
+  -------------------------------------------------------------------------- */
+
+  /**
+   * Recursive helper function for procedure argument type resolution.
+   * @param txn The transaction context
+   * @param procns The namespace of the procedure
+   * @param procname The procedure name
+   * @param arg_types The argument types
+   * @param result The vector that receives any resolved sets of arguments
+   */
+  void ResolveProcArgumentTypes(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t procns,
+                                const std::string &procname, const std::vector<type_oid_t> &arg_types,
+                                std::vector<std::vector<type_oid_t>> *result);
+
+  /**
+   * Determine if the vector of argument types contains an untyped NULL.
+   * @param arg_types The vector of argument types
+   * @return `true` if the vector contains an untyped NULL type, `false` otherwise
+   */
+  bool ContainsUntypedNull(const std::vector<type_oid_t> &arg_types) const;
+
+  /**
+   * Swap the first untyped NULL argument type in `arg_types` with `type`.
+   * @param arg_types The vector of argument types that is mutated
+   * @param type The type that is swapped in for the untyped NULL
+   * @return The modified vector
+   */
+  std::vector<type_oid_t> ReplaceFirstUntypedNullWith(const std::vector<type_oid_t> &arg_types,
+                                                      execution::sql::SqlTypeId type) const;
 };
 }  // namespace noisepage::catalog

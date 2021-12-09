@@ -15,7 +15,7 @@
 #include "execution/compiler/expression_maker.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/compiler/output_schema_util.h"
-#include "execution/exec/execution_context.h"
+#include "execution/exec/execution_context_builder.h"
 #include "execution/exec/output.h"
 #include "execution/execution_util.h"
 #include "execution/sema/sema.h"
@@ -415,12 +415,12 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
   exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-  auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
-  std::vector<parser::ConstantValueExpression> params;
+
+  std::vector<parser::ConstantValueExpression> params{};
   params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(100));
   params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(500));
   params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(3));
-  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+  auto exec_ctx = MakeExecCtxWithParameters(params, &callback_fn, seq_scan->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
@@ -3072,11 +3072,12 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-    auto exec_ctx = MakeExecCtx(&callback_fn, insert->GetOutputSchema().Get());
-    std::vector<parser::ConstantValueExpression> params;
+
+    std::vector<parser::ConstantValueExpression> params{};
     params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(495));
     params.emplace_back(execution::sql::SqlTypeId::Integer, execution::sql::Integer(505));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+    auto exec_ctx = MakeExecCtxWithParameters(params, &callback_fn, insert->GetOutputSchema().Get());
+
     auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3295,8 +3296,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-    auto exec_ctx = MakeExecCtx(&callback_fn, insert->GetOutputSchema().Get());
-    std::vector<parser::ConstantValueExpression> params;
+    std::vector<parser::ConstantValueExpression> params{};
+
     // First parameter list
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
     params.emplace_back(execution::sql::SqlTypeId::Varchar, str1_val.first, std::move(str1_val.second));
@@ -3317,7 +3318,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     params.emplace_back(execution::sql::SqlTypeId::SmallInt, sql::Integer(smallint2));
     params.emplace_back(execution::sql::SqlTypeId::Integer, sql::Integer(int2));
     params.emplace_back(execution::sql::SqlTypeId::BigInt, sql::Integer(bigint2));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+
+    auto exec_ctx = MakeExecCtxWithParameters(params, &callback_fn, insert->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3497,13 +3499,14 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
-    auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
-    std::vector<parser::ConstantValueExpression> params;
+
+    std::vector<parser::ConstantValueExpression> params{};
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
     params.emplace_back(execution::sql::SqlTypeId::Varchar, str1_val.first, std::move(str1_val.second));
     params.emplace_back(execution::sql::SqlTypeId::Varchar, str2_val.first, std::move(str2_val.second));
-    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+
+    auto exec_ctx = MakeExecCtxWithParameters(params, &callback_fn, index_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);

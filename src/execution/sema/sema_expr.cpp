@@ -83,6 +83,11 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
     return;
   }
 
+  // Type checking already performed
+  if (node->GetType() != nullptr) {
+    return;
+  }
+
   // Resolve the function type
   ast::Type *type = Resolve(node->Function());
   if (type == nullptr) {
@@ -91,13 +96,30 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
 
   // Check that the resolved function type is actually a function
   auto *func_type = type->SafeAs<ast::FunctionType>();
+  auto *struct_type = type->SafeAs<ast::LambdaType>();
+  auto lambda_adjustment = 1;
   if (func_type == nullptr) {
-    GetErrorReporter()->Report(node->Position(), ErrorMessages::kNonFunction);
-    return;
+    if (struct_type != nullptr) {
+      func_type = struct_type->GetFunctionType();
+      // TODO(Kyle): Find a better way to see if sema has processed this already
+      ast::IdentifierExpr *last_arg = nullptr;
+      if (!node->Arguments().empty()) {
+        last_arg = node->Arguments().back()->SafeAs<ast::IdentifierExpr>();
+      }
+      if (last_arg != nullptr && last_arg->Name() == node->GetFuncName()) {
+        // already processed
+        lambda_adjustment = 0;
+      }
+    } else {
+      GetErrorReporter()->Report(node->Position(), ErrorMessages::kNonFunction);
+      return;
+    }
   }
 
   // Check argument count matches
-  if (!CheckArgCount(node, func_type->GetNumParams())) {
+  const auto arg_count =
+      (struct_type != nullptr) ? func_type->GetNumParams() - lambda_adjustment : func_type->GetNumParams();
+  if (!CheckArgCount(node, arg_count)) {
     return;
   }
 
@@ -133,12 +155,80 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
     }
   }
 
+  if (struct_type != nullptr && lambda_adjustment > 0) {
+    node->PushArgument(GetContext()->GetNodeFactory()->NewIdentifierExpr(SourcePosition(), node->GetFuncName()));
+  }
+
   if (has_errors) {
     return;
   }
 
   // Looks good ...
   node->SetType(func_type->GetReturnType());
+}
+
+void Sema::VisitLambdaExpr(ast::LambdaExpr *node) {
+  auto factory = GetContext()->GetNodeFactory();
+
+  // Resolve the types necessary to get the type representation
+  // used to implement captures for closures produced by lambdas
+
+  // TODO(Kyle): We perform quite a bit of mutation here during
+  // semantic analysis because this is where we resolve the type
+  // of the captures for the closure produced by the lambda expression;
+  // in the future we might want to revisit this to determine if
+  // we can perform this resolution during AST construction instead.
+
+  util::RegionVector<ast::FieldDecl *> fields(GetContext()->GetRegion());
+  for (auto expr : node->GetCaptureIdents()) {
+    auto ident = expr->As<ast::IdentifierExpr>();
+    Resolve(ident);
+    if (ident->GetType()->SafeAs<ast::BuiltinType>() != nullptr) {
+      auto type_repr = factory->NewPointerType(
+          SourcePosition(),
+          factory->NewIdentifierExpr(
+              SourcePosition(),
+              GetContext()->GetIdentifier(
+                  ast::BuiltinType::Get(GetContext(), ident->GetType()->As<ast::BuiltinType>()->GetKind())
+                      ->GetTplName())));
+      fields.push_back(factory->NewFieldDecl(SourcePosition(), ident->Name(), type_repr));
+    } else {
+      util::RegionVector<ast::FieldDecl *> nested_fields{GetContext()->GetRegion()};
+      for (const auto &field : ident->GetType()->SafeAs<ast::StructType>()->GetFieldsWithoutPadding()) {
+        nested_fields.push_back(factory->NewFieldDecl(
+            SourcePosition(), field.name_,
+            factory->NewIdentifierExpr(
+                SourcePosition(),
+                GetContext()->GetIdentifier(
+                    ast::BuiltinType::Get(GetContext(), field.type_->As<ast::BuiltinType>()->GetKind())
+                        ->GetTplName()))));
+      }
+      auto *type_repr =
+          factory->NewPointerType(SourcePosition(), factory->NewStructType(SourcePosition(), std::move(nested_fields)));
+      fields.push_back(factory->NewFieldDecl(SourcePosition(), ident->Name(), type_repr));
+    }
+  }
+
+  fields.push_back(
+      factory->NewFieldDecl(SourcePosition(), GetContext()->GetIdentifier("function"),
+                            factory->NewPointerType(SourcePosition(), node->GetFunctionLiteralExpr()->TypeRepr())));
+
+  ast::StructTypeRepr *struct_type_repr = factory->NewStructType(SourcePosition(), std::move(fields));
+  ast::StructDecl *struct_decl = factory->NewStructDecl(
+      SourcePosition(), GetContext()->GetIdentifier("lambda" + std::to_string(node->Position().line_)),
+      struct_type_repr);
+  VisitStructDecl(struct_decl);
+  node->SetCaptureStructType(Resolve(struct_type_repr));
+  node->SetType(ast::LambdaType::Get(Resolve(node->GetFunctionLiteralExpr()->TypeRepr())->As<ast::FunctionType>()));
+
+  auto type = Resolve(node->GetFunctionLiteralExpr()->TypeRepr());
+  auto fn_type = type->As<ast::FunctionType>();
+  fn_type->GetParams().emplace_back(GetContext()->GetIdentifier("captures"),
+                                    GetBuiltinType(ast::BuiltinType::Kind::Int32)->PointerTo());
+  fn_type->SetIsLambda(true);
+  fn_type->SetCapturesType(node->GetCaptureStructType()->As<ast::StructType>());
+
+  VisitFunctionLitExpr(node->GetFunctionLiteralExpr());
 }
 
 void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
@@ -156,6 +246,15 @@ void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
 
   // The function scope
   FunctionSemaScope function_scope(this, node);
+
+  if (node->IsLambda()) {
+    auto &params = func_type->GetParams();
+    auto captures = params[params.size() - 1];
+    auto capture_type = captures.type_->As<ast::StructType>();
+    for (auto field : capture_type->GetFieldsWithoutPadding()) {
+      GetCurrentScope()->Declare(field.name_, field.type_->GetPointeeType()->ReferenceTo());
+    }
+  }
 
   // Declare function parameters in scope
   for (const auto &param : func_type->GetParams()) {
@@ -192,12 +291,18 @@ void Sema::VisitIdentifierExpr(ast::IdentifierExpr *node) {
     return;
   }
 
+  if (auto *type = GetCurrentScope()->Lookup(node->Name())) {
+    node->SetType(type);
+    return;
+  }
+
   // Error
   GetErrorReporter()->Report(node->Position(), ErrorMessages::kUndefinedVariable, node->Name());
 }
 
 void Sema::VisitImplicitCastExpr(ast::ImplicitCastExpr *node) {
-  throw std::runtime_error("Should never perform semantic checking on implicit cast expressions");
+  // TODO(Kyle): Why did we throw here before?
+  Visit(node->Input());
 }
 
 void Sema::VisitIndexExpr(ast::IndexExpr *node) {

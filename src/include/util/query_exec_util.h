@@ -11,6 +11,7 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/exec_defs.h"
+#include "execution/vm/execution_mode.h"
 #include "planner/plannodes/output_schema.h"
 
 namespace noisepage::transaction {
@@ -216,19 +217,38 @@ class QueryExecUtil {
   std::string GetError() { return error_msg_; }
 
  private:
+  /** Reset the error message stored by the instance */
   void ResetError();
+
+  /**
+   * Set the database OID.
+   * @param db_oid The database OID
+   */
   void SetDatabase(catalog::db_oid_t db_oid);
 
+  /** The transaction manager */
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  /** The catalog accessor */
   common::ManagedPointer<catalog::Catalog> catalog_;
+  /** The settings manager */
   common::ManagedPointer<settings::SettingsManager> settings_;
+  /** The statistics storage */
   common::ManagedPointer<optimizer::StatsStorage> stats_;
+
+  /** The timeout for query optimizatio */
   uint64_t optimizer_timeout_;
 
-  /** Database being accessed */
+  /** Idenditifer for the database being accessed */
   catalog::db_oid_t db_oid_{catalog::INVALID_DATABASE_OID};
+
+  /** `true` if the QueryExecUtil instance owns the transaction, `false` otherwise */
   bool own_txn_ = false;
+  /** The transaction context */
   transaction::TransactionContext *txn_ = nullptr;
+
+  /** The query execution mode */
+  // TODO(Kyle): Need a way to not just hard-code this value
+  execution::vm::ExecutionMode execution_mode_{execution::vm::ExecutionMode::Interpret};
 
   /**
    * Information about cached executable queries
@@ -237,9 +257,7 @@ class QueryExecUtil {
   std::unordered_map<std::string, std::unique_ptr<planner::OutputSchema>> schemas_;
   std::unordered_map<std::string, std::unique_ptr<execution::compiler::ExecutableQuery>> exec_queries_;
 
-  /**
-   * Stores the most recently encountered error.
-   */
+  /** Stores the most recently encountered error */
   std::string error_msg_;
 };
 
