@@ -906,7 +906,7 @@ void PlanGenerator::Visit(const Update *op) {
     }
   }
 
-  std::unordered_set<std::string> update_column_names;
+  std::unordered_set<catalog::col_oid_t> update_column_oids;
 
   // Evaluate update expression and add to target list
   auto updates = op->GetUpdateClauses();
@@ -922,7 +922,7 @@ void PlanGenerator::Visit(const Update *op) {
     auto upd_value = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, update->GetUpdateValue()).release();
     builder.AddSetClause(std::make_pair(col_id, common::ManagedPointer(upd_value)));
 
-    update_column_names.insert(update->GetColumnName());
+    update_column_oids.insert(col_id);
     RegisterPointerCleanup<parser::AbstractExpression>(upd_value, true, true);
   }
 
@@ -931,8 +931,8 @@ void PlanGenerator::Visit(const Update *op) {
   // TODO(tanujnay112) can optimize if we stored updated column oids in the update nodes during binding
   // such that we didn't have to store string sets
   for (auto &cve : cves) {
-    if (update_column_names.find(cve.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName()) !=
-        update_column_names.end()) {
+    if (update_column_oids.find(cve.CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnOid()) !=
+        update_column_oids.end()) {
       indexed_update = true;
       break;
     }
