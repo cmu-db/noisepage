@@ -451,7 +451,7 @@ void BottomUpRewrite::Execute() {
         auto &new_expr = after[0];
         context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);
         PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false));
-        return;
+        break;
       }
     }
 
