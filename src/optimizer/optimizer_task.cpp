@@ -345,7 +345,7 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       // Can meet the requirement
       if (meet_requirement && cur_total_cost_ <= context_->GetCostUpperBound()) {
         // If the cost is smaller than the winner, update the context upper bound
-        context_->SetCostUpperBound(context_->GetCostUpperBound() - cur_total_cost_);
+        context_->SetCostUpperBound(cur_total_cost_);
         if (memo_enforced_expr != nullptr) {  // Enforcement takes place
           cur_group->SetExpressionCost(memo_enforced_expr, cur_total_cost_, context_->GetRequiredProperties()->Copy());
         } else if (output_prop->Properties().size() != context_->GetRequiredProperties()->Properties().size()) {
